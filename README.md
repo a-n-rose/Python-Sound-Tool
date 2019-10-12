@@ -7,7 +7,7 @@ Note: for adjusting sound files, **apply only to copies of the originals**. Impr
 ## Functionality
 
 * <a href= "https://github.com/a-n-rose/Python-Sound-Tool#visualization">Visualize signals</a>
-* <a href="https://github.com/a-n-rose/Python-Sound-Tool#frequency-domain">Visualize Signals</a">Visualize feature extraction</a> (i.e. for machine and deep learning)
+* <a href="https://github.com/a-n-rose/Python-Sound-Tool#frequency-domain">Visualize feature extraction</a> (i.e. for machine and deep learning)
 * <a href="https://github.com/a-n-rose/Python-Sound-Tool#sound-creation">Sound creation</a>
 * <a href="https://github.com/a-n-rose/Python-Sound-Tool#filtering">Filtering</a>
 * <a href="https://github.com/a-n-rose/Python-Sound-Tool#noisy-sound-file">Sound manipulation</a> (e.g. adding sounds)
