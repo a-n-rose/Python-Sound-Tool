@@ -264,23 +264,50 @@ def stereo2mono(data):
         data_mono = np.take(data,0,axis=-1) 
     return data_mono
 
-def add_sound_to_signal(target_filename, sound2add_filename, scale=1, delay_target_sec = 1):
+def add_sound_to_signal(signal, sound, scale=1, delay_target_sec = 1, total_len_sec=None):
     '''Adds a sound (i.e. background noise) to a target signal 
+    
+    Parameters
+    ----------
+    signal : str 
+        Sound file of the target sound
+    sound : str 
+        Sound file of the background noise or sound
+    scale : int or float, optional
+        The loudness of the sound to be added (default 1)
+    delay_target_sec : int or float, optional
+        Length of time in seconds the sound will be played before the target
+        (default 1)
+    total_len_sec : int or float, optional
+        Total length of combined sound in seconds. If none, the sound will end
+        after target sound ends (default None)
+    
+    Returns
+    -------
+    combined : numpy.ndarray
+        The samples of the sounds added together
+    sr : int 
+        The sample rate of the samples
     '''
-    target, sr = loadsound(target_filename)
-    sound2add, sr2 = loadsound(sound2add_filename)
+    target, sr = loadsound(signal)
+    sound2add, sr2 = loadsound(sound)
     if sr != sr2:
         sound2add, sr = resample_audio(sound2add, sr2, sr)
     sound2add *= scale
+    if total_len_sec:
+        total_samps = int(sr*total_len_sec)
+    else:
+        total_samps = int(sr*(len(target)+delay_target_sec))
+    if len(sound2add) < total_samps:
+        sound2add = extend_sound(sound2add, total_samps)
     beginning_delay = sound2add[:int(sr*delay_target_sec)]
-    sound2add = sound2add[int(sr*delay_target_sec):]
-    if len(sound2add) < len(target):
-        sound2add2 = extend_sound(sound2add, len(target))
-    sound2add2 = sound2add[:len(target)]
-    assert len(sound2add2) == len(target)
-    combined = sound2add2 + target
+    noise2mix = sound2add[int(sr*delay_target_sec):len(target)+int(sr*delay_target_sec)]
+    ending = sound2add[len(target)+int(sr*delay_target_sec):total_samps]
+    combined = noise2mix + target
     if delay_target_sec:
         combined = np.concatenate((beginning_delay,combined))
+    if total_len_sec:
+        combined = np.concatenate((combined, ending))
     return combined, sr
 
 def extend_sound(data, target_len):
@@ -289,12 +316,17 @@ def extend_sound(data, target_len):
     This is perhaps useful when working with repetitive or
     stationary sounds.
     '''
-    diff = target_len - len(data)
-    while len(data) < target_len:
-        data = np.concatenate((data,data))
-    data = data[:target_len]
-    assert len(data) == target_len
-    return data
+    new_data = np.zeros((target_len,))
+    row_id = 0
+    while row_id < len(new_data):
+        if row_id + len(data) > len(new_data):
+            diff = row_id + len(data) - len(new_data)
+            new_data[row_id:] += data[:-diff]
+        else:
+            new_data[row_id:row_id+len(data)] += data
+            row_id += len(data)
+    return new_data
+
 
 def zeropad_sound(data, target_len, sr, delay_sec=1):
     '''If the sound data needs to be a certain length, zero pad it.
