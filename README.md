@@ -4,6 +4,8 @@ This project stemmed from the Prototype Fund project <a href="https://github.com
 
 Note: for adjusting sound files, **apply only to copies of the originals**. Improvements need to be made to ensure files don't get overwritten except explicitly indicated. 
 
+You can use some of the tools availabe here in my Jupyter notebooks. You can check them out here on <a href="https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master">Binder</a>
+
 # Installation
 
 This repository serves as a place to explore sound. Therefore, small sound datasets are included in this repo. The size is appx. 30-40MB. If you clone this repo, this sound data will be cloned as well.
