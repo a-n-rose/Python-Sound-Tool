@@ -59,42 +59,82 @@ Install and run ipython:
 
 ## Visualization
 
-### Time Domain
+### "Python": Time Domain
 
 ```
 >>> exsound.visualize_signal('./audiodata/python.wav')
 ```
 ![Imgur](https://i.imgur.com/pz0MHui.png)
 
-### Frequency Domain
+### "Python": Frequency Domain
 
-#### Mel Frequency Cepstral Coefficients
+The mel frequecy cepstral coefficients (MFCCs) and log-mel filterbank energies (FBANK) are two very common acoustic features used in machine and deep learning.
+
+Let's take a look and see how the word "python" looks when these features are extracted and also how window settings influence the features.
+
+#### MFCC: 
+
+##### window 20 ms, window overlap 10 ms (default)
 
 ```
 >>> exsound.visualize_feats('./audiodata/python.wav', features='mfcc')
 ```
 ![Imgur](https://i.imgur.com/hx94jeQ.png)
 
-#### Log-Mel Filterbank Energies
+##### window 100 ms, window overlap 50 ms
+
+```
+>>> exsound.visualize_feats('./audiodata/python.wav', features='mfcc',
+                            win_size_ms = 100, win_shift_ms = 50)
+```
+![Imgur](https://i.imgur.com/XY2rGQj.png)
+
+
+#### FBANK: 
+
+##### window 20 ms, window overlap 10 ms (default)
 ```
 >>> exsound.visualize_feats('./audiodata/python.wav', features='fbank')
 ```
 ![Imgur](https://i.imgur.com/7CroE1i.png)
 
+##### window 100 ms, window overlap 50 ms 
+
+```
+>>> exsound.visualize_feats('./audiodata/python.wav', features='fbank',
+                            win_size_ms = 100, win_shift_ms = 50)
+```
+![Imgur](https://i.imgur.com/r3jVPdB.png)
+
 ## Sound Creation
 
 ```
->>> data, sr = exsound.create_signal(freq=500, amplitude=0.5, samplerate=8000, dur_sec=1)
->>> exsound.visualize_signal(data, samplerate=sr)
+>>> data, sr = exsound.create_signal(freq=500, amplitude=0.5, samplerate=8000, dur_sec=0.2)
+>>> data2, sr = exsound.create_signal(freq=1200, amplitude=0.9, samplerate=8000, dur_sec=0.2)
+>>> data3, sr = exsound.create_signal(freq=200, amplitude=0.3, samplerate=8000, dur_sec=0.2)
+>>> data_mixed = data + data2 + data3
+>>> exsound.visualize_signal(data_mixed, samplerate=sr)
 ```
-![Imgur](https://i.imgur.com/qvWPrQu.png)
+![Imgur](https://i.imgur.com/UYU0Ft0.png)
+
+Mixed with noise:
+```
+>>> noise = exsound.create_noise(len(data_mixed), amplitude=0.1)
+>>> data_noisy = data_mixed + noise
+>>> exsound.visualize_signal(data_noisy, samplerate = sr)
+```
+![Imgur](https://i.imgur.com/ZvyAdUZ.png)
+
+In the time domain, it is difficult to see the three different signals at all...
 
 ```
->>> exsound.visualize_feats(data, samplerate=sr, features='fbank')
+>>> exsound.visualize_feats(data_noisy, samplerate=sr, features='fbank')
 ```
-![Imgur](https://i.imgur.com/HcjNHLH.png)
+![Imgur](https://i.imgur.com/RaDhEfq.png)
 
-I am working on improving the x and y labels... I am used to using <a href="https://librosa.github.io/librosa/generated/librosa.display.specshow.html">Librosa.display.spechow</a> which did make this a bit easier... 
+In the frequency domain, you can see that there are distinct frequencies in the signal, approximately 3.
+
+Note: I am working on improving the x and y labels... I am used to using <a href="https://librosa.github.io/librosa/generated/librosa.display.specshow.html">Librosa.display.spechow</a> which did make this a bit easier... 
 
 ## Sound File Prep
 
@@ -140,9 +180,71 @@ Converting file to .wav
 Saved file as audiodata/traffic.wav 
 ```
 
+## Adding sounds
+
+### Long background sound
+
+Here we will add traffic background noise to the speech segment 'python'.
+
+'python':
+```
+>>> python, sr = soundprep.loadsound('./audiodata/python.wav')
+>>> exsound.visualize_signal(python, samplerate=sr)
+```
+![Imgur](https://i.imgur.com/pz0MHui.png)
+
+traffic background noise:
+```
+>>> traffic, sr = soundprep.loadsound('./audiodata/traffic.aiff')
+Step 1: ensure filetype is compatible with scipy library
+Success!
+>>> exsound.visualize_signal(traffic, samplerate=sr)
+```
+![Imgur](https://i.imgur.com/rFn3x2Y.png)
+
+Combining them: 
+* noise/sound to a scale of 0.3
+* 1 second delay for the speech
+* total length: 5 seconds
+```
+>>> python_traffic, sr = soundprep.add_sound_to_signal(
+                                signal = './audiodata/python.wav',
+                                sound = './audiodata/traffic.aiff',
+                                scale = 0.3,
+                                delay_target_sec = 1,
+                                total_len_sec = 5)
+>>> exsound.visualize_signal(python_traffic, samplerate=sr)
+```
+![Imgur](https://i.imgur.com/z4E2HSj.png)
+
+### Short background sound
+
+rain background noise:
+```
+>>> rain, sr = soundprep.loadsound('./audiodata/rain.wav')
+>>> exsound.visualize_signal(rain, samplerate=sr)
+```
+![Imgur](https://i.imgur.com/kmmwZta.png)
+
+This sound will be repeated to match the desired background noise length
+Note: sometimes artifacts can occur and may need additional processing. Longer
+background noises are more ideal.
+```
+>>> python_rain, sr = soundprep.add_sound_to_signal(
+                                signal = './audiodata/python.wav',
+                                sound = './audiodata/rain.wav',
+                                scale = 0.3,
+                                delay_target_sec = 1,
+                                total_len_sec = 5)
+>>> exsound.visualize_signal(python_rain, samplerate=sr)
+```
+![Imgur](https://i.imgur.com/BbdbDyu.png)
+
 ## Filtering 
 
 NOTE: only .wav files of bit depth 16 or 32 can currently be used. See subsection <a href="https://github.com/a-n-rose/Python-Sound-Tool#convert-soundfiles-for-use-with-scipyiowavfile">'Convert Soundfiles for use with scipy.io.wavfile'</a>
+
+For visuals, we will look at the sound as their FBANK features.
 
 ### Noisy sound file
 
@@ -151,23 +253,29 @@ Add 'python' speech segment and traffic noise to create noisy speech. Save as .w
 >>> from scipy.io.wavfile import write
 >>> speech = './audiodata/python.wav'
 >>> noise = './audiodata/traffic.aiff'
->>> data_noisy, samplerate = soundprep.add_sound_to_signal(speech, noise, delay_target_sec=1, scale = 0.1)
+>>> data_noisy, samplerate = soundprep.add_sound_to_signal(speech, noise, delay_target_sec=1, scale = 0.3, total_len_sec=5)
 >>> noisy_speech_filename = './audiodata/python_traffic.wav'
->>> write('./audiodata/python_traffic.wav', samplerate, data_noisy)
+>>> write(noisy_speech_filename, samplerate, data_noisy)
+>>> exsound.visualize_feats(noisy_speech_filename, feature_type='fbank')
 ```
+![Imgur](https://i.imgur.com/9G10mdb.png)
+
 Then filter the traffic out:
 ```
 >>> pyst.filtersignal(output_filename = 'python_traffic_filtered.wav',
                     wavfile = noisy_speech_filename,
-                    scale = 1) # how strong the filter should be
+                    scale = 1.5) # how strong the filter should be
 ```
+![Imgur](https://i.imgur.com/TrwKJ4j.png)
+
 If there is some distortion in the signal, try a post filter:
 ```
 >>> pyst.filtersignal(output_filename = 'python_traffic_filtered_postfilter.wav',
                     wavfile = noisy_speech_filename,
-                    scale = 1,
+                    scale = 1.5,
                     apply_postfilter = True) # how strong the filter should be
 ```
+![Imgur](https://i.imgur.com/AwontYt.png)
 
 ## Convolutional Neural Network: Simple sound classification
 
