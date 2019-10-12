@@ -7,10 +7,10 @@ Note: for adjusting sound files, **apply only to copies of the originals**. Impr
 ## Functionality
 
 * <a href= "https://github.com/a-n-rose/Python-Sound-Tool#visualization">Visualize signals</a>
-* <a href="https://github.com/a-n-rose/Python-Sound-Tool#frequency-domain">Visualize feature extraction</a> (i.e. for machine and deep learning)
+* <a href="https://github.com/a-n-rose/Python-Sound-Tool#python-frequency-domain">Visualize feature extraction</a> (i.e. for machine and deep learning)
 * <a href="https://github.com/a-n-rose/Python-Sound-Tool#sound-creation">Sound creation</a>
+* <a href="https://github.com/a-n-rose/Python-Sound-Tool#adding-sounds">Sound manipulation</a> (e.g. adding sounds)
 * <a href="https://github.com/a-n-rose/Python-Sound-Tool#filtering">Filtering</a>
-* <a href="https://github.com/a-n-rose/Python-Sound-Tool#noisy-sound-file">Sound manipulation</a> (e.g. adding sounds)
 * <a href="https://github.com/a-n-rose/Python-Sound-Tool#convolutional-neural-network-simple-sound-classification">Machine Learning</a> (i.e. Convolutional Neural Network)
 * <a href="https://github.com/a-n-rose/Python-Sound-Tool#sound-file-prep">Sound data adjustment</a> (e.g. file type, bit depth, etc.). This is useful if you would like to use new sound files with these tools but that aren't compatible with scipy.io.wavfile (a Jupyter environment friendly module).
 
@@ -272,8 +272,8 @@ If there is some distortion in the signal, try a post filter:
 ```
 >>> pyst.filtersignal(output_filename = 'python_traffic_filtered_postfilter.wav',
                     wavfile = noisy_speech_filename,
-                    scale = 1.5,
-                    apply_postfilter = True) # how strong the filter should be
+                    scale = 1.5, # how strong the filter should be
+                    apply_postfilter = True) 
 ```
 ![Imgur](https://i.imgur.com/AwontYt.png)
 
