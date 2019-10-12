@@ -1,2 +1,4 @@
 env/
 __pycache__/
+audiodata/
+saved_features_and_models/
