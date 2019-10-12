@@ -56,7 +56,7 @@ def noisefilter(filter_project_name,
                            max_vol = max_vol)
         return None
 
-def soundclassifer(classifer_project_name, 
+def soundclassifier(classifier_project_name, 
                     headpath,
                     target_wavfile = None, 
                     audiodir = None,
@@ -66,7 +66,7 @@ def soundclassifer(classifer_project_name,
     '''
     import pysoundtool as pyst
     #extract data
-    my_project = pyst.PathSetup(classifer_project_name,
+    my_project = pyst.PathSetup(classifier_project_name,
                             headpath,
                             audiodir,
                             feature_type = feature_type)
@@ -92,7 +92,7 @@ def soundclassifer(classifer_project_name,
     if my_project.model is not None \
             and feat_dir in str(my_project.model.parts[-3]):
         print('\nLoading previously trained classifier.')
-        classifer_class = pyst.models.loadclassifier(my_project)
+        classifier_class = pyst.models.loadclassifier(my_project)
     else:
         print('\nNow training classifier with train, val, test datasets.')
         # check for file conflicts
@@ -100,12 +100,12 @@ def soundclassifer(classifer_project_name,
         if no_conflicts == False:
             raise FileExistsError('Program cannot run.\
                 \nMove the conflicting files or change project name.')
-        classifer_class = pyst.models.buildclassifier(my_project)
+        classifier_class = pyst.models.buildclassifier(my_project)
     
     if target_wavfile:
         classify = pyst.models.ClassifySound(target_wavfile, 
                                               my_project, 
                                               feats_class, 
-                                              classifer_class)
+                                              classifier_class)
         label, label_encoded = classify.get_label()
         print('\nLabel classified: ', label)

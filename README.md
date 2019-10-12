@@ -47,7 +47,7 @@ Install and run ipython:
 >>> import pysoundtool.explore_sound as exsound 
 >>> import pysoundtool.prepsound as prepsound
 >>> import pysoundtool as pyst 
->>> from pysoundtool.templates import soundclassifer
+>>> from pysoundtool.templates import soundclassifier
 >>> from scipy.io.wavfile import write
 ```
 
@@ -168,11 +168,11 @@ If there is some distortion in the signal, try a post filter:
 NOTE: only .wav files of bit depth 16 or 32 can currently be used. See subsection <a href="https://github.com/a-n-rose/Python-Sound-Tool#convert-soundfiles-for-use-with-scipyiowavfile">'Convert Soundfiles for use with scipy.io.wavfile'</a>
 
 ```
->>> from pysoundtool.templates import soundclassifer
+>>> from pysoundtool.templates import soundclassifier
 >>> project_name = 'test_backgroundnoise_classifier'
 >>> headpath = 'saved_features_and_models'
 >>> audio_classes_dir = './audiodata/minidatasets/background_noise/'
->>> soundclassifer(project_name,
+>>> soundclassifier(project_name,
                 headpath,
                 audiodir = audio_classes_dir,
                 feature_type = 'mfcc',
