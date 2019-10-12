@@ -33,10 +33,8 @@ def load_signal(wav, sampling_rate=48000, dur_sec=None):
     '''Loads wavfile, resamples if necessary, and normalizes signal.
     '''
     sr, samps = read(wav)
-    num_channels = len(samps.shape)
-    if num_channels > 1:
-        raise ValueError('Stereo wavfile loaded.\
-            \nCan only process mono wavfiles as of now.')
+    if len(samps.shape) > 1:
+        samps = np.take(samps,0,axis=-1) 
     if sr != sampling_rate:
         samps, sr = resample_audio(samps, sr, sampling_rate)
     if dur_sec:
