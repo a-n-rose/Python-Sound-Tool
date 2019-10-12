@@ -2,7 +2,9 @@
 
 This project stemmed from the Prototype Fund project <a href="https://github.com/pgys/NoIze">NoIze</a>. This fork broadens the application of the software from smart noise filtering to general sound analysis, filtering, visualization, preparation, etc. Therefore the name has been adapted to more general sound functionality.
 
-Note: for adjusting sound files, **apply only to copies of the originals**. Improvements need to be made to ensure files don't get overwritten except explicitly indicated. 
+Note1: for adjusting sound files, **apply only to copies of the originals**. Improvements need to be made to ensure files don't get overwritten except explicitly indicated. 
+
+Note2: 
 
 # Installation
 
@@ -37,32 +39,145 @@ Then install necessary installations via pip:
 
 # Examples (in-the-works)
 
-On my TODO list..
+You can run the examples below using ipython or other python console, or python script.
+
+Install and run ipython:
+```
+(env)..$ pip install ipython
+(env)..$ ipython
+>>> # import what we need for the examples:
+>>> import pysoundtool.explore_sound as exsound 
+>>> import pysoundtool.prepsound as prepsound
+>>> import pysoundtool as pyst 
+>>> from pysoundtool.templates import soundclassifer
+>>> from scipy.io.wavfile import write
+```
 
 ## Visualization
 
-TBC
-
 ### Time Domain
 
-TBC
+```
+>>> exsound.visualize_signal('./audiodata/python.wav')
+```
+![Imgur](https://i.imgur.com/pz0MHui.png)
 
 ### Frequency Domain
 
-TBC
+#### Mel Frequency Cepstral Coefficients
+
+```
+>>> exsound.visualize_feats('./audiodata/python.wav', features='mfcc')
+```
+![Imgur](https://i.imgur.com/hx94jeQ.png)
+
+#### Log-Mel Filterbank Energies
+```
+>>> exsound.visualize_feats('./audiodata/python.wav', features='fbank')
+```
+![Imgur](https://i.imgur.com/7CroE1i.png)
 
 ## Sound Creation
 
-TBC
+```
+>>> data, sr = exsound.create_signal(freq=500, amplitude=0.5, samplerate=8000, dur_sec=1)
+>>> exsound.visualize_signal(data, samplerate=sr)
+```
+![Imgur](https://i.imgur.com/qvWPrQu.png)
+
+```
+>>> exsound.visualize_feats(data, samplerate=sr, features='fbank')
+```
+![Imgur](https://i.imgur.com/HcjNHLH.png)
+
+I am working on improving the x and y labels... I am used to using <a href="https://librosa.github.io/librosa/generated/librosa.display.specshow.html">Librosa.display.spechow</a> which did make this a bit easier... 
 
 ## Sound File Prep
 
-TBC
+### Convert to .wav file
 
-## Wiener filer
+```
+>>> newfilename = soundprep.convert2wav('./audiodata/traffic.aiff')
+>>> print(newfilename)
+audiodata/traffic.wav
+```
 
-TBC
+### Ensure sound data is mono channel
+
+```
+>>> from scipy.io.wavfile import read
+>>> sr, data = read('./audiodata/python.wav')
+>>> datamono = soundprep.stereo2mono(data) # if it is already, nothing will change
+>>> len(data) == sum(data==datamono)
+True
+>>> sr, data_2channel = read('./audiodata/dogbark_2channels.wav')
+>>> data_2channel.shape
+(18672, 2)
+>>> data_1channel = soundprep.stereo2mono(data_2channel)
+>>> data_1channel.shape
+(18672,)
+>>> data_2channel[:5]
+array([[208, 208],
+       [229, 229],
+       [315, 315],
+       [345, 345],
+       [347, 348]], dtype=int16)
+>>> data_1channel[:5]
+array([208, 229, 315, 345, 347], dtype=int16)
+```
+
+### Convert Soundfiles for use with scipy.io.wavfile
+
+As of now, the software uses scipy.io.wavfile, a compatible module for Jupyter environments. If you have files that are not compatible, this should save the file / sound data as a compatible state.
+
+```
+>>> newfilename = soundprep.prep4scipywavfile('./audiodata/traffic.aiff')
+Converting file to .wav
+Saved file as audiodata/traffic.wav 
+```
+
+## Filtering
+
+### Noisy sound file
+
+Add 'python' speech segment and traffic noise to create noisy speech. Save as .wav file.
+```
+>>> from scipy.io.wavfile import write
+>>> speech = './audiodata/python.wav'
+>>> noise = './audiodata/traffic.aiff'
+>>> data_noisy, samplerate = soundprep.add_sound_to_signal(speech, noise, delay_target_sec=1, scale = 0.1)
+>>> noisy_speech_filename = './audiodata/python_traffic.wav'
+>>> write('./audiodata/python_traffic.wav', samplerate, data_noisy)
+```
+Then filter the traffic out:
+```
+>>> pyst.filtersignal(output_filename = 'python_traffic_filtered.wav',
+                    wavfile = noisy_speech_filename,
+                    scale = 1) # how strong the filter should be
+```
+If there is some distortion in the signal, try a post filter:
+```
+>>> pyst.filtersignal(output_filename = 'python_traffic_filtered_postfilter.wav',
+                    wavfile = noisy_speech_filename,
+                    scale = 1,
+                    apply_postfilter = True) # how strong the filter should be
+```
 
 ## Convolutional Neural Network: Simple sound classification
 
-TBC
+
+```
+>>> from pysoundtool.templates import soundclassifer
+>>> project_name = 'test_backgroundnoise_classifier'
+>>> headpath = 'saved_features_and_models'
+>>> audio_classes_dir = './audiodata/minidatasets/background_noise/'
+>>> soundclassifer(project_name,
+                headpath,
+                audiodir = audio_classes_dir,
+                feature_type = 'mfcc',
+                target_wavfile = './audiodata/rain.wav')
+```
+Some model training stuff should print out... and at the end a label the sound was classified as:
+```
+Label classified:  cafe
+```
