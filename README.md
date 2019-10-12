@@ -4,7 +4,9 @@ This project stemmed from the Prototype Fund project <a href="https://github.com
 
 Note: for adjusting sound files, **apply only to copies of the originals**. Improvements need to be made to ensure files don't get overwritten except explicitly indicated. 
 
-You can use some of the tools availabe here in my Jupyter notebooks. You can check them out here on <a href="https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master">Binder</a>
+## Jupyter notebooks
+
+You can use some of the tools availabe here in my Jupyter notebooks. You can check them out here on <a href="https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master">Binder</a>. As I do include some audio data, it may take a couple of minutes to load..
 
 # Installation
 
