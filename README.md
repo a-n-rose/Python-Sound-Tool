@@ -2,9 +2,7 @@
 
 This project stemmed from the Prototype Fund project <a href="https://github.com/pgys/NoIze">NoIze</a>. This fork broadens the application of the software from smart noise filtering to general sound analysis, filtering, visualization, preparation, etc. Therefore the name has been adapted to more general sound functionality.
 
-Note1: for adjusting sound files, **apply only to copies of the originals**. Improvements need to be made to ensure files don't get overwritten except explicitly indicated. 
-
-Note2: 
+Note: for adjusting sound files, **apply only to copies of the originals**. Improvements need to be made to ensure files don't get overwritten except explicitly indicated. 
 
 # Installation
 
@@ -27,7 +25,7 @@ Then install necessary installations via pip:
 # ToDo
 
 * **Ensure** files cannot be overwritten unless explicitly indicated
-* Expand sound file compatibility: the software is JupyterLab/ notebook friendly but can only handle mono channel .wav files with 16 or 32 bitdepth
+* Expand sound file compatibility: the software is JupyterLab/ notebook friendly but can only handle .wav files with 16 or 32 bitdepth
 * Improve accessibility of Jupyter Notebooks (currently available on <a href="https://notebooks.ai/a-n-rose">notebooks.ai</a>)
 * Error handling (especially of incompatible sound files)
 * Adding more filters
@@ -37,7 +35,7 @@ Then install necessary installations via pip:
 * Various platforms to store sample data (aside from Notebooks.ai)
 * General speed and efficiency
 
-# Examples (in-the-works)
+# Examples 
 
 You can run the examples below using ipython or other python console, or python script.
 
@@ -136,7 +134,9 @@ Converting file to .wav
 Saved file as audiodata/traffic.wav 
 ```
 
-## Filtering
+## Filtering 
+
+NOTE: only .wav files of bit depth 16 or 32 can currently be used. See subsection <a href="https://github.com/a-n-rose/Python-Sound-Tool#convert-soundfiles-for-use-with-scipyiowavfile">'Convert Soundfiles for use with scipy.io.wavfile'</a>
 
 ### Noisy sound file
 
@@ -165,6 +165,7 @@ If there is some distortion in the signal, try a post filter:
 
 ## Convolutional Neural Network: Simple sound classification
 
+NOTE: only .wav files of bit depth 16 or 32 can currently be used. See subsection <a href="https://github.com/a-n-rose/Python-Sound-Tool#convert-soundfiles-for-use-with-scipyiowavfile">'Convert Soundfiles for use with scipy.io.wavfile'</a>
 
 ```
 >>> from pysoundtool.templates import soundclassifer
