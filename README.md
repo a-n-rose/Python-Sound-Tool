@@ -51,7 +51,7 @@ Install and run ipython:
 (env)..$ ipython
 >>> # import what we need for the examples:
 >>> import pysoundtool.explore_sound as exsound 
->>> import pysoundtool.prepsound as prepsound
+>>> import pysoundtool.soundprep as soundprep
 >>> import pysoundtool as pyst 
 >>> from pysoundtool.templates import soundclassifier
 >>> from scipy.io.wavfile import write
@@ -256,7 +256,7 @@ Add 'python' speech segment and traffic noise to create noisy speech. Save as .w
 >>> data_noisy, samplerate = soundprep.add_sound_to_signal(speech, noise, delay_target_sec=1, scale = 0.3, total_len_sec=5)
 >>> noisy_speech_filename = './audiodata/python_traffic.wav'
 >>> write(noisy_speech_filename, samplerate, data_noisy)
->>> exsound.visualize_feats(noisy_speech_filename, feature_type='fbank')
+>>> exsound.visualize_feats(noisy_speech_filename, features='fbank')
 ```
 ![Imgur](https://i.imgur.com/9G10mdb.png)
 
@@ -301,11 +301,11 @@ Label classified:  cafe
 
 * **Ensure** files cannot be overwritten unless explicitly indicated
 * Expand sound file compatibility: the software is JupyterLab/ notebook friendly but can only handle .wav files with 16 or 32 bitdepth
-* Improve accessibility of Jupyter Notebooks (currently available on <a href="https://notebooks.ai/a-n-rose">notebooks.ai</a>)
+* Improve accessibility of Jupyter Notebooks. Currently available on <a href="https://notebooks.ai/a-n-rose">notebooks.ai</a> (must have an account) and <a href="https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master">Binder</a>(due to audiodata a bit slow)
 * Error handling (especially of incompatible sound files)
 * Adding more filters
 * Adding more machine learning architectures
 * Add more options for visualizations (e.g. <a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform">stft features</a>)
 * Implement neural network with <a href="https://www.tensorflow.org/lite">TensorFlow Lite</a>
-* Various platforms to store sample data (aside from Notebooks.ai)
-* General speed and efficiency
+* Various platforms to store sample data (aside from Notebooks.ai and GitHub :P )
+* Increase general speed and efficiency
