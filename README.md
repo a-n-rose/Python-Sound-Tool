@@ -6,13 +6,13 @@ Note: for adjusting sound files, **apply only to copies of the originals**. Impr
 
 ## Functionality
 
-* <a href"https://github.com/a-n-rose/Python-Sound-Tool#visualization">Visualize signals</a>
-* <a href"* <a href"https://github.com/a-n-rose/Python-Sound-Tool#frequency-domain">Visualize Signals</a>">Visualize feature extraction</a> (i.e. for machine and deep learning)
-* <a href"https://github.com/a-n-rose/Python-Sound-Tool#sound-creation">Sound creation</a>
-* <a href"https://github.com/a-n-rose/Python-Sound-Tool#filtering">Filtering</a>
-* <a href"https://github.com/a-n-rose/Python-Sound-Tool#noisy-sound-file">Sound manipulation</a> (e.g. adding sounds)
-* <a href"https://github.com/a-n-rose/Python-Sound-Tool#convolutional-neural-network-simple-sound-classification">Machine Learning</a> (i.e. Convolutional Neural Network)
-* <a href"https://github.com/a-n-rose/Python-Sound-Tool#sound-file-prep">Sound data adjustment</a> (e.g. file type, bit depth, etc.). This is useful if you would like to use new sound files with these tools but that aren't compatible with scipy.io.wavfile (a Jupyter environment friendly module).
+* <a href= "https://github.com/a-n-rose/Python-Sound-Tool#visualization">Visualize signals</a>
+* <a href="https://github.com/a-n-rose/Python-Sound-Tool#frequency-domain">Visualize Signals</a">Visualize feature extraction</a> (i.e. for machine and deep learning)
+* <a href="https://github.com/a-n-rose/Python-Sound-Tool#sound-creation">Sound creation</a>
+* <a href="https://github.com/a-n-rose/Python-Sound-Tool#filtering">Filtering</a>
+* <a href="https://github.com/a-n-rose/Python-Sound-Tool#noisy-sound-file">Sound manipulation</a> (e.g. adding sounds)
+* <a href="https://github.com/a-n-rose/Python-Sound-Tool#convolutional-neural-network-simple-sound-classification">Machine Learning</a> (i.e. Convolutional Neural Network)
+* <a href="https://github.com/a-n-rose/Python-Sound-Tool#sound-file-prep">Sound data adjustment</a> (e.g. file type, bit depth, etc.). This is useful if you would like to use new sound files with these tools but that aren't compatible with scipy.io.wavfile (a Jupyter environment friendly module).
 
 ## Jupyter notebooks
 
