@@ -259,7 +259,9 @@ def stereo2mono(data):
     >>> data_mono[:5]
     array([0.        , 0.81632653, 1.63265306, 2.44897959, 3.26530612])
     '''
-    data_mono = np.take(data,0,axis=-1) 
+    data_mono = data.copy()
+    if len(data.shape) > 1 and data.shape[1] > 1:
+        data_mono = np.take(data,0,axis=-1) 
     return data_mono
 
 def add_sound_to_signal(target_filename, sound2add_filename, scale=1, delay_target_sec = 1):
