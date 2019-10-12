@@ -6,7 +6,7 @@ Note: for adjusting sound files, **apply only to copies of the originals**. Impr
 
 ## Jupyter notebooks
 
-You can use some of the tools availabe here in my Jupyter notebooks. You can check them out here on <a href="https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master">Binder</a>. As I do include some audio data, it may take a couple of minutes to load..
+You can use some of the tools availabe here in my Jupyter notebooks. You can check them out here on <a href="https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master">Binder</a>. As I do include some audio data, it may take a couple of minutes to load.. 
 
 # Installation
 
@@ -25,19 +25,11 @@ Then install necessary installations via pip:
 ```
 (env)..$ pip install -r requirements.txt
 ```
-
-# ToDo
-
-* **Ensure** files cannot be overwritten unless explicitly indicated
-* Expand sound file compatibility: the software is JupyterLab/ notebook friendly but can only handle .wav files with 16 or 32 bitdepth
-* Improve accessibility of Jupyter Notebooks (currently available on <a href="https://notebooks.ai/a-n-rose">notebooks.ai</a>)
-* Error handling (especially of incompatible sound files)
-* Adding more filters
-* Adding more machine learning architectures
-* Add more options for visualizations (e.g. <a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform">stft features</a>)
-* Implement neural network with <a href="https://www.tensorflow.org/lite">TensorFlow Lite</a>
-* Various platforms to store sample data (aside from Notebooks.ai)
-* General speed and efficiency
+Feel free to use this tool in your own scripts (I show examples below). You can also explore *some* of its functionality via jupyter notebook:
+```
+(env)..$ jupyter notebook
+```
+Once this loads, click on the folder 'jupyternotebooks', and then on one of the .ipynb files.
 
 # Examples 
 
@@ -186,3 +178,16 @@ Some model training stuff should print out... and at the end a label the sound w
 ```
 Label classified:  cafe
 ```
+
+# ToDo
+
+* **Ensure** files cannot be overwritten unless explicitly indicated
+* Expand sound file compatibility: the software is JupyterLab/ notebook friendly but can only handle .wav files with 16 or 32 bitdepth
+* Improve accessibility of Jupyter Notebooks (currently available on <a href="https://notebooks.ai/a-n-rose">notebooks.ai</a>)
+* Error handling (especially of incompatible sound files)
+* Adding more filters
+* Adding more machine learning architectures
+* Add more options for visualizations (e.g. <a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform">stft features</a>)
+* Implement neural network with <a href="https://www.tensorflow.org/lite">TensorFlow Lite</a>
+* Various platforms to store sample data (aside from Notebooks.ai)
+* General speed and efficiency
