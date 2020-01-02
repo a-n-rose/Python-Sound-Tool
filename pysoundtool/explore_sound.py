@@ -20,7 +20,7 @@ def create_signal(freq=200, amplitude=0.4, samplerate=8000, dur_sec=0.25):
 
 def get_time_points(dur_sec,samplerate):
     #duration in seconds multiplied by the sampling rate. 
-    time = np.linspace(0, dur_sec, np.floor(dur_sec*samplerate))
+    time = np.linspace(0, dur_sec, int(dur_sec*samplerate))
     return time
 
 def create_noise(num_samples, amplitude=0.025, random_seed=None):
