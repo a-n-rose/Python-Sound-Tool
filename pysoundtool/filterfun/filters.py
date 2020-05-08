@@ -635,23 +635,23 @@ class Filter:
                 sys.exit()
             self.bins_per_band = self.frame_length//self.num_bands
                 
-            low_bins = np.zeros((self.num_bands,))
-            high_bins = np.zeros((self.num_bands,))
+            band_start_index = np.zeros((self.num_bands,))
+            band_end_index = np.zeros((self.num_bands,))
             try:
                 for i in range(self.num_bands):
                     
-                    low_bins[i] = int(i*self.bins_per_band)
-                    high_bins[i] = int(low_bins[i] + self.bins_per_band)
+                    band_start_index[i] = int(i*self.bins_per_band)
+                    band_end_index[i] = int(band_start_index[i] + self.bins_per_band)
             except TypeError:
-                print(low_bins[i] + self.bins_per_band-1)
+                print(band_start_index[i] + self.bins_per_band-1)
                 sys.exit()
         elif 'log' in self.band_spacing.lower():
             pass
         elif 'mel' in self.band_spacing.lower():
             pass
         
-        self.low_bins = low_bins
-        self.high_bins = high_bins
+        self.band_start_index = band_start_index
+        self.band_end_index = band_end_index
         
         return None
     
@@ -671,8 +671,8 @@ class Filter:
         '''
         snr_bands = np.zeros((self.num_bands,))
         for band in range(self.num_bands):
-            start_bin = int(self.low_bins[band])
-            stop_bin = int(self.high_bins[band])
+            start_bin = int(self.band_start_index[band])
+            stop_bin = int(self.band_end_index[band])
             numerator = sum(target_powspec[start_bin:stop_bin])
             denominator = sum(noise_powspec[start_bin:stop_bin])
             snr_bands[band] += 10*np.log10(numerator/denominator)
@@ -705,8 +705,8 @@ class Filter:
     def calc_relevant_band(self,target_powspec):
         band_power = np.zeros(self.num_bands)
         for band in range(self.num_bands):
-            start_bin = int(self.low_bins[band])
-            end_bin = int(self.high_bins[band])
+            start_bin = int(self.band_start_index[band])
+            end_bin = int(self.band_end_index[band])
             target_band = target_powspec[start_bin:end_bin]
             band_power[band] += sum(target_band)
         rel_band = np.argmax(band_power)
@@ -736,9 +736,9 @@ class Filter:
         sub_signal = np.zeros((self.num_bands*self.bins_per_band,1))
         section = 0
         for band in range(self.num_bands):
-            start_bin = int(self.low_bins[band])
+            start_bin = int(self.band_start_index[band])
             #print("start bin: ", start_bin)
-            end_bin = int(self.high_bins[band])
+            end_bin = int(self.band_end_index[band])
             #print("end bin: ", end_bin)
             target_band = target_powspec[start_bin:end_bin]
             #print(target_band.shape)
