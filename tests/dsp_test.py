@@ -18,3 +18,13 @@ def test_calc_phase():
     value1 = np.array([0.67324134+0.73942281j, 0.79544405+0.60602703j])
     assert np.allclose(value1, phase)
     
+
+def test_calc_phase_framelength10():
+    frame_length = 10
+    time = np.arange(0, 10, 0.1)
+    signal = np.sin(time)[:frame_length]
+    fft_vals = np.fft.fft(signal)
+    phase = dsp.calc_phase(fft_vals)
+    value1 = np.array([ 1.        +0.j,         -0.37872566+0.92550898j])
+    assert np.allclose(value1, phase[:2])
+    
