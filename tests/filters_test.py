@@ -53,13 +53,13 @@ def test_setup_bands_frameduration500ms():
     
 def test_update_posteri_bands_noisy():
     noise_max = 0.3
-    fil = pyst.Filter(num_bands = 4)
+    fil = pyst.Filter(num_bands = 3)
     fil.setup_bands()
     time = np.arange(0, 10, 0.01)
     signal = np.sin(time)[:fil.frame_length]
     noise = np.random.normal(np.mean(signal),
                              np.mean(signal)+noise_max,
-                             960)
+                             fil.frame_length)
     powspec = np.abs(np.fft.fft(signal))**2
     powspec_noisy = np.abs(np.fft.fft(signal + noise))**2
     fil.update_posteri_bands(powspec, powspec_noisy)
@@ -76,7 +76,7 @@ def test_update_posteri_bands_verynoisy():
     signal = np.sin(time)[:fil.frame_length]
     noise = np.random.normal(np.mean(signal),
                              np.mean(signal)+noise_max,
-                             960)
+                             fil.frame_length)
     powspec = np.abs(np.fft.fft(signal))**2
     powspec_noisy = np.abs(np.fft.fft(signal + noise))**2
     fil.update_posteri_bands(powspec, powspec_noisy)
@@ -95,3 +95,31 @@ def test_update_posteri_bands_nonoise():
     snr_bands = fil.snr_bands
     value1 = np.array([0., 0., 0.])
     assert np.allclose(value1, snr_bands)
+    
+def test_calc_oversub_factor_noisy():
+    noise_max = 0.3
+    fil = pyst.Filter(num_bands = 4)
+    fil.setup_bands()
+    time = np.arange(0, 10, 0.01)
+    signal = np.sin(time)[:fil.frame_length]
+    noise = np.random.normal(np.mean(signal),
+                             np.mean(signal)+noise_max,
+                             fil.frame_length)
+    powspec = np.abs(np.fft.fft(signal))**2
+    powspec_noisy = np.abs(np.fft.fft(signal + noise))**2
+    fil.update_posteri_bands(powspec, powspec_noisy)
+    a = fil.calc_oversub_factor()
+    value1 = np.array([4.33042222, 4.75,       4.75,       4.16179247])
+    assert np.allclose(value1, a)
+    
+def test_calc_oversub_factor_nonoise():
+    noise_max = 0.3
+    fil = pyst.Filter(num_bands = 4)
+    fil.setup_bands()
+    time = np.arange(0, 10, 0.01)
+    signal = np.sin(time)[:fil.frame_length]
+    powspec = np.abs(np.fft.fft(signal))**2
+    fil.update_posteri_bands(powspec, powspec)
+    a = fil.calc_oversub_factor()
+    value1 = np.array([4., 4., 4., 4.])
+    assert np.allclose(value1, a)
