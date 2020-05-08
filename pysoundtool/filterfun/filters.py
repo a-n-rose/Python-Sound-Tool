@@ -708,7 +708,8 @@ class Filter:
         return None
     
     def update_posteri_bands(self,target_powspec, noise_powspec):
-        '''
+        '''Updates SNR of each set of bands.
+        
         MATLAB code from speech enhancement book uses power, 
         puts it into magnitude (via square root), then puts
         it back into power..? And uses some sort of 'norm' function...
@@ -720,6 +721,26 @@ class Filter:
         Kamath, S. D. & Loizou, P. C. (____), A multi-band spectral subtraction method for enhancing speech corrupted by colored noise.
         
         I am using power for the time being. 
+        
+        Examples
+        --------
+        >>> import pysoundtool as pyst
+        >>> import numpy as np
+        >>> # setting to 4 bands for space:
+        >>> fil = pyst.Filter(num_bands=4)
+        >>> fil.setup_bands()
+        >>> # generate sine signal with and without noise
+        >>> time = np.arange(0, 10, 0.01)
+        >>> signal = np.sin(time)[:fil.frame_length]
+        >>> noise = np.random.normal(np.mean(signal),np.mean(signal)+0.3,960)
+        >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
+        >>> powerspec_noisy = np.abs(np.fft.fft(signal + noise))**2
+        >>> fil.update_posteri_bands(powerspec_clean, powerspec_noisy)
+        >>> fil.snr_bands
+        [ -2.16634315 -44.82425811 -44.81157068  -1.15580912]
+        >>> # compare with no noise in signal:
+        >>> fil.update_posteri_bands(powerspec_clean, powerspec_clean)
+        [0. 0. 0. 0.]
         '''
         snr_bands = np.zeros((self.num_bands,))
         for band in range(self.num_bands):
