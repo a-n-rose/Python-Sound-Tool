@@ -624,6 +624,39 @@ class Filter:
     
 
     def setup_bands(self):
+        '''Provides starting and ending frequncy bins for each band.
+        
+        Parameters
+        ----------
+        self : class
+            Contains variables `num_bands` (if None, set to 6) and `frame_length`
+            
+        Returns
+        -------
+        None
+            Sets the class variables `band_start_freq` and `band_end_freq`.
+            
+        Examples
+        --------
+        >>> import pysoundtool as pyst
+        >>> import numpy as np
+        >>> # Default is set to 6 bands:
+        >>> fil = pyst.Filter()
+        >>> fil.setup_bands()
+        >>> fil.band_start_freq
+        [  0. 160. 320. 480. 640. 800.]
+        >>> fil.band_end_freq
+        [160. 320. 480. 640. 800. 960.]
+        >>> # change default settings
+        >>> fil = pyst.Filter(num_bands=5)
+        >>> fil.setup_bands()
+        >>> fil.band_start_freq
+        [  0. 192. 384. 576. 768.]
+        >>> fil.band_end_freq
+        [192. 384. 576. 768. 960.]
+        '''
+        if self.num_bands is None:
+            self.num_bands = 6
         self.update_fft_length()
         if 'linear' in self.band_spacing.lower():
             
@@ -635,23 +668,23 @@ class Filter:
                 sys.exit()
             self.bins_per_band = self.frame_length//self.num_bands
                 
-            band_start_index = np.zeros((self.num_bands,))
-            band_end_index = np.zeros((self.num_bands,))
+            band_start_freq = np.zeros((self.num_bands,))
+            band_end_freq = np.zeros((self.num_bands,))
             try:
                 for i in range(self.num_bands):
                     
-                    band_start_index[i] = int(i*self.bins_per_band)
-                    band_end_index[i] = int(band_start_index[i] + self.bins_per_band)
+                    band_start_freq[i] = int(i*self.bins_per_band)
+                    band_end_freq[i] = int(band_start_freq[i] + self.bins_per_band)
             except TypeError:
-                print(band_start_index[i] + self.bins_per_band-1)
+                print(band_start_freq[i] + self.bins_per_band-1)
                 sys.exit()
         elif 'log' in self.band_spacing.lower():
             pass
         elif 'mel' in self.band_spacing.lower():
             pass
         
-        self.band_start_index = band_start_index
-        self.band_end_index = band_end_index
+        self.band_start_freq = band_start_freq
+        self.band_end_freq = band_end_freq
         
         return None
     
@@ -671,8 +704,8 @@ class Filter:
         '''
         snr_bands = np.zeros((self.num_bands,))
         for band in range(self.num_bands):
-            start_bin = int(self.band_start_index[band])
-            stop_bin = int(self.band_end_index[band])
+            start_bin = int(self.band_start_freq[band])
+            stop_bin = int(self.band_end_freq[band])
             numerator = sum(target_powspec[start_bin:stop_bin])
             denominator = sum(noise_powspec[start_bin:stop_bin])
             snr_bands[band] += 10*np.log10(numerator/denominator)
@@ -705,8 +738,8 @@ class Filter:
     def calc_relevant_band(self,target_powspec):
         band_power = np.zeros(self.num_bands)
         for band in range(self.num_bands):
-            start_bin = int(self.band_start_index[band])
-            end_bin = int(self.band_end_index[band])
+            start_bin = int(self.band_start_freq[band])
+            end_bin = int(self.band_end_freq[band])
             target_band = target_powspec[start_bin:end_bin]
             band_power[band] += sum(target_band)
         rel_band = np.argmax(band_power)
@@ -736,9 +769,9 @@ class Filter:
         sub_signal = np.zeros((self.num_bands*self.bins_per_band,1))
         section = 0
         for band in range(self.num_bands):
-            start_bin = int(self.band_start_index[band])
+            start_bin = int(self.band_start_freq[band])
             #print("start bin: ", start_bin)
-            end_bin = int(self.band_end_index[band])
+            end_bin = int(self.band_end_freq[band])
             #print("end bin: ", end_bin)
             target_band = target_powspec[start_bin:end_bin]
             #print(target_band.shape)
