@@ -1,3 +1,36 @@
+'''Useful code to copy and paste for documentation. Will remove at some point
+
+        Examples
+        --------
+        >>> 
+        >>> 
+        >>> 
+        >>> 
+        >>> 
+        >>> 
+        >>> 
+        >>> 
+        >>> 
+        >>> 
+        
+    Examples
+    --------
+    >>> 
+    >>> 
+    >>> 
+    >>> 
+    >>> 
+    >>> 
+    >>> 
+    >>> 
+    >>> 
+    >>> 
+'''
+
+
+
+
+
 #!/bin/bash
 # Copyright 2019 Peggy Sylopp und Aislyn Rose GbR
 # All rights reserved
@@ -587,32 +620,40 @@ class Filter:
         
         #Esch and Vary (2009) use convolution to adjust gain
         self.gain = np.convolve(self.gain,postfilter_coeffs,mode='valid')
-        
-        
         return None
         
     def calc_phase(self, fft_vals, normalization=False):
-        '''
+        '''Calculates phase on frame of fft values.
+        
         Parameters
         ----------
-        fft_vals : np.ndarray
-            matrix with fft values [size = (num_fft, )]
-            example (960, )
+        fft_vals : np.ndarray [shape=(frame_length,), dtype=complex]
+            FFT values for current frame. 
             
         Returns
         -------
-        phase : np.ndarray
-            Phase values for fft_vals [size = (num_fft,)]
-            example (960, )
+        phase : np.ndarray [shape=(frame_length,), dtype=complex]
+            Phase values (complex) of current frame.
+        
+        Examples
+        --------
+        >>> import pysoundtool as pyst
+        >>> import numpy as np
+        >>> # Using default settings for frame_length
+        >>> fil = pyst.Filter()
+        >>> # create random complex values to represent fft
+        >>> np.random.seed(seed=0)
+        >>> vals = fil.frame_length
+        >>> rand_fft = np.random.random(vals) + np.random.random(vals) * 1j
+        >>> phase = fil.calc_phase(rand_fft)
+        >>> rand_fft.shape
+        (960,)
+        >>> phase.shape
+        (960,)
+        >>> phase[:2]
+        [0.92813897+0.37223386j 0.7540883 +0.65677305j]
         '''
-        # in radians
-        #if normalization:
-            #phase = np.angle(fft_vals) / (self.frame_length * self.norm_win)
-        #else:
-            #phase = np.angle(fft_vals)
-        # not in radians
-        # calculates mag /power and phase (power=1 --> mag 2 --> power)
-        __, phase = librosa.magphase(fft_vals,power=2)
+        phase = pyst.dsp.calc_phase(fft_vals)
         return phase
     
     # TODO improve on this...
@@ -628,7 +669,6 @@ class Filter:
             #self.fft_bins = self.update_fft_length()
         return self.fft_bins
     
-
     def setup_bands(self):
         '''Provides starting and ending frequncy bins/indices for each band.
         

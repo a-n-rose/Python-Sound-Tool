@@ -27,6 +27,7 @@ from scipy.signal import hamming, hann, resample
 from scipy.io.wavfile import read
 from numpy.fft import fft, ifft
 from python_speech_features import logfbank, mfcc
+import librosa
 
 
 def load_signal(wav, sampling_rate=48000, dur_sec=None):
@@ -317,6 +318,38 @@ def calc_average_power(matrix, num_iters):
     for i in range(len(matrix)):
         matrix[i] /= num_iters
     return matrix
+
+def calc_phase(fft_matrix):
+    '''Calculates phase from complex fft values.
+    
+    Parameters
+    ----------
+    fft_vals : np.ndarray [shape=(d, t), dtype=complex]
+        matrix with fft values
+        
+    Returns
+    -------
+    phase : np.ndarray [shape=(d, t), dtype=complex]
+        Phase values for fft_vals 
+        
+    Examples
+    --------
+    >>> import numpy as np 
+    >>> np.random.seed(seed=0)
+    >>> rand_fft = np.random.random(2) + np.random.random(2) * 1j
+    >>> phase = calc_phase(rand_fft)
+    >>> phase
+    [0.67324134+0.73942281j 0.79544405+0.60602703j]
+    '''
+    # not in radians
+    # calculates mag /power and phase (power=1 --> mag 2 --> power)
+    __, phase = librosa.magphase(fft_matrix,power=2)
+    # in radians (had issues with own implementation)
+    #if normalization:
+        #phase = np.angle(fft_vals) / (self.frame_length * self.norm_win)
+    #else:
+        #phase = np.angle(fft_vals)
+    return phase
 
 def calc_posteri_snr(target_power_spec, noise_power_spec):
     """Calculates and updates signal to noise ratio of current frame
