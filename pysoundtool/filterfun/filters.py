@@ -619,6 +619,10 @@ class Filter:
     def update_fft_length(self):
         if self.frame_length % 2 == 0:
             self.frame_length = self.frame_length
+        else:
+            raise TypeError('Frame length must be an even number. '+ \
+                'Currently frame length {} is not acceptable.'.format(
+                    self.frame_length))
         #if self.fft_bins < self.frame_length:
             #self.fft_bins *= 2
             #self.fft_bins = self.update_fft_length()
