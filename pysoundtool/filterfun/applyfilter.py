@@ -28,7 +28,138 @@ parentdir = os.path.dirname(currentdir)
 packagedir = os.path.dirname(parentdir)
 sys.path.insert(0, packagedir)
 
+
+import sys
+import numpy as np
+from scipy.fftpack import fft, rfft, ifft, irfft
+from scipy.io import wavfile
+from scipy.signal import hamming, hanning
+import librosa
+import cmath
+
+
 import pysoundtool as pyst
+
+
+def apply_band_specsub(output_wave_name, 
+             target_wav, 
+             noise_wav=None, 
+             gain_type = 'power estimation',
+             window_type='hamming', 
+             sampling_rate = 48000,
+             apply_postfilter = False,
+             threshold=0.4,
+             scale=10,
+             vol_scale=400):
+    
+    fil = pyst.Filter(filter_type='spectral subtraction',
+                sampling_rate=sampling_rate,
+                gain_type= gain_type, #'power estimation',#'wiener'
+                window_type = window_type,
+                real_signal = True,
+                apply_postfilter = apply_postfilter,
+                num_bands = 6,
+                band_spacing = 'linear') 
+    
+    print(repr(fil))
+
+    target = fil.load_signal(target_wav)
+    #only use 120 ms of noise
+    noise_clip = fil.samprate // 1000 * 120
+    
+    #if multiple channels, reduce to first channel
+    if len(target.shape) > 1 and target.shape[1] > 1:
+        print(target.shape)
+        target = target[:,0]
+        print(target.shape)
+
+    noise = target[0:noise_clip]
+
+    fil.set_num_subframes(len(noise),noise=True)
+    fil.set_num_subframes(len(target),noise=False)
+    print("num target subframes: ",fil.target_subframes)
+    print("num noise subframes: ", fil.noise_subframes)
+    
+    fil.setup_bands()
+    # TODO: why extra dimension?
+    print(fil.fft_bins) # 1024
+    noise_power_matrix = fil.create_empty_matrix((fil.fft_bins,1,),complex_vals=False)
+    #calculate and collect power of noise
+    section = 0 
+    for frame in range(fil.noise_subframes):
+        
+        noise_sect = noise[section:section+fil.frame_length]
+        
+        noise_w_win = fil.apply_window(noise_sect)
+        noise_fft = fil.calc_fft(noise_w_win,fft_length=None)
+
+        noise_power = fil.calc_power(noise_fft)
+        
+        for i, row in enumerate(noise_power):
+            noise_power_matrix[i] += row 
+            
+        section += fil.overlap
+    print(noise_power_matrix.shape)
+    
+    
+    noise_power_matrix = fil.calc_average_power(noise_power_matrix,fil.noise_subframes) 
+    phase_matrix = fil.create_empty_matrix((fil.fft_bins,fil.target_subframes), complex_vals=True)
+
+    #total_rows = fil.fft_bins//2+1
+    total_rows = fil.frame_length
+    enhanced_signal = fil.create_empty_matrix((total_rows,fil.target_subframes), complex_vals=False)
+    section = 0
+    for frame in range(fil.target_subframes):
+
+        target_section = target[section:section + fil.frame_length]
+        print('target section shape ', target_section.shape)
+        target_w_win = fil.apply_window(target_section)
+        print('target w window ', target_w_win.shape)
+        target_fft = fil.calc_fft(target_w_win,fft_length=None)
+        print('target_fft ', target_fft.shape)
+        target_power = fil.calc_power(target_fft)
+        print('target_power ', target_power.shape)
+        target_phase = fil.calc_phase(target_fft)
+        print('phase matrix shape ', phase_matrix.shape)
+        phase_matrix[:,frame] += target_phase
+        
+        print("target phase shape: ",target_phase.shape)
+        fil.update_posteri_bands(target_power,noise_power_matrix)
+        beta = fil.calc_oversub_factor()
+        reduced_noise_target = fil.sub_noise(target_power, noise_power_matrix, beta)
+        print('shape reduced_noise_target: ', reduced_noise_target.shape)
+        #now mirror, as fft would be / reconstruct spectrum
+        print(fil.num_bands)
+        print(fil.bins_per_band)
+        print(reduced_noise_target.shape)
+        #reduced_noise_target = reduced_noise_target.transpose()
+        #print(reduced_noise_target.shape)
+        
+        # TODO phase info is only in first row of second dimension
+        # what's going on there?
+        for i, row in enumerate(reduced_noise_target):
+            enhanced_signal[i][frame] += fil.apply_original_phase(
+                row,
+                phase_matrix[i][0])[0]
+    
+    enhanced_signal = fil.reconstruct_spectrum(enhanced_signal)
+    print(enhanced_signal)
+    
+    #enhanced_signal = fil.apply_original_phase(enhanced_signal,phase_matrix)
+    #enhanced_signal = enhanced_signal.real
+    enhanced_signal = fil.calc_ifft(enhanced_signal)
+    #print(enhanced_signal.shape)
+    
+    
+    #overlap add:
+    enhanced_signal = fil.overlap_add(enhanced_signal)
+    print('final signal shape: ',enhanced_signal.shape) #ideal? (143040, 1)
+    enhanced_signal = fil.increase_volume(enhanced_signal)
+    
+    fil.save_wave(output_wave_name,enhanced_signal)
+    
+    return True
+
 
 def filtersignal(output_filename, wavfile, noise_file=None,
                     scale=1, apply_postfilter=False, duration_ms=1000,
@@ -69,7 +200,7 @@ def filtersignal(output_filename, wavfile, noise_file=None,
     if filter_type == 'wiener':
         fil = pyst.WienerFilter(max_vol = max_vol)
     elif filter_type == 'band_specsub':
-        
+        fil = pyst.Filter(max_vol = max_vol)
 
     # load signal (to be filtered)
     samples_orig = fil.get_samples(wavfile)
@@ -110,7 +241,7 @@ def filtersignal(output_filename, wavfile, noise_file=None,
             noise_power_frame = pyst.dsp.calc_power(noise_fft)
             noise_power += noise_power_frame
             section += fil.overlap_length
-        # welch's method: take average of power that has been colleced
+        # welch's method: take average of power that has been collected
         # in windows
         noise_power = pyst.dsp.calc_average_power(noise_power, 
                                                    fil.noise_subframes)
@@ -127,7 +258,8 @@ def filtersignal(output_filename, wavfile, noise_file=None,
     try:
         for frame in range(fil.target_subframes):
             target_section = samples_orig[section:section+fil.frame_length]
-            target_w_window = pyst.dsp.apply_window(target_section, fil.get_window())
+            target_w_window = pyst.dsp.apply_window(target_section,
+                                                    fil.get_window())
             target_fft = pyst.dsp.calc_fft(target_w_window)
             target_power_frame = pyst.dsp.calc_power(target_fft)
             # now start filtering!!

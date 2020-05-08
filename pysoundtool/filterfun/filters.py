@@ -37,6 +37,15 @@ parentdir = os.path.dirname(currentdir)
 packagedir = os.path.dirname(parentdir)
 sys.path.insert(0, packagedir)
 
+# TODO consolidate
+import sys
+import numpy as np
+from scipy.fftpack import fft, rfft, ifft, irfft
+from scipy.io import wavfile
+from scipy.signal import hamming, hanning
+import librosa
+import cmath
+
 import pysoundtool as pyst
 
 # what Wiener Filter and Average pow spec can inherit
@@ -261,6 +270,548 @@ class WienerFilter(FilterSettings):
         else:
             print('Error occurred. {} not saved.'.format(filename))
             return False
+        
+
+class Filter:
+    def __init__(self, frame_duration = 20, 
+                 percent_overlap = 50, 
+                 filter_type = 'wiener', #or spectral subtraction
+                 sampling_rate = 48000, 
+                 smooth_factor = 0.98, 
+                 gain_type = 'power estimation', 
+                 window_type = 'hamming', 
+                 real_signal = True,
+                 apply_postfilter = False,
+                 num_bands = None,
+                 band_spacing = 'linear'):
+        self.filter_type = filter_type
+        self.frame_dur = frame_duration
+        self.samprate = sampling_rate
+        self.frame_length = frame_duration * sampling_rate //1000
+        if percent_overlap > 1: 
+            percent_overlap /= 100
+        self.overlap = int(self.frame_length * percent_overlap) 
+        self.common_length = self.frame_length-self.overlap #mband.m script
+        self.beta = smooth_factor
+        self.gain_type = gain_type
+        self.window = self.create_window(window_type)
+        self.real_signal = real_signal
+        self.apply_postfilter = apply_postfilter
+        self.num_bands = num_bands
+        self.band_spacing = band_spacing
+        # just starting value:
+        self.fft_bins = 2
+        
+        
+
+
+    def __repr__(self):
+        return (f'{self.__class__.__name__}('
+            f'\nFilter type: {self.filter_type!r} ms'
+            f'\nFrame duration: {self.frame_dur!r} ms'
+            f'\nSample rate: {self.samprate!r} hz'
+            f'\nFrame length: {self.frame_length!r} samples'
+            f'\nFrame overlap: {self.overlap!r} samples'
+            f'\nSmoothing factor: {self.beta!r}'
+            f'\nGain type: {self.gain_type!r}'
+            f'\nWindow type: {self.window_type!r})'
+            )
+        
+        
+    def create_window(self, window_type):
+        self.window_type = window_type
+        if window_type.lower() == 'hamming':
+            window = hamming(self.frame_length)
+        elif window_type.lower() == 'hanning':
+            window = hanning(self.frame_length)
+        self.norm_win = np.dot(window, window) / self.frame_length
+        
+        return window
+
+
+    def normalize_signal(self,signal, max_val, min_val):
+        signal = (signal - min_val) / (max_val - min_val)
+        
+        return signal
+    
+    def get_samples(self, wavfile, dur_sec=None):
+        """Load signal and save original volume
+
+        Parameters
+        ----------
+        wavfile : str
+            Path and name of wavfile to be loaded
+        dur_sec : int, float optional
+            Max length of time in seconds (default None)
+
+        Returns 
+        ----------
+        samples : ndarray
+            Array containing signal amplitude values in time domain
+        """
+        samples, sr = pyst.dsp.load_signal(
+            wavfile, self.sr, dur_sec=dur_sec)
+        self.set_volume(samples, max_vol = self.max_vol)
+        return samples
+
+
+    def load_signal(self,wav):
+        try:
+            signal, sr = librosa.load(wav,sr=self.samprate)
+            #sr, signal = wavfile.read(wav)
+            assert sr == self.samprate
+            self.data_type = signal.dtype
+        except AssertionError as e:
+            print(e)
+            print("Scipy found sampling rate: {} while you set the sampling rate as {}".format(sr, self.samprate))
+            print("Please adjust the sampling rate.")
+            sys.exit()
+        return signal
+
+
+    def create_empty_matrix(self,shape,complex_vals=False):
+        if complex_vals:
+            matrix = np.zeros(shape,dtype=np.complex_)
+        else:
+            matrix = np.zeros(shape)
+        return matrix
+
+
+    def calc_fft(self,signal,fft_length=None):
+        if self.real_signal:
+            fft_vals = rfft(signal,fft_length)
+        else:
+            fft_vals = fft(signal,fft_length)
+        return fft_vals
+    
+    
+    def calc_ifft(self,signal):
+        if self.real_signal:
+            ifft_vals = irfft(signal)
+        else:
+            ifft_vals = ifft(signal)
+        
+        return ifft_vals
+    
+    
+    def calc_average_power(self, matrix, num_iters):
+        for i in range(len(matrix)):
+            matrix[i] /= num_iters
+        return matrix
+    
+
+    def apply_window(self, samples):
+        try:
+            samples_win = samples.copy()
+            assert samples.shape == self.window.shape
+            samples_win *= self.window
+            assert samples_win.shape == samples.shape
+            
+            return samples_win
+        
+        except AssertionError as e:
+            print(e)
+            print('Shapes do not align')
+            print('samples = {}; window = {}'.format(samples.shape,self.window.shape))
+            if samples_win:
+                print('samples_win = {}'.format(samples_win.shape))
+            sys.exit()
+        
+        return None
+
+
+    def set_num_subframes(self, len_samples, noise=True):
+        if noise:
+            self.noise_subframes = int(len_samples/ self.overlap) -1
+        else:
+            self.target_subframes = int(len_samples/ self.overlap) -1
+        return None
+
+
+    def calc_power(self, fft, normalization=True):
+        if normalization:
+            power_spec = np.abs(fft)**2 / (self.frame_length * self.norm_win)
+        else:
+            power_spec = np.abs(fft)**2
+        
+        return power_spec
+
+
+    def update_posteri(self, target_power_spec, noise_power_spec):
+        #each power spectrum is divided by their corresponding frequency bin
+        
+        posteri_snr = np.zeros(target_power_spec.shape)
+        for i in range(len(target_power_spec)):
+            posteri_snr[i] += target_power_spec[i] / noise_power_spec[i]
+        assert posteri_snr.shape == (self.frame_length,) 
+        self.posteri_snr = posteri_snr
+        
+        return None
+
+
+    def calc_posteri_prime(self,positive=True):
+        """
+        estimate snr
+        flooring at 0 --> half-wave rectification (values cannot be negative)
+        this may cause issues in lower SNRs
+        """
+        posteri_prime = self.posteri_snr - 1
+        if positive:
+            posteri_prime[posteri_prime < 0] = 0
+        
+        return posteri_prime
+
+
+    def update_priori_snr(self, book=False, first_iter=True):
+        """
+        From the paper:
+        Scalart, P. and Filho, J. (1996). Speech enhancement based on a 
+        priori signal to noise estimation. Proc. IEEE Int. Conf. Acoust., 
+        Speech, Signal Processing, 629-632.
+        
+        Applied in MATLAB code from the book 
+        Speech Enhancement: Theory and Practice (2013), by Philipos C. Loizou
+        wiener_as.m
+        """
+        #only keep positive values (half-wave rectification)
+        #may reduce in performance in near 0 SNRs
+        self.posteri_prime_floored = self.calc_posteri_prime()
+        
+        if not book:
+            #calculate according to apriori SNR equation (6) in paper
+            #Scalart, P. and Filho, J. (1996)
+            self.priori_snr = (1 - self.beta) * posteri_prime_floored + self.beta * self.posteri_snr
+        else:
+            #calculate following procedure from MATLAB code in book Loizou (2013)
+            if first_iter:
+                #don't yet have previous gain or snr values to apply
+                self.priori_snr = self.beta + (1-self.beta) * self.posteri_prime_floored
+            else:
+                #now have previous gain and snr values
+                self.priori_snr = self.beta * (self.gain_prev**2) * self.posteri_prev + (1 - self.beta) * self.posteri_prime_floored
+        
+        return None
+
+
+    def update_gain(self):
+        if self.gain_type.lower() == 'power estimation':
+            #gain calculated in MATLAB code from the book 
+            #Speech Enhancement: Theory and Practice (2013)
+            #can be found in paper as equation (7), paired with equation (6)
+            self.gain = np.sqrt(self.priori_snr/(1+self.priori_snr))
+            
+        #gain calculated from the paper for wiener 
+        #Scalart & Filho (1996):
+        elif self.gain_type.lower() == 'wiener':
+            #can be found in paper as equation (8), paired with equation (6)
+            self.gain = self.priori_snr / (1 + self.priori_snr)
+        
+        return None
+
+
+    def apply_gain_fft(self, fft):
+        enhanced_fft = fft * self.gain
+        assert enhanced_fft.shape == fft.shape
+        
+        return enhanced_fft
+
+
+    def save_wave(self,wavefile_name, signal_values):
+        wavfile.write(wavefile_name, self.samprate, signal_values)
+        
+        return True
+    
+    
+    def calc_noise_frame_len(self,SNR_decision):
+        '''
+        window for calculating moving average 
+        for lower SNRs, larger window
+        '''
+        if SNR_decision < 1:
+            soft_decision = 1 - (SNR_decision/self.threshold)
+            soft_decision_scaled = round((soft_decision) * self.scale)
+            noise_frame_len = 2 * soft_decision_scaled + 1
+        else:
+            noise_frame_len = SNR_decision
+        
+        return noise_frame_len
+    
+    
+    def calc_linear_impulse(self,noise_frame_len, num_freq_bins):
+        linear_filter_impulse = np.zeros((num_freq_bins,))
+        for i in range(num_freq_bins):
+            if i < noise_frame_len:
+                linear_filter_impulse[i] = 1 / noise_frame_len
+            else:
+                linear_filter_impulse[i] = 0
+            
+        return linear_filter_impulse
+    
+    
+    def calc_power_ratio(self, original_powerspec, noisereduced_powerspec):
+        '''
+        Where some issues happen.. just because power ratio is same, 
+        louder noises don't get filtered out during speech
+        Even though they have a different frequency makeup.
+        '''
+        power_ratio = sum(noisereduced_powerspec)/sum(original_powerspec)#/len(noisereduced_powerspec)
+        
+        
+        return power_ratio
+        
+    
+    def postfilter(self, original_powerspec, noisereduced_powerspec, threshold = 0.4, scale = 10):
+        '''
+        Goal: reduce musical noise
+        
+        From the paper:
+        T. Esch and P. Vary, "Efficient musical noise suppression for speech enhancement 
+        system," Proceedings of IEEE International Conference on Acoustics, Speech and 
+        Signal Processing, Taipei, 2009.
+        '''
+
+        self.threshold = threshold
+        self.scale = scale
+        
+        
+        power_ratio_current_frame = self.calc_power_ratio(original_powerspec,noisereduced_powerspec)
+        #is there speech? If so, SNR decision = 1
+        if power_ratio_current_frame < threshold:
+            SNR_decision = power_ratio_current_frame
+        else:
+            SNR_decision = 1
+            
+        noise_frame_len = self.calc_noise_frame_len(SNR_decision)
+        #apply window
+        postfilter_coeffs = self.calc_linear_impulse(noise_frame_len, self.frame_length)
+        
+        #Esch and Vary (2009) use convolution to adjust gain
+        self.gain = np.convolve(self.gain,postfilter_coeffs,mode='valid')
+        
+        
+        return None
+        
+    def calc_phase(self, fft_vals, normalization=False):
+        '''
+        Parameters
+        ----------
+        fft_vals : np.ndarray
+            matrix with fft values [size = (num_fft, )]
+            example (960, )
+            
+        Returns
+        -------
+        phase : np.ndarray
+            Phase values for fft_vals [size = (num_fft,)]
+            example (960, )
+        '''
+        # in radians
+        #if normalization:
+            #phase = np.angle(fft_vals) / (self.frame_length * self.norm_win)
+        #else:
+            #phase = np.angle(fft_vals)
+        # not in radians
+        # calculates mag /power and phase (power=1 --> mag 2 --> power)
+        __, phase = librosa.magphase(fft_vals,power=2)
+        return phase
+    
+    
+    def update_fft_length(self):
+        if self.fft_bins < self.frame_length:
+            self.fft_bins += 2
+            self.fft_bins = self.update_fft_length()
+        return self.fft_bins
+    
+
+    def setup_bands(self):
+        self.update_fft_length()
+        if 'linear' in self.band_spacing.lower():
+            
+            try:
+            #calc number of bins per band
+                assert self.frame_length / self.num_bands % 2 == 0
+            except AssertionError:
+                print("The number of bands must be equally divisible by the frame length.")
+                sys.exit()
+            self.bins_per_band = self.frame_length//self.num_bands
+                
+            low_bins = np.zeros((self.num_bands,))
+            high_bins = np.zeros((self.num_bands,))
+            try:
+                for i in range(self.num_bands):
+                    
+                    low_bins[i] = int(i*self.bins_per_band)
+                    high_bins[i] = int(low_bins[i] + self.bins_per_band)
+            except TypeError:
+                print(low_bins[i] + self.bins_per_band-1)
+                sys.exit()
+        elif 'log' in self.band_spacing.lower():
+            pass
+        elif 'mel' in self.band_spacing.lower():
+            pass
+        
+        self.low_bins = low_bins
+        self.high_bins = high_bins
+        
+        return None
+    
+    def update_posteri_bands(self,target_powspec, noise_powspec):
+        '''
+        MATLAB code from speech enhancement book uses power, 
+        puts it into magnitude (via square root), then puts
+        it back into power..? And uses some sort of 'norm' function...
+        which I think is actually just the sum. Original equation 
+        can be found in the paper below. 
+        page 117 from book?
+        
+        paper:
+        Kamath, S. D. & Loizou, P. C. (____), A multi-band spectral subtraction method for enhancing speech corrupted by colored noise.
+        
+        I am using power for the time being. 
+        '''
+        snr_bands = np.zeros((self.num_bands,))
+        for band in range(self.num_bands):
+            start_bin = int(self.low_bins[band])
+            stop_bin = int(self.high_bins[band])
+            numerator = sum(target_powspec[start_bin:stop_bin])
+            denominator = sum(noise_powspec[start_bin:stop_bin])
+            snr_bands[band] += 10*np.log10(numerator/denominator)
+        self.snr_bands = snr_bands
+        
+        return None
+    
+    
+    def calc_oversub_factor(self):
+        '''
+        calculate over subtraction factor
+        uses decibel SNR values calculated in update_posteri_bands()
+        
+        paper:
+        Kamath, S. D. & Loizou, P. C. (____), A multi-band spectral subtraction method ofr enhancing speech corrupted by colored noise.
+        '''
+        a = np.zeros(self.snr_bands.shape[0])
+        for band in range(self.num_bands):
+            band_snr = self.snr_bands[band]
+            if band_snr >= -5.0 and band_snr <= 20:
+                a[band] += 4 - band_snr*3/20
+            elif band_snr < -5.0:
+                a[band] += 4.75
+            else:
+                a[band] += 1
+        
+        return a
+    
+    
+    def calc_relevant_band(self,target_powspec):
+        band_power = np.zeros(self.num_bands)
+        for band in range(self.num_bands):
+            start_bin = int(self.low_bins[band])
+            end_bin = int(self.high_bins[band])
+            target_band = target_powspec[start_bin:end_bin]
+            band_power[band] += sum(target_band)
+        rel_band = np.argmax(band_power)
+        
+        return rel_band
+    
+    
+    def apply_floor(self, sub_band, original_band, floor=0.002, book=True):
+        for i, val in enumerate(sub_band):
+            if val < 0:
+                sub_band[i] = floor * original_band[i]
+            if book:
+                #this adds a bit of noise from original signal
+                #to avoid musical noise distortion
+                sub_band[i] += 0.5*original_band[i]
+        
+        return sub_band
+    
+    
+    def sub_noise(self,target_powspec, noise_powspec, oversub_factor, speech=True):
+        #apply higher or lower noise subtraction (i.e. delta)
+        #lower frequency / bin == lower delta --> reduce speech distortion
+        if not speech:
+            relevant_band = self.calc_relevant_band(target_powspec)
+        else:
+            relevant_band = 0
+        sub_signal = np.zeros((self.num_bands*self.bins_per_band,1))
+        section = 0
+        for band in range(self.num_bands):
+            start_bin = int(self.low_bins[band])
+            #print("start bin: ", start_bin)
+            end_bin = int(self.high_bins[band])
+            #print("end bin: ", end_bin)
+            target_band = target_powspec[start_bin:end_bin]
+            #print(target_band.shape)
+            target_band = target_band.reshape(target_band.shape+(1,))
+            noise_band = noise_powspec[start_bin:end_bin]
+            #print(noise_band.shape)
+            beta = oversub_factor[band] 
+            #print(beta.shape)
+            if band == relevant_band:
+                delta = 1 #don't interfer too much with important target band
+            else: 
+                delta = 2.5 #less important bands --> more noise subtraction
+            adjusted = target_band - beta * noise_band * delta
+            #print("adjusted shape: ", adjusted.shape)
+            sub_signal[section:section+self.bins_per_band] += adjusted
+            self.apply_floor(sub_signal[section:section+self.bins_per_band], target_band, book=True)
+            section += self.bins_per_band
+            
+        return sub_signal
+            
+            
+    def reconstruct_spectrum(self, band_reduced_noise_matrix):
+        total_rows = self.fft_bins
+        output_matrix = np.zeros((total_rows,band_reduced_noise_matrix.shape[1]))
+        print('band_reduced_noise_matrix : ',band_reduced_noise_matrix.shape)
+        flipped_matrix = np.flip(band_reduced_noise_matrix)
+        print('flipped_matrix', flipped_matrix.shape)
+        output_matrix[0:self.fft_bins//2,:] += band_reduced_noise_matrix[0:self.fft_bins//2,:]#remove extra zeros at the end
+        output_matrix[self.fft_bins//2:self.fft_bins,:] += flipped_matrix[self.fft_bins//2:self.fft_bins,:]#remove extra zeros at the beginning
+        
+        return output_matrix
+    
+    
+    def apply_original_phase(self, spectrum, phase):
+        
+        #spectrum_complex = self.create_empty_matrix(spectrum.shape,complex_vals=True)
+        ##spectrum = spectrum**(1/2)
+        #phase_prepped = (1/2) * np.cos(phase) + cmath.sqrt(-1) * np.sin(phase)
+        spectrum_complex = spectrum * phase
+        
+        return spectrum_complex
+    
+    def overlap_add(self, enhanced_matrix):
+        start= self.frame_length - self.overlap
+        mid= start + self.overlap
+        stop= start + self.frame_length
+        
+        new_signal = self.create_empty_matrix(
+            (self.overlap*(enhanced_matrix.shape[1]+1),),
+            complex_vals=False)
+        
+        for i in range(enhanced_matrix.shape[1]):
+            if i == 0:
+                new_signal[:self.frame_length] += enhanced_matrix[:self.frame_length,i]
+            else:
+                new_signal[start:mid] += enhanced_matrix[:self.overlap,i] 
+                new_signal[mid:stop] += enhanced_matrix[self.overlap:self.frame_length,i]
+                start = mid
+                mid = start+self.overlap
+                stop = start+self.frame_length
+        
+        return new_signal
+    
+    
+    def increase_volume(self,sample_values,minimum_max_val=0.13):
+        sample_values *= 1.25
+        if max(sample_values) < minimum_max_val:
+            sample_values = self.increase_volume(sample_values,minimum_max_val)
+        else:
+            print('volume adjusted to {} '.format(max(sample_values)))
+        
+        return sample_values
+    
 
 
 class WelchMethod(FilterSettings):
