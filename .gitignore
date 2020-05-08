@@ -4,3 +4,5 @@ audiodata/
 saved_features_and_models/
 *.wav
 jupyternotebooks/
+env2/
+env3/
