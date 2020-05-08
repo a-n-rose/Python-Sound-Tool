@@ -615,16 +615,18 @@ class Filter:
         __, phase = librosa.magphase(fft_vals,power=2)
         return phase
     
-    
+    # TODO improve on this...
     def update_fft_length(self):
-        if self.fft_bins < self.frame_length:
-            self.fft_bins += 2
-            self.fft_bins = self.update_fft_length()
+        if self.frame_length % 2 == 0:
+            self.frame_length = self.frame_length
+        #if self.fft_bins < self.frame_length:
+            #self.fft_bins *= 2
+            #self.fft_bins = self.update_fft_length()
         return self.fft_bins
     
 
     def setup_bands(self):
-        '''Provides starting and ending frequncy bins for each band.
+        '''Provides starting and ending frequncy bins/indices for each band.
         
         Parameters
         ----------
