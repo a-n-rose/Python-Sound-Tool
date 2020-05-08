@@ -593,34 +593,7 @@ class Filter:
         return power_ratio
         
     
-    def postfilter(self, original_powerspec, noisereduced_powerspec, threshold = 0.4, scale = 10):
-        '''
-        Goal: reduce musical noise
-        
-        From the paper:
-        T. Esch and P. Vary, "Efficient musical noise suppression for speech enhancement 
-        system," Proceedings of IEEE International Conference on Acoustics, Speech and 
-        Signal Processing, Taipei, 2009.
-        '''
 
-        self.threshold = threshold
-        self.scale = scale
-        
-        
-        power_ratio_current_frame = self.calc_power_ratio(original_powerspec,noisereduced_powerspec)
-        #is there speech? If so, SNR decision = 1
-        if power_ratio_current_frame < threshold:
-            SNR_decision = power_ratio_current_frame
-        else:
-            SNR_decision = 1
-            
-        noise_frame_len = self.calc_noise_frame_len(SNR_decision)
-        #apply window
-        postfilter_coeffs = self.calc_linear_impulse(noise_frame_len, self.frame_length)
-        
-        #Esch and Vary (2009) use convolution to adjust gain
-        self.gain = np.convolve(self.gain,postfilter_coeffs,mode='valid')
-        return None
         
     def calc_phase(self, fft_vals, normalization=False):
         '''Calculates phase on frame of fft values.
