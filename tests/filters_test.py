@@ -50,3 +50,48 @@ def test_setup_bands_frameduration500ms():
     value2 = np.array([ 4000.,  8000., 12000., 16000., 20000., 24000.])
     assert np.array_equal(value1, band_start_freq)
     assert np.array_equal(value2, band_end_freq)
+    
+def test_update_posteri_bands_noisy():
+    noise_max = 0.3
+    fil = pyst.Filter(num_bands = 4)
+    fil.setup_bands()
+    time = np.arange(0, 10, 0.01)
+    signal = np.sin(time)[:fil.frame_length]
+    noise = np.random.normal(np.mean(signal),
+                             np.mean(signal)+noise_max,
+                             960)
+    powspec = np.abs(np.fft.fft(signal))**2
+    powspec_noisy = np.abs(np.fft.fft(signal + noise))**2
+    fil.update_posteri_bands(powspec, powspec_noisy)
+    snr_bands = fil.snr_bands
+    value1 = np.array([ -2.38856707, -45.41496251,  -1.48348645])
+    assert np.allclose(value1, snr_bands)
+    
+
+def test_update_posteri_bands_verynoisy():
+    noise_max = 0.7
+    fil = pyst.Filter(num_bands = 3)
+    fil.setup_bands()
+    time = np.arange(0, 10, 0.01)
+    signal = np.sin(time)[:fil.frame_length]
+    noise = np.random.normal(np.mean(signal),
+                             np.mean(signal)+noise_max,
+                             960)
+    powspec = np.abs(np.fft.fft(signal))**2
+    powspec_noisy = np.abs(np.fft.fft(signal + noise))**2
+    fil.update_posteri_bands(powspec, powspec_noisy)
+    snr_bands = fil.snr_bands
+    value1 = np.array([ -3.94990272, -50.07895978,  -3.31517877])
+    assert np.allclose(value1, snr_bands)
+    
+def test_update_posteri_bands_nonoise():
+    fil = pyst.Filter(num_bands = 3)
+    fil.setup_bands()
+    time = np.arange(0, 10, 0.01)
+    signal = np.sin(time)[:fil.frame_length]
+    powspec = np.abs(np.fft.fft(signal))**2
+    powspec_noisy = powspec
+    fil.update_posteri_bands(powspec, powspec_noisy)
+    snr_bands = fil.snr_bands
+    value1 = np.array([0., 0., 0.])
+    assert np.allclose(value1, snr_bands)
