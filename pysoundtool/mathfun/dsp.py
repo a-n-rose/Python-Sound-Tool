@@ -343,7 +343,7 @@ def calc_phase(fft_matrix):
     '''
     # not in radians
     # calculates mag /power and phase (power=1 --> mag 2 --> power)
-    __, phase = librosa.magphase(fft_matrix,power=2)
+    __, phase = librosa.magphase(fft_matrix)
     # in radians (had issues with own implementation)
     #if normalization:
         #phase = np.angle(fft_vals) / (self.frame_length * self.norm_win)
