@@ -761,6 +761,32 @@ class Filter:
         
         paper:
         Kamath, S. D. & Loizou, P. C. (____), A multi-band spectral subtraction method ofr enhancing speech corrupted by colored noise.
+        
+        Examples
+        --------
+        >>> import pysoundtool as pyst
+        >>> import numpy as np
+        >>> # setting to 4 bands for space:
+        >>> fil = pyst.Filter(num_bands=4)
+        >>> fil.setup_bands()
+        >>> # generate sine signal with and without noise
+        >>> time = np.arange(0, 10, 0.01)
+        >>> signal = np.sin(time)[:fil.frame_length]
+        >>> noise = np.random.normal(np.mean(signal),np.mean(signal)+0.3,960)
+        >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
+        >>> powerspec_noisy = np.abs(np.fft.fft(signal + noise))**2
+        >>> fil.update_posteri_bands(powerspec_clean, powerspec_noisy)
+        >>> fil.snr_bands
+        [ -2.16634315 -44.82425811 -44.81157068  -1.15580912]
+        >>> a = fil.calc_oversub_factor()
+        >>> a
+        [4.33042222 4.75       4.75       4.16179247]
+        >>> # compare with no noise in signal:
+        >>> fil.update_posteri_bands(powerspec_clean, powerspec_clean)
+        [0. 0. 0. 0.]
+        >>> a = fil.calc_oversub_factor()
+        >>> a
+        [4. 4. 4. 4.]
         '''
         a = np.zeros(self.snr_bands.shape[0])
         for band in range(self.num_bands):
