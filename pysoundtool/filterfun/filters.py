@@ -802,15 +802,44 @@ class Filter:
     
     
     def calc_relevant_band(self,target_powspec):
+        '''Calculates band with highest energy levels.
+        
+        Parameters
+        ----------
+        self : class instance
+            Contains class variables `band_start_freq` and `band_end_freq`.
+        target_powerspec : np.ndarray
+            Power spectrum of the target signal.
+        
+        Returns
+        -------
+        rel_band_index : int
+            Index for which band contains most energy.
+            
+        Examples
+        --------
+        >>> import pysoundtool as pyst
+        >>> import numpy as np
+        >>> # setting to 4 bands for space:
+        >>> fil = pyst.Filter(num_bands=4)
+        >>> fil.setup_bands()
+        >>> # generate sine signal with and without noise
+        >>> time = np.arange(0, 10, 0.01)
+        >>> signal = np.sin(time)[:fil.frame_length]
+        >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
+        >>> rel_band_inex = fil.calc_relevant_band(powerspec_clean)
+        >>> rel_band_index
+        0
+        '''
         band_power = np.zeros(self.num_bands)
         for band in range(self.num_bands):
             start_bin = int(self.band_start_freq[band])
             end_bin = int(self.band_end_freq[band])
             target_band = target_powspec[start_bin:end_bin]
             band_power[band] += sum(target_band)
-        rel_band = np.argmax(band_power)
+        rel_band_index = np.argmax(band_power)
         
-        return rel_band
+        return rel_band_index
     
     
     def apply_floor(self, sub_band, original_band, floor=0.002, book=True):
