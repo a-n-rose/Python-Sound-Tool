@@ -32,7 +32,7 @@ import pysoundtool as pyst
 
 def filtersignal(output_filename, wavfile, noise_file=None,
                     scale=1, apply_postfilter=False, duration_ms=1000,
-                    max_vol = 0.4):
+                    max_vol = 0.4, filter_type = 'wiener'):
     """Apply Wiener filter to signal using noise. Saves at `output_filename`.
 
     Parameters 
@@ -59,17 +59,22 @@ def filtersignal(output_filename, wavfile, noise_file=None,
         when approximating the average noise power spectrum.
     max_vol : int or float 
         The maximum volume level of the filtered signal.
+    filter_type : str
+        Type of filter to apply. Options 'wiener' or 'band_specsub'.
     
     Returns
     -------
     None
     """
-    wf = pyst.WienerFilter(max_vol = max_vol)
+    if filter_type == 'wiener':
+        fil = pyst.WienerFilter(max_vol = max_vol)
+    elif filter_type == 'band_specsub':
+        
 
     # load signal (to be filtered)
-    samples_orig = wf.get_samples(wavfile)
+    samples_orig = fil.get_samples(wavfile)
     # set how many subframes are needed to process entire target signal
-    wf.set_num_subframes(len(samples_orig), is_noise=False)
+    fil.set_num_subframes(len(samples_orig), is_noise=False)
 
     # prepare noise
     # set up how noise will be considered: either as wavfile, averaged
@@ -77,42 +82,42 @@ def filtersignal(output_filename, wavfile, noise_file=None,
     samples_noise = None
     if noise_file:
         if '.wav' == str(noise_file)[-4:]:
-            samples_noise = wf.get_samples(noise_file)
+            samples_noise = fil.get_samples(noise_file)
         elif '.npy' == str(noise_file)[-4:]:
             if 'powspec' in noise_file.stem:
-                noise_power = wf.load_power_vals(noise_file)
+                noise_power = fil.load_power_vals(noise_file)
                 samples_noise = None
             elif 'beg' in noise_file.stem:
                 samples_noise = pyst.paths.load_feature_data(noise_file)
     else:
-        starting_noise_len = pyst.dsp.calc_frame_length(wf.sr, 
+        starting_noise_len = pyst.dsp.calc_frame_length(fil.sr, 
                                                          duration_ms)
         samples_noise = samples_orig[:starting_noise_len]
     # if noise samples have been collected...
     if samples_noise is not None:
         # set how many subframes are needed to process entire noise signal
-        wf.set_num_subframes(len(samples_noise), is_noise=True)
+        fil.set_num_subframes(len(samples_noise), is_noise=True)
 
     # prepare noise power matrix (if it's not loaded already)
-    if wf.noise_subframes:
-        total_rows = wf.num_fft_bins
+    if fil.noise_subframes:
+        total_rows = fil.num_fft_bins
         noise_power = pyst.matrixfun.create_empty_matrix((total_rows,))
         section = 0
-        for frame in range(wf.noise_subframes):
-            noise_section = samples_noise[section:section+wf.frame_length]
-            noise_w_win = pyst.dsp.apply_window(noise_section, wf.get_window())
+        for frame in range(fil.noise_subframes):
+            noise_section = samples_noise[section:section+fil.frame_length]
+            noise_w_win = pyst.dsp.apply_window(noise_section, fil.get_window())
             noise_fft = pyst.dsp.calc_fft(noise_w_win)
             noise_power_frame = pyst.dsp.calc_power(noise_fft)
             noise_power += noise_power_frame
-            section += wf.overlap_length
+            section += fil.overlap_length
         # welch's method: take average of power that has been colleced
         # in windows
         noise_power = pyst.dsp.calc_average_power(noise_power, 
-                                                   wf.noise_subframes)
-        assert section == wf.noise_subframes * wf.overlap_length
+                                                   fil.noise_subframes)
+        assert section == fil.noise_subframes * fil.overlap_length
 
     # prepare target power matrix
-    total_rows = wf.frame_length * wf.target_subframes
+    total_rows = fil.frame_length * fil.target_subframes
     filtered_sig = pyst.matrixfun.create_empty_matrix(
         (total_rows,), complex_vals=True)
     section = 0
@@ -120,9 +125,9 @@ def filtersignal(output_filename, wavfile, noise_file=None,
     target_power_baseline = 0
     noise_power *= scale
     try:
-        for frame in range(wf.target_subframes):
-            target_section = samples_orig[section:section+wf.frame_length]
-            target_w_window = pyst.dsp.apply_window(target_section, wf.get_window())
+        for frame in range(fil.target_subframes):
+            target_section = samples_orig[section:section+fil.frame_length]
+            target_w_window = pyst.dsp.apply_window(target_section, fil.get_window())
             target_fft = pyst.dsp.calc_fft(target_w_window)
             target_power_frame = pyst.dsp.calc_power(target_fft)
             # now start filtering!!
@@ -130,55 +135,55 @@ def filtersignal(output_filename, wavfile, noise_file=None,
             if frame == 0:
                 posteri = pyst.matrixfun.create_empty_matrix(
                     (len(target_power_frame),))
-                wf.posteri_snr = pyst.dsp.calc_posteri_snr(
+                fil.posteri_snr = pyst.dsp.calc_posteri_snr(
                     target_power_frame, noise_power)
-                wf.posteri_prime = pyst.dsp.calc_posteri_prime(
-                    wf.posteri_snr)
-                wf.priori_snr = pyst.dsp.calc_prior_snr(snr=wf.posteri_snr,
-                                                snr_prime=wf.posteri_prime,
-                                                smooth_factor=wf.beta,
+                fil.posteri_prime = pyst.dsp.calc_posteri_prime(
+                    fil.posteri_snr)
+                fil.priori_snr = pyst.dsp.calc_prior_snr(snr=fil.posteri_snr,
+                                                snr_prime=fil.posteri_prime,
+                                                smooth_factor=fil.beta,
                                                 first_iter=True,
                                                 gain=None)
             elif frame > 0:
-                wf.posteri_snr = pyst.dsp.calc_posteri_snr(
+                fil.posteri_snr = pyst.dsp.calc_posteri_snr(
                     target_power_frame,
                     noise_power)
-                wf.posteri_prime = pyst.dsp.calc_posteri_prime(
-                    wf.posteri_snr)
-                wf.priori_snr = pyst.dsp.calc_prior_snr(
-                    snr=wf.posteri_snr_prev,
-                    snr_prime=wf.posteri_prime,
-                    smooth_factor=wf.beta,
+                fil.posteri_prime = pyst.dsp.calc_posteri_prime(
+                    fil.posteri_snr)
+                fil.priori_snr = pyst.dsp.calc_prior_snr(
+                    snr=fil.posteri_snr_prev,
+                    snr_prime=fil.posteri_prime,
+                    smooth_factor=fil.beta,
                     first_iter=False,
-                    gain=wf.gain_prev)
-            wf.gain = pyst.dsp.calc_gain(prior_snr=wf.priori_snr)
-            enhanced_fft = pyst.dsp.apply_gain_fft(target_fft, wf.gain)
+                    gain=fil.gain_prev)
+            fil.gain = pyst.dsp.calc_gain(prior_snr=fil.priori_snr)
+            enhanced_fft = pyst.dsp.apply_gain_fft(target_fft, fil.gain)
             if apply_postfilter:
                 target_noisereduced_power = pyst.dsp.calc_power(enhanced_fft)
-                wf.gain = pyst.dsp.postfilter(target_power_frame,
+                fil.gain = pyst.dsp.postfilter(target_power_frame,
                                         target_noisereduced_power,
-                                        gain=wf.gain,
+                                        gain=fil.gain,
                                         threshold=0.9,
                                         scale=20)
-                enhanced_fft = pyst.dsp.apply_gain_fft(target_fft, wf.gain)
+                enhanced_fft = pyst.dsp.apply_gain_fft(target_fft, fil.gain)
             enhanced_ifft = pyst.dsp.calc_ifft(enhanced_fft)
-            filtered_sig[row:row+wf.frame_length] += enhanced_ifft
+            filtered_sig[row:row+fil.frame_length] += enhanced_ifft
             # prepare for next iteration
-            wf.posteri_snr_prev = wf.posteri_snr
-            wf.gain_prev = wf.gain
-            row += wf.overlap_length
-            section += wf.overlap_length
+            fil.posteri_snr_prev = fil.posteri_snr
+            fil.gain_prev = fil.gain
+            row += fil.overlap_length
+            section += fil.overlap_length
     except ValueError as e:
         print(e)
         print(frame)
-    assert row == wf.target_subframes * wf.overlap_length
-    assert section == wf.target_subframes * wf.overlap_length
+    assert row == fil.target_subframes * fil.overlap_length
+    assert section == fil.target_subframes * fil.overlap_length
     # make enhanced_ifft values real
     enhanced_signal = filtered_sig.real
-    enhanced_signal = wf.check_volume(enhanced_signal)
+    enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
-    wf.save_filtered_signal(str(output_filename), 
+    fil.save_filtered_signal(str(output_filename), 
                             enhanced_signal,
                             overwrite=True)
     return None
