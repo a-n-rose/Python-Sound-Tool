@@ -19,12 +19,21 @@ def test_calc_phase():
     assert np.allclose(value1, phase)
     
 
-def test_calc_phase_framelength10():
+def test_calc_phase_framelength10_default():
     frame_length = 10
     time = np.arange(0, 10, 0.1)
     signal = np.sin(time)[:frame_length]
     fft_vals = np.fft.fft(signal)
     phase = dsp.calc_phase(fft_vals)
     value1 = np.array([ 1.        +0.j,         -0.37872566+0.92550898j])
+    assert np.allclose(value1, phase[:2])
+    
+def test_calc_phase_framelength10_radiansTrue():
+    frame_length = 10
+    time = np.arange(0, 10, 0.1)
+    signal = np.sin(time)[:frame_length]
+    fft_vals = np.fft.fft(signal)
+    phase = dsp.calc_phase(fft_vals, radians = True)
+    value1 = np.array([ 0.,         1.95921533])
     assert np.allclose(value1, phase[:2])
     
