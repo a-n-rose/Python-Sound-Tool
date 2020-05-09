@@ -251,7 +251,6 @@ def overlap_add(enhanced_matrix, frame_length, overlap):
         complex_vals=False)
     
     for i in range(enhanced_matrix.shape[1]):
-        print(i)
         if i == 0:
             new_signal[:frame_length] += enhanced_matrix[:frame_length,i]
         else:
