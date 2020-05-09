@@ -223,7 +223,7 @@ def separate_dependent_var(matrix):
     X = np.delete(matrix, -1, axis=-1)
     return X, y
 
-def overlap_add(enhanced_matrix, frame_length, overlap):
+def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
     '''Overlaps and adds windowed sections together to form 1D signal.
     
     Parameters
@@ -264,7 +264,7 @@ def overlap_add(enhanced_matrix, frame_length, overlap):
     expected_len = (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
     new_signal = create_empty_matrix(
         (expected_len,),
-        complex_vals=False)
+        complex_vals=complex_vals)
     
     for i in range(enhanced_matrix.shape[1]):
         if i == 0:
@@ -276,6 +276,26 @@ def overlap_add(enhanced_matrix, frame_length, overlap):
             mid = start+overlap
             stop = start+frame_length
     return new_signal
+
+def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft):
+    '''Reconstruct whole spectrum 
+    
+    flip up-down
+    
+    Parameters
+    ----------
+    band_reduced_noise_matrix : np.ndarray [size=(frame_size, num_frames), dtype=np.float]
+    '''
+    total_rows = n_fft
+    output_matrix = np.zeros((total_rows,band_reduced_noise_matrix.shape[1]))
+    print('band_reduced_noise_matrix : ',band_reduced_noise_matrix.shape)
+    # flip up-down
+    flipped_matrix = np.flip(band_reduced_noise_matrix, axis=0)
+    print('flipped_matrix', flipped_matrix.shape)
+    output_matrix[0:n_fft//2,:] += band_reduced_noise_matrix[0:n_fft//2,:]#remove extra zeros at the end
+    output_matrix[n_fft//2:n_fft,:] += flipped_matrix[n_fft//2:n_fft,:]#remove extra zeros at the beginning
+    
+    return output_matrix
 
 if __name__ == "__main__":
     import doctest

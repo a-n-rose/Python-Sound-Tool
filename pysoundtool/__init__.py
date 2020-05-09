@@ -7,7 +7,7 @@ from .acousticfeats_ml.modelfeats import PrepFeatures
 from .acousticfeats_ml.modelfeats import prepfeatures as run_featprep 
 from .acousticfeats_ml.modelfeats import loadfeature_settings as getfeatsettings
 from .filterfun import filters
-from .filterfun.filters import WienerFilter, Filter
+from .filterfun.filters import WienerFilter, BandSubtraction
 from .filterfun.filters import calc_audioclass_powerspecs as welch2class
 from .filterfun.filters import coll_beg_audioclass_samps as save_class_noise
 from .filterfun.applyfilter import filtersignal, apply_band_specsub
@@ -17,6 +17,6 @@ from . import exceptions as errors
 
 __all__=['paths', 'PathSetup', \
     'featorg', 'audio2datasets', 'PrepFeatures', 'run_featprep','getfeatsettings',\
-        'filters','WienerFilter','Filter','welch2class', 'save_class_noise','filtersignal', \
+        'filters','WienerFilter','BandSubtraction','welch2class', 'save_class_noise','filtersignal', \
             'apply_band_specsub', 'dsp', 'matrixfun', 'augmentdata', \
                 'errors']

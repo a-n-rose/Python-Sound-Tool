@@ -305,53 +305,38 @@ class WienerFilter(FilterSettings):
             return False
         
 
-class Filter:
-    def __init__(self, frame_duration = 20, 
-                 percent_overlap = 50, 
-                 filter_type = 'wiener', #or spectral subtraction
-                 sampling_rate = 48000, 
-                 smooth_factor = 0.98, 
-                 gain_type = 'power estimation', 
-                 window_type = 'hamming', 
-                 real_signal = True,
-                 apply_postfilter = False,
-                 num_bands = None,
+class BandSubtraction:
+    def __init__(self,
+                 num_bands = 6,
                  band_spacing = 'linear',
                  max_vol = 0.4):
-        self.filter_type = filter_type
-        self.frame_dur = frame_duration
-        self.samprate = sampling_rate
-        self.frame_length = frame_duration * sampling_rate //1000
-        if percent_overlap > 1: 
-            percent_overlap /= 100
-        self.overlap = int(self.frame_length * percent_overlap) 
-        self.common_length = self.frame_length-self.overlap #mband.m script
-        self.beta = smooth_factor
-        self.gain_type = gain_type
-        self.window = self.create_window(window_type)
-        self.real_signal = real_signal
-        self.apply_postfilter = apply_postfilter
+        FilterSettings.__init__(self)
+        self.target_subframes = None
+        self.noise_subframes = None
+        self.max_vol = max_vol
         self.num_bands = num_bands
         self.band_spacing = band_spacing
-        # just starting value:
-        self.fft_bins = self.frame_length
-        self.max_vol = max_vol
         
-        
+    def get_samples(self, wavfile, dur_sec=None):
+        """Load signal and save original volume
 
+        Parameters
+        ----------
+        wavfile : str
+            Path and name of wavfile to be loaded
+        dur_sec : int, float optional
+            Max length of time in seconds (default None)
 
-    def __repr__(self):
-        return (f'{self.__class__.__name__}('
-            f'\nFilter type: {self.filter_type!r} ms'
-            f'\nFrame duration: {self.frame_dur!r} ms'
-            f'\nSample rate: {self.samprate!r} hz'
-            f'\nFrame length: {self.frame_length!r} samples'
-            f'\nFrame overlap: {self.overlap!r} samples'
-            f'\nSmoothing factor: {self.beta!r}'
-            f'\nGain type: {self.gain_type!r}'
-            f'\nWindow type: {self.window_type!r})'
-            )
-        
+        Returns 
+        ----------
+        samples : ndarray
+            Array containing signal amplitude values in time domain
+        """
+        samples, sr = pyst.dsp.load_signal(
+            wavfile, self.sr, dur_sec=dur_sec)
+        self.set_volume(samples, max_vol = self.max_vol)
+        return samples
+
     def set_volume(self, samples, max_vol = 0.4, min_vol = 0.15):
         """Records and limits the maximum amplitude of original samples.
 
@@ -386,57 +371,35 @@ class Filter:
         else:
             self.max_vol = max_amplitude
         return None
-        
-    def create_window(self, window_type):
-        self.window_type = window_type
-        if window_type.lower() == 'hamming':
-            window = hamming(self.frame_length)
-        elif window_type.lower() == 'hanning':
-            window = hanning(self.frame_length)
-        self.norm_win = np.dot(window, window) / self.frame_length
-        
-        return window
 
-
-    def normalize_signal(self,signal, max_val, min_val):
-        signal_normed = pyst.dsp.normalize(signal, 
-                                       max_val = max_val, 
-                                       min_val = min_val)
-        return signal
-
-
-    #def load_signal(self,wav):
-        #try:
-            #signal, sr = librosa.load(wav,sr=self.samprate)
-            ##sr, signal = wavfile.read(wav)
-            #assert sr == self.samprate
-            #self.data_type = signal.dtype
-        #except AssertionError as e:
-            #print(e)
-            #print("Scipy found sampling rate: {} while you set the sampling rate as {}".format(sr, self.samprate))
-            #print("Please adjust the sampling rate.")
-            #sys.exit()
-        #return signal
-        
-    def get_samples(self, wavfile, dur_sec=None):
-        """Load signal and save original volume
+    def set_num_subframes(self, len_samples, is_noise=False):
+        """Sets the number of target or noise subframes available for processing
 
         Parameters
         ----------
-        wavfile : str
-            Path and name of wavfile to be loaded
-        dur_sec : int, float optional
-            Max length of time in seconds (default None)
+        len_samples : int 
+            The total number of samples in a given signal
+        is_noise : bool
+            If False, subframe number saved under self.target_subframes, otherwise 
+            self.noise_subframes (default False)
 
-        Returns 
-        ----------
-        samples : ndarray
-            Array containing signal amplitude values in time domain
+        Returns
+        -------
+        None
         """
-        samples, sr = pyst.dsp.load_signal(
-            wavfile, self.samprate, dur_sec=dur_sec)
-        self.set_volume(samples, max_vol = self.max_vol)
-        return samples
+        if is_noise:
+            self.noise_subframes = pyst.dsp.calc_num_subframes(
+                tot_samples=len_samples,
+                frame_length=self.frame_length,
+                overlap_samples=self.overlap_length
+            )
+        else:
+            self.target_subframes = pyst.dsp.calc_num_subframes(
+                tot_samples=len_samples,
+                frame_length=self.frame_length,
+                overlap_samples=self.overlap_length
+            )
+        return None
 
     def load_power_vals(self, path_npy):
         """Loads and checks shape compatibility of averaged power values
@@ -449,257 +412,41 @@ class Filter:
         Returns
         -------
         power_values : ndarray
-            The power values as long as they have the shape (self.fft_bins, 1)
+            The power values as long as they have the shape (self.num_fft_bins, 1)
         """
         power_values = pyst.paths.load_feature_data(path_npy)
-        if power_values.shape[0] != self.fft_bins:
+        if power_values.shape[0] != self.num_fft_bins:
             raise ValueError("Power value shape does not match settings.\
                 \nProvided power value shape: {}\
                 \nExpected shape: ({},)".format(
-                power_values.shape, self.fft_bins))
+                power_values.shape, self.num_fft_bins))
         # get rid of extra, unnecessary dimension
-        if power_values.shape == (self.fft_bins, 1):
-            power_values = power_values.reshape(self.fft_bins,)
+        if power_values.shape == (self.num_fft_bins, 1):
+            power_values = power_values.reshape(self.num_fft_bins,)
         return power_values
 
-    def create_empty_matrix(self,shape,complex_vals=False):
-        if complex_vals:
-            matrix = np.zeros(shape,dtype=np.complex_)
-        else:
-            matrix = np.zeros(shape)
-        return matrix
-
-
-    def calc_fft(self,signal,fft_length=None):
-        if self.real_signal:
-            fft_vals = rfft(signal,fft_length)
-        else:
-            fft_vals = fft(signal,fft_length)
-        return fft_vals
-    
-    
-    def calc_ifft(self,signal):
-        if self.real_signal:
-            ifft_vals = irfft(signal)
-        else:
-            ifft_vals = ifft(signal)
-        
-        return ifft_vals
-    
-    
-    def calc_average_power(self, matrix, num_iters):
-        for i in range(len(matrix)):
-            matrix[i] /= num_iters
-        return matrix
-    
-
-    def apply_window(self, samples):
-        try:
-            samples_win = samples.copy()
-            assert samples.shape == self.window.shape
-            samples_win *= self.window
-            assert samples_win.shape == samples.shape
-            
-            return samples_win
-        
-        except AssertionError as e:
-            print(e)
-            print('Shapes do not align')
-            print('samples = {}; window = {}'.format(samples.shape,self.window.shape))
-            if samples_win:
-                print('samples_win = {}'.format(samples_win.shape))
-            sys.exit()
-        
-        return None
-
-
-    def set_num_subframes(self, len_samples, noise=True):
-        if noise:
-            self.noise_subframes = int(len_samples/ self.overlap) -1
-        else:
-            self.target_subframes = int(len_samples/ self.overlap) -1
-        return None
-
-
-    def calc_power(self, fft, normalization=True):
-        if normalization:
-            power_spec = np.abs(fft)**2 / (self.frame_length * self.norm_win)
-        else:
-            power_spec = np.abs(fft)**2
-        
-        return power_spec
-
-
-    def update_posteri(self, target_power_spec, noise_power_spec):
-        #each power spectrum is divided by their corresponding frequency bin
-        
-        posteri_snr = np.zeros(target_power_spec.shape)
-        for i in range(len(target_power_spec)):
-            posteri_snr[i] += target_power_spec[i] / noise_power_spec[i]
-        assert posteri_snr.shape == (self.frame_length,) 
-        self.posteri_snr = posteri_snr
-        
-        return None
-
-
-    def calc_posteri_prime(self):
+    def check_volume(self, samples):
+        """ensures volume of filtered signal is within the bounds of the original
         """
-        estimate snr
-        flooring at 0 --> half-wave rectification (values cannot be negative)
-        this may cause issues in lower SNRs
-        """
-        posteri_prime = self.posteri_snr - 1
-        posteri_prime[posteri_prime < 0] = 0
-        
-        return posteri_prime
+        max_orig = round(max(samples), 2)
+        samples = pyst.dsp.control_volume(samples, self.max_vol)
+        max_adjusted = round(max(samples), 2)
+        if max_orig != max_adjusted:
+            print("volume adjusted from {} to {}".format(max_orig, max_adjusted))
+        return samples
 
-
-    def update_priori_snr(self, book=False, first_iter=True):
-        """
-        From the paper:
-        Scalart, P. and Filho, J. (1996). Speech enhancement based on a 
-        priori signal to noise estimation. Proc. IEEE Int. Conf. Acoust., 
-        Speech, Signal Processing, 629-632.
-        
-        Applied in MATLAB code from the book 
-        Speech Enhancement: Theory and Practice (2013), by Philipos C. Loizou
-        wiener_as.m
-        """
-        #only keep positive values (half-wave rectification)
-        #may reduce in performance in near 0 SNRs
-        self.posteri_prime_floored = self.calc_posteri_prime()
-        
-        if not book:
-            #calculate according to apriori SNR equation (6) in paper
-            #Scalart, P. and Filho, J. (1996)
-            self.priori_snr = (1 - self.beta) * posteri_prime_floored + self.beta * self.posteri_snr
+    def save_filtered_signal(self, output_file, samples, overwrite=False):
+        saved, filename = pyst.paths.save_wave(
+            output_file, samples, self.sr, overwrite=overwrite)
+        if saved:
+            print('Wavfile saved under: {}'.format(filename))
+            return True
         else:
-            #calculate following procedure from MATLAB code in book Loizou (2013)
-            if first_iter:
-                #don't yet have previous gain or snr values to apply
-                self.priori_snr = self.beta + (1-self.beta) * self.posteri_prime_floored
-            else:
-                #now have previous gain and snr values
-                self.priori_snr = self.beta * (self.gain_prev**2) * self.posteri_prev + (1 - self.beta) * self.posteri_prime_floored
+            print('Error occurred. {} not saved.'.format(filename))
+            return False
         
-        return None
-
-
-    def update_gain(self):
-        if self.gain_type.lower() == 'power estimation':
-            #gain calculated in MATLAB code from the book 
-            #Speech Enhancement: Theory and Practice (2013)
-            #can be found in paper as equation (7), paired with equation (6)
-            self.gain = np.sqrt(self.priori_snr/(1+self.priori_snr))
-            
-        #gain calculated from the paper for wiener 
-        #Scalart & Filho (1996):
-        elif self.gain_type.lower() == 'wiener':
-            #can be found in paper as equation (8), paired with equation (6)
-            self.gain = self.priori_snr / (1 + self.priori_snr)
+ 
         
-        return None
-
-
-    def apply_gain_fft(self, fft):
-        enhanced_fft = fft * self.gain
-        assert enhanced_fft.shape == fft.shape
-        
-        return enhanced_fft
-
-
-    def save_wave(self,wavefile_name, signal_values):
-        wavfile.write(wavefile_name, self.samprate, signal_values)
-        
-        return True
-    
-    
-    def calc_noise_frame_len(self,SNR_decision):
-        '''
-        window for calculating moving average 
-        for lower SNRs, larger window
-        '''
-        if SNR_decision < 1:
-            soft_decision = 1 - (SNR_decision/self.threshold)
-            soft_decision_scaled = round((soft_decision) * self.scale)
-            noise_frame_len = 2 * soft_decision_scaled + 1
-        else:
-            noise_frame_len = SNR_decision
-        
-        return noise_frame_len
-    
-    
-    def calc_linear_impulse(self,noise_frame_len, num_freq_bins):
-        linear_filter_impulse = np.zeros((num_freq_bins,))
-        for i in range(num_freq_bins):
-            if i < noise_frame_len:
-                linear_filter_impulse[i] = 1 / noise_frame_len
-            else:
-                linear_filter_impulse[i] = 0
-            
-        return linear_filter_impulse
-    
-    
-    def calc_power_ratio(self, original_powerspec, noisereduced_powerspec):
-        '''
-        Where some issues happen.. just because power ratio is same, 
-        louder noises don't get filtered out during speech
-        Even though they have a different frequency makeup.
-        '''
-        power_ratio = sum(noisereduced_powerspec)/sum(original_powerspec)#/len(noisereduced_powerspec)
-        
-        
-        return power_ratio
-        
-    
-
-        
-    def calc_phase(self, fft_vals, radians=False):
-        '''Calculates phase on frame of fft values.
-        
-        Parameters
-        ----------
-        fft_vals : np.ndarray [shape=(frame_length,), dtype=complex]
-            FFT values for current frame. 
-            
-        Returns
-        -------
-        phase : np.ndarray [shape=(frame_length,), dtype=complex]
-            Phase values (complex) of current frame.
-        
-        Examples
-        --------
-        >>> import pysoundtool as pyst
-        >>> import numpy as np
-        >>> # Using default settings for frame_length
-        >>> fil = pyst.Filter()
-        >>> # create random complex values to represent fft
-        >>> np.random.seed(seed=0)
-        >>> vals = fil.frame_length
-        >>> rand_fft = np.random.random(vals) + np.random.random(vals) * 1j
-        >>> phase = fil.calc_phase(rand_fft)
-        >>> rand_fft.shape
-        (960,)
-        >>> phase.shape
-        (960,)
-        >>> phase[:2]
-        [0.92813897+0.37223386j 0.7540883 +0.65677305j]
-        '''
-        phase = pyst.dsp.calc_phase(fft_vals, radians = False)
-        return phase
-    
-    # TODO improve on this...
-    def update_fft_length(self):
-        if self.frame_length % 2 == 0:
-            self.frame_length = self.frame_length
-        else:
-            raise TypeError('Frame length must be an even number. '+ \
-                'Currently frame length {} is not acceptable.'.format(
-                    self.frame_length))
-        #if self.fft_bins < self.frame_length:
-            #self.fft_bins *= 2
-            #self.fft_bins = self.update_fft_length()
-        return self.fft_bins
     
     def setup_bands(self):
         '''Provides starting and ending frequncy bins/indices for each band.
@@ -735,7 +482,6 @@ class Filter:
         '''
         if self.num_bands is None:
             self.num_bands = 6
-        self.update_fft_length()
         if 'linear' in self.band_spacing.lower():
             
             try:
@@ -935,22 +681,17 @@ class Filter:
         section = 0
         for band in range(self.num_bands):
             start_bin = int(self.band_start_freq[band])
-            #print("start bin: ", start_bin)
             end_bin = int(self.band_end_freq[band])
-            #print("end bin: ", end_bin)
             target_band = target_powspec[start_bin:end_bin]
-            #print(target_band.shape)
             target_band = target_band.reshape(target_band.shape+(1,))
             noise_band = noise_powspec[start_bin:end_bin]
-            #print(noise_band.shape)
+            noise_band = noise_band.reshape(noise_band.shape+(1,))
             beta = oversub_factor[band] 
-            #print(beta.shape)
             if band == relevant_band:
                 delta = 1 #don't interfer too much with important target band
             else: 
                 delta = 2.5 #less important bands --> more noise subtraction
-            adjusted = target_band - beta * noise_band * delta
-            #print("adjusted shape: ", adjusted.shape)
+            adjusted = target_band - (beta  * noise_band * delta)
             sub_signal[section:section+self.bins_per_band] += adjusted
             self.apply_floor(sub_signal[section:section+self.bins_per_band], target_band, book=True)
             section += self.bins_per_band
@@ -986,15 +727,6 @@ class Filter:
         
         return spectrum_complex
 
-    def increase_volume(self,sample_values,minimum_max_val=0.13):
-        sample_values *= 1.25
-        if max(sample_values) < minimum_max_val:
-            sample_values = self.increase_volume(sample_values,minimum_max_val)
-        else:
-            print('volume adjusted to {} '.format(max(sample_values)))
-        
-        return sample_values
-    
 
 
 class WelchMethod(FilterSettings):
