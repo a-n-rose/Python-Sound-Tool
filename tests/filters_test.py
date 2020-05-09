@@ -124,14 +124,61 @@ def test_calc_oversub_factor_nonoise():
     value1 = np.array([4., 4., 4., 4.])
     assert np.allclose(value1, a)
 
-def test_calc_relevant_band():
-    noise_max = 0.3
+def test_calc_relevant_band_freq400():
     fil = pyst.Filter(num_bands = 4)
     fil.setup_bands()
     time = np.arange(0, 10, 0.01)
-    signal = np.sin(time)[:fil.frame_length]
+    freq = 400
+    full_circle = 2 * np.pi
+    signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
     powspec = np.abs(np.fft.fft(signal))**2
     rel_band = fil.calc_relevant_band(powspec)
     value1 = 0
-    assert np.allclose(value1, rel_band)
+    assert value1 == rel_band
+    
+def test_calc_relevant_band_freq50():
+    fil = pyst.Filter(num_bands = 4)
+    fil.setup_bands()
+    time = np.arange(0, 10, 0.01)
+    freq = 50
+    full_circle = 2 * np.pi
+    signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
+    powspec = np.abs(np.fft.fft(signal))**2
+    rel_band = fil.calc_relevant_band(powspec)
+    value1 = 2
+    assert value1 == rel_band
+    
+def test_calc_relevant_band_freq20():
+    fil = pyst.Filter(num_bands = 4)
+    fil.setup_bands()
+    time = np.arange(0, 10, 0.01)
+    freq = 22
+    full_circle = 2 * np.pi
+    signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
+    powspec = np.abs(np.fft.fft(signal))**2
+    rel_band = fil.calc_relevant_band(powspec)
+    value1 = 3
+    assert value1 == rel_band
+    
+def test_calc_relevant_band_freq25():
+    fil = pyst.Filter(num_bands = 4)
+    fil.setup_bands()
+    time = np.arange(0, 10, 0.01)
+    freq = 25
+    full_circle = 2 * np.pi
+    signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
+    powspec = np.abs(np.fft.fft(signal))**2
+    rel_band = fil.calc_relevant_band(powspec)
+    value1 = 1
+    assert value1 == rel_band
+    
+def test_calc_relevant_band():
+    fil = pyst.Filter(num_bands = 4)
+    fil.setup_bands()
+    time = np.arange(0, 10, 0.01)
+    signal = np.cos(time)[:fil.frame_length]
+    powspec = np.abs(np.fft.fft(signal))**2
+    rel_band = fil.calc_relevant_band(powspec)
+    value1 = 0
+    assert value1 == rel_band
     
