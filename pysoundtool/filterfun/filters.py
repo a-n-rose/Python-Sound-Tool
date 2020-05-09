@@ -333,7 +333,7 @@ class Filter:
         self.num_bands = num_bands
         self.band_spacing = band_spacing
         # just starting value:
-        self.fft_bins = 2
+        self.fft_bins = self.frame_length
         
         
 
@@ -367,25 +367,25 @@ class Filter:
         
         return signal
     
-    def get_samples(self, wavfile, dur_sec=None):
-        """Load signal and save original volume
+    #def get_samples(self, wavfile, dur_sec=None):
+        #"""Load signal and save original volume
 
-        Parameters
-        ----------
-        wavfile : str
-            Path and name of wavfile to be loaded
-        dur_sec : int, float optional
-            Max length of time in seconds (default None)
+        #Parameters
+        #----------
+        #wavfile : str
+            #Path and name of wavfile to be loaded
+        #dur_sec : int, float optional
+            #Max length of time in seconds (default None)
 
-        Returns 
-        ----------
-        samples : ndarray
-            Array containing signal amplitude values in time domain
-        """
-        samples, sr = pyst.dsp.load_signal(
-            wavfile, self.sr, dur_sec=dur_sec)
-        self.set_volume(samples, max_vol = self.max_vol)
-        return samples
+        #Returns 
+        #----------
+        #samples : ndarray
+            #Array containing signal amplitude values in time domain
+        #"""
+        #samples, sr = pyst.dsp.load_signal(
+            #wavfile, self.sr, dur_sec=dur_sec)
+        #self.set_volume(samples, max_vol = self.max_vol)
+        #return samples
 
 
     def load_signal(self,wav):
@@ -908,29 +908,7 @@ class Filter:
         spectrum_complex = spectrum * phase
         
         return spectrum_complex
-    
-    def overlap_add(self, enhanced_matrix):
-        start= self.frame_length - self.overlap
-        mid= start + self.overlap
-        stop= start + self.frame_length
-        
-        new_signal = self.create_empty_matrix(
-            (self.overlap*(enhanced_matrix.shape[1]+1),),
-            complex_vals=False)
-        
-        for i in range(enhanced_matrix.shape[1]):
-            if i == 0:
-                new_signal[:self.frame_length] += enhanced_matrix[:self.frame_length,i]
-            else:
-                new_signal[start:mid] += enhanced_matrix[:self.overlap,i] 
-                new_signal[mid:stop] += enhanced_matrix[self.overlap:self.frame_length,i]
-                start = mid
-                mid = start+self.overlap
-                stop = start+self.frame_length
-        
-        return new_signal
-    
-    
+
     def increase_volume(self,sample_values,minimum_max_val=0.13):
         sample_values *= 1.25
         if max(sample_values) < minimum_max_val:
