@@ -815,6 +815,8 @@ class Filter:
         -------
         rel_band_index : int
             Index for which band contains the most energy.
+        band_energy_matrix : np.ndarray [size=(num_bands, ), dtype=np.float]
+            Power levels of each band.
             
         Examples
         --------
@@ -829,26 +831,26 @@ class Filter:
         >>> freq = 25
         >>> signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
         >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
-        >>> rel_band_inex = fil.calc_relevant_band(powerspec_clean)
+        >>> rel_band_inex, band_power_energies = fil.calc_relevant_band(powerspec_clean)
         >>> rel_band_index
         1
         >>> # and with frequency 50
         >>> freq = 50
         >>> signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
         >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
-        >>> rel_band_inex = fil.calc_relevant_band(powerspec_clean)
+        >>> rel_band_inex, band_power_energies = fil.calc_relevant_band(powerspec_clean)
         >>> rel_band_index
         2
         '''
-        band_power = np.zeros(self.num_bands)
+        band_energy_matrix = np.zeros(self.num_bands)
         for band in range(self.num_bands):
             start_bin = int(self.band_start_freq[band])
             end_bin = int(self.band_end_freq[band])
             target_band = target_powspec[start_bin:end_bin]
-            band_power[band] += sum(target_band)
-        rel_band_index = np.argmax(band_power)
+            band_energy_matrix[band] += sum(target_band)/len(target_band)
+        rel_band_index = np.argmax(band_energy_matrix)
         
-        return rel_band_index
+        return rel_band_index, band_energy_matrix
     
     
     def apply_floor(self, sub_band, original_band, floor=0.002, book=True):
@@ -867,7 +869,7 @@ class Filter:
         #apply higher or lower noise subtraction (i.e. delta)
         #lower frequency / bin == lower delta --> reduce speech distortion
         if not speech:
-            relevant_band = self.calc_relevant_band(target_powspec)
+            relevant_band, __ = self.calc_relevant_band(target_powspec)
         else:
             relevant_band = 0
         sub_signal = np.zeros((self.num_bands*self.bins_per_band,1))
