@@ -11,9 +11,6 @@ import numpy as np
 import pytest
 
 
-
-
-
 def test_overlap_add():
     enhanced_matrix = np.ones((4, 4))
     frame_length = 4
@@ -30,3 +27,11 @@ def test_overlap_add():
     v1 = np.array([1., 1., 1., 2., 1., 1., 2., 1., 1., 2., 1., 1., 1.])
     assert np.array_equal(v1, sig)
     
+def test_overlap_add_framelength_mismatch():
+    enhanced_matrix = np.ones((4, 4))
+    frame_length = 3
+    overlap = 1
+    with pytest.raises(TypeError):
+        sig = matrixfun.overlap_add(enhanced_matrix, 
+                                    frame_length, 
+                                    overlap)
