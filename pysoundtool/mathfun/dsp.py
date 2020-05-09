@@ -28,7 +28,27 @@ from scipy.io.wavfile import read
 from numpy.fft import fft, ifft
 from python_speech_features import logfbank, mfcc
 import librosa
+from . import matrixfun
 
+def create_signal(freq=200, amplitude=0.4, samplerate=8000, dur_sec=0.25):
+    #The variable `time` holds the expected number of measurements taken: 
+    time = get_time_points(dur_sec, samplerate=samplerate)
+    # unit circle: 2pi equals a full circle
+    full_circle = 2 * np.pi
+    #TODO: add namedtuple
+    sinewave_samples = amplitude * np.sin((freq*full_circle)*time)
+    return sinewave_samples, samplerate
+
+def get_time_points(dur_sec,samplerate):
+    #duration in seconds multiplied by the sampling rate. 
+    time = np.linspace(0, dur_sec, np.floor(dur_sec*samplerate))
+    return time
+
+def create_noise(num_samples, amplitude=0.025, random_seed=None):
+    if random_seed:
+        np.random.seed(random_seed)
+    noise = amplitude * np.random.randn(num_samples)
+    return noise
 
 def load_signal(wav, sampling_rate=48000, dur_sec=None):
     '''Loads wavfile, resamples if necessary, and normalizes signal.
@@ -55,6 +75,26 @@ def load_signal(wav, sampling_rate=48000, dur_sec=None):
     #ensure max and min are between 1 and -1
     samps = np.interp(samps,(samps.min(), samps.max()),(-1, 1))
     return samps, sr
+
+def normalize(data, max_val=None, min_val=None):
+    '''Normalizes data.
+    
+    Parameters
+    ----------
+    data : np.ndarray
+        Data to be normalized
+    max_val : int or float, optional
+        Predetermined maximum value. If None, will use max value
+        from `data`.
+    min_val : int or float, optional
+        Predetermined minimum value. If None, will use min value
+        from `data`.
+    '''
+    if max_val is None:
+         normed_data = (data - np.min(data)) / (np.max(data) - np.min(data))
+    else:
+        normed_data = (data - min_val) / (max_val - min_val)
+    return normed_data
 
 def resample_audio(samples, sr_original, sr_desired):
     '''Allows audio samples to be resampled to desired sample rate.
@@ -319,37 +359,56 @@ def calc_average_power(matrix, num_iters):
         matrix[i] /= num_iters
     return matrix
 
-def calc_phase(fft_matrix):
+def calc_phase(fft_matrix, radians=False):
     '''Calculates phase from complex fft values.
     
     Parameters
     ----------
     fft_vals : np.ndarray [shape=(d, t), dtype=complex]
         matrix with fft values
+    radians : boolean
+        False and complex values are returned. True and radians are returned.
+        (Default False)
         
     Returns
     -------
-    phase : np.ndarray [shape=(d, t), dtype=complex]
-        Phase values for fft_vals 
+    phase : np.ndarray [shape=(d, t)]
+        Phase values for fft_vals. If radians is set to False, dtype = complex.
+        If radians is set to True, dtype = float. 
         
     Examples
     --------
     >>> import numpy as np 
-    >>> np.random.seed(seed=0)
-    >>> rand_fft = np.random.random(2) + np.random.random(2) * 1j
-    >>> phase = calc_phase(rand_fft)
-    >>> phase
-    [0.67324134+0.73942281j 0.79544405+0.60602703j]
+    >>> frame_length = 10
+    >>> time = np.arange(0, 10, 0.1)
+    >>> signal = np.sin(time)[:frame_length]
+    >>> fft_vals = np.fft.fft(signal)
+    >>> phase = calc_phase(fft_vals, radians=False)
+    >>> phase[:2]
+    array([ 1.        +0.j        , -0.37872566+0.92550898j])
+    >>> phase = calc_phase(fft_vals, radians=True)
+    >>> phase[:2]
+    array([0.        , 1.95921533])
     '''
-    # not in radians
-    # calculates mag /power and phase (power=1 --> mag 2 --> power)
-    __, phase = librosa.magphase(fft_matrix)
-    # in radians (had issues with own implementation)
-    #if normalization:
-        #phase = np.angle(fft_vals) / (self.frame_length * self.norm_win)
-    #else:
-        #phase = np.angle(fft_vals)
+    if not radians:
+        __, phase = librosa.magphase(fft_matrix)
+    else:
+        # in radians 
+        #if normalization:
+            #phase = np.angle(fft_matrix) / (frame_length * norm_win)
+        #else:
+        phase = np.angle(fft_matrix)
     return phase
+
+def apply_original_phase(spectrum, phase):
+        
+        spectrum_complex = pyst.matrixfun.create_empty_matrix(spectrum.shape,
+                                                              complex_vals=True)
+        ##spectrum = spectrum**(1/2)
+        #phase_prepped = (1/2) * np.cos(phase) + cmath.sqrt(-1) * np.sin(phase)
+        spectrum_complex = spectrum * phase
+        
+        return spectrum_complex
 
 def calc_posteri_snr(target_power_spec, noise_power_spec):
     """Calculates and updates signal to noise ratio of current frame
@@ -531,6 +590,7 @@ def calc_ifft(signal_section, norm=False):
         norm = None
     ifft_vals = ifft(signal_section, norm=norm)
     return ifft_vals
+
 
 def control_volume(samples, max_limit):
     """Keeps max volume of samples to within a specified range.
