@@ -483,15 +483,14 @@ class Filter:
         return None
 
 
-    def calc_posteri_prime(self,positive=True):
+    def calc_posteri_prime(self):
         """
         estimate snr
         flooring at 0 --> half-wave rectification (values cannot be negative)
         this may cause issues in lower SNRs
         """
         posteri_prime = self.posteri_snr - 1
-        if positive:
-            posteri_prime[posteri_prime < 0] = 0
+        posteri_prime[posteri_prime < 0] = 0
         
         return posteri_prime
 
