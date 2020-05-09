@@ -223,6 +223,45 @@ def separate_dependent_var(matrix):
     X = np.delete(matrix, -1, axis=-1)
     return X, y
 
+def overlap_add(enhanced_matrix, frame_length, overlap):
+    '''Overlaps and adds windowed sections together to form 1D signal.
+    
+    Parameters
+    ----------
+    enhanced_matrix : np.ndarray [shape=(frame_length, num_frames), dtype=float]
+        Matrix with enhance values
+    frame_length : int 
+        Number of samples per frame 
+    overlap : int 
+        Number of samples that overlap
+        
+    Returns
+    -------
+    new_signal : np.ndarray [shape=(frame_length,), dtype=float]
+        Length equals (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
+    '''
+    increments = frame_length - overlap
+    start= increments
+    mid= start + overlap
+    stop= start + frame_length
+    
+    expected_len = (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
+    new_signal = create_empty_matrix(
+        (expected_len,),
+        complex_vals=False)
+    
+    for i in range(enhanced_matrix.shape[1]):
+        print(i)
+        if i == 0:
+            new_signal[:frame_length] += enhanced_matrix[:frame_length,i]
+        else:
+            new_signal[start:mid] += enhanced_matrix[:overlap,i] 
+            new_signal[mid:stop] += enhanced_matrix[overlap:frame_length,i]
+            start += increments
+            mid = start+overlap
+            stop = start+frame_length
+    return new_signal
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
