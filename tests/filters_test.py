@@ -123,53 +123,95 @@ def test_calc_oversub_factor_nonoise():
     a = fil.calc_oversub_factor()
     value1 = np.array([4., 4., 4., 4.])
     assert np.allclose(value1, a)
-
-def test_calc_relevant_band_freq400():
-    fil = pyst.Filter(num_bands = 4)
+    
+def test_calc_relevant_band1():
+    fil = pyst.Filter(num_bands = 6)
     fil.setup_bands()
+    band_index = 0
+    freq = fil.band_start_freq[band_index] 
     time = np.arange(0, 10, 0.01)
-    freq = 400
     full_circle = 2 * np.pi
     signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
     powspec = np.abs(np.fft.fft(signal))**2
-    rel_band = fil.calc_relevant_band(powspec)
-    value1 = 0
+    rel_band, pow_levels = fil.calc_relevant_band(powspec)
+    print('IF ERROR, PERHAPS DUE TO HARMONICS??? OR BAND SPACING???')
+    print('Testing frequency: ', freq)
+    print('Expected most relevant band: ', band_index)
+    print('Which covers frequencies between {} and {}.'.format(
+        fil.band_start_freq[band_index], fil.band_end_freq[band_index]))
+    print('Calculated energy levels of bands: ', pow_levels)
+    print('Most energetic frequency band: ', rel_band)
+    print('Which covers frequencies between {} and {}.'.format(
+        fil.band_start_freq[rel_band], fil.band_end_freq[rel_band]))
+    value1 = band_index
     assert value1 == rel_band
     
-def test_calc_relevant_band_freq50():
-    fil = pyst.Filter(num_bands = 4)
+    
+def test_calc_relevant_band2():
+    fil = pyst.Filter(num_bands = 6)
     fil.setup_bands()
+    band_index = 1
+    freq = fil.band_start_freq[band_index] 
     time = np.arange(0, 10, 0.01)
-    freq = 50
     full_circle = 2 * np.pi
     signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
     powspec = np.abs(np.fft.fft(signal))**2
-    rel_band = fil.calc_relevant_band(powspec)
-    value1 = 2
+    rel_band, pow_levels = fil.calc_relevant_band(powspec)
+    print('IF ERROR, PERHAPS DUE TO HARMONICS??? OR BAND SPACING???')
+    print('Testing frequency: ', freq)
+    print('Expected most relevant band: ', band_index)
+    print('Which covers frequencies between {} and {}.'.format(
+        fil.band_start_freq[band_index], fil.band_end_freq[band_index]))
+    print('Calculated energy levels of bands: ', pow_levels)
+    print('Most energetic frequency band: ', rel_band)
+    print('Which covers frequencies between {} and {}.'.format(
+        fil.band_start_freq[rel_band], fil.band_end_freq[rel_band]))
+    value1 = band_index
     assert value1 == rel_band
     
-def test_calc_relevant_band_freq20():
-    fil = pyst.Filter(num_bands = 4)
+    
+def test_calc_relevant_band4():
+    fil = pyst.Filter(num_bands = 6)
     fil.setup_bands()
+    band_index = 2
+    freq = fil.band_start_freq[band_index] 
     time = np.arange(0, 10, 0.01)
-    freq = 22
     full_circle = 2 * np.pi
     signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
     powspec = np.abs(np.fft.fft(signal))**2
-    rel_band = fil.calc_relevant_band(powspec)
-    value1 = 3
+    rel_band, pow_levels = fil.calc_relevant_band(powspec)
+    print('IF ERROR, PERHAPS DUE TO HARMONICS??? OR BAND SPACING???')
+    print('Testing frequency: ', freq)
+    print('Expected most relevant band: ', band_index)
+    print('Which covers frequencies between {} and {}.'.format(
+        fil.band_start_freq[band_index], fil.band_end_freq[band_index]))
+    print('Calculated energy levels of bands: ', pow_levels)
+    print('Most energetic frequency band: ', rel_band)
+    print('Which covers frequencies between {} and {}.'.format(
+        fil.band_start_freq[rel_band], fil.band_end_freq[rel_band]))
+    value1 = band_index
     assert value1 == rel_band
     
-def test_calc_relevant_band_freq25():
-    fil = pyst.Filter(num_bands = 4)
+def test_calc_relevant_band4():
+    fil = pyst.Filter(num_bands = 6)
     fil.setup_bands()
+    band_index = 3
+    freq = fil.band_start_freq[band_index]
     time = np.arange(0, 10, 0.01)
-    freq = 25
     full_circle = 2 * np.pi
     signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
     powspec = np.abs(np.fft.fft(signal))**2
-    rel_band = fil.calc_relevant_band(powspec)
-    value1 = 1
+    rel_band, pow_levels = fil.calc_relevant_band(powspec)
+    print('IF ERROR, PERHAPS DUE TO HARMONICS??? OR BAND SPACING???')
+    print('Testing frequency: ', freq)
+    print('Expected most relevant band: ', band_index)
+    print('Which covers frequencies between {} and {}.'.format(
+        fil.band_start_freq[band_index], fil.band_end_freq[band_index]))
+    print('Calculated energy levels of bands: ', pow_levels)
+    print('Most energetic frequency band: ', rel_band)
+    print('Which covers frequencies between {} and {}.'.format(
+        fil.band_start_freq[rel_band], fil.band_end_freq[rel_band]))
+    value1 = band_index
     assert value1 == rel_band
     
 def test_calc_relevant_band():
@@ -178,7 +220,7 @@ def test_calc_relevant_band():
     time = np.arange(0, 10, 0.01)
     signal = np.cos(time)[:fil.frame_length]
     powspec = np.abs(np.fft.fft(signal))**2
-    rel_band = fil.calc_relevant_band(powspec)
+    rel_band, pow_levels = fil.calc_relevant_band(powspec)
     value1 = 0
     assert value1 == rel_band
     
