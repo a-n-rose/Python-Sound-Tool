@@ -316,7 +316,8 @@ class Filter:
                  real_signal = True,
                  apply_postfilter = False,
                  num_bands = None,
-                 band_spacing = 'linear'):
+                 band_spacing = 'linear',
+                 max_vol = 0.4):
         self.filter_type = filter_type
         self.frame_dur = frame_duration
         self.samprate = sampling_rate
@@ -334,6 +335,7 @@ class Filter:
         self.band_spacing = band_spacing
         # just starting value:
         self.fft_bins = self.frame_length
+        self.max_vol = max_vol
         
         
 
@@ -350,6 +352,40 @@ class Filter:
             f'\nWindow type: {self.window_type!r})'
             )
         
+    def set_volume(self, samples, max_vol = 0.4, min_vol = 0.15):
+        """Records and limits the maximum amplitude of original samples.
+
+        This enables the output wave to be within a range of
+        volume that does not go below or too far above the 
+        orignal maximum amplitude of the signal. 
+
+        Parameters
+        ----------
+        samples : ndarray
+            The original samples of a signal (1 dimensional), of any length
+        max_vol : float
+            The maximum volume level. If a signal has values higher than this 
+            number, the signal is curtailed to remain at and below this number.
+        min_vol : float
+            The minimum volume level. If a signal has only values lower than
+            this number, the signal is amplified to be at this number and below.
+        
+        Returns
+        -------
+        None
+        """
+        if isinstance(samples, np.ndarray):
+            max_amplitude = samples.max()
+        else:
+            max_amplitude = max(samples)
+        self.vol_orig = max_amplitude
+        if max_amplitude > max_vol:
+            self.max_vol = max_vol
+        elif max_amplitude < min_vol:
+            self.max_vol = min_vol
+        else:
+            self.max_vol = max_amplitude
+        return None
         
     def create_window(self, window_type):
         self.window_type = window_type
@@ -367,41 +403,64 @@ class Filter:
                                        max_val = max_val, 
                                        min_val = min_val)
         return signal
-    
-    #def get_samples(self, wavfile, dur_sec=None):
-        #"""Load signal and save original volume
-
-        #Parameters
-        #----------
-        #wavfile : str
-            #Path and name of wavfile to be loaded
-        #dur_sec : int, float optional
-            #Max length of time in seconds (default None)
-
-        #Returns 
-        #----------
-        #samples : ndarray
-            #Array containing signal amplitude values in time domain
-        #"""
-        #samples, sr = pyst.dsp.load_signal(
-            #wavfile, self.sr, dur_sec=dur_sec)
-        #self.set_volume(samples, max_vol = self.max_vol)
-        #return samples
 
 
-    def load_signal(self,wav):
-        try:
-            signal, sr = librosa.load(wav,sr=self.samprate)
-            #sr, signal = wavfile.read(wav)
-            assert sr == self.samprate
-            self.data_type = signal.dtype
-        except AssertionError as e:
-            print(e)
-            print("Scipy found sampling rate: {} while you set the sampling rate as {}".format(sr, self.samprate))
-            print("Please adjust the sampling rate.")
-            sys.exit()
-        return signal
+    #def load_signal(self,wav):
+        #try:
+            #signal, sr = librosa.load(wav,sr=self.samprate)
+            ##sr, signal = wavfile.read(wav)
+            #assert sr == self.samprate
+            #self.data_type = signal.dtype
+        #except AssertionError as e:
+            #print(e)
+            #print("Scipy found sampling rate: {} while you set the sampling rate as {}".format(sr, self.samprate))
+            #print("Please adjust the sampling rate.")
+            #sys.exit()
+        #return signal
+        
+    def get_samples(self, wavfile, dur_sec=None):
+        """Load signal and save original volume
 
+        Parameters
+        ----------
+        wavfile : str
+            Path and name of wavfile to be loaded
+        dur_sec : int, float optional
+            Max length of time in seconds (default None)
+
+        Returns 
+        ----------
+        samples : ndarray
+            Array containing signal amplitude values in time domain
+        """
+        samples, sr = pyst.dsp.load_signal(
+            wavfile, self.samprate, dur_sec=dur_sec)
+        self.set_volume(samples, max_vol = self.max_vol)
+        return samples
+
+    def load_power_vals(self, path_npy):
+        """Loads and checks shape compatibility of averaged power values
+
+        Parameters
+        ----------
+        path_npy : str, pathlib.PosixPath
+            Path to .npy file containing power information. 
+
+        Returns
+        -------
+        power_values : ndarray
+            The power values as long as they have the shape (self.fft_bins, 1)
+        """
+        power_values = pyst.paths.load_feature_data(path_npy)
+        if power_values.shape[0] != self.fft_bins:
+            raise ValueError("Power value shape does not match settings.\
+                \nProvided power value shape: {}\
+                \nExpected shape: ({},)".format(
+                power_values.shape, self.fft_bins))
+        # get rid of extra, unnecessary dimension
+        if power_values.shape == (self.fft_bins, 1):
+            power_values = power_values.reshape(self.fft_bins,)
+        return power_values
 
     def create_empty_matrix(self,shape,complex_vals=False):
         if complex_vals:
@@ -685,7 +744,7 @@ class Filter:
             except AssertionError:
                 print("The number of bands must be equally divisible by the frame length.")
                 sys.exit()
-            self.bins_per_band = self.frame_length//self.num_bands
+            self.bins_per_band = self.frame_length//(2 * self.num_bands)
                 
             band_start_freq = np.zeros((self.num_bands,))
             band_end_freq = np.zeros((self.num_bands,))
@@ -899,21 +958,27 @@ class Filter:
         return sub_signal
             
             
-    def reconstruct_spectrum(self, band_reduced_noise_matrix):
-        total_rows = self.fft_bins
-        output_matrix = np.zeros((total_rows,band_reduced_noise_matrix.shape[1]))
-        print('band_reduced_noise_matrix : ',band_reduced_noise_matrix.shape)
-        flipped_matrix = np.flip(band_reduced_noise_matrix)
-        print('flipped_matrix', flipped_matrix.shape)
-        output_matrix[0:self.fft_bins//2,:] += band_reduced_noise_matrix[0:self.fft_bins//2,:]#remove extra zeros at the end
-        output_matrix[self.fft_bins//2:self.fft_bins,:] += flipped_matrix[self.fft_bins//2:self.fft_bins,:]#remove extra zeros at the beginning
+    #def reconstruct_spectrum(self, band_reduced_noise_matrix):
+        #'''Reconstruct spectrum
         
-        return output_matrix
+        #Parameters
+        #----------
+        #band_reduced_noise_matrix : np.ndarray [size=(frame_size, num_frames), dtype=np.float]
+        #'''
+        #total_rows = self.fft_bins
+        #output_matrix = np.zeros((total_rows,band_reduced_noise_matrix.shape[1]))
+        #print('band_reduced_noise_matrix : ',band_reduced_noise_matrix.shape)
+        #flipped_matrix = np.flip(band_reduced_noise_matrix)
+        #print('flipped_matrix', flipped_matrix.shape)
+        #output_matrix[0:self.fft_bins//2,:] += band_reduced_noise_matrix[0:self.fft_bins//2,:]#remove extra zeros at the end
+        #output_matrix[self.fft_bins//2:self.fft_bins,:] += flipped_matrix[self.fft_bins//2:self.fft_bins,:]#remove extra zeros at the beginning
+        
+        #return output_matrix
     
     
     def apply_original_phase(self, spectrum, phase):
         
-        spectrum_complex = matrixfun.create_empty_matrix(spectrum.shape,
+        spectrum_complex = pyst.matrixfun.create_empty_matrix(spectrum.shape,
                                                               complex_vals=True)
         ##spectrum = spectrum**(1/2)
         #phase_prepped = (1/2) * np.cos(phase) + cmath.sqrt(-1) * np.sin(phase)
