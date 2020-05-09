@@ -239,7 +239,23 @@ def overlap_add(enhanced_matrix, frame_length, overlap):
     -------
     new_signal : np.ndarray [shape=(frame_length,), dtype=float]
         Length equals (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
+        
+    Examples
+    --------
+    >>> import numpy as np
+    >>> enhanced_matrix = np.ones((4, 4))
+    >>> frame_length = 4
+    >>> overlap = 1
+    >>> sig = overlap_add(enhanced_matrix, frame_length, overlap)
+    >>> sig
+    [1. 1. 1. 2. 1. 1. 2. 1. 1. 2. 1. 1. 1.]
     '''
+    try:
+        assert enhanced_matrix.shape[0] == frame_length
+    except AssertionError as e:
+        raise TypeError('The first dimension of the enhance matrix should '+ \
+            'match the frame length. {} does not match frame length {}'.format(
+                enhanced_matrix.shape[0], frame_length))
     increments = frame_length - overlap
     start= increments
     mid= start + overlap
