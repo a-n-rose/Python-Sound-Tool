@@ -82,7 +82,6 @@ def apply_band_specsub(output_wave_name,
     
     fil.setup_bands()
     # TODO: why extra dimension?
-    print(fil.fft_bins) # 1024
     noise_power_matrix = fil.create_empty_matrix((fil.fft_bins,1,),complex_vals=False)
     #calculate and collect power of noise
     section = 0 
@@ -142,8 +141,8 @@ def apply_band_specsub(output_wave_name,
                 row,
                 phase_matrix[i][0])[0]
     
+    # TODO test
     enhanced_signal = fil.reconstruct_spectrum(enhanced_signal)
-    print(enhanced_signal)
     
     #enhanced_signal = fil.apply_original_phase(enhanced_signal,phase_matrix)
     #enhanced_signal = enhanced_signal.real
@@ -152,7 +151,11 @@ def apply_band_specsub(output_wave_name,
     
     
     #overlap add:
-    enhanced_signal = fil.overlap_add(enhanced_signal)
+    #enhanced_signal = fil.overlap_add(enhanced_signal)
+    enhanced_signal = pyst.matrixfun.overlap_add(
+        enhanced_signal,
+        frame_length = fil.frame_length,
+        overlap = fil.overlap)
     print('final signal shape: ',enhanced_signal.shape) #ideal? (143040, 1)
     enhanced_signal = fil.increase_volume(enhanced_signal)
     
