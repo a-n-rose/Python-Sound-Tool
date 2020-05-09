@@ -363,8 +363,9 @@ class Filter:
 
 
     def normalize_signal(self,signal, max_val, min_val):
-        signal = (signal - min_val) / (max_val - min_val)
-        
+        signal_normed = pyst.dsp.normalize(signal, 
+                                       max_val = max_val, 
+                                       min_val = min_val)
         return signal
     
     #def get_samples(self, wavfile, dur_sec=None):
@@ -595,7 +596,7 @@ class Filter:
     
 
         
-    def calc_phase(self, fft_vals, normalization=False):
+    def calc_phase(self, fft_vals, radians=False):
         '''Calculates phase on frame of fft values.
         
         Parameters
@@ -626,7 +627,7 @@ class Filter:
         >>> phase[:2]
         [0.92813897+0.37223386j 0.7540883 +0.65677305j]
         '''
-        phase = pyst.dsp.calc_phase(fft_vals)
+        phase = pyst.dsp.calc_phase(fft_vals, radians = False)
         return phase
     
     # TODO improve on this...
@@ -697,6 +698,8 @@ class Filter:
             except TypeError:
                 print(band_start_freq[i] + self.bins_per_band-1)
                 sys.exit()
+        # TODO: implement other band spacing types
+        # other options of band spacing 
         elif 'log' in self.band_spacing.lower():
             pass
         elif 'mel' in self.band_spacing.lower():
@@ -755,9 +758,9 @@ class Filter:
     
     
     def calc_oversub_factor(self):
-        '''
-        calculate over subtraction factor
-        uses decibel SNR values calculated in update_posteri_bands()
+        '''Calculate over subtraction factor used in the cited paper.
+        
+        Uses decibel SNR values calculated in update_posteri_bands()
         
         paper:
         Kamath, S. D. & Loizou, P. C. (____), A multi-band spectral subtraction method ofr enhancing speech corrupted by colored noise.
@@ -797,9 +800,7 @@ class Filter:
                 a[band] += 4.75
             else:
                 a[band] += 1
-        
         return a
-    
     
     def calc_relevant_band(self,target_powspec):
         '''Calculates band with highest energy levels.
@@ -814,22 +815,31 @@ class Filter:
         Returns
         -------
         rel_band_index : int
-            Index for which band contains most energy.
+            Index for which band contains the most energy.
             
         Examples
         --------
         >>> import pysoundtool as pyst
         >>> import numpy as np
-        >>> # setting to 4 bands for space:
+        >>> # setting to 4 bands for this example (default is 6):
         >>> fil = pyst.Filter(num_bands=4)
         >>> fil.setup_bands()
-        >>> # generate sine signal with and without noise
+        >>> # generate sine signal with and with frequency 25
         >>> time = np.arange(0, 10, 0.01)
-        >>> signal = np.sin(time)[:fil.frame_length]
+        >>> full_circle = 2 * np.pi
+        >>> freq = 25
+        >>> signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
         >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
         >>> rel_band_inex = fil.calc_relevant_band(powerspec_clean)
         >>> rel_band_index
-        0
+        1
+        >>> # and with frequency 50
+        >>> freq = 50
+        >>> signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
+        >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
+        >>> rel_band_inex = fil.calc_relevant_band(powerspec_clean)
+        >>> rel_band_index
+        2
         '''
         band_power = np.zeros(self.num_bands)
         for band in range(self.num_bands):
@@ -902,7 +912,8 @@ class Filter:
     
     def apply_original_phase(self, spectrum, phase):
         
-        #spectrum_complex = self.create_empty_matrix(spectrum.shape,complex_vals=True)
+        spectrum_complex = matrixfun.create_empty_matrix(spectrum.shape,
+                                                              complex_vals=True)
         ##spectrum = spectrum**(1/2)
         #phase_prepped = (1/2) * np.cos(phase) + cmath.sqrt(-1) * np.sin(phase)
         spectrum_complex = spectrum * phase
