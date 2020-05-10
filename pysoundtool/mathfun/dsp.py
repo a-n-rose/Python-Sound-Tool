@@ -25,7 +25,7 @@ Script with functions useful in filtering / digital signal processing
 import numpy as np
 from scipy.signal import hamming, hann, resample
 from scipy.io.wavfile import read
-from numpy.fft import fft, ifft
+from numpy.fft import fft, rfft, ifft, irfft
 from python_speech_features import logfbank, mfcc
 import librosa
 from . import matrixfun
@@ -260,7 +260,7 @@ def apply_window(samples, window):
     samples_win = samples * window
     return samples_win
 
-def calc_fft(signal_section, norm=False):
+def calc_fft(signal_section, real_signal=None, norm=False):
     """Calculates the fast Fourier transform of a 1D time series
 
     The length of the signal_section determines the number of frequency
@@ -292,7 +292,10 @@ def calc_fft(signal_section, norm=False):
         norm = 'ortho'
     else:
         norm = None
-    fft_vals = fft(signal_section, norm=norm)
+    if real_signal:
+        fft_vals = rfft(signal_section, norm=norm)
+    else:
+        fft_vals = fft(signal_section, norm=norm)
     return fft_vals
 
 # TODO: https://github.com/biopython/biopython/issues/1496
@@ -574,15 +577,18 @@ def apply_gain_fft(fft_vals, gain):
     assert enhanced_fft.shape == fft_vals.shape
     return enhanced_fft
 
-def calc_ifft(signal_section, norm=False):
+def calc_ifft(signal_section, real_signal=None, norm=False):
     """Calculates the inverse fft of a series of fft values
 
     The real values of the ifft can be used to be saved as an audiofile
 
     Parameters
     ----------
-    signal_section : ndarray
+    signal_section : ndarray (size = [num_freq_bins,])
         The frame of fft values to apply the inverse fft to
+    num_fft : int, optional
+        The number of total fft values applied when calculating the original fft. 
+        If not given, length of `signal_section` is used. 
     norm : bool
         Whether or not the ifft should apply 'ortho' normalization
         (default False)
@@ -596,7 +602,10 @@ def calc_ifft(signal_section, norm=False):
         norm = 'ortho'
     else:
         norm = None
-    ifft_vals = ifft(signal_section, norm=norm)
+    if real_signal:
+        ifft_vals = irfft(signal_section, norm=norm)
+    else:
+        ifft_vals = ifft(signal_section, norm=norm)
     return ifft_vals
 
 
