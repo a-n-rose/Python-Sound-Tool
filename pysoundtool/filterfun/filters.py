@@ -683,17 +683,21 @@ class BandSubtraction:
             start_bin = int(self.band_start_freq[band])
             end_bin = int(self.band_end_freq[band])
             target_band = target_powspec[start_bin:end_bin]
-            target_band = target_band.reshape(target_band.shape+(1,))
+            target_band = np.expand_dims(target_band, axis=1)
             noise_band = noise_powspec[start_bin:end_bin]
-            noise_band = noise_band.reshape(noise_band.shape+(1,))
+            noise_band = np.expand_dims(noise_band, axis=1)
             beta = oversub_factor[band] 
             if band == relevant_band:
                 delta = 1 #don't interfer too much with important target band
             else: 
                 delta = 2.5 #less important bands --> more noise subtraction
             adjusted = target_band - (beta  * noise_band * delta)
-            sub_signal[section:section+self.bins_per_band] += adjusted
-            self.apply_floor(sub_signal[section:section+self.bins_per_band], target_band, book=True)
+            start = section
+            end = start + self.bins_per_band
+            sub_signal[start:end,:] += adjusted
+            sub_signal[start:end,:]  = self.apply_floor(
+                sub_signal[start:end,:] , 
+                target_band, book=True)
             section += self.bins_per_band
             
         return sub_signal
