@@ -177,7 +177,7 @@ def apply_band_specsub(output_wave_name,
     phase_matrix = pyst.matrixfun.create_empty_matrix((fil.num_fft_bins,fil.target_subframes), complex_vals=True)
 
     total_rows = fil.frame_length
-    enhanced_signal = pyst.matrixfun.create_empty_matrix((total_rows,fil.target_subframes), complex_vals=False)
+    enhanced_signal = pyst.matrixfun.create_empty_matrix((total_rows,fil.target_subframes), complex_vals = not radians)
     section = 0
     for frame in range(fil.target_subframes):
 
@@ -206,26 +206,35 @@ def apply_band_specsub(output_wave_name,
         #print(reduced_noise_target.shape)
         print(enhanced_signal[0].shape)
         print('phase shape ', target_phase.shape)
+        print('reduced noise target shape: ', reduced_noise_target.shape)
+        reduced_noise_target = pyst.matrixfun.reconstruct_whole_spectrum(
+            reduced_noise_target,
+            n_fft = fil.num_fft_bins)
+        print('reduced noise target shape: ', reduced_noise_target.shape)
+        # problem:
+        reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,target_phase, multiply=multiply)
+        print('reduced noise target shape: ', reduced_noise_target.shape)
+        print('empty matrix shape: ', enhanced_signal.shape)
         print(reduced_noise_target.shape)
         for i, row in enumerate(reduced_noise_target):
             enhanced_signal[i] += row
     if visualize:
-        visualize_feats(enhanced_signal, 'stft',title='Enhanced power')
+        visualize_feats(enhanced_signal, 'stft',title='With original pahse')
 
-    enhanced_signal = pyst.matrixfun.reconstruct_whole_spectrum(
-        enhanced_signal,
-        n_fft = fil.num_fft_bins)
+    #enhanced_signal = pyst.matrixfun.reconstruct_whole_spectrum(
+        #enhanced_signal,
+        #n_fft = fil.num_fft_bins)
     
-    if visualize:
-        visualize_feats(enhanced_signal, 'stft', title='Reconstructed spectrum')
+    #if visualize:
+        #visualize_feats(enhanced_signal, 'stft', title='Reconstructed spectrum')
         
-    if visualize:
-        visualize_feats(phase_matrix, 'stft', title='Original phase')
+    #if visualize:
+        #visualize_feats(phase_matrix, 'stft', title='Original phase')
         
-    enhanced_signal = pyst.dsp.apply_original_phase(enhanced_signal,phase_matrix, multiply=multiply)
+    #enhanced_signal = pyst.dsp.apply_original_phase(enhanced_signal,phase_matrix, multiply=multiply)
     
-    if visualize:
-        visualize_feats(enhanced_signal, 'stft', title='Enhanced power with original phase')
+    #if visualize:
+        #visualize_feats(enhanced_signal, 'stft', title='Enhanced power with original phase')
         
     enhanced_signal = enhanced_signal.real
     if visualize:
