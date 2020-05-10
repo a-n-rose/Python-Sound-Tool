@@ -400,17 +400,23 @@ def calc_phase(fft_matrix, radians=False):
         phase = np.angle(fft_matrix)
     return phase
 
+# TODO testing for greater dimensions
 def apply_original_phase(spectrum, phase, multiply=True):
-        if multiply:
-            #spectrum_complex = pyst.matrixfun.create_empty_matrix(spectrum.shape,
-                                                              #complex_vals=True)
-            spectrum_complex = spectrum * phase
+    if spectrum.shape != phase.shape:
+        if len(spectrum.shape) > len(phase.shape):
+            phase = np.expand_dims(phase,axis=1)
         else:
-            import cmath
-            phase_prepped = (1/2) * np.cos(phase) + cmath.sqrt(-1) * np.sin(phase)
-            spectrum_complex = spectrum**(1/2) * phase_prepped
-        
-        return spectrum_complex
+            spectrum = np.expand_dims(spectrum, axis=1)
+    if multiply:
+        #spectrum_complex = pyst.matrixfun.create_empty_matrix(spectrum.shape,
+                                                            #complex_vals=True)
+        spectrum_complex = spectrum * phase
+    else:
+        import cmath
+        phase_prepped = (1/2) * np.cos(phase) + cmath.sqrt(-1) * np.sin(phase)
+        spectrum_complex = spectrum**(1/2) * phase_prepped
+    
+    return spectrum_complex
 
 def calc_posteri_snr(target_power_spec, noise_power_spec):
     """Calculates and updates signal to noise ratio of current frame
