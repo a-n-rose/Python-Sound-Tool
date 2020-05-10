@@ -197,14 +197,21 @@ def apply_band_specsub(output_wave_name,
             reduced_noise_target,
             n_fft = fil.num_fft_bins)
         reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,target_phase, multiply=multiply)
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(reduced_noise_target,'stft', title='Reduced noise target section {} power'.format(frame))
         reduced_noise_target_ifft = pyst.dsp.calc_ifft(reduced_noise_target)
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(reduced_noise_target_ifft,'stft', title='Reduced noise target IFFT section {} power'.format(frame))
         # fill empty matrix w new ifft values
         enhanced_signal[row:row+fil.frame_length] += reduced_noise_target_ifft[:,0]
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(enhanced_signal.real, 'signal', title='Signal at frame {}'.format(frame))
         # prepare for next iteration with overlap
         row += fil.overlap_length
         section += fil.overlap_length
 
     enhanced_signal = enhanced_signal.real
+    
 
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(target):
@@ -212,6 +219,7 @@ def apply_band_specsub(output_wave_name,
     fil.save_filtered_signal(str(output_wave_name), 
                             enhanced_signal,
                             overwrite=True)
+    visualize_feats(enhanced_signal, 'signal', title='final signal')
     
     return True
 
