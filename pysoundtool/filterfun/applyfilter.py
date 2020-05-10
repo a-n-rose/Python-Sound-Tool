@@ -183,73 +183,47 @@ def apply_band_specsub(output_wave_name,
     #phase_matrix = pyst.matrixfun.create_empty_matrix((fil.num_fft_bins,fil.target_subframes), complex_vals=True)
     
     total_rows = fil.frame_length
-    enhanced_signal = pyst.matrixfun.create_empty_matrix((total_rows,fil.target_subframes), complex_vals = not radians)
+    enhanced_signal = pyst.matrixfun.create_empty_matrix((total_rows,fil.target_subframes), complex_vals = True)
     section = 0
-    print('target shop')
-    print(target.shape)
     for frame in range(fil.target_subframes):
 
         target_section = target[section:section + fil.frame_length]
-        print('target section shape ', target_section.shape)
         if visualize and frame % visualize_freq == 0:
             visualize_feats(target_section,'signal', title='Target section {} signal'.format(frame))
         target_w_win = pyst.dsp.apply_window(target_section, window)
-        print('target w window ', target_w_win.shape)
         if visualize and frame % visualize_freq == 0:
             visualize_feats(target_w_win,'signal', title='Target section {} signal with window'.format(frame))
         target_fft = pyst.dsp.calc_fft(target_w_win)
-        print('target_fft ', target_fft.shape)
         target_power = pyst.dsp.calc_power(target_fft)
         if visualize and frame % visualize_freq == 0:
             visualize_feats(np.expand_dims(target_power, axis=1),'stft', title='Target section {} power'.format(frame))
-        print('target_power ', target_power.shape)
         target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
         #print('phase matrix shape ', phase_matrix.shape)
         #if visualize and frame % visualize_freq == 0:
             #visualize_feats(np.expand_dims(target_phase, axis=1),'stft', title='Target section {} phase'.format(frame))
         #phase_matrix[:,frame] += target_phase
-        
-        print("target phase shape: ",target_phase.shape)
         fil.update_posteri_bands(target_power,noise_power)
         beta = fil.calc_oversub_factor()
-        print('num bands ', fil.num_bands)
-        print('target power shape: ', target_power.shape)
-        # problem area?
         reduced_noise_target = fil.sub_noise(target_power, noise_power, beta)
-        
-        print('shape reduced_noise_target: ', reduced_noise_target.shape)
         if visualize and frame % visualize_freq == 0:
             visualize_feats(reduced_noise_target,'stft', title='Reduced noise target section {} power'.format(frame))
         #now mirror, as fft would be / reconstruct spectrum
-        print(fil.num_bands)
-        print(fil.bins_per_band)
-        print(reduced_noise_target.shape)
-        #reduced_noise_target = reduced_noise_target.transpose()
-        #print(reduced_noise_target.shape)
-        print(enhanced_signal[0].shape)
-        print('phase shape ', target_phase.shape)
-        print('reduced noise target shape: ', reduced_noise_target.shape)
         reduced_noise_target = pyst.matrixfun.reconstruct_whole_spectrum(
             reduced_noise_target,
             n_fft = fil.num_fft_bins)
         if visualize and frame % visualize_freq == 0:
             visualize_feats(reduced_noise_target,'stft', title='Reduced noise target whole spectrum {}'.format(frame))
-        print('reduced noise target shape: ', reduced_noise_target.shape)
         reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,target_phase, multiply=multiply)
         # don't see a difference
         if visualize and frame % visualize_freq == 0:
             visualize_feats(reduced_noise_target,'stft', title='Reduced noise target original phase {}'.format(frame))
         if visualize and frame % visualize_freq == 0:
             visualize_feats(np.expand_dims(target_power, axis=1),'stft', title='Original target section {} power'.format(frame))
-        print('reduced noise target shape: ', reduced_noise_target.shape)
-        print('empty matrix shape: ', enhanced_signal.shape)
-        print(reduced_noise_target.shape)
         for i, row in enumerate(reduced_noise_target):
             enhanced_signal[i,frame] = row
         section += fil.overlap_length
     if visualize:
         visualize_feats(enhanced_signal, 'stft',title='With original phase')
-    print('shape of enhanced signal ', enhanced_signal.shape)
     #enhanced_signal = pyst.matrixfun.reconstruct_whole_spectrum(
         #enhanced_signal,
         #n_fft = fil.num_fft_bins)
@@ -265,9 +239,9 @@ def apply_band_specsub(output_wave_name,
     #if visualize:
         #visualize_feats(enhanced_signal, 'stft', title='Enhanced power with original phase')
         
-    enhanced_signal = enhanced_signal.real
-    if visualize:
-        visualize_feats(enhanced_signal, 'stft', title= 'Real numbers')
+    #enhanced_signal = enhanced_signal.real
+    #if visualize:
+        #visualize_feats(enhanced_signal, 'stft', title= 'Real numbers')
     
     ##### VISUALS LOOK OKAY UNTIL HERE ######
     
@@ -277,14 +251,14 @@ def apply_band_specsub(output_wave_name,
     # ifft
     
     total_rows = fil.frame_length
-    enhanced_signal_ifft = pyst.matrixfun.create_empty_matrix((total_rows,fil.target_subframes), complex_vals=False)
+    enhanced_signal_ifft = pyst.matrixfun.create_empty_matrix((total_rows,fil.target_subframes), complex_vals=True)
     section = 0
     for frame in range(fil.target_subframes):
         ifft_section = enhanced_signal[section:section + fil.frame_length]
         for i, row in enumerate(ifft_section):
-            enhanced_signal_ifft[i] += row
+            enhanced_signal_ifft[i] += pyst.dsp.calc_ifft(row)
 
-    enhanced_signal = enhanced_signal_ifft
+    enhanced_signal = enhanced_signal_ifft.real
     if visualize:
         visualize_feats(enhanced_signal, 'stft', title='IFFT')
 
@@ -299,7 +273,7 @@ def apply_band_specsub(output_wave_name,
     if visualize:
         visualize_feats(enhanced_signal, 'signal', title='Overlap add')
     print('final signal shape: ',enhanced_signal.shape) #ideal? (143040, 1)
-    enhanced_signal = fil.check_volume(enhanced_signal)
+    #enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(target):
         enhanced_signal = enhanced_signal[:len(target)]
     if visualize:
