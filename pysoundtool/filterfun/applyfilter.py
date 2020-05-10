@@ -110,7 +110,8 @@ def apply_band_specsub(output_wave_name,
              target_wav, 
              noise_file=None,
              visualize=False,
-             phase_radians = True):
+             phase_radians = True,
+             visualize_freq=10):
     if phase_radians:
         radians=True
         multiply=False
@@ -122,6 +123,8 @@ def apply_band_specsub(output_wave_name,
     
 
     target = fil.get_samples(target_wav)
+    if visualize:
+        visualize_feats(target, 'signal', title='Target signal')
     # prepare noise
     # set up how noise will be considered: either as wavfile, averaged
     # power values, or the first section of the target wavfile (i.e. None)
@@ -162,6 +165,8 @@ def apply_band_specsub(output_wave_name,
         
         noise_fft = pyst.dsp.calc_fft(noise_w_win)
         noise_power_frame = pyst.dsp.calc_power(noise_fft)
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(np.expand_dims(noise_power_frame, axis=1),'stft', title='Noise section {} power'.format(frame))
         noise_power += noise_power_frame
         section += fil.overlap_length
     # welch's method: take average of power that has been collected
@@ -175,20 +180,27 @@ def apply_band_specsub(output_wave_name,
                     title='Noise power')
 
     phase_matrix = pyst.matrixfun.create_empty_matrix((fil.num_fft_bins,fil.target_subframes), complex_vals=True)
-
+    
+    samples_orig = target
     total_rows = fil.frame_length
     enhanced_signal = pyst.matrixfun.create_empty_matrix((total_rows,fil.target_subframes), complex_vals = not radians)
     section = 0
+    print('target shop')
+    print(target.shape)
     for frame in range(fil.target_subframes):
 
-        target_section = target[section:section + fil.frame_length]
+        target_section = samples_orig[section:section + fil.frame_length]
         print('target section shape ', target_section.shape)
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(target_section,'signal', title='Target section {} signal'.format(frame))
         target_w_win = pyst.dsp.apply_window(target_section, window)
         print('target w window ', target_w_win.shape)
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(target_w_win,'signal', title='Target section {} signal with window'.format(frame))
         target_fft = pyst.dsp.calc_fft(target_w_win)
         print('target_fft ', target_fft.shape)
         target_power = pyst.dsp.calc_power(target_fft)
-        if visualize and frame % 10 == 0:
+        if visualize and frame % visualize_freq == 0:
             visualize_feats(np.expand_dims(target_power, axis=1),'stft', title='Target section {} power'.format(frame))
         print('target_power ', target_power.shape)
         target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
@@ -284,7 +296,7 @@ def apply_band_specsub(output_wave_name,
 def filtersignal(output_filename, wavfile, noise_file=None,
                     scale=1, apply_postfilter=False, duration_ms=1000,
                     max_vol = 0.4, filter_type = 'wiener', 
-                    visualize=False):
+                    visualize=False, visualize_freq=10):
     """Apply Wiener filter to signal using noise. Saves at `output_filename`.
 
     Parameters 
@@ -382,11 +394,13 @@ def filtersignal(output_filename, wavfile, noise_file=None,
             target_section = samples_orig[section:section+fil.frame_length]
             target_w_window = pyst.dsp.apply_window(target_section,
                                                     fil.get_window())
+            if visualize and frame % visualize_freq == 0:
+                visualize_feats(target_w_window,'signal', title='Target section {} signal with window'.format(frame))
             target_fft = pyst.dsp.calc_fft(target_w_window)
             target_power_frame = pyst.dsp.calc_power(target_fft)
             # now start filtering!!
             # initialize SNR matrix
-            if visualize and frame % 10 == 0:
+            if visualize and frame % visualize_freq == 0:
                 visualize_feats(np.expand_dims(target_power_frame, axis=1),'stft', title='Target section {} power'.format(frame))
             if frame == 0:
                 posteri = pyst.matrixfun.create_empty_matrix(

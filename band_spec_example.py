@@ -10,9 +10,16 @@ pyst.apply_band_specsub(output_wave_name = output_wave_name1,
                         target_wav = target_wav,
                         noise_file = noise_file,
                         visualize=True,
-                        phase_radians=False)
+                        phase_radians=False,
+                        visualize_freq=50)
 
 pyst.filtersignal(output_filename = output_wave_name2,
                         wavfile = target_wav,
                         noise_file = noise_file,
-                        visualize=False)
+                        visualize=True,
+                        visualize_freq=50)
+
+
+'''
+wiener filter does not reconstruct whole spectrum
+'''
