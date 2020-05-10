@@ -109,9 +109,17 @@ def visualize_feats(feature_matrix, feature_type,
 def apply_band_specsub(output_wave_name, 
              target_wav, 
              noise_file=None,
-             visualize=False):
+             visualize=False,
+             phase_radians = True):
+    if phase_radians:
+        radians=True
+        multiply=False
+    else:
+        radians=False
+        multiply=True
     
     fil = pyst.BandSubtraction() 
+    
 
     target = fil.get_samples(target_wav)
     # prepare noise
@@ -181,7 +189,7 @@ def apply_band_specsub(output_wave_name,
         print('target_fft ', target_fft.shape)
         target_power = pyst.dsp.calc_power(target_fft)
         print('target_power ', target_power.shape)
-        target_phase = pyst.dsp.calc_phase(target_fft, radians=True)
+        target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
         print('phase matrix shape ', phase_matrix.shape)
         phase_matrix[:,frame] += target_phase
         
@@ -207,23 +215,41 @@ def apply_band_specsub(output_wave_name,
     enhanced_signal = pyst.matrixfun.reconstruct_whole_spectrum(
         enhanced_signal,
         n_fft = fil.num_fft_bins)
+    
     if visualize:
         visualize_feats(enhanced_signal, 'stft', title='Reconstructed spectrum')
+        
     if visualize:
         visualize_feats(phase_matrix, 'stft', title='Original phase')
-    enhanced_signal = pyst.dsp.apply_original_phase(enhanced_signal,phase_matrix, multiply=False)
+        
+    enhanced_signal = pyst.dsp.apply_original_phase(enhanced_signal,phase_matrix, multiply=multiply)
+    
     if visualize:
         visualize_feats(enhanced_signal, 'stft', title='Enhanced power with original phase')
-    
-    ##### VISUALS LOOK OKAY UNTIL HERE ######
-    
-    
-    enhanced_signal = pyst.dsp.calc_ifft(enhanced_signal)
-    if visualize:
-        visualize_feats(enhanced_signal, 'stft', title='IFFT')
+        
     enhanced_signal = enhanced_signal.real
     if visualize:
         visualize_feats(enhanced_signal, 'stft', title= 'Real numbers')
+    
+    ##### VISUALS LOOK OKAY UNTIL HERE ######
+    
+    # reconstruct whole spectrum
+    # phase
+    # real numbers
+    # ifft
+    
+    total_rows = fil.frame_length
+    enhanced_signal_ifft = pyst.matrixfun.create_empty_matrix((total_rows,fil.target_subframes), complex_vals=False)
+    section = 0
+    for frame in range(fil.target_subframes):
+        ifft_section = enhanced_signal[section:section + fil.frame_length]
+        for i, row in enumerate(ifft_section):
+            enhanced_signal_ifft[i] += row
+
+    enhanced_signal = enhanced_signal_ifft
+    if visualize:
+        visualize_feats(enhanced_signal, 'stft', title='IFFT')
+
     enhanced_signal = pyst.matrixfun.overlap_add(
         enhanced_signal,
         frame_length = fil.frame_length,
