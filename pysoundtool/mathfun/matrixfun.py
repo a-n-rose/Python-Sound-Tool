@@ -277,6 +277,7 @@ def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
             stop = start+frame_length
     return new_signal
 
+# TODO testing!!
 def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft):
     '''Reconstruct whole spectrum 
     
@@ -288,7 +289,12 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft):
     '''
     total_rows = n_fft
     output_matrix = np.zeros((total_rows,band_reduced_noise_matrix.shape[1]))
+    print('output matrix shape: ', output_matrix.shape)
     print('band_reduced_noise_matrix : ',band_reduced_noise_matrix.shape)
+    if band_reduced_noise_matrix.shape[0] < n_fft:
+        temp_matrix = create_empty_matrix((total_rows,band_reduced_noise_matrix.shape[1]))
+        temp_matrix[:band_reduced_noise_matrix.shape[0],:] += band_reduced_noise_matrix[0]
+        band_reduced_noise_matrix = temp_matrix
     # flip up-down
     flipped_matrix = np.flip(band_reduced_noise_matrix, axis=0)
     print('flipped_matrix', flipped_matrix.shape)
