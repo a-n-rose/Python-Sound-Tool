@@ -180,9 +180,8 @@ def apply_band_specsub(output_wave_name,
         visualize_feats(noise_power.reshape(noise_power.shape[0],1), 'stft',
                     title='Noise power')
 
-    phase_matrix = pyst.matrixfun.create_empty_matrix((fil.num_fft_bins,fil.target_subframes), complex_vals=True)
+    #phase_matrix = pyst.matrixfun.create_empty_matrix((fil.num_fft_bins,fil.target_subframes), complex_vals=True)
     
-    samples_orig = target
     total_rows = fil.frame_length
     enhanced_signal = pyst.matrixfun.create_empty_matrix((total_rows,fil.target_subframes), complex_vals = not radians)
     section = 0
@@ -190,7 +189,7 @@ def apply_band_specsub(output_wave_name,
     print(target.shape)
     for frame in range(fil.target_subframes):
 
-        target_section = samples_orig[section:section + fil.frame_length]
+        target_section = target[section:section + fil.frame_length]
         print('target section shape ', target_section.shape)
         if visualize and frame % visualize_freq == 0:
             visualize_feats(target_section,'signal', title='Target section {} signal'.format(frame))
@@ -205,7 +204,7 @@ def apply_band_specsub(output_wave_name,
             visualize_feats(np.expand_dims(target_power, axis=1),'stft', title='Target section {} power'.format(frame))
         print('target_power ', target_power.shape)
         target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
-        print('phase matrix shape ', phase_matrix.shape)
+        #print('phase matrix shape ', phase_matrix.shape)
         #if visualize and frame % visualize_freq == 0:
             #visualize_feats(np.expand_dims(target_phase, axis=1),'stft', title='Target section {} phase'.format(frame))
         #phase_matrix[:,frame] += target_phase
@@ -246,11 +245,11 @@ def apply_band_specsub(output_wave_name,
         print('empty matrix shape: ', enhanced_signal.shape)
         print(reduced_noise_target.shape)
         for i, row in enumerate(reduced_noise_target):
-            enhanced_signal[i] = row
+            enhanced_signal[i,frame] = row
         section += fil.overlap_length
     if visualize:
         visualize_feats(enhanced_signal, 'stft',title='With original phase')
-
+    print('shape of enhanced signal ', enhanced_signal.shape)
     #enhanced_signal = pyst.matrixfun.reconstruct_whole_spectrum(
         #enhanced_signal,
         #n_fft = fil.num_fft_bins)
