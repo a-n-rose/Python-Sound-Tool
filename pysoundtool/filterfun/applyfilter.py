@@ -199,7 +199,7 @@ def apply_band_specsub(output_wave_name,
         reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,target_phase, multiply=multiply)
         reduced_noise_target_ifft = pyst.dsp.calc_ifft(reduced_noise_target)
         # fill empty matrix w new ifft values
-        enhanced_signal[row:row+fil.frame_length] += reduced_noise_target_ifft[0]
+        enhanced_signal[row:row+fil.frame_length] += reduced_noise_target_ifft[:,0]
         # prepare for next iteration with overlap
         row += fil.overlap_length
         section += fil.overlap_length
