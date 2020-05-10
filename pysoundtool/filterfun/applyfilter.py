@@ -189,6 +189,9 @@ def apply_band_specsub(output_wave_name,
         target_fft = pyst.dsp.calc_fft(target_w_win)
         target_power = pyst.dsp.calc_power(target_fft)
         target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
+
+
+        # Problem somewhere below here
         fil.update_posteri_bands(target_power,noise_power)
         beta = fil.calc_oversub_factor()
         reduced_noise_target = fil.sub_noise(target_power, noise_power, beta)
@@ -196,12 +199,11 @@ def apply_band_specsub(output_wave_name,
         reduced_noise_target = pyst.matrixfun.reconstruct_whole_spectrum(
             reduced_noise_target,
             n_fft = fil.num_fft_bins)
+        # Problem somewhere above here
+
+
         reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,target_phase, multiply=multiply)
-        if visualize and frame % visualize_freq == 0:
-            visualize_feats(reduced_noise_target,'stft', title='Reduced noise target section {} power'.format(frame))
         reduced_noise_target_ifft = pyst.dsp.calc_ifft(reduced_noise_target)
-        if visualize and frame % visualize_freq == 0:
-            visualize_feats(reduced_noise_target_ifft,'stft', title='Reduced noise target IFFT section {} power'.format(frame))
         # fill empty matrix w new ifft values
         enhanced_signal[row:row+fil.frame_length] += reduced_noise_target_ifft[:,0]
         if visualize and frame % visualize_freq == 0:
