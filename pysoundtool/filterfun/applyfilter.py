@@ -165,8 +165,8 @@ def apply_band_specsub(output_wave_name,
         
         noise_fft = pyst.dsp.calc_fft(noise_w_win)
         noise_power_frame = pyst.dsp.calc_power(noise_fft)
-        if visualize and frame % visualize_freq == 0:
-            visualize_feats(np.expand_dims(noise_power_frame, axis=1),'stft', title='Noise section {} power'.format(frame))
+        #if visualize and frame % visualize_freq == 0:
+            #visualize_feats(np.expand_dims(noise_power_frame, axis=1),'stft', title='Noise section {} power'.format(frame))
         noise_power += noise_power_frame
         section += fil.overlap_length
     # welch's method: take average of power that has been collected
@@ -205,14 +205,19 @@ def apply_band_specsub(output_wave_name,
         print('target_power ', target_power.shape)
         target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
         print('phase matrix shape ', phase_matrix.shape)
-        phase_matrix[:,frame] += target_phase
+        #if visualize and frame % visualize_freq == 0:
+            #visualize_feats(np.expand_dims(target_phase, axis=1),'stft', title='Target section {} phase'.format(frame))
+        #phase_matrix[:,frame] += target_phase
         
         print("target phase shape: ",target_phase.shape)
         fil.update_posteri_bands(target_power,noise_power)
         beta = fil.calc_oversub_factor()
         print('target power shape: ', target_power.shape)
         reduced_noise_target = fil.sub_noise(target_power, noise_power, beta)
+        
         print('shape reduced_noise_target: ', reduced_noise_target.shape)
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(reduced_noise_target,'stft', title='Reduced noise target section {} power'.format(frame))
         #now mirror, as fft would be / reconstruct spectrum
         print(fil.num_bands)
         print(fil.bins_per_band)
@@ -225,8 +230,12 @@ def apply_band_specsub(output_wave_name,
         reduced_noise_target = pyst.matrixfun.reconstruct_whole_spectrum(
             reduced_noise_target,
             n_fft = fil.num_fft_bins)
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(reduced_noise_target,'stft', title='Reduced noise target whole spectrum {}'.format(frame))
         print('reduced noise target shape: ', reduced_noise_target.shape)
         reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,target_phase, multiply=multiply)
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(reduced_noise_target,'stft', title='Reduced noise target original phase {}'.format(frame))
         print('reduced noise target shape: ', reduced_noise_target.shape)
         print('empty matrix shape: ', enhanced_signal.shape)
         print(reduced_noise_target.shape)
