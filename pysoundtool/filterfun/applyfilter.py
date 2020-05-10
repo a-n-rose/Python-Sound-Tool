@@ -188,6 +188,8 @@ def apply_band_specsub(output_wave_name,
         target_fft = pyst.dsp.calc_fft(target_w_win)
         print('target_fft ', target_fft.shape)
         target_power = pyst.dsp.calc_power(target_fft)
+        if visualize and frame % 10 == 0:
+            visualize_feats(np.expand_dims(target_power, axis=1),'stft', title='Target section {} power'.format(frame))
         print('target_power ', target_power.shape)
         target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
         print('phase matrix shape ', phase_matrix.shape)
@@ -196,6 +198,7 @@ def apply_band_specsub(output_wave_name,
         print("target phase shape: ",target_phase.shape)
         fil.update_posteri_bands(target_power,noise_power)
         beta = fil.calc_oversub_factor()
+        print('target power shape: ', target_power.shape)
         reduced_noise_target = fil.sub_noise(target_power, noise_power, beta)
         print('shape reduced_noise_target: ', reduced_noise_target.shape)
         #now mirror, as fft would be / reconstruct spectrum
@@ -211,13 +214,12 @@ def apply_band_specsub(output_wave_name,
             reduced_noise_target,
             n_fft = fil.num_fft_bins)
         print('reduced noise target shape: ', reduced_noise_target.shape)
-        # problem:
         reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,target_phase, multiply=multiply)
         print('reduced noise target shape: ', reduced_noise_target.shape)
         print('empty matrix shape: ', enhanced_signal.shape)
         print(reduced_noise_target.shape)
         for i, row in enumerate(reduced_noise_target):
-            enhanced_signal[i] += row
+            enhanced_signal[i] = row
     if visualize:
         visualize_feats(enhanced_signal, 'stft',title='With original pahse')
 
@@ -384,6 +386,8 @@ def filtersignal(output_filename, wavfile, noise_file=None,
             target_power_frame = pyst.dsp.calc_power(target_fft)
             # now start filtering!!
             # initialize SNR matrix
+            if visualize and frame % 10 == 0:
+                visualize_feats(np.expand_dims(target_power_frame, axis=1),'stft', title='Target section {} power'.format(frame))
             if frame == 0:
                 posteri = pyst.matrixfun.create_empty_matrix(
                     (len(target_power_frame),))
