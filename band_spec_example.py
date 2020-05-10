@@ -8,8 +8,10 @@ noise_file = '/home/airos/Projects/Data/denoising_sample_data/noise_samples/nois
 
 pyst.apply_band_specsub(output_wave_name = output_wave_name1,
                         target_wav = target_wav,
-                        noise_file = noise_file)
+                        noise_file = noise_file,
+                        visualize=True)
 
 pyst.filtersignal(output_filename = output_wave_name2,
                         wavfile = target_wav,
-                        noise_file = noise_file)
+                        noise_file = noise_file,
+                        visualize=False)
