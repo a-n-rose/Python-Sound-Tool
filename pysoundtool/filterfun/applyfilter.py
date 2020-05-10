@@ -186,26 +186,68 @@ def apply_band_specsub(output_wave_name,
 
         target_section = target[section:section + fil.frame_length]
         target_w_win = pyst.dsp.apply_window(target_section, window)
-        target_fft = pyst.dsp.calc_fft(target_w_win)
+        target_fft = pyst.dsp.calc_fft(target_w_win, real_signal=True)
         target_power = pyst.dsp.calc_power(target_fft)
         target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
+        # shape (481,)
+        # functions above worked with unfiltered data
 
 
-        # Problem somewhere below here
+        # problem area: getting filtered data through the ifft
+        '''
+        Summation of problems. For sure a problem with the reconstruct_whole_spectrum
+        function. That failed on non-manipulated /unfiltered data. 
+        
+        rfft and irfft worked with unfiltered data. 
+        
+        However, with the filtering, something gets screwed up when applying the irfft.
+        I removed the mirrored section of the signal (use rfft) as that was ruining 
+        the data. (I could also improve that function but.. on my to do list)
+        '''
         fil.update_posteri_bands(target_power,noise_power)
         beta = fil.calc_oversub_factor()
         reduced_noise_target = fil.sub_noise(target_power, noise_power, beta)
-        #now mirror, as fft would be / reconstruct spectrum
-        reduced_noise_target = pyst.matrixfun.reconstruct_whole_spectrum(
-            reduced_noise_target,
-            n_fft = fil.num_fft_bins)
-        # Problem somewhere above here
+        if frame % visualize_freq == 0:
+            visualize_feats(reduced_noise_target, 'stft', title = 'red noise target')
+        if len(reduced_noise_target) < len(target_power):
+            reduced_noise_target = reduced_noise_target.reshape((reduced_noise_target.shape[0],))
+            temp = np.zeros(target_power.shape)
+            for i, row in enumerate(reduced_noise_target):
+                temp[i] += row
+            reduced_noise_target = temp
+            
+            
+            
+            
+        # functions below worked with unfiltered data    
+        if frame % visualize_freq == 0:
+            if len(reduced_noise_target.shape) > 1:
+                visualize_feats(reduced_noise_target, 'stft', title = 'red noise target adjusted dimensions')
+            else:
+                visualize_feats(np.expand_dims(reduced_noise_target, axis=1), 'stft', title='red noise target adjusted dimensions')
+        reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,
+                                                             target_phase, 
+                                                             multiply=multiply)
+        if frame % visualize_freq == 0:
+            msg = 'red noise target original phase'
+            if len(reduced_noise_target.shape) > 1:
+                visualize_feats(reduced_noise_target, 'stft', title = msg)
+            else:
+                visualize_feats(np.expand_dims(reduced_noise_target, axis=1), 'stft', title=msg)
+        
 
-
-        reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,target_phase, multiply=multiply)
-        reduced_noise_target_ifft = pyst.dsp.calc_ifft(reduced_noise_target)
+        reduced_noise_target_ifft = pyst.dsp.calc_ifft(reduced_noise_target, real_signal=True)        
+        
         # fill empty matrix w new ifft values
-        enhanced_signal[row:row+fil.frame_length] += reduced_noise_target_ifft[:,0]
+        
+        if frame % visualize_freq == 0:
+            msg = 'red noise target ifft'
+            if len(reduced_noise_target_ifft.shape) > 1:
+                visualize_feats(reduced_noise_target_ifft, 'stft', title = msg)
+            else:
+                visualize_feats(np.expand_dims(reduced_noise_target_ifft, axis=1), 'stft', title=msg)
+        
+        enhanced_signal[row:row+fil.frame_length] += reduced_noise_target_ifft
         if visualize and frame % visualize_freq == 0:
             visualize_feats(enhanced_signal.real, 'signal', title='Signal at frame {}'.format(frame))
         # prepare for next iteration with overlap
