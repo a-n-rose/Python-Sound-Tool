@@ -43,7 +43,8 @@ import pysoundtool as pyst
 # temporary
 
 def visualize_feats(feature_matrix, feature_type, 
-                    save_pic=False, name4pic=None, scale='power_to_db'):
+                    save_pic=False, name4pic=None, scale='power_to_db',
+                    title=None):
     '''Visualize feature extraction; frames on x axis, features on y axis. 
     
     Parameters
@@ -83,7 +84,10 @@ def visualize_feats(feature_matrix, feature_type,
         plt.pcolormesh(feature_matrix.T)
     plt.xlabel('Frames')
     plt.ylabel(axis_feature_label)
-    plt.title('{} Features'.format(feature_type.upper()))
+    if title is None:
+        plt.title('{} Features'.format(feature_type.upper()))
+    else:
+        plt.title(title)
     if save_pic:
         outputname = name4pic or 'visualize{}feats'.format(feature_type.upper())
         plt.savefig('{}.png'.format(outputname))
@@ -104,7 +108,8 @@ def visualize_feats(feature_matrix, feature_type,
 
 def apply_band_specsub(output_wave_name, 
              target_wav, 
-             noise_file=None):
+             noise_file=None,
+             visualize=False):
     
     fil = pyst.BandSubtraction() 
 
@@ -136,7 +141,8 @@ def apply_band_specsub(output_wave_name,
     # define frequency limits for each band
     fil.setup_bands()
     noise = samples_noise
-    #visualize_feats(noise, 'signal')
+    if visualize:
+        visualize_feats(noise, 'signal', title='Noise samples')
 
     total_rows = fil.frame_length
     noise_power = pyst.matrixfun.create_empty_matrix((total_rows,))
@@ -155,7 +161,10 @@ def apply_band_specsub(output_wave_name,
     noise_power = pyst.dsp.calc_average_power(noise_power, 
                                                 fil.noise_subframes)
     assert section == fil.noise_subframes * fil.overlap_length
-    visualize_feats(noise_power.reshape(noise_power.shape[0],1), 'stft')
+    
+    if visualize:
+        visualize_feats(noise_power.reshape(noise_power.shape[0],1), 'stft',
+                    title='Noise power')
 
     phase_matrix = pyst.matrixfun.create_empty_matrix((fil.num_fft_bins,fil.target_subframes), complex_vals=True)
 
@@ -188,36 +197,46 @@ def apply_band_specsub(output_wave_name,
         #reduced_noise_target = reduced_noise_target.transpose()
         #print(reduced_noise_target.shape)
         print(enhanced_signal[0].shape)
+        print('phase shape ', target_phase.shape)
+        print(reduced_noise_target.shape)
         for i, row in enumerate(reduced_noise_target):
-            enhanced_signal[i] += row 
-        
-    visualize_feats(enhanced_signal, 'stft')
+            enhanced_signal[i] += row
+    if visualize:
+        visualize_feats(enhanced_signal, 'stft',title='Enhanced power')
 
     enhanced_signal = pyst.matrixfun.reconstruct_whole_spectrum(
         enhanced_signal,
         n_fft = fil.num_fft_bins)
-
-    visualize_feats(enhanced_signal, 'stft')
+    if visualize:
+        visualize_feats(enhanced_signal, 'stft', title='Reconstructed spectrum')
+    if visualize:
+        visualize_feats(phase_matrix, 'stft', title='Original phase')
+    enhanced_signal = pyst.dsp.apply_original_phase(enhanced_signal,phase_matrix, multiply=False)
+    if visualize:
+        visualize_feats(enhanced_signal, 'stft', title='Enhanced power with original phase')
     
-    enhanced_signal = fil.apply_original_phase(enhanced_signal,phase_matrix)
+    ##### VISUALS LOOK OKAY UNTIL HERE ######
     
-    visualize_feats(enhanced_signal, 'stft')
     
     enhanced_signal = pyst.dsp.calc_ifft(enhanced_signal)
-    visualize_feats(enhanced_signal, 'stft')
+    if visualize:
+        visualize_feats(enhanced_signal, 'stft', title='IFFT')
     enhanced_signal = enhanced_signal.real
-    visualize_feats(enhanced_signal, 'stft')
+    if visualize:
+        visualize_feats(enhanced_signal, 'stft', title= 'Real numbers')
     enhanced_signal = pyst.matrixfun.overlap_add(
         enhanced_signal,
         frame_length = fil.frame_length,
         overlap = fil.overlap_length,
         complex_vals = False)
-    visualize_feats(enhanced_signal, 'signal')
+    if visualize:
+        visualize_feats(enhanced_signal, 'signal', title='Overlap add')
     print('final signal shape: ',enhanced_signal.shape) #ideal? (143040, 1)
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(target):
         enhanced_signal = enhanced_signal[:len(target)]
-    visualize_feats(enhanced_signal, 'signal')
+    if visualize:
+        visualize_feats(enhanced_signal, 'signal', title='Signal')
     fil.save_filtered_signal(str(output_wave_name), 
                             enhanced_signal,
                             overwrite=True)
@@ -227,7 +246,8 @@ def apply_band_specsub(output_wave_name,
 
 def filtersignal(output_filename, wavfile, noise_file=None,
                     scale=1, apply_postfilter=False, duration_ms=1000,
-                    max_vol = 0.4, filter_type = 'wiener'):
+                    max_vol = 0.4, filter_type = 'wiener', 
+                    visualize=False):
     """Apply Wiener filter to signal using noise. Saves at `output_filename`.
 
     Parameters 
@@ -290,8 +310,8 @@ def filtersignal(output_filename, wavfile, noise_file=None,
     if samples_noise is not None:
         # set how many subframes are needed to process entire noise signal
         fil.set_num_subframes(len(samples_noise), is_noise=True)
-
-    visualize_feats(samples_noise, 'signal')
+    if visualize:
+        visualize_feats(samples_noise, 'signal', title= 'Noise samples')
     # prepare noise power matrix (if it's not loaded already)
     if fil.noise_subframes:
         total_rows = fil.num_fft_bins
@@ -309,7 +329,9 @@ def filtersignal(output_filename, wavfile, noise_file=None,
         noise_power = pyst.dsp.calc_average_power(noise_power, 
                                                    fil.noise_subframes)
         assert section == fil.noise_subframes * fil.overlap_length
-
+    if visualize:
+        visualize_feats(np.expand_dims(noise_power, axis=1), 'stft',title='Noise power')
+    
     # prepare target power matrix
     total_rows = fil.frame_length * fil.target_subframes
     filtered_sig = pyst.matrixfun.create_empty_matrix(
@@ -374,11 +396,17 @@ def filtersignal(output_filename, wavfile, noise_file=None,
     assert row == fil.target_subframes * fil.overlap_length
     assert section == fil.target_subframes * fil.overlap_length
     # make enhanced_ifft values real
+    if visualize:
+        visualize_feats(np.expand_dims(filtered_sig,axis=1), 'stft', title='Filtered power')
     enhanced_signal = filtered_sig.real
+    if visualize:
+        visualize_feats(np.expand_dims(enhanced_signal, axis=1),'stft', title='Filtered real numbers')
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
     fil.save_filtered_signal(str(output_filename), 
                             enhanced_signal,
                             overwrite=True)
+    if visualize:
+        visualize_feats(enhanced_signal, 'signal', title='Filtered signal')
     return None
