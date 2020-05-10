@@ -155,13 +155,7 @@ def apply_band_specsub(output_wave_name,
     noise_power = pyst.dsp.calc_average_power(noise_power, 
                                                 fil.noise_subframes)
     assert section == fil.noise_subframes * fil.overlap_length
-    #visualize_feats(noise_power.reshape(noise_power.shape[0],1), 'stft')
-    
-    ### LOOKS BETTER UP TO HERE ###
-
-
-
-
+    visualize_feats(noise_power.reshape(noise_power.shape[0],1), 'stft')
 
     phase_matrix = pyst.matrixfun.create_empty_matrix((fil.num_fft_bins,fil.target_subframes), complex_vals=True)
 
@@ -178,7 +172,7 @@ def apply_band_specsub(output_wave_name,
         print('target_fft ', target_fft.shape)
         target_power = pyst.dsp.calc_power(target_fft)
         print('target_power ', target_power.shape)
-        target_phase = pyst.dsp.calc_phase(target_fft)
+        target_phase = pyst.dsp.calc_phase(target_fft, radians=True)
         print('phase matrix shape ', phase_matrix.shape)
         phase_matrix[:,frame] += target_phase
         
@@ -193,29 +187,37 @@ def apply_band_specsub(output_wave_name,
         print(reduced_noise_target.shape)
         #reduced_noise_target = reduced_noise_target.transpose()
         #print(reduced_noise_target.shape)
+        print(enhanced_signal[0].shape)
         for i, row in enumerate(reduced_noise_target):
             enhanced_signal[i] += row 
         
-    visualize_feats(enhanced_signal.T, 'stft')
+    visualize_feats(enhanced_signal, 'stft')
 
-    # TODO test
     enhanced_signal = pyst.matrixfun.reconstruct_whole_spectrum(
         enhanced_signal,
         n_fft = fil.num_fft_bins)
 
-    enhanced_signal = fil.apply_original_phase(enhanced_signal,phase_matrix)
-    enhanced_signal = pyst.dsp.calc_ifft(enhanced_signal)
-    enhanced_signal = enhanced_signal.real
+    visualize_feats(enhanced_signal, 'stft')
     
+    enhanced_signal = fil.apply_original_phase(enhanced_signal,phase_matrix)
+    
+    visualize_feats(enhanced_signal, 'stft')
+    
+    enhanced_signal = pyst.dsp.calc_ifft(enhanced_signal)
+    visualize_feats(enhanced_signal, 'stft')
+    enhanced_signal = enhanced_signal.real
+    visualize_feats(enhanced_signal, 'stft')
     enhanced_signal = pyst.matrixfun.overlap_add(
         enhanced_signal,
         frame_length = fil.frame_length,
         overlap = fil.overlap_length,
         complex_vals = False)
+    visualize_feats(enhanced_signal, 'signal')
     print('final signal shape: ',enhanced_signal.shape) #ideal? (143040, 1)
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(target):
         enhanced_signal = enhanced_signal[:len(target)]
+    visualize_feats(enhanced_signal, 'signal')
     fil.save_filtered_signal(str(output_wave_name), 
                             enhanced_signal,
                             overwrite=True)
