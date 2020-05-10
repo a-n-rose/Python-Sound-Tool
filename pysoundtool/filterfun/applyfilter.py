@@ -111,7 +111,8 @@ def apply_band_specsub(output_wave_name,
              noise_file=None,
              visualize=False,
              phase_radians = True,
-             visualize_freq=10):
+             visualize_freq=10,
+             duration_ms=120):
     if phase_radians:
         radians=True
         multiply=False
@@ -137,9 +138,9 @@ def apply_band_specsub(output_wave_name,
                 noise_power = fil.load_power_vals(noise_file)
                 samples_noise = None
     else:
-        starting_noise_len = pyst.dsp.calc_frame_length(fil.samprate, 
+        starting_noise_len = pyst.dsp.calc_frame_length(fil.sr, 
                                                          duration_ms)
-        samples_noise = samples_orig[:starting_noise_len]
+        samples_noise = target[:starting_noise_len]
 
     if samples_noise is not None:
         # set how many subframes are needed to process entire noise signal
@@ -212,7 +213,9 @@ def apply_band_specsub(output_wave_name,
         print("target phase shape: ",target_phase.shape)
         fil.update_posteri_bands(target_power,noise_power)
         beta = fil.calc_oversub_factor()
+        print('num bands ', fil.num_bands)
         print('target power shape: ', target_power.shape)
+        # problem area?
         reduced_noise_target = fil.sub_noise(target_power, noise_power, beta)
         
         print('shape reduced_noise_target: ', reduced_noise_target.shape)
@@ -234,8 +237,11 @@ def apply_band_specsub(output_wave_name,
             visualize_feats(reduced_noise_target,'stft', title='Reduced noise target whole spectrum {}'.format(frame))
         print('reduced noise target shape: ', reduced_noise_target.shape)
         reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,target_phase, multiply=multiply)
+        # don't see a difference
         if visualize and frame % visualize_freq == 0:
             visualize_feats(reduced_noise_target,'stft', title='Reduced noise target original phase {}'.format(frame))
+        if visualize and frame % visualize_freq == 0:
+            visualize_feats(np.expand_dims(target_power, axis=1),'stft', title='Original target section {} power'.format(frame))
         print('reduced noise target shape: ', reduced_noise_target.shape)
         print('empty matrix shape: ', enhanced_signal.shape)
         print(reduced_noise_target.shape)
@@ -243,7 +249,7 @@ def apply_band_specsub(output_wave_name,
             enhanced_signal[i] = row
         section += fil.overlap_length
     if visualize:
-        visualize_feats(enhanced_signal, 'stft',title='With original pahse')
+        visualize_feats(enhanced_signal, 'stft',title='With original phase')
 
     #enhanced_signal = pyst.matrixfun.reconstruct_whole_spectrum(
         #enhanced_signal,
@@ -283,6 +289,9 @@ def apply_band_specsub(output_wave_name,
     if visualize:
         visualize_feats(enhanced_signal, 'stft', title='IFFT')
 
+    # problem area ?
+    print(fil.frame_length)
+    print(fil.overlap_length)
     enhanced_signal = pyst.matrixfun.overlap_add(
         enhanced_signal,
         frame_length = fil.frame_length,
@@ -304,7 +313,7 @@ def apply_band_specsub(output_wave_name,
 
 
 def filtersignal(output_filename, wavfile, noise_file=None,
-                    scale=1, apply_postfilter=False, duration_ms=1000,
+                    scale=1, apply_postfilter=False, duration_ms=120,
                     max_vol = 0.4, filter_type = 'wiener', 
                     visualize=False, visualize_freq=10):
     """Apply Wiener filter to signal using noise. Saves at `output_filename`.
