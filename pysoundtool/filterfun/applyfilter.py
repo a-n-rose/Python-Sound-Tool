@@ -232,6 +232,7 @@ def apply_band_specsub(output_wave_name,
         print(reduced_noise_target.shape)
         for i, row in enumerate(reduced_noise_target):
             enhanced_signal[i] = row
+        section += fil.overlap_length
     if visualize:
         visualize_feats(enhanced_signal, 'stft',title='With original pahse')
 
