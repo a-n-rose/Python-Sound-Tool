@@ -599,11 +599,11 @@ class BandSubtraction:
         for band in range(self.num_bands):
             band_snr = self.snr_bands[band]
             if band_snr >= -5.0 and band_snr <= 20:
-                a[band] += 4 - band_snr*3/20
+                a[band] = 4 - band_snr*3/20
             elif band_snr < -5.0:
-                a[band] += 4.75
+                a[band] = 4.75
             else:
-                a[band] += 1
+                a[band] = 1
         return a
     
     def calc_relevant_band(self,target_powspec):
@@ -678,6 +678,7 @@ class BandSubtraction:
         else:
             relevant_band = 0
         sub_signal = np.zeros((self.num_bands*self.bins_per_band,1))
+        #sub_signal = np.zeros((self.num_bands*self.bins_per_band,1))
         section = 0
         for band in range(self.num_bands):
             start_bin = int(self.band_start_freq[band])
@@ -694,7 +695,7 @@ class BandSubtraction:
             adjusted = target_band - (beta  * noise_band * delta)
             start = section
             end = start + self.bins_per_band
-            sub_signal[start:end,:] += adjusted
+            sub_signal[start:end,:] = adjusted
             sub_signal[start:end,:]  = self.apply_floor(
                 sub_signal[start:end,:] , 
                 target_band, book=True)
