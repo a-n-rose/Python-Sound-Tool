@@ -179,14 +179,15 @@ def apply_band_specsub(output_wave_name,
                     title='Noise power')
     
     total_rows = fil.frame_length
-    enhanced_signal = pyst.matrixfun.create_empty_matrix((total_rows * fil.target_subframes), complex_vals = True)
+    enhanced_signal = pyst.matrixfun.create_empty_matrix((total_rows * fil.target_subframes,), complex_vals = True)
     section = 0
     row = 0
     for frame in range(fil.target_subframes):
-
+        real_signal=False
         target_section = target[section:section + fil.frame_length]
         target_w_win = pyst.dsp.apply_window(target_section, window)
-        target_fft = pyst.dsp.calc_fft(target_w_win, real_signal=True)
+        target_fft = pyst.dsp.calc_fft(target_w_win, real_signal=real_signal)
+        target_mag = np.abs(target_fft)
         target_power = pyst.dsp.calc_power(target_fft)
         target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
         # shape (481,)
@@ -212,8 +213,8 @@ def apply_band_specsub(output_wave_name,
         if len(reduced_noise_target) < len(target_power):
             reduced_noise_target = reduced_noise_target.reshape((reduced_noise_target.shape[0],))
             temp = np.zeros(target_power.shape)
-            for i, row in enumerate(reduced_noise_target):
-                temp[i] += row
+            for i, item in enumerate(reduced_noise_target):
+                temp[i] += item
             reduced_noise_target = temp
             
             
@@ -225,6 +226,19 @@ def apply_band_specsub(output_wave_name,
                 visualize_feats(reduced_noise_target, 'stft', title = 'red noise target adjusted dimensions')
             else:
                 visualize_feats(np.expand_dims(reduced_noise_target, axis=1), 'stft', title='red noise target adjusted dimensions')
+        
+        if not real_signal:
+            print('size of signal before whole spectrum: ', reduced_noise_target.shape)
+            if frame % visualize_freq == 0:
+                msg = 'red noise target before whole spectrum'
+                if len(reduced_noise_target.shape) > 1:
+                    visualize_feats(reduced_noise_target, 'stft', title = msg)
+                else:
+                    visualize_feats(np.expand_dims(reduced_noise_target, axis=1), 'stft', title=msg)
+            reduced_noise_target = pyst.matrixfun.reconstruct_whole_spectrum(
+                reduced_noise_target, n_fft=960)
+        
+        
         reduced_noise_target = pyst.dsp.apply_original_phase(reduced_noise_target,
                                                              target_phase, 
                                                              multiply=multiply)
@@ -236,10 +250,10 @@ def apply_band_specsub(output_wave_name,
                 visualize_feats(np.expand_dims(reduced_noise_target, axis=1), 'stft', title=msg)
         
 
-        reduced_noise_target_ifft = pyst.dsp.calc_ifft(reduced_noise_target, real_signal=True)        
+        reduced_noise_target_ifft = pyst.dsp.calc_ifft(reduced_noise_target, real_signal=real_signal)        
         
         # fill empty matrix w new ifft values
-        
+        print('shape ifft: ', reduced_noise_target_ifft.shape)
         if frame % visualize_freq == 0:
             msg = 'red noise target ifft'
             if len(reduced_noise_target_ifft.shape) > 1:
@@ -247,6 +261,9 @@ def apply_band_specsub(output_wave_name,
             else:
                 visualize_feats(np.expand_dims(reduced_noise_target_ifft, axis=1), 'stft', title=msg)
         
+        print(fil.overlap_length)
+        print(enhanced_signal.shape)
+        print(enhanced_signal[row:row+fil.frame_length].shape)
         enhanced_signal[row:row+fil.frame_length] += reduced_noise_target_ifft
         if visualize and frame % visualize_freq == 0:
             visualize_feats(enhanced_signal.real, 'signal', title='Signal at frame {}'.format(frame))
@@ -255,7 +272,7 @@ def apply_band_specsub(output_wave_name,
         section += fil.overlap_length
 
     enhanced_signal = enhanced_signal.real
-    
+    # louizou take second half of signal..
 
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(target):
