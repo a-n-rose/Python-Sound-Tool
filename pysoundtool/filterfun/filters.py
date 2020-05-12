@@ -1,35 +1,3 @@
-'''Useful code to copy and paste for documentation. Will remove at some point
-
-        Examples
-        --------
-        >>> 
-        >>> 
-        >>> 
-        >>> 
-        >>> 
-        >>> 
-        >>> 
-        >>> 
-        >>> 
-        >>> 
-        
-    Examples
-    --------
-    >>> 
-    >>> 
-    >>> 
-    >>> 
-    >>> 
-    >>> 
-    >>> 
-    >>> 
-    >>> 
-    >>> 
-'''
-
-
-
-
 
 #!/bin/bash
 # Copyright 2019 Peggy Sylopp und Aislyn Rose GbR
@@ -70,7 +38,7 @@ parentdir = os.path.dirname(currentdir)
 packagedir = os.path.dirname(parentdir)
 sys.path.insert(0, packagedir)
 
-# TODO consolidate
+# TODO clean up
 import sys
 import numpy as np
 from scipy.fftpack import fft, rfft, ifft, irfft
@@ -80,6 +48,8 @@ import librosa
 import cmath
 
 import pysoundtool as pyst
+
+
 
 # what Wiener Filter and Average pow spec can inherit
 class FilterSettings:
@@ -666,7 +636,183 @@ class BandSubtraction(Filter):
             section += self.bins_per_band
             
         return sub_signal
-            
+    
+def filtersignal(output_filename, 
+                 wavfile, 
+                 noise_file=None,
+                 visualize=False,
+                 visualize_every_n_frames=50,
+                 scale=1,
+                 duration_noise_ms=120,
+                 filter_type='wiener', # 'band_specsub'
+                 apply_postfilter=False,
+                 phase_radians=True):
+    """Apply Wiener or band spectral subtraction filter to signal using noise. Saves at `output_filename`.
+
+    Parameters 
+    ----------
+    output_filename : str
+        path and name the filtered signal is to be saved
+    wavfile : str 
+        the filename to the signal for filtering; if None, a signal will be 
+        generated (default None)
+    noise_file : str optional
+        path to either noise wavfile or .npy file containing average power 
+        spectrum values or noise samples. If None, the beginning of the
+        `wavfile` will be used for noise data. (default None)
+    scale : int or float
+        The scale at which the filter should be applied. (default 1) 
+        Note: `scale` cannot be set to 0.
+    apply_postfilter : bool
+        Whether or not the post filter should be applied. The post filter 
+        reduces musical noise (i.e. distortion) in the signal as a byproduct
+        of filtering.
+    duration_noise_ms : int or float
+        The amount of time in milliseconds to use from noise to apply the 
+        Welch's method to. In other words, how much of the noise to use 
+        when approximating the average noise power spectrum.
+    max_vol : int or float 
+        The maximum volume level of the filtered signal.
+    filter_type : str
+        Type of filter to apply. Options 'wiener' or 'band_specsub'.
+    
+    Returns
+    -------
+    None
+    
+    '''
+    %  References for band spectral subtraction (from MATLAB code):
+    %   [1] Kamath, S. and Loizou, P. (2002). A multi-band spectral subtraction 
+    %       method for enhancing speech corrupted by colored noise. Proc. IEEE Int.
+    %       Conf. Acoust.,Speech, Signal Processing
+    %   
+    % Authors: Sunil Kamath and Philipos C. Loizou
+    %
+    % Copyright (c) 2006 by Philipos C. Loizou
+    % $Revision: 0.0 $  $Date: 10/09/2006 $
+    '''
+    """
+    if filter_type == 'wiener':
+        fil = pyst.WienerFilter()
+    elif filter_type == 'band_specsub':
+        fil = pyst.BandSubtraction()
+
+    # load signal (to be filtered)
+    samples_orig = fil.get_samples(wavfile)
+    # set how many subframes are needed to process entire target signal
+    fil.set_num_subframes(len(samples_orig), is_noise=False)
+
+    # prepare noise
+    # set up how noise will be considered: either as wavfile, averaged
+    # power values, or the first section of the target wavfile (i.e. None)
+    samples_noise = None
+    if noise_file:
+        if '.wav' == str(noise_file)[-4:]:
+            samples_noise = fil.get_samples(noise_file)
+        elif '.npy' == str(noise_file)[-4:]:
+            if 'powspec' in noise_file.stem:
+                noise_power = fil.load_power_vals(noise_file)
+                samples_noise = None
+            elif 'beg' in noise_file.stem:
+                samples_noise = pyst.paths.load_feature_data(noise_file)
+    else:
+        starting_noise_len = pyst.dsp.calc_frame_length(fil.sr, 
+                                                         duration_noise_ms)
+        samples_noise = samples_orig[:starting_noise_len]
+    # if noise samples have been collected...
+    if samples_noise is not None:
+        # set how many subframes are needed to process entire noise signal
+        fil.set_num_subframes(len(samples_noise), is_noise=True)
+    if visualize:
+        pyst.visualize_feats(samples_orig, 'signal', title='Target samples',sample_rate = fil.sr)
+        pyst.visualize_feats(samples_noise, 'signal', title= 'Noise samples', sample_rate=fil.sr)
+    # prepare noise power matrix (if it's not loaded already)
+    if fil.noise_subframes:
+        total_rows = fil.num_fft_bins
+        noise_power = pyst.matrixfun.create_empty_matrix((total_rows,))
+        section = 0
+        for frame in range(fil.noise_subframes):
+            noise_section = samples_noise[section:section+fil.frame_length]
+            noise_w_win = pyst.dsp.apply_window(noise_section, fil.get_window())
+            noise_fft = pyst.dsp.calc_fft(noise_w_win)
+            noise_power_frame = pyst.dsp.calc_power(noise_fft)
+            noise_power += noise_power_frame
+            section += fil.overlap_length
+        # welch's method: take average of power that has been collected
+        # in windows
+        noise_power = pyst.dsp.calc_average_power(noise_power, 
+                                                   fil.noise_subframes)
+        assert section == fil.noise_subframes * fil.overlap_length
+    if visualize:
+        pyst.visualize_feats(noise_power, 'stft',title='Noise power', scale='power_to_db')
+    
+    # prepare target power matrix
+    total_rows = fil.frame_length * fil.target_subframes
+    filtered_sig = pyst.matrixfun.create_empty_matrix(
+        (total_rows,), complex_vals=True)
+    section = 0
+    row = 0
+    target_power_baseline = 0
+    if scale is not None:
+        noise_power *= scale
+    try:
+        for frame in range(fil.target_subframes):
+            target_section = samples_orig[section:section+fil.frame_length]
+            target_w_window = pyst.dsp.apply_window(target_section,
+                                                    fil.get_window())
+            if visualize and frame % visualize_every_n_frames == 0:
+                pyst.visualize_feats(target_w_window,'signal', title='Target section {} signal with window'.format(frame))
+            target_fft = pyst.dsp.calc_fft(target_w_window)
+            target_power = pyst.dsp.calc_power(target_fft)
+            # now start filtering!!
+            # initialize SNR matrix
+            if visualize and frame % visualize_every_n_frames == 0:
+                pyst.visualize_feats(target_power,'stft', title='Target section {} power'.format(frame), scale='power_to_db')
+            if filter_type == 'wiener':
+                enhanced_fft = fil.apply_wienerfilter(frame, 
+                                                       target_fft, 
+                                                       target_power, 
+                                                       noise_power)
+                if apply_postfilter:
+                    enhanced_fft = fil.apply_postfilter(enhanced_fft,
+                                                        target_fft,
+                                                        target_power)
+            elif filter_type == 'band_specsub':
+                target_phase = pyst.dsp.calc_phase(target_fft, 
+                                                   radians=phase_radians)
+                enhanced_fft = fil.apply_bandspecsub(target_power, 
+                                                      target_phase, 
+                                                      noise_power)
+            enhanced_ifft = pyst.dsp.calc_ifft(enhanced_fft)
+            filtered_sig[row:row+fil.frame_length] += enhanced_ifft
+            # prepare for next iteration
+            if filter_type == 'wiener':
+                fil.posteri_snr_prev = fil.posteri_snr
+                fil.gain_prev = fil.gain
+            row += fil.overlap_length
+            section += fil.overlap_length
+    except ValueError as e:
+        print(e)
+        print(frame)
+    assert row == fil.target_subframes * fil.overlap_length
+    assert section == fil.target_subframes * fil.overlap_length
+    # make enhanced_ifft values real
+    if visualize:
+        pyst.visualize_feats(filtered_sig, 'stft', title='Filtered power', 
+                             scale='power_to_db')
+    enhanced_signal = filtered_sig.real
+    if visualize:
+        pyst.visualize_feats(enhanced_signal,'signal', title='Filtered real numbers')
+    enhanced_signal = fil.check_volume(enhanced_signal)
+    if len(enhanced_signal) > len(samples_orig):
+        enhanced_signal = enhanced_signal[:len(samples_orig)]
+    fil.save_filtered_signal(str(output_filename), 
+                            enhanced_signal,
+                            overwrite=True)
+    if visualize:
+        pyst.visualize_feats(enhanced_signal, 'signal', title='Filtered signal')
+    return None
+
 
 class WelchMethod(FilterSettings):
     """Applies Welch's method according to filter class attributes. 
