@@ -108,20 +108,22 @@ class FilterSettings:
         Currently the `frame_length` is used to set `num_fft_bins`.
     """
     def __init__(self,
-                 frame_duration_ms=20,
-                 percent_overlap=0.5,
-                 sampling_rate=48000,
-                 window_type='hamming'):
-        self.frame_dur = frame_duration_ms
-        self.sr = sampling_rate
+                 frame_duration_ms=None,
+                 percent_overlap=None,
+                 sampling_rate=None,
+                 window_type=None):
+        # set defaults if no values given
+        self.frame_dur = frame_duration_ms if frame_duration_ms else 20
+        self.percent_overlap = percent_overlap if percent_overlap else 0.5
+        self.sr = sampling_rate if sampling_rate else 48000
+        self.window_type = window_type if window_type else 'hamming'
+        # set other attributes based on above values
         self.frame_length = pyst.dsp.calc_frame_length(
-            frame_duration_ms,
-            sampling_rate)
-        self.percent_overlap = percent_overlap
+            self.frame_dur,
+            self.sr)
         self.overlap_length = pyst.dsp.calc_num_overlap_samples(
             self.frame_length,
-            percent_overlap)
-        self.window_type = window_type
+            self.percent_overlap)
         self.num_fft_bins = self.frame_length
         
     def get_window(self):
@@ -131,7 +133,7 @@ class FilterSettings:
         return window
 
 
-class WienerFilter(FilterSettings):
+class Filter(FilterSettings):
     """Interactive class to explore Wiener filter settings on audio signals.
 
     These class methods implement research based algorithms with low 
@@ -165,288 +167,183 @@ class WienerFilter(FilterSettings):
     """
 
     def __init__(self,
+                 frame_duration_ms=None,
+                 percent_overlap=None,
+                 sampling_rate=None,
+                 window_type=None,
+                 max_vol = None):
+        FilterSettings.__init__(self, 
+                                frame_duration_ms=frame_duration_ms,
+                                percent_overlap=percent_overlap,
+                                sampling_rate=sampling_rate,
+                                window_type=window_type)
+        self.max_vol = max_vol if max_vol else 0.4
+        self.target_subframes = None
+        self.noise_subframes = None
+
+    def get_samples(self, wavfile, dur_sec=None):
+        """Load signal and save original volume
+
+        Parameters
+        ----------
+        wavfile : str
+            Path and name of wavfile to be loaded
+        dur_sec : int, float optional
+            Max length of time in seconds (default None)
+
+        Returns 
+        ----------
+        samples : ndarray
+            Array containing signal amplitude values in time domain
+        """
+        samples, sr = pyst.dsp.load_signal(
+            wavfile, self.sr, dur_sec=dur_sec)
+        self.set_volume(samples, max_vol = self.max_vol)
+        return samples
+
+    def set_volume(self, samples, max_vol = 0.4, min_vol = 0.15):
+        """Records and limits the maximum amplitude of original samples.
+
+        This enables the output wave to be within a range of
+        volume that does not go below or too far above the 
+        orignal maximum amplitude of the signal. 
+
+        Parameters
+        ----------
+        samples : ndarray
+            The original samples of a signal (1 dimensional), of any length
+        max_vol : float
+            The maximum volume level. If a signal has values higher than this 
+            number, the signal is curtailed to remain at and below this number.
+        min_vol : float
+            The minimum volume level. If a signal has only values lower than
+            this number, the signal is amplified to be at this number and below.
+        
+        Returns
+        -------
+        None
+        """
+        if isinstance(samples, np.ndarray):
+            max_amplitude = samples.max()
+        else:
+            max_amplitude = max(samples)
+        self.vol_orig = max_amplitude
+        if max_amplitude > max_vol:
+            self.max_vol = max_vol
+        elif max_amplitude < min_vol:
+            self.max_vol = min_vol
+        else:
+            self.max_vol = max_amplitude
+        return None
+
+    def set_num_subframes(self, len_samples, is_noise=False):
+        """Sets the number of target or noise subframes available for processing
+
+        Parameters
+        ----------
+        len_samples : int 
+            The total number of samples in a given signal
+        is_noise : bool
+            If False, subframe number saved under self.target_subframes, otherwise 
+            self.noise_subframes (default False)
+
+        Returns
+        -------
+        None
+        """
+        if is_noise:
+            self.noise_subframes = pyst.dsp.calc_num_subframes(
+                tot_samples=len_samples,
+                frame_length=self.frame_length,
+                overlap_samples=self.overlap_length
+            )
+        else:
+            self.target_subframes = pyst.dsp.calc_num_subframes(
+                tot_samples=len_samples,
+                frame_length=self.frame_length,
+                overlap_samples=self.overlap_length
+            )
+        return None
+
+    def load_power_vals(self, path_npy):
+        """Loads and checks shape compatibility of averaged power values
+
+        Parameters
+        ----------
+        path_npy : str, pathlib.PosixPath
+            Path to .npy file containing power information. 
+
+        Returns
+        -------
+        power_values : ndarray
+            The power values as long as they have the shape (self.num_fft_bins, 1)
+        """
+        power_values = pyst.paths.load_feature_data(path_npy)
+        if power_values.shape[0] != self.num_fft_bins:
+            raise ValueError("Power value shape does not match settings.\
+                \nProvided power value shape: {}\
+                \nExpected shape: ({},)".format(
+                power_values.shape, self.num_fft_bins))
+        # get rid of extra, unnecessary dimension
+        if power_values.shape == (self.num_fft_bins, 1):
+            power_values = power_values.reshape(self.num_fft_bins,)
+        return power_values
+
+    def check_volume(self, samples):
+        """ensures volume of filtered signal is within the bounds of the original
+        """
+        max_orig = round(max(samples), 2)
+        samples = pyst.dsp.control_volume(samples, self.max_vol)
+        max_adjusted = round(max(samples), 2)
+        if max_orig != max_adjusted:
+            print("volume adjusted from {} to {}".format(max_orig, max_adjusted))
+        return samples
+
+    def save_filtered_signal(self, output_file, samples, overwrite=False):
+        saved, filename = pyst.paths.save_wave(
+            output_file, samples, self.sr, overwrite=overwrite)
+        if saved:
+            print('Wavfile saved under: {}'.format(filename))
+            return True
+        else:
+            print('Error occurred. {} not saved.'.format(filename))
+            return False
+        
+class WienerFilter(Filter):
+    def __init__(self,
+                 frame_duration_ms=None,
+                 percent_overlap=None,
+                 sampling_rate=None,
+                 window_type=None,
+                 max_vol = 0.4,
                  smooth_factor=0.98,
-                 first_iter=None,
-                 max_vol = 0.4):
-        FilterSettings.__init__(self)
+                 first_iter=None):
+        Filter.__init__(self, 
+                        frame_duration_ms=frame_duration_ms,
+                        sampling_rate=sampling_rate,
+                        window_type=window_type,
+                        max_vol=max_vol)
         self.beta = smooth_factor
         self.first_iter = first_iter
-        self.target_subframes = None
-        self.noise_subframes = None
         self.gain = None
-        self.max_vol = max_vol
 
-    def get_samples(self, wavfile, dur_sec=None):
-        """Load signal and save original volume
 
-        Parameters
-        ----------
-        wavfile : str
-            Path and name of wavfile to be loaded
-        dur_sec : int, float optional
-            Max length of time in seconds (default None)
-
-        Returns 
-        ----------
-        samples : ndarray
-            Array containing signal amplitude values in time domain
-        """
-        samples, sr = pyst.dsp.load_signal(
-            wavfile, self.sr, dur_sec=dur_sec)
-        self.set_volume(samples, max_vol = self.max_vol)
-        return samples
-
-    def set_volume(self, samples, max_vol = 0.4, min_vol = 0.15):
-        """Records and limits the maximum amplitude of original samples.
-
-        This enables the output wave to be within a range of
-        volume that does not go below or too far above the 
-        orignal maximum amplitude of the signal. 
-
-        Parameters
-        ----------
-        samples : ndarray
-            The original samples of a signal (1 dimensional), of any length
-        max_vol : float
-            The maximum volume level. If a signal has values higher than this 
-            number, the signal is curtailed to remain at and below this number.
-        min_vol : float
-            The minimum volume level. If a signal has only values lower than
-            this number, the signal is amplified to be at this number and below.
-        
-        Returns
-        -------
-        None
-        """
-        if isinstance(samples, np.ndarray):
-            max_amplitude = samples.max()
-        else:
-            max_amplitude = max(samples)
-        self.vol_orig = max_amplitude
-        if max_amplitude > max_vol:
-            self.max_vol = max_vol
-        elif max_amplitude < min_vol:
-            self.max_vol = min_vol
-        else:
-            self.max_vol = max_amplitude
-        return None
-
-    def set_num_subframes(self, len_samples, is_noise=False):
-        """Sets the number of target or noise subframes available for processing
-
-        Parameters
-        ----------
-        len_samples : int 
-            The total number of samples in a given signal
-        is_noise : bool
-            If False, subframe number saved under self.target_subframes, otherwise 
-            self.noise_subframes (default False)
-
-        Returns
-        -------
-        None
-        """
-        if is_noise:
-            self.noise_subframes = pyst.dsp.calc_num_subframes(
-                tot_samples=len_samples,
-                frame_length=self.frame_length,
-                overlap_samples=self.overlap_length
-            )
-        else:
-            self.target_subframes = pyst.dsp.calc_num_subframes(
-                tot_samples=len_samples,
-                frame_length=self.frame_length,
-                overlap_samples=self.overlap_length
-            )
-        return None
-
-    def load_power_vals(self, path_npy):
-        """Loads and checks shape compatibility of averaged power values
-
-        Parameters
-        ----------
-        path_npy : str, pathlib.PosixPath
-            Path to .npy file containing power information. 
-
-        Returns
-        -------
-        power_values : ndarray
-            The power values as long as they have the shape (self.num_fft_bins, 1)
-        """
-        power_values = pyst.paths.load_feature_data(path_npy)
-        if power_values.shape[0] != self.num_fft_bins:
-            raise ValueError("Power value shape does not match settings.\
-                \nProvided power value shape: {}\
-                \nExpected shape: ({},)".format(
-                power_values.shape, self.num_fft_bins))
-        # get rid of extra, unnecessary dimension
-        if power_values.shape == (self.num_fft_bins, 1):
-            power_values = power_values.reshape(self.num_fft_bins,)
-        return power_values
-
-    def check_volume(self, samples):
-        """ensures volume of filtered signal is within the bounds of the original
-        """
-        max_orig = round(max(samples), 2)
-        samples = pyst.dsp.control_volume(samples, self.max_vol)
-        max_adjusted = round(max(samples), 2)
-        if max_orig != max_adjusted:
-            print("volume adjusted from {} to {}".format(max_orig, max_adjusted))
-        return samples
-
-    def save_filtered_signal(self, output_file, samples, overwrite=False):
-        saved, filename = pyst.paths.save_wave(
-            output_file, samples, self.sr, overwrite=overwrite)
-        if saved:
-            print('Wavfile saved under: {}'.format(filename))
-            return True
-        else:
-            print('Error occurred. {} not saved.'.format(filename))
-            return False
-        
-
-class BandSubtraction:
+class BandSubtraction(Filter):
     def __init__(self,
+                 frame_duration_ms=None,
+                 percent_overlap=None,
+                 sampling_rate=None,
+                 window_type=None,
+                 max_vol = 0.4,
                  num_bands = 6,
-                 band_spacing = 'linear',
-                 max_vol = 0.4):
-        FilterSettings.__init__(self)
-        self.target_subframes = None
-        self.noise_subframes = None
-        self.max_vol = max_vol
+                 band_spacing = 'linear'):
+        Filter.__init__(self, 
+                        frame_duration_ms=frame_duration_ms,
+                        sampling_rate=sampling_rate,
+                        window_type=window_type,
+                        max_vol=max_vol)
         self.num_bands = num_bands
         self.band_spacing = band_spacing
-        
-    def get_samples(self, wavfile, dur_sec=None):
-        """Load signal and save original volume
-
-        Parameters
-        ----------
-        wavfile : str
-            Path and name of wavfile to be loaded
-        dur_sec : int, float optional
-            Max length of time in seconds (default None)
-
-        Returns 
-        ----------
-        samples : ndarray
-            Array containing signal amplitude values in time domain
-        """
-        samples, sr = pyst.dsp.load_signal(
-            wavfile, self.sr, dur_sec=dur_sec)
-        self.set_volume(samples, max_vol = self.max_vol)
-        return samples
-
-    def set_volume(self, samples, max_vol = 0.4, min_vol = 0.15):
-        """Records and limits the maximum amplitude of original samples.
-
-        This enables the output wave to be within a range of
-        volume that does not go below or too far above the 
-        orignal maximum amplitude of the signal. 
-
-        Parameters
-        ----------
-        samples : ndarray
-            The original samples of a signal (1 dimensional), of any length
-        max_vol : float
-            The maximum volume level. If a signal has values higher than this 
-            number, the signal is curtailed to remain at and below this number.
-        min_vol : float
-            The minimum volume level. If a signal has only values lower than
-            this number, the signal is amplified to be at this number and below.
-        
-        Returns
-        -------
-        None
-        """
-        if isinstance(samples, np.ndarray):
-            max_amplitude = samples.max()
-        else:
-            max_amplitude = max(samples)
-        self.vol_orig = max_amplitude
-        if max_amplitude > max_vol:
-            self.max_vol = max_vol
-        elif max_amplitude < min_vol:
-            self.max_vol = min_vol
-        else:
-            self.max_vol = max_amplitude
-        return None
-
-    def set_num_subframes(self, len_samples, is_noise=False):
-        """Sets the number of target or noise subframes available for processing
-
-        Parameters
-        ----------
-        len_samples : int 
-            The total number of samples in a given signal
-        is_noise : bool
-            If False, subframe number saved under self.target_subframes, otherwise 
-            self.noise_subframes (default False)
-
-        Returns
-        -------
-        None
-        """
-        if is_noise:
-            self.noise_subframes = pyst.dsp.calc_num_subframes(
-                tot_samples=len_samples,
-                frame_length=self.frame_length,
-                overlap_samples=self.overlap_length
-            )
-        else:
-            self.target_subframes = pyst.dsp.calc_num_subframes(
-                tot_samples=len_samples,
-                frame_length=self.frame_length,
-                overlap_samples=self.overlap_length
-            )
-        return None
-
-    def load_power_vals(self, path_npy):
-        """Loads and checks shape compatibility of averaged power values
-
-        Parameters
-        ----------
-        path_npy : str, pathlib.PosixPath
-            Path to .npy file containing power information. 
-
-        Returns
-        -------
-        power_values : ndarray
-            The power values as long as they have the shape (self.num_fft_bins, 1)
-        """
-        power_values = pyst.paths.load_feature_data(path_npy)
-        if power_values.shape[0] != self.num_fft_bins:
-            raise ValueError("Power value shape does not match settings.\
-                \nProvided power value shape: {}\
-                \nExpected shape: ({},)".format(
-                power_values.shape, self.num_fft_bins))
-        # get rid of extra, unnecessary dimension
-        if power_values.shape == (self.num_fft_bins, 1):
-            power_values = power_values.reshape(self.num_fft_bins,)
-        return power_values
-
-    def check_volume(self, samples):
-        """ensures volume of filtered signal is within the bounds of the original
-        """
-        max_orig = round(max(samples), 2)
-        samples = pyst.dsp.control_volume(samples, self.max_vol)
-        max_adjusted = round(max(samples), 2)
-        if max_orig != max_adjusted:
-            print("volume adjusted from {} to {}".format(max_orig, max_adjusted))
-        return samples
-
-    def save_filtered_signal(self, output_file, samples, overwrite=False):
-        saved, filename = pyst.paths.save_wave(
-            output_file, samples, self.sr, overwrite=overwrite)
-        if saved:
-            print('Wavfile saved under: {}'.format(filename))
-            return True
-        else:
-            print('Error occurred. {} not saved.'.format(filename))
-            return False
-        
- 
-        
     
     def setup_bands(self):
         '''Provides starting and ending frequncy bins/indices for each band.
@@ -557,9 +454,7 @@ class BandSubtraction:
             denominator = sum(noise_powspec[start_bin:stop_bin])
             snr_bands[band] += 10*np.log10(numerator/denominator)
         self.snr_bands = snr_bands
-        
         return None
-    
     
     def calc_oversub_factor(self):
         '''Calculate over subtraction factor used in the cited paper.
@@ -657,7 +552,6 @@ class BandSubtraction:
         
         return rel_band_index, band_energy_matrix
     
-    
     def apply_floor(self, sub_band, original_band, floor=0.002, book=True):
         for i, val in enumerate(sub_band):
             if val < 0:
@@ -668,7 +562,6 @@ class BandSubtraction:
                 sub_band[i] += 0.5*original_band[i]
         
         return sub_band
-    
     
     def sub_noise(self,target_powspec, noise_powspec, oversub_factor, speech=True):
         #apply higher or lower noise subtraction (i.e. delta)
@@ -703,36 +596,6 @@ class BandSubtraction:
             
         return sub_signal
             
-            
-    #def reconstruct_spectrum(self, band_reduced_noise_matrix):
-        #'''Reconstruct spectrum
-        
-        #Parameters
-        #----------
-        #band_reduced_noise_matrix : np.ndarray [size=(frame_size, num_frames), dtype=np.float]
-        #'''
-        #total_rows = self.fft_bins
-        #output_matrix = np.zeros((total_rows,band_reduced_noise_matrix.shape[1]))
-        #print('band_reduced_noise_matrix : ',band_reduced_noise_matrix.shape)
-        #flipped_matrix = np.flip(band_reduced_noise_matrix)
-        #print('flipped_matrix', flipped_matrix.shape)
-        #output_matrix[0:self.fft_bins//2,:] += band_reduced_noise_matrix[0:self.fft_bins//2,:]#remove extra zeros at the end
-        #output_matrix[self.fft_bins//2:self.fft_bins,:] += flipped_matrix[self.fft_bins//2:self.fft_bins,:]#remove extra zeros at the beginning
-        
-        #return output_matrix
-    
-    
-    def apply_original_phase(self, spectrum, phase):
-        
-        spectrum_complex = pyst.matrixfun.create_empty_matrix(spectrum.shape,
-                                                              complex_vals=True)
-        ##spectrum = spectrum**(1/2)
-        #phase_prepped = (1/2) * np.cos(phase) + cmath.sqrt(-1) * np.sin(phase)
-        spectrum_complex = spectrum * phase
-        
-        return spectrum_complex
-
-
 
 class WelchMethod(FilterSettings):
     """Applies Welch's method according to filter class attributes. 
