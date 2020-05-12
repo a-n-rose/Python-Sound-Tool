@@ -6,6 +6,7 @@ currentdir = os.path.dirname(os.path.abspath(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
+import pysoundtool as pyst
 from pysoundtool.mathfun import dsp
 import numpy as np
 import pytest
