@@ -426,8 +426,6 @@ def apply_original_phase(spectrum, phase, radians=True):
         else:
             spectrum = np.expand_dims(spectrum, axis=1)
     if not radians:
-        #spectrum_complex = pyst.matrixfun.create_empty_matrix(spectrum.shape,
-                                                            #complex_vals=True)
         spectrum_complex = spectrum * phase
     else:
         import cmath
@@ -599,7 +597,7 @@ def calc_ifft(signal_section, real_signal=None, norm=False):
 
     Parameters
     ----------
-    signal_section : ndarray (size = [num_freq_bins,])
+    signal_section : ndarray [shape=(num_freq_bins,) 
         The frame of fft values to apply the inverse fft to
     num_fft : int, optional
         The number of total fft values applied when calculating the original fft. 
