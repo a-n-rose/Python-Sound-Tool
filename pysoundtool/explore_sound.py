@@ -5,6 +5,7 @@ from python_speech_features import mfcc, logfbank
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import hamming, hann, resample
+import librosa
 
 from .soundprep import resample_audio
 
@@ -20,7 +21,7 @@ def create_signal(freq=200, amplitude=0.4, samplerate=8000, dur_sec=0.25):
 
 def get_time_points(dur_sec,samplerate):
     #duration in seconds multiplied by the sampling rate. 
-    time = np.linspace(0, dur_sec, np.floor(dur_sec*samplerate))
+    time = np.linspace(0, dur_sec, int(np.floor(dur_sec*samplerate)))
     return time
 
 def create_noise(num_samples, amplitude=0.025, random_seed=None):
@@ -41,7 +42,8 @@ def load_sound(sound, samplerate=None):
     return data, sr
      
      
-def visualize_signal(sound, samplerate=None, save_pic=False, name4pic=None):
+def visualize_soundfile2signal(sound, samplerate=None, 
+                               save_pic=False, name4pic=None):
     data, sr = load_sound(sound, samplerate=samplerate)
     dur_sec = len(data) / sr
     time_sec = get_time_points(dur_sec, sr)
@@ -56,11 +58,103 @@ def visualize_signal(sound, samplerate=None, save_pic=False, name4pic=None):
     else:
         plt.show()
     
+# TODO Test for multiple channels   
+def visualize_feats(feature_matrix, feature_type, 
+                    save_pic=False, name4pic=None, scale=None,
+                    title=None, sample_rate=None):
+    '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
+    
+    Parameters
+    ----------
+    feature_matrix : np.ndarray [shape=(len(data),), (len(data), num_features)]
+        or (len(data), num_channels), dtype=np.float].
+        Matrix of features. If the features are not of type 'signal' and the
+        shape is 1 D, one dimension will be added to be plotted with a colormesh.
+    feature_type : str
+        Options: 'signal', 'stft', 'mfcc', or 'fbank' features, or 
+        what user would like to name the feature set.
+        signal: the 1 D samples of sound.
+        STFT: short-time Fourier transform
+        MFCC: mel frequency cepstral coefficients.
+        FBANK: mel-log filterbank energies (default 'fbank').
+    save_pic : bool
+        True to save image as .png; False to just plot it.
+    name4pic : str, optional
+        If `save_pic` set to True, the name the image should be saved under.
+    scale : str, optional
+        If features need to be adjusted, e.g. from power to decibels. 
+        Default is None.
+    title : str, optional
+        The title for the graph. If None, `feature_type` is used.
+    sample_rate : int, optional
+        Useful for plotting a signal type feature matrix. Allows x-axis to be
+        presented as time in seconds.
+    '''
+    # ensure real numbers
+    if isinstance(feature_matrix[0], np.complex):
+        feature_matrix = feature_matrix.real
+    # features presented via colormesh need 2D format.
+    if len(feature_matrix.shape) == 1:
+        feature_matrix = np.expand_dims(feature_matrix, axis=1)
+    if 'fbank' in feature_type:
+        axis_feature_label = 'Num Mel Filters'
+    elif 'mfcc' in feature_type:
+        axis_feature_label = 'Num Mel Freq Cepstral Coefficients'
+    elif 'stft' in feature_type:
+        axis_feature_label = 'Energy (Magnitude or Power spectrum)'
+    elif 'signal' in feature_type:
+        axis_feature_label = 'Amplitude'
+    else:
+        axis_feature_label = 'Energy'
+    if scale is None or feature_type == 'signal':
+        pass
+    elif scale == 'power_to_db':
+        feature_matrix = librosa.power_to_db(feature_matrix)
+    elif scale == 'db_to_power':
+        feature_matrix = librosa.db_to_power(feature_matrix)
+    elif scale == 'amplitude_to_db':
+        feature_matrix = librosa.amplitude_to_db(feature_matrix)
+    elif scale == 'db_to_amplitude':
+        feature_matrix = librosa.db_to_amplitude(feature_matrix)
+    plt.clf()
+    x_axis_label = 'Features over time'
+    if feature_type == 'signal':
+        # transpose matrix if second dimension is larger - probably 
+        # because channels are in first dimension. Expect in second dimension
+        if not feature_matrix.shape[0] > feature_matrix.shape[1]:
+            feature_matrix = feature_matrix.T
+        if sample_rate is not None:
+            x_axis_label = 'Time (sec)'
+            dur_sec = len(feature_matrix) / sample_rate
+            time_sec = get_time_points(dur_sec, sample_rate)
+            for channel in range(feature_matrix.shape[1]):
+                data = feature_matrix[:,channel]
+                # overlay the channel data
+                plt.plot(time_sec, data)
+        else:
+            for channel in range(feature_matrix.shape[1]):
+                data = feature_matrix[:,channel]
+                # overlay the channel data
+                plt.plot(data)
+        x_axis_label += ' across {} channel(s)'.format(channel+1)
+    else:
+        plt.pcolormesh(feature_matrix.T)
+    plt.xlabel(x_axis_label)
+    plt.ylabel(axis_feature_label)
+    if title is None:
+        plt.title('{} Features'.format(feature_type.upper()))
+    else:
+        plt.title(title)
+    if save_pic:
+        outputname = name4pic or 'visualize{}feats'.format(feature_type.upper())
+        plt.savefig('{}.png'.format(outputname))
+    else:
+        plt.show()
 
-def visualize_feats(sound, features='fbank', win_size_ms = 20, \
+def visualize_soundfile2feats(sound, features='fbank', win_size_ms = 20, \
     win_shift_ms = 10,num_filters=40,num_mfcc=40, samplerate=None,\
         save_pic=False, name4pic=None):
-    '''Visualize feature extraction depending on set parameters
+    '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
     Parameters
     ----------
