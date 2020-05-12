@@ -1,0 +1,19 @@
+Functionality
+- signal similarity
+- source separation
+- gender switch
+- text to speech
+- speech to text
+- autoencoder training
+
+Presentation
+- blog post on each set of functionalities
+- presentation of examples
+- documentation online
+
+Testing
+- name changes of functions
+- make tests work
+
+Organization
+- reorganize based on use... how import statement should work
