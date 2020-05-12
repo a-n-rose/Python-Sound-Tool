@@ -326,6 +326,46 @@ class WienerFilter(Filter):
         self.beta = smooth_factor
         self.first_iter = first_iter
         self.gain = None
+        
+    def apply_wienerfilter(self, frame_index, target_fft, target_power_frame, noise_power):
+        if frame_index == 0:
+            posteri = pyst.matrixfun.create_empty_matrix(
+                (len(target_power_frame),))
+            self.posteri_snr = pyst.dsp.calc_posteri_snr(
+                target_power_frame, noise_power)
+            self.posteri_prime = pyst.dsp.calc_posteri_prime(
+                self.posteri_snr)
+            self.priori_snr = pyst.dsp.calc_prior_snr(snr=self.posteri_snr,
+                                            snr_prime=self.posteri_prime,
+                                            smooth_factor=self.beta,
+                                            first_iter=True,
+                                            gain=None)
+        elif frame_index > 0:
+            self.posteri_snr = pyst.dsp.calc_posteri_snr(
+                target_power_frame,
+                noise_power)
+            self.posteri_prime = pyst.dsp.calc_posteri_prime(
+                self.posteri_snr)
+            self.priori_snr = pyst.dsp.calc_prior_snr(
+                snr=self.posteri_snr_prev,
+                snr_prime=self.posteri_prime,
+                smooth_factor=self.beta,
+                first_iter=False,
+                gain=self.gain_prev)
+        self.gain = pyst.dsp.calc_gain(prior_snr=self.priori_snr)
+        enhanced_fft = pyst.dsp.apply_gain_fft(target_fft, self.gain)
+        return enhanced_fft
+    
+    def apply_postfilter(self, enhanced_fft, target_fft, 
+                         target_power_frame):
+        target_noisereduced_power = pyst.dsp.calc_power(enhanced_fft)
+        self.gain = pyst.dsp.postfilter(target_power_frame,
+                                target_noisereduced_power,
+                                gain=self.gain,
+                                threshold=0.9,
+                                scale=20)
+        enhanced_fft = pyst.dsp.apply_gain_fft(target_fft, self.gain)
+        return enhanced_fft
 
 
 class BandSubtraction(Filter):
@@ -344,6 +384,37 @@ class BandSubtraction(Filter):
                         max_vol=max_vol)
         self.num_bands = num_bands
         self.band_spacing = band_spacing
+        
+    def apply_bandspecsub(self, target_power, target_phase, noise_power):
+        self.setup_bands()
+        self.update_posteri_bands(target_power,noise_power)
+        beta = self.calc_oversub_factor()
+        reduced_noise_target = self.sub_noise(target_power, noise_power, beta)
+        
+        # perhaps don't need. TODO test this with real signal (ie half of fft)
+        if len(reduced_noise_target) < len(target_power):
+            reduced_noise_target = reduced_noise_target.reshape((reduced_noise_target.shape[0],))
+            temp = np.zeros(target_power.shape)
+            for i, item in enumerate(reduced_noise_target):
+                temp[i] += item
+            reduced_noise_target = temp
+
+            reduced_noise_target = pyst.matrixfun.reconstruct_whole_spectrum(
+                reduced_noise_target, n_fft=self.num_fft_bins)
+            
+        # if the phase is complex, it is represented in a spectrum
+        if isinstance(target_phase[0], np.complex):
+            phase_radians = False
+        # otherewise, phase is in radians
+        else:
+            phase_radians = True
+        
+        # apply original phase to reduced noise power 
+        enhanced_fft = pyst.dsp.apply_original_phase(
+            reduced_noise_target,
+            target_phase, 
+            radians=phase_radians)
+        return enhanced_fft
     
     def setup_bands(self):
         '''Provides starting and ending frequncy bins/indices for each band.

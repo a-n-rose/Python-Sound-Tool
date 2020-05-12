@@ -119,135 +119,17 @@ def visualize_feats(feature_matrix, feature_type,
 % $Revision: 0.0 $  $Date: 10/09/2006 $
 '''
 
-def apply_band_specsub(output_wave_name, 
-             target_wav, 
-             noise_file=None,
-             visualize=False,
-             phase_radians = True,
-             visualize_freq=10,
-             duration_ms=120):
-    if phase_radians:
-        radians=True
-        multiply=False
-    else:
-        radians=False
-        multiply=True
-    
-    fil = pyst.BandSubtraction() 
-    
-
-    target = fil.get_samples(target_wav)
-    if visualize:
-        visualize_feats(target, 'signal', title='Target signal')
-    # prepare noise
-    # set up how noise will be considered: either as wavfile, averaged
-    # power values, or the first section of the target wavfile (i.e. None)
-    samples_noise = None
-    if noise_file:
-        if '.wav' == str(noise_file)[-4:]:
-            samples_noise = fil.get_samples(noise_file)
-        elif '.npy' == str(noise_file)[-4:]:
-            if 'powspec' in noise_file.stem:
-                noise_power = fil.load_power_vals(noise_file)
-                samples_noise = None
-    else:
-        starting_noise_len = pyst.dsp.calc_frame_length(fil.sr, 
-                                                         duration_ms)
-        samples_noise = target[:starting_noise_len]
-
-    if samples_noise is not None:
-        # set how many subframes are needed to process entire noise signal
-        fil.set_num_subframes(len(samples_noise), is_noise=True)
-
-    fil.set_num_subframes(len(target),is_noise=False)
-    print("num target subframes: ",fil.target_subframes)
-    print("num noise subframes: ", fil.noise_subframes)
-    
-    # define frequency limits for each band
-    fil.setup_bands()
-    noise = samples_noise
-    if visualize:
-        visualize_feats(noise, 'signal', title='Noise samples')
-
-    total_rows = fil.frame_length
-    noise_power = pyst.matrixfun.create_empty_matrix((total_rows,))
-    section = 0
-    window = pyst.dsp.create_window(fil.window_type, fil.frame_length)
-    for frame in range(fil.noise_subframes):
-        noise_section = samples_noise[section:section+fil.frame_length]
-        noise_w_win = pyst.dsp.apply_window(noise_section, window)
-        
-        noise_fft = pyst.dsp.calc_fft(noise_w_win)
-        noise_power_frame = pyst.dsp.calc_power(noise_fft)
-        noise_power += noise_power_frame
-        section += fil.overlap_length
-    # welch's method: take average of power that has been collected
-    # in windows
-    noise_power = pyst.dsp.calc_average_power(noise_power, 
-                                                fil.noise_subframes)
-    assert section == fil.noise_subframes * fil.overlap_length
-    
-    if visualize:
-        visualize_feats(noise_power.reshape(noise_power.shape[0],1), 'stft',
-                    title='Noise power')
-    
-    total_rows = fil.frame_length
-    enhanced_signal = pyst.matrixfun.create_empty_matrix((total_rows * fil.target_subframes,), complex_vals = True)
-    section = 0
-    row = 0
-    for frame in range(fil.target_subframes):
-        real_signal=False
-        target_section = target[section:section + fil.frame_length]
-        target_w_win = pyst.dsp.apply_window(target_section, window)
-        target_fft = pyst.dsp.calc_fft(target_w_win, real_signal=real_signal)
-        target_mag = np.abs(target_fft)
-        target_power = pyst.dsp.calc_power(target_fft)
-        target_phase = pyst.dsp.calc_phase(target_fft, radians=radians)
-
-        fil.update_posteri_bands(target_power,noise_power)
-        beta = fil.calc_oversub_factor()
-        reduced_noise_target = fil.sub_noise(target_power, noise_power, beta)
-        if len(reduced_noise_target) < len(target_power):
-            reduced_noise_target = reduced_noise_target.reshape((reduced_noise_target.shape[0],))
-            temp = np.zeros(target_power.shape)
-            for i, item in enumerate(reduced_noise_target):
-                temp[i] += item
-            reduced_noise_target = temp
-
-            reduced_noise_target = pyst.matrixfun.reconstruct_whole_spectrum(
-                reduced_noise_target, n_fft=fil.num_fft_bins)
-        
-        reduced_noise_target = pyst.dsp.apply_original_phase(
-            reduced_noise_target,
-            target_phase, 
-            multiply=multiply)
-
-        reduced_noise_target_ifft = pyst.dsp.calc_ifft(reduced_noise_target, real_signal=real_signal)        
-        
-        # fill empty matrix w new ifft values
-        enhanced_signal[row:row+fil.frame_length] += reduced_noise_target_ifft
-        # prepare for next iteration with overlap
-        row += fil.overlap_length
-        section += fil.overlap_length
-
-    enhanced_signal = enhanced_signal.real
-
-    enhanced_signal = fil.check_volume(enhanced_signal)
-    if len(enhanced_signal) > len(target):
-        enhanced_signal = enhanced_signal[:len(target)]
-    fil.save_filtered_signal(str(output_wave_name), 
-                            enhanced_signal,
-                            overwrite=True)
-    visualize_feats(enhanced_signal, 'signal', title='final signal')
-    
-    return True
-
-
-def filtersignal(output_filename, wavfile, noise_file=None,
-                    scale=1, apply_postfilter=False, duration_ms=120,
-                    max_vol = 0.4, filter_type = 'wiener', 
-                    visualize=False, visualize_freq=10):
-    """Apply Wiener filter to signal using noise. Saves at `output_filename`.
+def filtersignal(output_filename, 
+                 wavfile, 
+                 noise_file=None,
+                 visualize=False,
+                 visualize_freq=50,
+                 scale=1,
+                 duration_noise_ms=120,
+                 filter_type='wiener', # 'band_specsub'
+                 apply_postfilter=False,
+                 phase_radians=True):
+    """Apply Wiener or band spectral subtraction filter to signal using noise. Saves at `output_filename`.
 
     Parameters 
     ----------
@@ -267,7 +149,7 @@ def filtersignal(output_filename, wavfile, noise_file=None,
         Whether or not the post filter should be applied. The post filter 
         reduces musical noise (i.e. distortion) in the signal as a byproduct
         of filtering.
-    duration_ms : int or float
+    duration_noise_ms : int or float
         The amount of time in milliseconds to use from noise to apply the 
         Welch's method to. In other words, how much of the noise to use 
         when approximating the average noise power spectrum.
@@ -281,7 +163,9 @@ def filtersignal(output_filename, wavfile, noise_file=None,
     None
     """
     if filter_type == 'wiener':
-        fil = pyst.WienerFilter(max_vol = max_vol)
+        fil = pyst.WienerFilter()
+    elif filter_type == 'band_specsub':
+        fil = pyst.BandSubtraction()
 
     # load signal (to be filtered)
     samples_orig = fil.get_samples(wavfile)
@@ -303,7 +187,7 @@ def filtersignal(output_filename, wavfile, noise_file=None,
                 samples_noise = pyst.paths.load_feature_data(noise_file)
     else:
         starting_noise_len = pyst.dsp.calc_frame_length(fil.sr, 
-                                                         duration_ms)
+                                                         duration_noise_ms)
         samples_noise = samples_orig[:starting_noise_len]
     # if noise samples have been collected...
     if samples_noise is not None:
@@ -338,7 +222,8 @@ def filtersignal(output_filename, wavfile, noise_file=None,
     section = 0
     row = 0
     target_power_baseline = 0
-    noise_power *= scale
+    if scale is not None:
+        noise_power *= scale
     try:
         for frame in range(fil.target_subframes):
             target_section = samples_orig[section:section+fil.frame_length]
@@ -347,50 +232,32 @@ def filtersignal(output_filename, wavfile, noise_file=None,
             if visualize and frame % visualize_freq == 0:
                 visualize_feats(target_w_window,'signal', title='Target section {} signal with window'.format(frame))
             target_fft = pyst.dsp.calc_fft(target_w_window)
-            target_power_frame = pyst.dsp.calc_power(target_fft)
+            target_power = pyst.dsp.calc_power(target_fft)
             # now start filtering!!
             # initialize SNR matrix
             if visualize and frame % visualize_freq == 0:
-                visualize_feats(np.expand_dims(target_power_frame, axis=1),'stft', title='Target section {} power'.format(frame))
-            if frame == 0:
-                posteri = pyst.matrixfun.create_empty_matrix(
-                    (len(target_power_frame),))
-                fil.posteri_snr = pyst.dsp.calc_posteri_snr(
-                    target_power_frame, noise_power)
-                fil.posteri_prime = pyst.dsp.calc_posteri_prime(
-                    fil.posteri_snr)
-                fil.priori_snr = pyst.dsp.calc_prior_snr(snr=fil.posteri_snr,
-                                                snr_prime=fil.posteri_prime,
-                                                smooth_factor=fil.beta,
-                                                first_iter=True,
-                                                gain=None)
-            elif frame > 0:
-                fil.posteri_snr = pyst.dsp.calc_posteri_snr(
-                    target_power_frame,
-                    noise_power)
-                fil.posteri_prime = pyst.dsp.calc_posteri_prime(
-                    fil.posteri_snr)
-                fil.priori_snr = pyst.dsp.calc_prior_snr(
-                    snr=fil.posteri_snr_prev,
-                    snr_prime=fil.posteri_prime,
-                    smooth_factor=fil.beta,
-                    first_iter=False,
-                    gain=fil.gain_prev)
-            fil.gain = pyst.dsp.calc_gain(prior_snr=fil.priori_snr)
-            enhanced_fft = pyst.dsp.apply_gain_fft(target_fft, fil.gain)
-            if apply_postfilter:
-                target_noisereduced_power = pyst.dsp.calc_power(enhanced_fft)
-                fil.gain = pyst.dsp.postfilter(target_power_frame,
-                                        target_noisereduced_power,
-                                        gain=fil.gain,
-                                        threshold=0.9,
-                                        scale=20)
-                enhanced_fft = pyst.dsp.apply_gain_fft(target_fft, fil.gain)
+                visualize_feats(np.expand_dims(target_power, axis=1),'stft', title='Target section {} power'.format(frame))
+            if filter_type == 'wiener':
+                enhanced_fft = fil.apply_wienerfilter(frame, 
+                                                       target_fft, 
+                                                       target_power, 
+                                                       noise_power)
+                if apply_postfilter:
+                    enhanced_fft = fil.apply_postfilter(enhanced_fft,
+                                                        target_fft,
+                                                        target_power)
+            elif filter_type == 'band_specsub':
+                target_phase = pyst.dsp.calc_phase(target_fft, 
+                                                   radians=phase_radians)
+                enhanced_fft = fil.apply_bandspecsub(target_power, 
+                                                      target_phase, 
+                                                      noise_power)
             enhanced_ifft = pyst.dsp.calc_ifft(enhanced_fft)
             filtered_sig[row:row+fil.frame_length] += enhanced_ifft
             # prepare for next iteration
-            fil.posteri_snr_prev = fil.posteri_snr
-            fil.gain_prev = fil.gain
+            if filter_type == 'wiener':
+                fil.posteri_snr_prev = fil.posteri_snr
+                fil.gain_prev = fil.gain
             row += fil.overlap_length
             section += fil.overlap_length
     except ValueError as e:

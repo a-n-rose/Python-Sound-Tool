@@ -403,14 +403,29 @@ def calc_phase(fft_matrix, radians=False):
         phase = np.angle(fft_matrix)
     return phase
 
+# TODO
+def vad():
+    '''voice activity detection
+    
+    Determines whether speech exists or not in the signal
+    '''
+    pass
+
+# TODO
+def snr():
+    '''measures the sound to noise ratio in signal
+    '''
+    pass
+
+
 # TODO testing for greater dimensions
-def apply_original_phase(spectrum, phase, multiply=True):
+def apply_original_phase(spectrum, phase, radians=True):
     if spectrum.shape != phase.shape:
         if len(spectrum.shape) > len(phase.shape):
             phase = np.expand_dims(phase,axis=1)
         else:
             spectrum = np.expand_dims(spectrum, axis=1)
-    if multiply:
+    if not radians:
         #spectrum_complex = pyst.matrixfun.create_empty_matrix(spectrum.shape,
                                                             #complex_vals=True)
         spectrum_complex = spectrum * phase
