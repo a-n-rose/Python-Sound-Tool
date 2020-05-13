@@ -669,9 +669,11 @@ def filtersignal(output_filename,
     % $Revision: 0.0 $  $Date: 10/09/2006 $
     '''
     """
-    if filter_type == 'wiener':
+    if 'wiener' in filter_type:
+        filter_type = 'wiener'
         fil = pyst.WienerFilter()
-    elif filter_type == 'band_specsub':
+    elif 'band' in filter_type:
+        filter_type = 'band_specsub'
         fil = pyst.BandSubtraction()
 
     # load signal (to be filtered)
