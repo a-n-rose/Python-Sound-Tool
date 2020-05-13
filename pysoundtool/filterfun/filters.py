@@ -369,7 +369,7 @@ class BandSubtraction(Filter):
                 temp[i] += item
             reduced_noise_target = temp
 
-            reduced_noise_target = pyst.matrixfun.reconstruct_whole_spectrum(
+            reduced_noise_target = pyst.dsp.reconstruct_whole_spectrum(
                 reduced_noise_target, n_fft=self.num_fft_bins)
             
         # if the phase is complex, it is represented in a spectrum
