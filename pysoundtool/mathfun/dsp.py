@@ -452,8 +452,8 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
         band_reduced_noise_matrix = temp_matrix
     # flip up-down
     flipped_matrix = np.flip(band_reduced_noise_matrix, axis=0)
-    output_matrix[0:n_fft//2+1,] += band_reduced_noise_matrix[0:n_fft//2+1]#remove extra zeros at the end
-    output_matrix[n_fft//2+1:,] += flipped_matrix[n_fft//2+1:]#remove extra zeros at the beginning
+    output_matrix[0:n_fft//2+1,] += band_reduced_noise_matrix[0:n_fft//2+1]
+    output_matrix[n_fft//2+1:,] += flipped_matrix[n_fft//2+1:]
     assert output_matrix.shape == (n_fft,)
     return output_matrix
 
@@ -472,13 +472,29 @@ def snr():
     pass
 
 
-# TODO testing for greater dimensions
-def apply_original_phase(spectrum, phase, radians=True):
-    if spectrum.shape != phase.shape:
-        if len(spectrum.shape) > len(phase.shape):
-            phase = np.expand_dims(phase,axis=1)
-        else:
-            spectrum = np.expand_dims(spectrum, axis=1)
+def apply_original_phase(spectrum, phase):
+    '''Multiplies phase to power spectrum
+    
+    Parameters
+    ----------
+    spectrum : np.ndarray [shape=(n,), dtype=np.float or np.complex]
+        Magnitude or power spectrum
+    phase : np.ndarray [shape=(n,), dtype=np.float or np.complex]
+        Phase to be applied to spectrum
+    '''
+    # ensure 1d dimensions
+    if len(spectrum.shape) > 1:
+        spectrum = spectrum.reshape((
+            spectrum.shape[0],))
+    if len(phase.shape) > 1:
+        phase = phase.reshape((
+            phase.shape[0],))
+    assert spectrum.shape == phase.shape
+    # Whether or not phase is represented in radians or a spectrum.
+    if isinstance(phase[0], np.complex):
+        radians = False
+    else:
+        radians = True
     if not radians:
         spectrum_complex = spectrum * phase
     else:

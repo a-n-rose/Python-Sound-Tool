@@ -364,18 +364,11 @@ class BandSubtraction(Filter):
         if len(reduced_noise_target) < len(target_power):
             reduced_noise_target = pyst.dsp.reconstruct_whole_spectrum(
                 reduced_noise_target, n_fft = self.num_fft_bins)
-        # if the phase is complex, it is represented in a spectrum
-        if isinstance(target_phase[0], np.complex):
-            phase_radians = False
-        # otherewise, phase is in radians
-        else:
-            phase_radians = True
         
         # apply original phase to reduced noise power 
         enhanced_fft = pyst.dsp.apply_original_phase(
             reduced_noise_target,
-            target_phase, 
-            radians=phase_radians)
+            target_phase)
         return enhanced_fft
     
     def setup_bands(self):
