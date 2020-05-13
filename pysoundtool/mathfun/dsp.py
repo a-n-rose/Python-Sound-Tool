@@ -403,6 +403,52 @@ def calc_phase(fft_matrix, radians=False):
         phase = np.angle(fft_matrix)
     return phase
 
+def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
+    '''Reconstruct whole spectrum by mirroring complex conjugate of data.
+    
+    Parameters
+    ----------
+    band_reduced_noise_matrix : np.ndarray [size=(n_fft,), dtype=np.float or np.complex_]
+        Matrix with either power or fft values of the left part of the fft. The whole
+        fft can be provided; however the right values will be overwritten by a mirrored
+        left side.
+    n_fft : int, optional
+        If None, `n_fft` set to length of `band_reduced_noise_matrix`. `n_fft` defines
+        the size of the mirrored vector.
+        
+    Returns
+    -------
+    output_matrix : np.ndarray [size = (n_fft,), dtype=np.float or np.complex_]
+        Mirrored vector of input data.
+        
+    Examples
+    --------
+    >>> x = np.array([3.,2.,1.,0.])
+    >>> # double the size of x
+    >>> x_rec = pyst.dsp.reconstruct_whole_spectrum(x, n_fft=int(len(x)*2))
+    >>> x_rec
+    array([3., 2., 1., 0., 0., 1., 2., 3.])
+    >>> # overwrite right side of data
+    >>> x = np.array([3.,2.,1.,0.,0.,2.,3.,5.])
+    >>> x_rec = pyst.dsp.reconstruct_whole_spectrum(x, n_fft=len(x))
+    >>> x_rec
+    array([3., 2., 1., 0., 0., 1., 2., 3.])
+    '''
+    if n_fft is None:
+        n_fft = len(band_reduced_noise_matrix)
+    total_rows = n_fft
+    output_matrix = np.zeros((total_rows,))
+    if band_reduced_noise_matrix.shape[0] < n_fft:
+        temp_matrix = matrixfun.create_empty_matrix((total_rows,))
+        temp_matrix[:len(band_reduced_noise_matrix)] += band_reduced_noise_matrix
+        band_reduced_noise_matrix = temp_matrix
+    # flip up-down
+    flipped_matrix = np.flip(band_reduced_noise_matrix, axis=0)
+    output_matrix[0:n_fft//2+1,] += band_reduced_noise_matrix[0:n_fft//2+1]#remove extra zeros at the end
+    output_matrix[n_fft//2+1:] += flipped_matrix[n_fft//2+1:]#remove extra zeros at the beginning
+    
+    return output_matrix
+
 # TODO
 def vad():
     '''voice activity detection
