@@ -360,18 +360,10 @@ class BandSubtraction(Filter):
         self.update_posteri_bands(target_power,noise_power)
         beta = self.calc_oversub_factor()
         reduced_noise_target = self.sub_noise(target_power, noise_power, beta)
-        
         # perhaps don't need. TODO test this with real signal (ie half of fft)
         if len(reduced_noise_target) < len(target_power):
-            reduced_noise_target = reduced_noise_target.reshape((reduced_noise_target.shape[0],))
-            temp = np.zeros(target_power.shape)
-            for i, item in enumerate(reduced_noise_target):
-                temp[i] += item
-            reduced_noise_target = temp
-
             reduced_noise_target = pyst.dsp.reconstruct_whole_spectrum(
-                reduced_noise_target, n_fft=self.num_fft_bins)
-            
+                reduced_noise_target, n_fft = self.num_fft_bins)
         # if the phase is complex, it is represented in a spectrum
         if isinstance(target_phase[0], np.complex):
             phase_radians = False
@@ -611,16 +603,17 @@ class BandSubtraction(Filter):
             relevant_band, __ = self.calc_relevant_band(target_powspec)
         else:
             relevant_band = 0
-        sub_signal = np.zeros((self.num_bands*self.bins_per_band,1))
-        #sub_signal = np.zeros((self.num_bands*self.bins_per_band,1))
+        sub_power = np.zeros(target_powspec.shape)
+        #sub_power = np.zeros((self.num_bands*self.bins_per_band,))
+        #sub_power = np.zeros((self.num_bands*self.bins_per_band,))
         section = 0
         for band in range(self.num_bands):
             start_bin = int(self.band_start_freq[band])
             end_bin = int(self.band_end_freq[band])
             target_band = target_powspec[start_bin:end_bin]
-            target_band = np.expand_dims(target_band, axis=1)
+            #target_band = np.expand_dims(target_band, axis=1)
             noise_band = noise_powspec[start_bin:end_bin]
-            noise_band = np.expand_dims(noise_band, axis=1)
+            #noise_band = np.expand_dims(noise_band, axis=1)
             beta = oversub_factor[band] 
             if band == relevant_band:
                 delta = 1 #don't interfer too much with important target band
@@ -629,13 +622,14 @@ class BandSubtraction(Filter):
             adjusted = target_band - (beta  * noise_band * delta)
             start = section
             end = start + self.bins_per_band
-            sub_signal[start:end,:] = adjusted
-            sub_signal[start:end,:]  = self.apply_floor(
-                sub_signal[start:end,:] , 
+            sub_power[start:end,] = adjusted
+            sub_power[start:end,]  = self.apply_floor(
+                sub_power[start:end,] , 
                 target_band, book=True)
             section += self.bins_per_band
-            
-        return sub_signal
+        # assert input and output shapes are same
+        assert sub_power.shape == target_powspec.shape
+        return sub_power
     
 def filtersignal(output_filename, 
                  wavfile, 
@@ -646,7 +640,8 @@ def filtersignal(output_filename,
                  duration_noise_ms=120,
                  filter_type='wiener', # 'band_specsub'
                  apply_postfilter=False,
-                 phase_radians=True):
+                 phase_radians=True, 
+                 real_signal=False):
     """Apply Wiener or band spectral subtraction filter to signal using noise. Saves at `output_filename`.
 
     Parameters 
@@ -728,13 +723,17 @@ def filtersignal(output_filename,
         pyst.visualize_feats(samples_noise, 'signal', title= 'Noise samples', sample_rate=fil.sr)
     # prepare noise power matrix (if it's not loaded already)
     if fil.noise_subframes:
-        total_rows = fil.num_fft_bins
+        if real_signal:
+            #only the first half of fft (+1)
+            total_rows = fil.num_fft_bins//2+1
+        else:
+            total_rows = fil.num_fft_bins
         noise_power = pyst.matrixfun.create_empty_matrix((total_rows,))
         section = 0
         for frame in range(fil.noise_subframes):
             noise_section = samples_noise[section:section+fil.frame_length]
             noise_w_win = pyst.dsp.apply_window(noise_section, fil.get_window())
-            noise_fft = pyst.dsp.calc_fft(noise_w_win)
+            noise_fft = pyst.dsp.calc_fft(noise_w_win, real_signal=real_signal)
             noise_power_frame = pyst.dsp.calc_power(noise_fft)
             noise_power += noise_power_frame
             section += fil.overlap_length
@@ -762,7 +761,7 @@ def filtersignal(output_filename,
                                                     fil.get_window())
             if visualize and frame % visualize_every_n_frames == 0:
                 pyst.visualize_feats(target_w_window,'signal', title='Target section {} signal with window'.format(frame))
-            target_fft = pyst.dsp.calc_fft(target_w_window)
+            target_fft = pyst.dsp.calc_fft(target_w_window, real_signal=real_signal)
             target_power = pyst.dsp.calc_power(target_fft)
             # now start filtering!!
             # initialize SNR matrix
@@ -783,7 +782,8 @@ def filtersignal(output_filename,
                 enhanced_fft = fil.apply_bandspecsub(target_power, 
                                                       target_phase, 
                                                       noise_power)
-            enhanced_ifft = pyst.dsp.calc_ifft(enhanced_fft)
+            enhanced_ifft = pyst.dsp.calc_ifft(enhanced_fft, 
+                                               real_signal=real_signal)
             filtered_sig[row:row+fil.frame_length] += enhanced_ifft
             # prepare for next iteration
             if filter_type == 'wiener':
@@ -792,8 +792,7 @@ def filtersignal(output_filename,
             row += fil.overlap_length
             section += fil.overlap_length
     except ValueError as e:
-        print(e)
-        print(frame)
+        raise e
     assert row == fil.target_subframes * fil.overlap_length
     assert section == fil.target_subframes * fil.overlap_length
     # make enhanced_ifft values real

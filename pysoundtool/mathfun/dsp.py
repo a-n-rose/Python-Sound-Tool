@@ -434,6 +434,10 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
     >>> x_rec
     array([3., 2., 1., 0., 0., 1., 2., 3.])
     '''
+    # expects 1d data
+    if len(band_reduced_noise_matrix.shape) > 1:
+        band_reduced_noise_matrix = band_reduced_noise_matrix.reshape((
+            band_reduced_noise_matrix.shape[0]))
     if n_fft is None:
         n_fft = len(band_reduced_noise_matrix)
     if isinstance(band_reduced_noise_matrix[0], np.complex):
@@ -449,8 +453,8 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
     # flip up-down
     flipped_matrix = np.flip(band_reduced_noise_matrix, axis=0)
     output_matrix[0:n_fft//2+1,] += band_reduced_noise_matrix[0:n_fft//2+1]#remove extra zeros at the end
-    output_matrix[n_fft//2+1:] += flipped_matrix[n_fft//2+1:]#remove extra zeros at the beginning
-    
+    output_matrix[n_fft//2+1:,] += flipped_matrix[n_fft//2+1:]#remove extra zeros at the beginning
+    assert output_matrix.shape == (n_fft,)
     return output_matrix
 
 # TODO
