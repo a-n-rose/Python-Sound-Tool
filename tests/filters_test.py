@@ -16,40 +16,40 @@ def test_setup_bands_default():
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
-    value1 = np.array([  0.,  80., 160., 240., 320., 400.])
-    value2 = np.array([ 80., 160., 240., 320., 400., 480.])
-    assert np.array_equal(value1, band_start_freq)
-    assert np.array_equal(value2, band_end_freq)
+    expected1 = np.array([  0.,  80., 160., 240., 320., 400.])
+    expected2 = np.array([ 80., 160., 240., 320., 400., 480.])
+    assert np.array_equal(expected1, band_start_freq)
+    assert np.array_equal(expected2, band_end_freq)
     
 def test_setup_bands_8():
     fil = pyst.BandSubtraction(num_bands = 8)
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
-    value1 = np.array([  0.,  60., 120., 180., 240., 300., 360., 420.])
-    value2 = np.array([ 60., 120., 180., 240., 300., 360., 420., 480.])
-    assert np.array_equal(value1, band_start_freq)
-    assert np.array_equal(value2, band_end_freq)
+    expected1 = np.array([  0.,  60., 120., 180., 240., 300., 360., 420.])
+    expected2 = np.array([ 60., 120., 180., 240., 300., 360., 420., 480.])
+    assert np.array_equal(expected1, band_start_freq)
+    assert np.array_equal(expected2, band_end_freq)
 
 def test_setup_bands_frameduration16ms():
     fil = pyst.BandSubtraction(frame_duration_ms = 16)
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
-    value1 = np.array([  0.,  64., 128., 192., 256., 320.])
-    value2 = np.array([ 64., 128., 192., 256., 320., 384.])
-    assert np.array_equal(value1, band_start_freq)
-    assert np.array_equal(value2, band_end_freq)
+    expected1 = np.array([  0.,  64., 128., 192., 256., 320.])
+    expected2 = np.array([ 64., 128., 192., 256., 320., 384.])
+    assert np.array_equal(expected1, band_start_freq)
+    assert np.array_equal(expected2, band_end_freq)
     
 def test_setup_bands_frameduration500ms():
     fil = pyst.BandSubtraction(frame_duration_ms = 500)
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
-    value1 = np.array([    0.,  2000.,  4000.,  6000.,  8000., 10000.])
-    value2 = np.array([ 2000.,  4000.,  6000.,  8000., 10000., 12000.])
-    assert np.array_equal(value1, band_start_freq)
-    assert np.array_equal(value2, band_end_freq)
+    expected1 = np.array([    0.,  2000.,  4000.,  6000.,  8000., 10000.])
+    expected2 = np.array([ 2000.,  4000.,  6000.,  8000., 10000., 12000.])
+    assert np.array_equal(expected1, band_start_freq)
+    assert np.array_equal(expected2, band_end_freq)
     
 def test_update_posteri_bands_noisy():
     noise_max = 0.3
@@ -65,8 +65,8 @@ def test_update_posteri_bands_noisy():
     powspec_noisy = np.abs(np.fft.fft(signal + noise))**2
     fil.update_posteri_bands(powspec, powspec_noisy)
     snr_bands = fil.snr_bands
-    value1 = np.array([ -2.02865226, -41.70672353, -45.45654087])
-    assert np.allclose(value1, snr_bands)
+    expected = np.array([ -2.02865226, -41.70672353, -45.45654087])
+    assert np.allclose(expected, snr_bands)
     
 
 def test_update_posteri_bands_verynoisy():
@@ -83,8 +83,8 @@ def test_update_posteri_bands_verynoisy():
     powspec_noisy = np.abs(np.fft.fft(signal + noise))**2
     fil.update_posteri_bands(powspec, powspec_noisy)
     snr_bands = fil.snr_bands
-    value1 = np.array([ -2.82864994, -46.76075799, -50.50670912])
-    assert np.allclose(value1, snr_bands)
+    expected = np.array([ -2.82864994, -46.76075799, -50.50670912])
+    assert np.allclose(expected, snr_bands)
     
 def test_update_posteri_bands_nonoise():
     fil = pyst.BandSubtraction(num_bands = 3)
@@ -95,8 +95,8 @@ def test_update_posteri_bands_nonoise():
     powspec_noisy = powspec
     fil.update_posteri_bands(powspec, powspec_noisy)
     snr_bands = fil.snr_bands
-    value1 = np.array([0., 0., 0.])
-    assert np.allclose(value1, snr_bands)
+    expected = np.array([0., 0., 0.])
+    assert np.allclose(expected, snr_bands)
     
 def test_calc_oversub_factor_noisy():
     noise_max = 0.3
@@ -112,8 +112,8 @@ def test_calc_oversub_factor_noisy():
     powspec_noisy = np.abs(np.fft.fft(signal + noise))**2
     fil.update_posteri_bands(powspec, powspec_noisy)
     a = fil.calc_oversub_factor()
-    value1 = np.array([4.28678354, 4.75,       4.75,       4.75      ])
-    assert np.allclose(value1, a)
+    expected = np.array([4.28678354, 4.75,       4.75,       4.75      ])
+    assert np.allclose(expected, a)
     
 def test_calc_oversub_factor_nonoise():
     noise_max = 0.3
@@ -124,8 +124,8 @@ def test_calc_oversub_factor_nonoise():
     powspec = np.abs(np.fft.fft(signal))**2
     fil.update_posteri_bands(powspec, powspec)
     a = fil.calc_oversub_factor()
-    value1 = np.array([4., 4., 4., 4.])
-    assert np.allclose(value1, a)
+    expected = np.array([4., 4., 4., 4.])
+    assert np.allclose(expected, a)
     
 def test_calc_relevant_band1():
     fil = pyst.BandSubtraction(num_bands = 6)
@@ -146,8 +146,8 @@ def test_calc_relevant_band1():
     print('Most energetic frequency band: ', rel_band)
     print('Which covers frequencies between {} and {}.'.format(
         fil.band_start_freq[rel_band], fil.band_end_freq[rel_band]))
-    value1 = band_index
-    assert value1 == rel_band
+    expected = band_index
+    assert expected == rel_band
     
     
 def test_calc_relevant_band2():
@@ -169,8 +169,8 @@ def test_calc_relevant_band2():
     print('Most energetic frequency band: ', rel_band)
     print('Which covers frequencies between {} and {}.'.format(
         fil.band_start_freq[rel_band], fil.band_end_freq[rel_band]))
-    value1 = band_index
-    assert value1 == rel_band
+    expected = band_index
+    assert expected == rel_band
     
     
 def test_calc_relevant_band4():
@@ -192,8 +192,8 @@ def test_calc_relevant_band4():
     print('Most energetic frequency band: ', rel_band)
     print('Which covers frequencies between {} and {}.'.format(
         fil.band_start_freq[rel_band], fil.band_end_freq[rel_band]))
-    value1 = band_index
-    assert value1 == rel_band
+    expected = band_index
+    assert expected == rel_band
     
 def test_calc_relevant_band4():
     fil = pyst.BandSubtraction(num_bands = 6)
@@ -214,8 +214,8 @@ def test_calc_relevant_band4():
     print('Most energetic frequency band: ', rel_band)
     print('Which covers frequencies between {} and {}.'.format(
         fil.band_start_freq[rel_band], fil.band_end_freq[rel_band]))
-    value1 = band_index
-    assert value1 == rel_band
+    expected = band_index
+    assert expected == rel_band
     
 def test_calc_relevant_band():
     fil = pyst.BandSubtraction(num_bands = 4)
@@ -224,8 +224,8 @@ def test_calc_relevant_band():
     signal = np.cos(time)[:fil.frame_length]
     powspec = np.abs(np.fft.fft(signal))**2
     rel_band, pow_levels = fil.calc_relevant_band(powspec)
-    value1 = 0
-    assert value1 == rel_band
+    expected = 0
+    assert expected == rel_band
     
 #def test_sub_noise():
     #fil = pyst.BandSubtraction(num_bands = 4)
