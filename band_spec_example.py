@@ -10,7 +10,7 @@ noise_file = '/home/airos/Projects/Data/CDBook_SpeechEnhancement/Databases/Noise
 
 
 pyst.filtersignal(output_filename = output_wave_name1, 
-                 wavfile = target_wav, 
+                 audiofile = target_wav, 
                  noise_file= noise_file,
                  visualize=False,
                  visualize_every_n_frames=200,
@@ -19,10 +19,10 @@ pyst.filtersignal(output_filename = output_wave_name1,
                  filter_type='band_specsub', # 'band_specsub', 'wiener'
                  apply_postfilter=False,
                  phase_radians=True,
-                 real_signal=False)
+                 real_signal=True)
 
 pyst.filtersignal(output_filename = output_wave_name2, 
-                 wavfile = target_wav, 
+                 audiofile = target_wav, 
                  noise_file= noise_file,
                  visualize=False,
                  visualize_every_n_frames=200,
@@ -31,10 +31,10 @@ pyst.filtersignal(output_filename = output_wave_name2,
                  filter_type='wiener', # 'band_specsub', 'wiener'
                  apply_postfilter=False,
                  phase_radians=True,
-                 real_signal=False)
+                 real_signal=True)
 
 pyst.filtersignal(output_filename = output_wave_name3, 
-                 wavfile = target_wav, 
+                 audiofile = target_wav, 
                  noise_file= noise_file,
                  visualize=False,
                  visualize_every_n_frames=200,
@@ -43,4 +43,4 @@ pyst.filtersignal(output_filename = output_wave_name3,
                  filter_type='wiener', # 'band_specsub', 'wiener'
                  apply_postfilter=True,
                  phase_radians=True,
-                 real_signal=False)
+                 real_signal=True)
