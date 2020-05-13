@@ -38,3 +38,44 @@ def test_calc_phase_framelength10_radiansTrue():
     value1 = np.array([ 0.,         1.95921533])
     assert np.allclose(value1, phase[:2])
     
+def test_reconstruct_whole_spectrum():
+    x = np.array([3.,2.,1.,0.,0.,0.,0.])
+    x_reconstructed = dsp.reconstruct_whole_spectrum(x)
+    val1 = np.array([3., 2., 1., 0., 1., 2., 3.])
+    assert np.array_equal(val1, x_reconstructed)
+    assert len(x_reconstructed) == len(x)
+    
+def test_reconstruct_whole_spectrum_input4_nfft7():
+    x = np.array([3.,2.,1.,0.])
+    n_fft = 7
+    x_reconstructed = dsp.reconstruct_whole_spectrum(x, n_fft=n_fft)
+    val1 = np.array([3., 2., 1., 0., 1., 2., 3.])
+    assert np.array_equal(val1, x_reconstructed)
+    assert len(x_reconstructed) == n_fft
+    
+def test_reconstruct_whole_spectrum_input4_nfft6():
+    x = np.array([3.,2.,1.,0.])
+    n_fft= 6
+    x_reconstructed = dsp.reconstruct_whole_spectrum(x, n_fft=n_fft)
+    print(x_reconstructed)
+    val1 = np.array([3., 2., 1., 0., 2., 3.])
+    assert np.array_equal(val1, x_reconstructed)
+    assert len(x_reconstructed) == n_fft
+    
+def test_reconstruct_whole_spectrum_input4_nfft5():
+    x = np.array([3.,2.,1.,0.])
+    n_fft = 5
+    x_reconstructed = dsp.reconstruct_whole_spectrum(x, n_fft=n_fft)
+    print(x_reconstructed)
+    val1 = np.array([3., 2., 1., 2., 3.])
+    assert np.array_equal(val1, x_reconstructed)
+    assert len(x_reconstructed) == n_fft
+
+def test_reconstruct_whole_spectrum_input4_nfft14():
+    x = np.array([3.,2.,1.,0.])
+    n_fft = 14
+    x_reconstructed = dsp.reconstruct_whole_spectrum(x, n_fft=n_fft)
+    print(x_reconstructed)
+    val1 = np.array([3., 2., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 2., 3.])
+    assert np.array_equal(val1, x_reconstructed)
+    assert len(x_reconstructed) == n_fft    
