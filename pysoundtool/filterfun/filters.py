@@ -28,27 +28,16 @@ signal-to-noise ratio of a signal and ultimately the the actual filtering
 process.
 '''
 ###############################################################################
-import numpy as np
-
 import os, sys
 import inspect
+import numpy as np
+import pysoundtool as pyst
+
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 packagedir = os.path.dirname(parentdir)
 sys.path.insert(0, packagedir)
-
-# TODO clean up
-import sys
-import numpy as np
-from scipy.fftpack import fft, rfft, ifft, irfft
-from scipy.io import wavfile
-from scipy.signal import hamming, hanning
-import librosa
-import cmath
-
-import pysoundtool as pyst
-
 
 
 # what Wiener Filter and Average pow spec can inherit
@@ -122,7 +111,7 @@ class Filter(FilterSettings):
         is applied when processing the 1st vs subsequent frames. (default None)
     target_subframes : int, None
         The number of total subsections within the total number of samples 
-        belonging to the target signal (i.e. wavfile being filtered). Until
+        belonging to the target signal (i.e. audiofile being filtered). Until
         `target_subframes` is calculated, it is set to None. (default None) 
     noise_subframes : int, None
         The number of total subsections within the total number of samples 
@@ -151,13 +140,13 @@ class Filter(FilterSettings):
         self.target_subframes = None
         self.noise_subframes = None
 
-    def get_samples(self, wavfile, dur_sec=None):
+    def get_samples(self, audiofile, dur_sec=None):
         """Load signal and save original volume
 
         Parameters
         ----------
-        wavfile : str
-            Path and name of wavfile to be loaded
+        audiofile : str
+            Path and name of audiofile to be loaded
         dur_sec : int, float optional
             Max length of time in seconds (default None)
 
@@ -167,7 +156,7 @@ class Filter(FilterSettings):
             Array containing signal amplitude values in time domain
         """
         samples, sr = pyst.dsp.load_signal(
-            wavfile, self.sr, dur_sec=dur_sec)
+            audiofile, self.sr, dur_sec=dur_sec)
         self.set_volume(samples, max_vol = self.max_vol)
         return samples
 
@@ -273,7 +262,7 @@ class Filter(FilterSettings):
         saved, filename = pyst.paths.save_wave(
             output_file, samples, self.sr, overwrite=overwrite)
         if saved:
-            print('Wavfile saved under: {}'.format(filename))
+            print('audiofile saved under: {}'.format(filename))
             return True
         else:
             print('Error occurred. {} not saved.'.format(filename))
@@ -625,7 +614,7 @@ class BandSubtraction(Filter):
         return sub_power
     
 def filtersignal(output_filename, 
-                 wavfile, 
+                 audiofile, 
                  noise_file=None,
                  visualize=False,
                  visualize_every_n_frames=50,
@@ -641,13 +630,13 @@ def filtersignal(output_filename,
     ----------
     output_filename : str
         path and name the filtered signal is to be saved
-    wavfile : str 
+    audiofile : str 
         the filename to the signal for filtering; if None, a signal will be 
         generated (default None)
     noise_file : str optional
-        path to either noise wavfile or .npy file containing average power 
+        path to either noise audiofile or .npy file containing average power 
         spectrum values or noise samples. If None, the beginning of the
-        `wavfile` will be used for noise data. (default None)
+        `audiofile` will be used for noise data. (default None)
     scale : int or float
         The scale at which the filter should be applied. (default 1) 
         Note: `scale` cannot be set to 0.
@@ -686,13 +675,13 @@ def filtersignal(output_filename,
         fil = pyst.BandSubtraction()
 
     # load signal (to be filtered)
-    samples_orig = fil.get_samples(wavfile)
+    samples_orig = fil.get_samples(audiofile)
     # set how many subframes are needed to process entire target signal
     fil.set_num_subframes(len(samples_orig), is_noise=False)
 
     # prepare noise
-    # set up how noise will be considered: either as wavfile, averaged
-    # power values, or the first section of the target wavfile (i.e. None)
+    # set up how noise will be considered: either as audiofile, averaged
+    # power values, or the first section of the target audiofile (i.e. None)
     samples_noise = None
     if noise_file:
         if '.wav' == str(noise_file)[-4:]:
@@ -816,7 +805,7 @@ class WelchMethod(FilterSettings):
         Welch's method. (default 1)
     target_subframes : int, None
         The number of total subsections within the total number of samples 
-        belonging to the target signal (i.e. wavfile being filtered). Until
+        belonging to the target signal (i.e. audiofile being filtered). Until
         `target_subframes` is calculated, it is set to None. Note: if the
         target signal contains time sensitive information, e.g. speech, 
         it is not advised to apply Welch's method as the time senstive 
@@ -894,7 +883,7 @@ class WelchMethod(FilterSettings):
         Parameters
         ----------
         wave_list : list
-            List of wavfiles belonging to noise class. The Welch's method
+            List of audiofiles belonging to noise class. The Welch's method
             will be applied to entire noise class. 
         scale : float, int, optional
             A value to increase or decrease the noise values. This will 
@@ -926,7 +915,7 @@ class WelchMethod(FilterSettings):
 
             progress = (j+1) / len(wave_list) * 100
             sys.stdout.write(
-                "\r%d%% through sound class wavfile list" % progress)
+                "\r%d%% through sound class audiofile list" % progress)
             sys.stdout.flush()
         print('\nFinished\n')
         tot_powspec_collected = self.noise_subframes * \
@@ -942,7 +931,7 @@ def get_average_power(class_waves_dict, encodelabel_dict,
     Parameters
     ----------
     class_waves_dict : dict 
-        Dictionary containing audio class labels and the wavfile paths
+        Dictionary containing audio class labels and the audiofile paths
         of the files belonging to each audio class. 
     encodelabel_dict : dict
         Dictionary with keys matching the audio class labels and the 
@@ -951,7 +940,7 @@ def get_average_power(class_waves_dict, encodelabel_dict,
         Path to where average power spectrum files will be stored.
     duration_sec : int, float
         The length in seconds to be processed when calculating the 
-        average power spectrum of each wavfile. (default 1)
+        average power spectrum of each audiofile. (default 1)
     augmentdata : bool
         If True, the samples will be augmented in their energy levels
         so that the sounds are represented at quiet, mid, and loud 
@@ -989,11 +978,11 @@ def calc_audioclass_powerspecs(path_class, dur_ms = 1000,
     Parameters
     ----------
     path_class : class
-        Class with attributes for necessary paths to load relevant wavfiles and 
+        Class with attributes for necessary paths to load relevant audiofiles and 
         save average power spectrum values.
     dur_ms : int, float
         Time in milliseconds for the Welch's method / average power spectrum
-        calculation to be applied for each wavfile. (default 1000)
+        calculation to be applied for each audiofile. (default 1000)
     augment_data : bool
         Whether or not the sound data should be augmented. If True, the sound
         data will be processed three times: with low energy, mid energy, and 
@@ -1028,23 +1017,23 @@ def coll_beg_audioclass_samps(path_class,
                               feature_class, 
                               num_each_audioclass=1, 
                               dur_ms=1000):
-    '''Saves `dur_ms` of `num_each_audioclass` wavfiles of each audio class.
+    '''Saves `dur_ms` of `num_each_audioclass` audiofiles of each audio class.
     
     This is an option for using noise data that comes from an audio class but is 
     not an average of the entire class. It is raw sample data from one or more 
-    random noise wavfiles from each class. 
+    random noise audiofiles from each class. 
     
     Parameters
     ----------
     path_class : class
-        Class with attributes for necessary paths to load relevant wavfiles and 
+        Class with attributes for necessary paths to load relevant audiofiles and 
         save sample values.
     feature_class : class
         Class with attributes for sampling rate used in feature extraction and/or 
         filtering. This is useful to maintain consistency in sampling rate
         throughout the modules.
     num_each_audioclass : int 
-        The number of random wavfiles from each audio class chosen for raw 
+        The number of random audiofiles from each audio class chosen for raw 
         sample collection. (default 1)
     dur_ms : int, float
         Time in milliseconds of raw sample data to be saved. (default 1000)
@@ -1074,19 +1063,19 @@ def coll_beg_audioclass_samps(path_class,
 
 def get_save_begsamps(wavlist,audioclass_int,
                       powspec_dir,samplerate=48000,dur_ms=1000):
-    '''Saves the beginning raw samples from the wavfiles in `wavlist`.
+    '''Saves the beginning raw samples from the audiofiles in `wavlist`.
     
     Parameters
     ----------
     wavlist : list
-        List containing paths of relevant wavfiles 
+        List containing paths of relevant audiofiles 
     audioclass_int : int
         The integer the audio class is encoded as.
     powspec_dir : str, pathlib.PosixPath
         Path to where data relevant for audio class power spectrum data
         are to be saved.
     samplerate : int 
-        The sampling rate of wavfiles. This is needed to calculate num 
+        The sampling rate of audiofiles. This is needed to calculate num 
         samples necessary to get `dur_ms` of sound. (default 48000)
     dur_ms : int, float
         Time in milleseconds of the wavefiles to collect and save.
