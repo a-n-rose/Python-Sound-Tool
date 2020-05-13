@@ -436,10 +436,14 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
     '''
     if n_fft is None:
         n_fft = len(band_reduced_noise_matrix)
+    if isinstance(band_reduced_noise_matrix[0], np.complex):
+        complex_vals = True
+    else:
+        complex_vals = False
     total_rows = n_fft
-    output_matrix = np.zeros((total_rows,))
+    output_matrix = matrixfun.create_empty_matrix((total_rows,), complex_vals=complex_vals)
     if band_reduced_noise_matrix.shape[0] < n_fft:
-        temp_matrix = matrixfun.create_empty_matrix((total_rows,))
+        temp_matrix = matrixfun.create_empty_matrix((total_rows,), complex_vals=complex_vals)
         temp_matrix[:len(band_reduced_noise_matrix)] += band_reduced_noise_matrix
         band_reduced_noise_matrix = temp_matrix
     # flip up-down
