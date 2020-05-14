@@ -263,21 +263,54 @@ Add 'python' speech segment and traffic noise to create noisy speech. Save as .w
 ![Imgur](https://i.imgur.com/9G10mdb.png)
 
 Then filter the traffic out:
+
+#### Wiener filter
+
 ```
->>> pyst.filtersignal(output_filename = 'python_traffic_filtered.wav',
-                    wavfile = noisy_speech_filename,
-                    scale = 1.5) # how strong the filter should be
+>>> pyst.filtersignal(output_filename = 'python_traffic_wiener_filter.wav',
+                    audiofile = noisy_speech_filename,
+                    filter_type = 'wiener',
+                    filter_scale = 1.5) # how strong the filter should be
 ```
+
+![Imgur](https://i.imgur.com/OUQ2QNq.png)
+
+![Imgur](https://i.imgur.com/ekUCKp6.png)
+
 ![Imgur](https://i.imgur.com/TrwKJ4j.png)
+
+
+
+#### Wiener filter with postfilter
 
 If there is some distortion in the signal, try a post filter:
 ```
->>> pyst.filtersignal(output_filename = 'python_traffic_filtered_postfilter.wav',
-                    wavfile = noisy_speech_filename,
-                    scale = 1.5, # how strong the filter should be
+>>> pyst.filtersignal(output_filename = 'python_traffic_wiener_postfilter.wav',
+                    audiofile = noisy_speech_filename,
+                    filter_type = 'wiener_postfilter',
+                    filter_scale = 1.5, # how strong the filter should be
                     apply_postfilter = True) 
 ```
+![Imgur](https://i.imgur.com/gm2opgD.png)
+
+![Imgur](https://i.imgur.com/C8rLC1J.png)
+
 ![Imgur](https://i.imgur.com/AwontYt.png)
+
+#### Band spectral subtraction filter
+
+For comparison, try a band spectral subtraction filter:
+```
+>>> pyst.filtersignal(output_filename = 'python_traffic_bandspecsub.wav',
+                    audiofile = noisy_speech_filename,
+                    filter_type = 'band_spectral_subtracion',
+                    filter_scale = 1.5, # how strong the filter should be
+                    num_bands = 6) 
+```
+![Imgur](https://i.imgur.com/7YRCZ1B.png)
+
+![Imgur](https://i.imgur.com/n2jpIYp.png)
+
 
 ## Convolutional Neural Network: Simple sound classification
 
