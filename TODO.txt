@@ -5,6 +5,7 @@ Functionality
 - text to speech
 - speech to text
 - autoencoder training
+- get postfilter to work on spectral subtraction
 
 Presentation
 - blog post on each set of functionalities
@@ -13,6 +14,9 @@ Presentation
 
 Testing
 - expand test cases
+- test for visualization of multiple channels ('signal')
+- update README for spectral subtraction
+- make sample_rate namespace consistent
 
 Organization
 - reorganize based on use... how import statement should work
