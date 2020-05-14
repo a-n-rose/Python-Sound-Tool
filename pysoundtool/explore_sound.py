@@ -43,7 +43,8 @@ def load_sound(sound, samplerate=None):
     return data, sr
      
     
-# TODO Test for multiple channels   
+# TODO Clean up   
+# TODO add graph for each channel? For all feature types?
 def visualize_feats(feature_matrix, feature_type, 
                     save_pic=False, name4pic=None, scale=None,
                     title=None, sample_rate=None):
@@ -117,7 +118,7 @@ def visualize_feats(feature_matrix, feature_type,
             feature_matrix = feature_matrix.T
         if sample_rate is not None:
             x_axis_label = 'Time (sec)'
-            dur_sec = len(feature_matrix) / sample_rate
+            dur_sec = feature_matrix.shape[0] / sample_rate
             time_sec = get_time_points(dur_sec, sample_rate)
             for channel in range(feature_matrix.shape[1]):
                 data = feature_matrix[:,channel]
@@ -137,7 +138,7 @@ def visualize_feats(feature_matrix, feature_type,
     plt.xlabel(x_axis_label)
     plt.ylabel(axis_feature_label)
     # if feature_matrix has multiple frames, not just one
-    if feature_matrix.shape[1] > 1:
+    if feature_matrix.shape[1] > 1 and 'signal' not in feature_type:
         # the xticks basically show time but need to be multiplied by 0.01
         plt.xlabel('Time (sec)') 
         locs, labels = plt.xticks()
@@ -161,7 +162,8 @@ def get_feats(sound,
               num_filters=40,
               num_mfcc=None, 
               samplerate=None, 
-              limit=None):
+              limit=None,
+              mono=None):
     '''Feature extraction depending on set parameters; frames on y axis, features x axis
     
     Parameters
@@ -195,6 +197,10 @@ def get_feats(sound,
         the wavfile to be loaded. (default None)
     limit : float, optional
         Time in seconds to limit in loading a signal. (default None)
+    mono: bool, optional
+        For loading an audiofile, True will result in only one channel of 
+        data being loaded; False will allow additional channels be loaded. 
+        (default None, which results in mono channel data)
         
     Returns
     -------
@@ -202,46 +208,70 @@ def get_feats(sound,
         Feature data. If `feature_type` is 'signal', returns a tuple containing samples and sampling rate. If `feature_type` is of another type, returns np.ndarray with shape (num_frames, num_filters/features)
     '''
     if isinstance(sound, str):
-        data, sr = librosa.load(sound, sr=samplerate, duration=limit)
+        if mono is None:
+            mono = True
+        data, sr = librosa.load(sound, sr=samplerate, duration=limit, mono=mono)
+        if mono is False and len(data.shape) > 1:
+            index_samples = np.argmax(data.shape)
+            index_channels = np.argmin(data.shape)
+            num_channels = data.shape[index_channels]
+            # transpose data to be (samples, num_channels) rather than (num_channels, samples)
+            if index_channels == 0:
+                data = data.T 
+            # remove additional channel for 'stft', 'fbank' etc. feature
+            # extraction
+            if 'signal' not in features and num_channels > 1:
+                data = data[:,0]
     else:
         if samplerate is None:
             raise ValueError('No samplerate given. Either provide '+\
                 'filename or appropriate samplerate.')
         data, sr = sound, samplerate
-    if 'fbank' in features:
-        feats = librosa.feature.melspectrogram(
-            data,
-            sr = sr,
-            n_fft = int(win_size_ms * sr // 1000),
-            hop_length = int(win_shift_ms*0.001*sr),
-            n_mels = num_filters).T
-        # have found better results if not conducted:
-        # especially if recreating audio signal later
-        #feats -= (np.mean(feats, axis=0) + 1e-8)
-    elif 'mfcc' in features:
-        if num_mfcc is None:
-            num_mfcc = num_filters
-        feats = librosa.feature.mfcc(
-            data,
-            sr = sr,
-            n_mfcc = num_mfcc,
-            n_fft = int(win_size_ms * sr // 1000),
-            hop_length = int(win_shift_ms*0.001*sr),
-            n_mels = num_filters).T
-        #feats -= (np.mean(feats, axis=0) + 1e-8)
-    elif 'stft' in features:
-        feats = librosa.stft(
-            data,
-            n_fft = int(win_size_ms * sr // 1000),
-            hop_length = int(win_shift_ms*0.001*sr)).T
-        #feats -= (np.mean(feats, axis=0) + 1e-8)
-    elif 'signal' in features:
-        feats = (data, sr)
+    try:
+        if 'fbank' in features:
+            feats = librosa.feature.melspectrogram(
+                data,
+                sr = sr,
+                n_fft = int(win_size_ms * sr // 1000),
+                hop_length = int(win_shift_ms*0.001*sr),
+                n_mels = num_filters).T
+            # have found better results if not conducted:
+            # especially if recreating audio signal later
+            #feats -= (np.mean(feats, axis=0) + 1e-8)
+        elif 'mfcc' in features:
+            if num_mfcc is None:
+                num_mfcc = num_filters
+            feats = librosa.feature.mfcc(
+                data,
+                sr = sr,
+                n_mfcc = num_mfcc,
+                n_fft = int(win_size_ms * sr // 1000),
+                hop_length = int(win_shift_ms*0.001*sr),
+                n_mels = num_filters).T
+            #feats -= (np.mean(feats, axis=0) + 1e-8)
+        elif 'stft' in features:
+            feats = librosa.stft(
+                data,
+                n_fft = int(win_size_ms * sr // 1000),
+                hop_length = int(win_shift_ms*0.001*sr)).T
+            #feats -= (np.mean(feats, axis=0) + 1e-8)
+        elif 'signal' in features:
+            feats = (data, sr)
+    except librosa.ParameterError as e:
+        feats = get_feats(np.asfortranarray(data),
+                          features = features,
+                          win_size_ms = win_size_ms,
+                          win_shift_ms = win_shift_ms,
+                          num_filters = num_filters,
+                          num_mfcc = num_mfcc,
+                          samplerate = sr,
+                          limit = limit,
+                          mono = mono)
     return feats
 
 def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
     win_shift_ms = 10, num_filters=40, num_mfcc=40, samplerate=None,\
-        save_pic=False, name4pic=None, power_scale=None):
+        save_pic=False, name4pic=None, power_scale=None, mono=None):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
     Parameters
@@ -274,10 +304,15 @@ def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
     samplerate : int, optional
         The sample rate of the sound data or the desired sample rate of
         the wavfile to be loaded. (default None)
+    mono : bool, optional
+        When loading an audiofile, True will limit number of channels to
+        one; False will allow more channels to be loaded. (default None, 
+        which results in mono channel loading.)
     '''
     feats = get_feats(audiodata, features=feature_type, 
                       win_size_ms = win_size_ms, win_shift_ms = win_shift_ms,
-                      num_filters=num_filters, num_mfcc = num_mfcc, samplerate=samplerate)
+                      num_filters=num_filters, num_mfcc = num_mfcc, samplerate=samplerate,
+                      mono=mono)
     if 'signal' in feature_type:
         feats, sr = feats
     else:
