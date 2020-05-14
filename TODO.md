@@ -11,16 +11,22 @@
 - gender switch
 - text to speech
 - speech to text
+- dataset exploration (visualize 10 random samples/ based on size?, etc.)
+- simple inclusion of noise reduction into training models
+- pysoundtool and pysoundtool.online version? (use librosa vs no librosa)
 
 ## Presentation
 
 - blog post on each set of functionalities
 - presentation of examples
 - get documentation online
+- simplify functions
+- improve documentation (references, examples, testing, data shapes!!, help options)
 
 ## Testing
 
 - expand test cases
+- efficiency of code
 
 ## Organization
 
@@ -28,3 +34,4 @@
 - make sample_rate, samprate, samplingrate, sr namespace consistent
 - make features/feature_type namespace consistent
 - use keyword arguments for librosa and scipy?
+- simplify
