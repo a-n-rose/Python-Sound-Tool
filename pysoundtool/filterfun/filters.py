@@ -622,7 +622,10 @@ def filtersignal(output_filename,
                  duration_noise_ms=120,
                  filter_type='wiener', # 'band_specsub'
                  apply_postfilter=False,
-                 phase_radians=True, 
+                 phase_radians=True,
+                 num_bands=None,
+                 frame_duration_ms = None,
+                 percent_overlap = None,
                  real_signal=False):
     """Apply Wiener or band spectral subtraction filter to signal using noise. Saves at `output_filename`.
 
@@ -670,9 +673,12 @@ def filtersignal(output_filename,
     '''
     """
     if 'wiener' in filter_type:
-        fil = pyst.WienerFilter()
+        fil = pyst.WienerFilter(frame_duration_ms=frame_duration_ms, 
+                                percent_overlap=percent_overlap)
     elif 'band' in filter_type:
-        fil = pyst.BandSubtraction()
+        fil = pyst.BandSubtraction(frame_duration_ms=frame_duration_ms,
+                                   percent_overlap=percent_overlap,
+                                   num_bands=num_bands)
     if visualize:
         frame_subtitle = 'frame size {}ms, window shift {}ms'.format(fil.frame_dur, int(fil.percent_overlap*fil.frame_dur))
 
@@ -775,7 +781,7 @@ def filtersignal(output_filename,
             filtered_sig[row:row+fil.frame_length] += enhanced_ifft
             if visualize and frame % visualize_every_n_frames == 0:
                 pyst.visualize_feats(np.abs(enhanced_fft)**2,'stft', title='Filtered signal power spectrum'.upper()+'\n(frame {}: {})'.format( frame+1,frame_subtitle), scale='power_to_db')
-                pyst.visualize_feats(filtered_sig,'signal', title='Filtered signal'.upper()+'\n(frame {}: {})'.format( frame+1,frame_subtitle), sample_rate = fil.sr)
+                pyst.visualize_feats(filtered_sig,'signal', title='Filtered signal'.upper()+'\n(up to frame {}: {})'.format(frame+1,frame_subtitle), sample_rate = fil.sr)
             # prepare for next iteration
             if 'wiener' in filter_type:
                 fil.posteri_snr_prev = fil.posteri_snr
