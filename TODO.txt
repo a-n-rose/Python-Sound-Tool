@@ -15,7 +15,7 @@ Presentation
 Testing
 - expand test cases
 - test for visualization of multiple channels ('signal')
-- update README for spectral subtraction
+- update README for spectral subtraction: python example (too long of noise samples in graphs)
 - make sample_rate namespace consistent
 
 Organization
