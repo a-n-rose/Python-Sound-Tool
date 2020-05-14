@@ -64,7 +64,7 @@ Install and run ipython:
 ### "Python": Time Domain
 
 ```
->>> exsound.visualize_audiofile('./audiodata/python.wav', feature_type='signal')
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='signal')
 ```
 ![Imgur](https://i.imgur.com/pz0MHui.png)
 
@@ -79,14 +79,14 @@ Let's take a look and see how the word "python" looks when these features are ex
 ##### window 20 ms, window overlap 10 ms (default)
 
 ```
->>> exsound.visualize_audiofile('./audiodata/python.wav', feature_type='mfcc')
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='mfcc')
 ```
 ![Imgur](https://i.imgur.com/hx94jeQ.png)
 
 ##### window 100 ms, window overlap 50 ms
 
 ```
->>> exsound.visualize_audiofile('./audiodata/python.wav', feature_type='mfcc',
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='mfcc',
                             win_size_ms = 100, win_shift_ms = 50)
 ```
 ![Imgur](https://i.imgur.com/XY2rGQj.png)
@@ -96,14 +96,14 @@ Let's take a look and see how the word "python" looks when these features are ex
 
 ##### window 20 ms, window overlap 10 ms (default)
 ```
->>> exsound.visualize_audiofile('./audiodata/python.wav', feature_type='fbank')
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='fbank')
 ```
 ![Imgur](https://i.imgur.com/7CroE1i.png)
 
 ##### window 100 ms, window overlap 50 ms 
 
 ```
->>> exsound.visualize_audiofile('./audiodata/python.wav', feature_type='fbank',
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='fbank',
                             win_size_ms = 100, win_shift_ms = 50)
 ```
 ![Imgur](https://i.imgur.com/r3jVPdB.png)
