@@ -260,9 +260,19 @@ Add 'python' speech segment and traffic noise to create noisy speech. Save as .w
 >>> write(noisy_speech_filename, samplerate, data_noisy)
 >>> exsound.visualize_feats(noisy_speech_filename, feature_type='fbank')
 ```
+![Imgur](https://i.imgur.com/mgb6na7.png)
+
 ![Imgur](https://i.imgur.com/9G10mdb.png)
 
 Then filter the traffic out:
+
+![Imgur](https://i.imgur.com/aespvLC.png)
+
+![Imgur](https://i.imgur.com/wje4bQi.png)
+##### Full FFT: the FFT is mirrored
+
+![Imgur](https://i.imgur.com/JpFnyIC.png)
+##### Half FFT: real fft (only first half of FFT)
 
 #### Wiener filter
 
@@ -273,9 +283,9 @@ Then filter the traffic out:
                     filter_scale = 1.5) # how strong the filter should be
 ```
 
-![Imgur](https://i.imgur.com/OUQ2QNq.png)
+![Imgur](https://i.imgur.com/JltdQFN.png)
 
-![Imgur](https://i.imgur.com/ekUCKp6.png)
+![Imgur](https://i.imgur.com/1KctABG.png)
 
 ![Imgur](https://i.imgur.com/TrwKJ4j.png)
 
@@ -291,9 +301,9 @@ If there is some distortion in the signal, try a post filter:
                     filter_scale = 1.5, # how strong the filter should be
                     apply_postfilter = True) 
 ```
-![Imgur](https://i.imgur.com/gm2opgD.png)
+![Imgur](https://i.imgur.com/FISCD7X.png)
 
-![Imgur](https://i.imgur.com/C8rLC1J.png)
+![Imgur](https://i.imgur.com/KCRezL5.png)
 
 ![Imgur](https://i.imgur.com/AwontYt.png)
 
@@ -307,11 +317,11 @@ For comparison, try a band spectral subtraction filter:
                     filter_scale = 1.5, # how strong the filter should be
                     num_bands = 6) 
 ```
-![Imgur](https://i.imgur.com/7YRCZ1B.png)
+![Imgur](https://i.imgur.com/vP9h3jS.png)
 
-![Imgur](https://i.imgur.com/n2jpIYp.png)
+![Imgur](https://i.imgur.com/SquTEoD.png)
 
-![Imgur](https://i.imgur.com/YLUNV7s.png)
+![Imgur](https://i.imgur.com/GT2hrCi.png)
 
 ## Convolutional Neural Network: Simple sound classification
 
