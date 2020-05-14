@@ -12,8 +12,7 @@ Presentation
 - documentation online
 
 Testing
-- name changes of functions
-- make tests work
+- expand test cases
 
 Organization
 - reorganize based on use... how import statement should work
