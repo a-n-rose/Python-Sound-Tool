@@ -618,7 +618,7 @@ def filtersignal(output_filename,
                  noise_file=None,
                  visualize=False,
                  visualize_every_n_frames=50,
-                 scale=1,
+                 filter_scale=1,
                  duration_noise_ms=120,
                  filter_type='wiener', # 'band_specsub'
                  apply_postfilter=False,
@@ -637,7 +637,7 @@ def filtersignal(output_filename,
         path to either noise audiofile or .npy file containing average power 
         spectrum values or noise samples. If None, the beginning of the
         `audiofile` will be used for noise data. (default None)
-    scale : int or float
+    filter_scale : int or float
         The scale at which the filter should be applied. (default 1) 
         Note: `scale` cannot be set to 0.
     apply_postfilter : bool
@@ -670,11 +670,11 @@ def filtersignal(output_filename,
     '''
     """
     if 'wiener' in filter_type:
-        filter_type = 'wiener'
         fil = pyst.WienerFilter()
     elif 'band' in filter_type:
-        filter_type = 'band_specsub'
         fil = pyst.BandSubtraction()
+    if visualize:
+        frame_subtitle = 'frame size {}ms, window shift {}ms'.format(fil.frame_dur, int(fil.percent_overlap*fil.frame_dur))
 
     # load signal (to be filtered)
     samples_orig = fil.get_samples(audiofile)
@@ -703,8 +703,8 @@ def filtersignal(output_filename,
         # set how many subframes are needed to process entire noise signal
         fil.set_num_subframes(len(samples_noise), is_noise=True)
     if visualize:
-        pyst.visualize_feats(samples_orig, 'signal', title='Target samples',sample_rate = fil.sr)
-        pyst.visualize_feats(samples_noise, 'signal', title= 'Noise samples', sample_rate=fil.sr)
+        pyst.visualize_feats(samples_orig, 'signal', title='Signal to filter'.upper()+'\n(filter applied: {})'.format(filter_type),sample_rate = fil.sr)
+        pyst.visualize_feats(samples_noise, 'signal', title= 'Noise samples to filter out'.upper(), sample_rate=fil.sr)
     # prepare noise power matrix (if it's not loaded already)
     if fil.noise_subframes:
         if real_signal:
@@ -727,7 +727,7 @@ def filtersignal(output_filename,
                                                    fil.noise_subframes)
         assert section == fil.noise_subframes * fil.overlap_length
     if visualize:
-        pyst.visualize_feats(noise_power, 'stft',title='Noise power', scale='power_to_db')
+        pyst.visualize_feats(noise_power, 'stft',title='Average noise power spectrum'.upper()+'\n({})'.format(frame_subtitle), scale='power_to_db')
     
     # prepare target power matrix
     total_rows = fil.frame_length * fil.target_subframes
@@ -736,22 +736,25 @@ def filtersignal(output_filename,
     section = 0
     row = 0
     target_power_baseline = 0
-    if scale is not None:
-        noise_power *= scale
+    if filter_scale is not None:
+        noise_power *= filter_scale
+    else:
+        filter_scale = 1
     try:
         for frame in range(fil.target_subframes):
             target_section = samples_orig[section:section+fil.frame_length]
             target_w_window = pyst.dsp.apply_window(target_section,
                                                     fil.get_window())
             if visualize and frame % visualize_every_n_frames == 0:
-                pyst.visualize_feats(target_w_window,'signal', title='Target section {} signal with window'.format(frame))
+                pyst.visualize_feats(target_section,'signal', title='Signal'.upper()+' \n(frame {}: {})'.format( frame+1,frame_subtitle),sample_rate = fil.sr)
+                pyst.visualize_feats(target_w_window,'signal', title='Signal with {} window'.format(fil.window_type).upper()+'\n(frame {}: {})'.format( frame+1,frame_subtitle),sample_rate = fil.sr)
             target_fft = pyst.dsp.calc_fft(target_w_window, real_signal=real_signal)
             target_power = pyst.dsp.calc_power(target_fft)
             # now start filtering!!
             # initialize SNR matrix
             if visualize and frame % visualize_every_n_frames == 0:
-                pyst.visualize_feats(target_power,'stft', title='Target section {} power'.format(frame), scale='power_to_db')
-            if filter_type == 'wiener':
+                pyst.visualize_feats(target_power,'stft', title='Signal power spectrum'.upper()+'\n(frame {}: {})'.format( frame+1,frame_subtitle), scale='power_to_db')
+            if 'wiener' in filter_type:
                 enhanced_fft = fil.apply_wienerfilter(frame, 
                                                        target_fft, 
                                                        target_power, 
@@ -760,17 +763,21 @@ def filtersignal(output_filename,
                     enhanced_fft = fil.apply_postfilter(enhanced_fft,
                                                         target_fft,
                                                         target_power)
-            elif filter_type == 'band_specsub':
+            elif 'band' in filter_type:
                 target_phase = pyst.dsp.calc_phase(target_fft, 
                                                    radians=phase_radians)
                 enhanced_fft = fil.apply_bandspecsub(target_power, 
                                                       target_phase, 
                                                       noise_power)
+            
             enhanced_ifft = pyst.dsp.calc_ifft(enhanced_fft, 
                                                real_signal=real_signal)
             filtered_sig[row:row+fil.frame_length] += enhanced_ifft
+            if visualize and frame % visualize_every_n_frames == 0:
+                pyst.visualize_feats(np.abs(enhanced_fft)**2,'stft', title='Filtered signal power spectrum'.upper()+'\n(frame {}: {})'.format( frame+1,frame_subtitle), scale='power_to_db')
+                pyst.visualize_feats(filtered_sig,'signal', title='Filtered signal'.upper()+'\n(frame {}: {})'.format( frame+1,frame_subtitle), sample_rate = fil.sr)
             # prepare for next iteration
-            if filter_type == 'wiener':
+            if 'wiener' in filter_type:
                 fil.posteri_snr_prev = fil.posteri_snr
                 fil.gain_prev = fil.gain
             row += fil.overlap_length
@@ -780,12 +787,9 @@ def filtersignal(output_filename,
     assert row == fil.target_subframes * fil.overlap_length
     assert section == fil.target_subframes * fil.overlap_length
     # make enhanced_ifft values real
-    if visualize:
-        pyst.visualize_feats(filtered_sig, 'stft', title='Filtered power', 
-                             scale='power_to_db')
     enhanced_signal = filtered_sig.real
     if visualize:
-        pyst.visualize_feats(enhanced_signal,'signal', title='Filtered real numbers')
+        pyst.visualize_feats(enhanced_signal,'signal', title='Filtered signal'.upper()+'\n(final, unclipped)', sample_rate = fil.sr)
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
@@ -793,7 +797,7 @@ def filtersignal(output_filename,
                             enhanced_signal,
                             overwrite=True)
     if visualize:
-        pyst.visualize_feats(enhanced_signal, 'signal', title='Filtered signal')
+        pyst.visualize_feats(enhanced_signal, 'signal', title='Final filtered input signal'.upper()+'\n({} filter scale: {})'.format(filter_type, filter_scale), sample_rate = fil.sr)
     return None
 
 
