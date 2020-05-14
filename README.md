@@ -115,7 +115,7 @@ Let's take a look and see how the word "python" looks when these features are ex
 >>> data2, sr = exsound.create_signal(freq=1200, amplitude=0.9, samplerate=8000, dur_sec=0.2)
 >>> data3, sr = exsound.create_signal(freq=200, amplitude=0.3, samplerate=8000, dur_sec=0.2)
 >>> data_mixed = data + data2 + data3
->>> exsound.visualize_feats(data_mixed, feature_type='signal', sample_rate=sr)
+>>> exsound.visualize_audio(data_mixed, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/UYU0Ft0.png)
 
@@ -123,14 +123,14 @@ Mixed with noise:
 ```
 >>> noise = exsound.create_noise(len(data_mixed), amplitude=0.1)
 >>> data_noisy = data_mixed + noise
->>> exsound.visualize_feats(data_noisy, feature_type='signal', sample_rate = sr)
+>>> exsound.visualize_audio(data_noisy, feature_type='signal', samplerate = sr)
 ```
 ![Imgur](https://i.imgur.com/ZvyAdUZ.png)
 
 In the time domain, it is difficult to see the three different signals at all...
 
 ```
->>> exsound.visualize_feats(data_noisy, sample_rate=sr, feature_type='fbank')
+>>> exsound.visualize_audio(data_noisy, samplerate=sr, feature_type='fbank')
 ```
 ![Imgur](https://i.imgur.com/RaDhEfq.png)
 
@@ -191,7 +191,7 @@ Here we will add traffic background noise to the speech segment 'python'.
 'python':
 ```
 >>> python, sr = soundprep.loadsound('./audiodata/python.wav')
->>> exsound.visualize_feats(python, feature_type='signal', sample_rate=sr)
+>>> exsound.visualize_audio(python, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/pz0MHui.png)
 
@@ -200,7 +200,7 @@ traffic background noise:
 >>> traffic, sr = soundprep.loadsound('./audiodata/traffic.aiff')
 Step 1: ensure filetype is compatible with scipy library
 Success!
->>> exsound.visualize_feats(traffic, feature_type='signal', sample_rate=sr)
+>>> exsound.visualize_audio(traffic, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/rFn3x2Y.png)
 
@@ -215,7 +215,7 @@ Combining them:
                                 scale = 0.3,
                                 delay_target_sec = 1,
                                 total_len_sec = 5)
->>> exsound.visualize_feats(python_traffic, feature_type='signal', sample_rate=sr)
+>>> exsound.visualize_audio(python_traffic, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/z4E2HSj.png)
 
@@ -224,7 +224,7 @@ Combining them:
 rain background noise:
 ```
 >>> rain, sr = soundprep.loadsound('./audiodata/rain.wav')
->>> exsound.visualize_feats(rain, feature_type='signal', sample_rate=sr)
+>>> exsound.visualize_audio(rain, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/kmmwZta.png)
 
@@ -238,7 +238,7 @@ background noises are more ideal.
                                 scale = 0.3,
                                 delay_target_sec = 1,
                                 total_len_sec = 5)
->>> exsound.visualize_feats(python_rain, feature_type='signal', sample_rate=sr)
+>>> exsound.visualize_audio(python_rain, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/BbdbDyu.png)
 
@@ -258,7 +258,7 @@ Add 'python' speech segment and traffic noise to create noisy speech. Save as .w
 >>> data_noisy, samplerate = soundprep.add_sound_to_signal(speech, noise, delay_target_sec=1, scale = 0.3, total_len_sec=5)
 >>> noisy_speech_filename = './audiodata/python_traffic.wav'
 >>> write(noisy_speech_filename, samplerate, data_noisy)
->>> exsound.visualize_feats(noisy_speech_filename, feature_type='fbank')
+>>> exsound.visualize_audio(noisy_speech_filename, feature_type='fbank')
 ```
 ![Imgur](https://i.imgur.com/X9whovI.png)
 

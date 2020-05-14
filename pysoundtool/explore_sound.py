@@ -154,14 +154,99 @@ def visualize_feats(feature_matrix, feature_type,
     else:
         plt.show()
 
-def visualize_audiofile(audiofile, feature_type='fbank', win_size_ms = 20, \
+def get_feats(sound, 
+              features='fbank', 
+              win_size_ms = 20, 
+              win_shift_ms = 10,
+              num_filters=40,
+              num_mfcc=None, 
+              samplerate=None, 
+              limit=None):
+    '''Feature extraction depending on set parameters; frames on y axis, features x axis
+    
+    Parameters
+    ----------
+    sound : str or numpy.ndarray
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. Note: in the latter case, `samplerate`
+        must be declared.
+    features : str
+        Either 'mfcc' or 'fbank' features. MFCC: mel frequency cepstral
+        coefficients; FBANK: mel-log filterbank energies (default 'fbank')
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 20)
+    win_shift_ms : int or float 
+        Window overlap in milliseconds; default set at 50% window size 
+        (default 10)
+    num_filters : int
+        Number of mel-filters to be used when applying mel-scale. For 
+        'fbank' features, 20-128 are common, with 40 being very common.
+        (default 40)
+    num_mfcc : int
+        Number of mel frequency cepstral coefficients. First coefficient
+        pertains to loudness; 2-13 frequencies relevant for speech; 13-40
+        for acoustic environment analysis or non-linguistic information.
+        Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
+        is set to 40, all 40 coefficients will be included.
+        (default None). 
+    samplerate : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. (default None)
+    limit : float, optional
+        Time in seconds to limit in loading a signal. (default None)
+        
+    Returns
+    -------
+    feats : tuple (num_samples, sr) or np.ndarray [size (num_frames, num_filters) dtype=np.float or np.complex]
+        Feature data. If `feature_type` is 'signal', returns a tuple containing samples and sampling rate. If `feature_type` is of another type, returns np.ndarray with shape (num_frames, num_filters/features)
+    '''
+    if isinstance(sound, str):
+        data, sr = librosa.load(sound, sr=samplerate, duration=limit)
+    else:
+        if samplerate is None:
+            raise ValueError('No samplerate given. Either provide '+\
+                'filename or appropriate samplerate.')
+        data, sr = sound, samplerate
+    if 'fbank' in features:
+        feats = librosa.feature.melspectrogram(
+            data,
+            sr = sr,
+            n_fft = int(win_size_ms * sr // 1000),
+            hop_length = int(win_shift_ms*0.001*sr),
+            n_mels = num_filters).T
+        # have found better results if not conducted:
+        # especially if recreating audio signal later
+        #feats -= (np.mean(feats, axis=0) + 1e-8)
+    elif 'mfcc' in features:
+        if num_mfcc is None:
+            num_mfcc = num_filters
+        feats = librosa.feature.mfcc(
+            data,
+            sr = sr,
+            n_mfcc = num_mfcc,
+            n_fft = int(win_size_ms * sr // 1000),
+            hop_length = int(win_shift_ms*0.001*sr),
+            n_mels = num_filters).T
+        #feats -= (np.mean(feats, axis=0) + 1e-8)
+    elif 'stft' in features:
+        feats = librosa.stft(
+            data,
+            n_fft = int(win_size_ms * sr // 1000),
+            hop_length = int(win_shift_ms*0.001*sr)).T
+        #feats -= (np.mean(feats, axis=0) + 1e-8)
+    elif 'signal' in features:
+        feats = (data, sr)
+    return feats
+
+def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
     win_shift_ms = 10, num_filters=40, num_mfcc=40, samplerate=None,\
-        save_pic=False, name4pic=None):
+        save_pic=False, name4pic=None, power_scale=None):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
     Parameters
     ----------
-    audiofile : str or numpy.ndarray
+    audiodata : str or numpy.ndarray
         If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
         the samples of the sound data. Note: in the latter case, `samplerate`
         must be declared.
@@ -190,46 +275,12 @@ def visualize_audiofile(audiofile, feature_type='fbank', win_size_ms = 20, \
         The sample rate of the sound data or the desired sample rate of
         the wavfile to be loaded. (default None)
     '''
-    if isinstance(audiofile, str):
-        data, sr = load_sound(audiofile, samplerate=samplerate)
-    else:
-        data = audiofile
-        sr = samplerate
-    win_samples = int(win_size_ms * sr // 1000)
+    feats = get_feats(audiodata, features=feature_type, 
+                      win_size_ms = win_size_ms, win_shift_ms = win_shift_ms,
+                      num_filters=num_filters, num_mfcc = num_mfcc, samplerate=samplerate)
     if 'signal' in feature_type:
-        dur_sec = len(data) / sr
-        time_sec = get_time_points(dur_sec, sr)
-        plt.clf()
-        plt.plot(time_sec, data)
-        plt.xlabel('Time (sec)')
-        plt.ylabel('Amplitude')
-        plt.title('Sound wave')
+        feats, sr = feats
     else:
-        if 'fbank' in feature_type:
-            feats = logfbank(data,
-                            samplerate=sr,
-                            winlen=win_size_ms * 0.001,
-                            winstep=win_shift_ms * 0.001,
-                            nfilt=num_filters,
-                            nfft=win_samples)
-            axis_feature_label = 'Mel Filters'
-        elif 'mfcc' in feature_type:
-            feats = mfcc(data,
-                        samplerate=sr,
-                        winlen=win_size_ms * 0.001,
-                        winstep=win_shift_ms * 0.001,
-                        nfilt=num_filters,
-                        numcep=num_mfcc,
-                        nfft=win_samples)
-            axis_feature_label = 'Mel Freq Cepstral Coefficients'
-        feats = feats.T
-        plt.clf()
-        plt.pcolormesh(feats)
-        plt.xlabel('Frames (each {} ms)'.format(win_size_ms))
-        plt.ylabel('Num {}'.format(axis_feature_label))
-        plt.title('{} Features'.format(feature_type.upper()))
-    if save_pic:
-        outputname = name4pic or 'visualize{}feats'.format(feature_type.upper())
-        plt.savefig('{}.png'.format(outputname))
-    else:
-        plt.show()
+        sr = None
+    visualize_feats(feats, feature_type=feature_type, sample_rate=sr,
+                    save_pic = save_pic, name4pic=name4pic, scale=power_scale)
