@@ -25,9 +25,30 @@ Script with functions useful in filtering / digital signal processing
 import numpy as np
 from scipy.signal import hamming, hann, resample
 from scipy.io.wavfile import read
-from numpy.fft import fft, ifft
+from numpy.fft import fft, rfft, ifft, irfft
 from python_speech_features import logfbank, mfcc
+import librosa
+from . import matrixfun
 
+def create_signal(freq=200, amplitude=0.4, samplerate=8000, dur_sec=0.25):
+    #The variable `time` holds the expected number of measurements taken: 
+    time = get_time_points(dur_sec, samplerate=samplerate)
+    # unit circle: 2pi equals a full circle
+    full_circle = 2 * np.pi
+    #TODO: add namedtuple
+    sinewave_samples = amplitude * np.sin((freq*full_circle)*time)
+    return sinewave_samples, samplerate
+
+def get_time_points(dur_sec,samplerate):
+    #duration in seconds multiplied by the sampling rate. 
+    time = np.linspace(0, dur_sec, np.floor(dur_sec*samplerate))
+    return time
+
+def create_noise(num_samples, amplitude=0.025, random_seed=None):
+    if random_seed:
+        np.random.seed(random_seed)
+    noise = amplitude * np.random.randn(num_samples)
+    return noise
 
 def load_signal(wav, sampling_rate=48000, dur_sec=None):
     '''Loads wavfile, resamples if necessary, and normalizes signal.
@@ -54,6 +75,26 @@ def load_signal(wav, sampling_rate=48000, dur_sec=None):
     #ensure max and min are between 1 and -1
     samps = np.interp(samps,(samps.min(), samps.max()),(-1, 1))
     return samps, sr
+
+def normalize(data, max_val=None, min_val=None):
+    '''Normalizes data.
+    
+    Parameters
+    ----------
+    data : np.ndarray
+        Data to be normalized
+    max_val : int or float, optional
+        Predetermined maximum value. If None, will use max value
+        from `data`.
+    min_val : int or float, optional
+        Predetermined minimum value. If None, will use min value
+        from `data`.
+    '''
+    if max_val is None:
+         normed_data = (data - np.min(data)) / (np.max(data) - np.min(data))
+    else:
+        normed_data = (data - min_val) / (max_val - min_val)
+    return normed_data
 
 def resample_audio(samples, sr_original, sr_desired):
     '''Allows audio samples to be resampled to desired sample rate.
@@ -219,7 +260,7 @@ def apply_window(samples, window):
     samples_win = samples * window
     return samples_win
 
-def calc_fft(signal_section, norm=False):
+def calc_fft(signal_section, real_signal=None, norm=False):
     """Calculates the fast Fourier transform of a 1D time series
 
     The length of the signal_section determines the number of frequency
@@ -251,7 +292,10 @@ def calc_fft(signal_section, norm=False):
         norm = 'ortho'
     else:
         norm = None
-    fft_vals = fft(signal_section, norm=norm)
+    if real_signal:
+        fft_vals = rfft(signal_section, norm=norm)
+    else:
+        fft_vals = fft(signal_section, norm=norm)
     return fft_vals
 
 # TODO: https://github.com/biopython/biopython/issues/1496
@@ -317,6 +361,148 @@ def calc_average_power(matrix, num_iters):
     for i in range(len(matrix)):
         matrix[i] /= num_iters
     return matrix
+
+def calc_phase(fft_matrix, radians=False):
+    '''Calculates phase from complex fft values.
+    
+    Parameters
+    ----------
+    fft_vals : np.ndarray [shape=(d, t), dtype=complex]
+        matrix with fft values
+    radians : boolean
+        False and complex values are returned. True and radians are returned.
+        (Default False)
+        
+    Returns
+    -------
+    phase : np.ndarray [shape=(d, t)]
+        Phase values for fft_vals. If radians is set to False, dtype = complex.
+        If radians is set to True, dtype = float. 
+        
+    Examples
+    --------
+    >>> import numpy as np 
+    >>> frame_length = 10
+    >>> time = np.arange(0, 10, 0.1)
+    >>> signal = np.sin(time)[:frame_length]
+    >>> fft_vals = np.fft.fft(signal)
+    >>> phase = calc_phase(fft_vals, radians=False)
+    >>> phase[:2]
+    array([ 1.        +0.j        , -0.37872566+0.92550898j])
+    >>> phase = calc_phase(fft_vals, radians=True)
+    >>> phase[:2]
+    array([0.        , 1.95921533])
+    '''
+    if not radians:
+        __, phase = librosa.magphase(fft_matrix)
+    else:
+        # in radians 
+        #if normalization:
+            #phase = np.angle(fft_matrix) / (frame_length * norm_win)
+        #else:
+        phase = np.angle(fft_matrix)
+    return phase
+
+def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
+    '''Reconstruct whole spectrum by mirroring complex conjugate of data.
+    
+    Parameters
+    ----------
+    band_reduced_noise_matrix : np.ndarray [size=(n_fft,), dtype=np.float or np.complex_]
+        Matrix with either power or fft values of the left part of the fft. The whole
+        fft can be provided; however the right values will be overwritten by a mirrored
+        left side.
+    n_fft : int, optional
+        If None, `n_fft` set to length of `band_reduced_noise_matrix`. `n_fft` defines
+        the size of the mirrored vector.
+        
+    Returns
+    -------
+    output_matrix : np.ndarray [size = (n_fft,), dtype=np.float or np.complex_]
+        Mirrored vector of input data.
+        
+    Examples
+    --------
+    >>> x = np.array([3.,2.,1.,0.])
+    >>> # double the size of x
+    >>> x_rec = pyst.dsp.reconstruct_whole_spectrum(x, n_fft=int(len(x)*2))
+    >>> x_rec
+    array([3., 2., 1., 0., 0., 1., 2., 3.])
+    >>> # overwrite right side of data
+    >>> x = np.array([3.,2.,1.,0.,0.,2.,3.,5.])
+    >>> x_rec = pyst.dsp.reconstruct_whole_spectrum(x, n_fft=len(x))
+    >>> x_rec
+    array([3., 2., 1., 0., 0., 1., 2., 3.])
+    '''
+    # expects 1d data
+    if len(band_reduced_noise_matrix.shape) > 1:
+        band_reduced_noise_matrix = band_reduced_noise_matrix.reshape((
+            band_reduced_noise_matrix.shape[0]))
+    if n_fft is None:
+        n_fft = len(band_reduced_noise_matrix)
+    if isinstance(band_reduced_noise_matrix[0], np.complex):
+        complex_vals = True
+    else:
+        complex_vals = False
+    total_rows = n_fft
+    output_matrix = matrixfun.create_empty_matrix((total_rows,), complex_vals=complex_vals)
+    if band_reduced_noise_matrix.shape[0] < n_fft:
+        temp_matrix = matrixfun.create_empty_matrix((total_rows,), complex_vals=complex_vals)
+        temp_matrix[:len(band_reduced_noise_matrix)] += band_reduced_noise_matrix
+        band_reduced_noise_matrix = temp_matrix
+    # flip up-down
+    flipped_matrix = np.flip(band_reduced_noise_matrix, axis=0)
+    output_matrix[0:n_fft//2+1,] += band_reduced_noise_matrix[0:n_fft//2+1]
+    output_matrix[n_fft//2+1:,] += flipped_matrix[n_fft//2+1:]
+    assert output_matrix.shape == (n_fft,)
+    return output_matrix
+
+# TODO
+def vad():
+    '''voice activity detection
+    
+    Determines whether speech exists or not in the signal
+    '''
+    pass
+
+# TODO
+def snr():
+    '''measures the sound to noise ratio in signal
+    '''
+    pass
+
+
+def apply_original_phase(spectrum, phase):
+    '''Multiplies phase to power spectrum
+    
+    Parameters
+    ----------
+    spectrum : np.ndarray [shape=(n,), dtype=np.float or np.complex]
+        Magnitude or power spectrum
+    phase : np.ndarray [shape=(n,), dtype=np.float or np.complex]
+        Phase to be applied to spectrum
+    '''
+    # ensure 1d dimensions
+    if len(spectrum.shape) > 1:
+        spectrum = spectrum.reshape((
+            spectrum.shape[0],))
+    if len(phase.shape) > 1:
+        phase = phase.reshape((
+            phase.shape[0],))
+    assert spectrum.shape == phase.shape
+    # Whether or not phase is represented in radians or a spectrum.
+    if isinstance(phase[0], np.complex):
+        radians = False
+    else:
+        radians = True
+    if not radians:
+        spectrum_complex = spectrum * phase
+    else:
+        import cmath
+        phase_prepped = (1/2) * np.cos(phase) + cmath.sqrt(-1) * np.sin(phase)
+        spectrum_complex = spectrum**(1/2) * phase_prepped
+    
+    return spectrum_complex
 
 def calc_posteri_snr(target_power_spec, noise_power_spec):
     """Calculates and updates signal to noise ratio of current frame
@@ -474,15 +660,18 @@ def apply_gain_fft(fft_vals, gain):
     assert enhanced_fft.shape == fft_vals.shape
     return enhanced_fft
 
-def calc_ifft(signal_section, norm=False):
+def calc_ifft(signal_section, real_signal=None, norm=False):
     """Calculates the inverse fft of a series of fft values
 
     The real values of the ifft can be used to be saved as an audiofile
 
     Parameters
     ----------
-    signal_section : ndarray
+    signal_section : ndarray [shape=(num_freq_bins,) 
         The frame of fft values to apply the inverse fft to
+    num_fft : int, optional
+        The number of total fft values applied when calculating the original fft. 
+        If not given, length of `signal_section` is used. 
     norm : bool
         Whether or not the ifft should apply 'ortho' normalization
         (default False)
@@ -496,8 +685,12 @@ def calc_ifft(signal_section, norm=False):
         norm = 'ortho'
     else:
         norm = None
-    ifft_vals = ifft(signal_section, norm=norm)
+    if real_signal:
+        ifft_vals = irfft(signal_section, norm=norm)
+    else:
+        ifft_vals = ifft(signal_section, norm=norm)
     return ifft_vals
+
 
 def control_volume(samples, max_limit):
     """Keeps max volume of samples to within a specified range.

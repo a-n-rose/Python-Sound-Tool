@@ -64,7 +64,7 @@ Install and run ipython:
 ### "Python": Time Domain
 
 ```
->>> exsound.visualize_signal('./audiodata/python.wav')
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='signal')
 ```
 ![Imgur](https://i.imgur.com/pz0MHui.png)
 
@@ -79,14 +79,14 @@ Let's take a look and see how the word "python" looks when these features are ex
 ##### window 20 ms, window overlap 10 ms (default)
 
 ```
->>> exsound.visualize_feats('./audiodata/python.wav', features='mfcc')
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='mfcc')
 ```
 ![Imgur](https://i.imgur.com/hx94jeQ.png)
 
 ##### window 100 ms, window overlap 50 ms
 
 ```
->>> exsound.visualize_feats('./audiodata/python.wav', features='mfcc',
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='mfcc',
                             win_size_ms = 100, win_shift_ms = 50)
 ```
 ![Imgur](https://i.imgur.com/XY2rGQj.png)
@@ -96,14 +96,14 @@ Let's take a look and see how the word "python" looks when these features are ex
 
 ##### window 20 ms, window overlap 10 ms (default)
 ```
->>> exsound.visualize_feats('./audiodata/python.wav', features='fbank')
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='fbank')
 ```
 ![Imgur](https://i.imgur.com/7CroE1i.png)
 
 ##### window 100 ms, window overlap 50 ms 
 
 ```
->>> exsound.visualize_feats('./audiodata/python.wav', features='fbank',
+>>> exsound.visualize_audio('./audiodata/python.wav', feature_type='fbank',
                             win_size_ms = 100, win_shift_ms = 50)
 ```
 ![Imgur](https://i.imgur.com/r3jVPdB.png)
@@ -115,7 +115,7 @@ Let's take a look and see how the word "python" looks when these features are ex
 >>> data2, sr = exsound.create_signal(freq=1200, amplitude=0.9, samplerate=8000, dur_sec=0.2)
 >>> data3, sr = exsound.create_signal(freq=200, amplitude=0.3, samplerate=8000, dur_sec=0.2)
 >>> data_mixed = data + data2 + data3
->>> exsound.visualize_signal(data_mixed, samplerate=sr)
+>>> exsound.visualize_audio(data_mixed, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/UYU0Ft0.png)
 
@@ -123,14 +123,14 @@ Mixed with noise:
 ```
 >>> noise = exsound.create_noise(len(data_mixed), amplitude=0.1)
 >>> data_noisy = data_mixed + noise
->>> exsound.visualize_signal(data_noisy, samplerate = sr)
+>>> exsound.visualize_audio(data_noisy, feature_type='signal', samplerate = sr)
 ```
 ![Imgur](https://i.imgur.com/ZvyAdUZ.png)
 
 In the time domain, it is difficult to see the three different signals at all...
 
 ```
->>> exsound.visualize_feats(data_noisy, samplerate=sr, features='fbank')
+>>> exsound.visualize_audio(data_noisy, samplerate=sr, feature_type='fbank')
 ```
 ![Imgur](https://i.imgur.com/RaDhEfq.png)
 
@@ -191,7 +191,7 @@ Here we will add traffic background noise to the speech segment 'python'.
 'python':
 ```
 >>> python, sr = soundprep.loadsound('./audiodata/python.wav')
->>> exsound.visualize_signal(python, samplerate=sr)
+>>> exsound.visualize_audio(python, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/pz0MHui.png)
 
@@ -200,7 +200,7 @@ traffic background noise:
 >>> traffic, sr = soundprep.loadsound('./audiodata/traffic.aiff')
 Step 1: ensure filetype is compatible with scipy library
 Success!
->>> exsound.visualize_signal(traffic, samplerate=sr)
+>>> exsound.visualize_audio(traffic, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/rFn3x2Y.png)
 
@@ -215,7 +215,7 @@ Combining them:
                                 scale = 0.3,
                                 delay_target_sec = 1,
                                 total_len_sec = 5)
->>> exsound.visualize_signal(python_traffic, samplerate=sr)
+>>> exsound.visualize_audio(python_traffic, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/z4E2HSj.png)
 
@@ -224,7 +224,7 @@ Combining them:
 rain background noise:
 ```
 >>> rain, sr = soundprep.loadsound('./audiodata/rain.wav')
->>> exsound.visualize_signal(rain, samplerate=sr)
+>>> exsound.visualize_audio(rain, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/kmmwZta.png)
 
@@ -238,7 +238,7 @@ background noises are more ideal.
                                 scale = 0.3,
                                 delay_target_sec = 1,
                                 total_len_sec = 5)
->>> exsound.visualize_signal(python_rain, samplerate=sr)
+>>> exsound.visualize_audio(python_rain, feature_type='signal', samplerate=sr)
 ```
 ![Imgur](https://i.imgur.com/BbdbDyu.png)
 
@@ -258,26 +258,79 @@ Add 'python' speech segment and traffic noise to create noisy speech. Save as .w
 >>> data_noisy, samplerate = soundprep.add_sound_to_signal(speech, noise, delay_target_sec=1, scale = 0.3, total_len_sec=5)
 >>> noisy_speech_filename = './audiodata/python_traffic.wav'
 >>> write(noisy_speech_filename, samplerate, data_noisy)
->>> exsound.visualize_feats(noisy_speech_filename, features='fbank')
+>>> exsound.visualize_audio(noisy_speech_filename, feature_type='fbank')
 ```
+![Imgur](https://i.imgur.com/X9whovI.png)
+
 ![Imgur](https://i.imgur.com/9G10mdb.png)
 
 Then filter the traffic out:
+
+![Imgur](https://i.imgur.com/FOcjwAl.png)
+
+This is what the noise power spectrum of the full FFT looks like:
+
+![Imgur](https://i.imgur.com/7CIiTfM.png)
+
+If you set `real_signal` to true, this is what the noise power spectrum looks like:
+
+![Imgur](https://i.imgur.com/6AWr5dV.png)
+
+In numpy, you can use the full fft signal by using numpy.fft.fft or you can use the real fft, for audio signals for example, by using numpy.fft.rfft. The latter may be more efficent and there isn't a difference between the two. I've seen some Implement the full fft and others the rfft.
+
+#### Wiener filter
+
 ```
->>> pyst.filtersignal(output_filename = 'python_traffic_filtered.wav',
-                    wavfile = noisy_speech_filename,
-                    scale = 1.5) # how strong the filter should be
+>>> pyst.filtersignal(output_filename = 'python_traffic_wiener_filter.wav',
+                    audiofile = noisy_speech_filename,
+                    filter_type = 'wiener',
+                    filter_scale = 1) # how strong the filter should be
 ```
+What the filtered signal looks like in raw samples, power spectrum (basically stft), and fbank features: 
+
+![Imgur](https://i.imgur.com/42liCr1.png)
+
+![Imgur](https://i.imgur.com/tx87UEL.png)
+
 ![Imgur](https://i.imgur.com/TrwKJ4j.png)
+
+
+
+#### Wiener filter with postfilter
 
 If there is some distortion in the signal, try a post filter:
 ```
->>> pyst.filtersignal(output_filename = 'python_traffic_filtered_postfilter.wav',
-                    wavfile = noisy_speech_filename,
-                    scale = 1.5, # how strong the filter should be
+>>> pyst.filtersignal(output_filename = 'python_traffic_wiener_postfilter.wav',
+                    audiofile = noisy_speech_filename,
+                    filter_type = 'wiener_postfilter',
+                    filter_scale = 1, # how strong the filter should be
                     apply_postfilter = True) 
 ```
+What the filtered signal looks like in raw samples, power spectrum (basically stft), and fbank features: 
+
+![Imgur](https://i.imgur.com/zTR4kX3.png)
+
+![Imgur](https://i.imgur.com/lKe4dRQ.png)
+
 ![Imgur](https://i.imgur.com/AwontYt.png)
+
+#### Band spectral subtraction filter
+
+For comparison, try a band spectral subtraction filter:
+```
+>>> pyst.filtersignal(output_filename = 'python_traffic_bandspecsub.wav',
+                    audiofile = noisy_speech_filename,
+                    filter_type = 'band_spectral_subtracion',
+                    filter_scale = 1, # how strong the filter should be
+                    num_bands = 6) 
+```
+What the filtered signal looks like in raw samples, power spectrum (basically stft), and fbank features: 
+
+![Imgur](https://i.imgur.com/Kg9cR2S.png)
+
+![Imgur](https://i.imgur.com/jSX4ijV.png)
+
+![Imgur](https://i.imgur.com/cFdaGLl.png)
 
 ## Convolutional Neural Network: Simple sound classification
 

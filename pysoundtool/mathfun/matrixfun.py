@@ -223,6 +223,62 @@ def separate_dependent_var(matrix):
     X = np.delete(matrix, -1, axis=-1)
     return X, y
 
+def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
+    '''Overlaps and adds windowed sections together to form 1D signal.
+    
+    Parameters
+    ----------
+    enhanced_matrix : np.ndarray [shape=(frame_length, num_frames), dtype=float]
+        Matrix with enhance values
+    frame_length : int 
+        Number of samples per frame 
+    overlap : int 
+        Number of samples that overlap
+        
+    Returns
+    -------
+    new_signal : np.ndarray [shape=(frame_length,), dtype=float]
+        Length equals (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
+        
+    Examples
+    --------
+    >>> import numpy as np
+    >>> enhanced_matrix = np.ones((4, 4))
+    >>> frame_length = 4
+    >>> overlap = 1
+    >>> sig = overlap_add(enhanced_matrix, frame_length, overlap)
+    >>> sig
+    [1. 1. 1. 2. 1. 1. 2. 1. 1. 2. 1. 1. 1.]
+    '''
+    try:
+        assert enhanced_matrix.shape[0] == frame_length
+    except AssertionError as e:
+        raise TypeError('The first dimension of the enhance matrix should '+ \
+            'match the frame length. {} does not match frame length {}'.format(
+                enhanced_matrix.shape[0], frame_length))
+    increments = frame_length - overlap
+    start= increments
+    mid= start + overlap
+    stop= start + frame_length
+    
+    expected_len = (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
+    new_signal = create_empty_matrix(
+        (expected_len,),
+        complex_vals=complex_vals)
+    
+    for i in range(enhanced_matrix.shape[1]):
+        if i == 0:
+            new_signal[:frame_length] += enhanced_matrix[:frame_length,i]
+        else:
+            new_signal[start:mid] += enhanced_matrix[:overlap,i] 
+            new_signal[mid:stop] += enhanced_matrix[overlap:frame_length,i]
+            start += increments
+            mid = start+overlap
+            stop = start+frame_length
+    return new_signal
+
+
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
