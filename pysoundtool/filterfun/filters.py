@@ -736,7 +736,8 @@ def filtersignal(output_filename,
         pyst.visualize_feats(noise_power, 'stft',title='Average noise power spectrum'.upper()+'\n({})'.format(frame_subtitle), scale='power_to_db')
     
     # prepare target power matrix
-    total_rows = fil.frame_length * fil.target_subframes
+    increment_length = int(fil.frame_length * fil.percent_overlap)
+    total_rows =  increment_length + increment_length * fil.target_subframes
     filtered_sig = pyst.matrixfun.create_empty_matrix(
         (total_rows,), complex_vals=True)
     section = 0
@@ -780,7 +781,6 @@ def filtersignal(output_filename,
                                                real_signal=real_signal)
             filtered_sig[row:row+fil.frame_length] += enhanced_ifft
             if visualize and frame % visualize_every_n_frames == 0:
-                pyst.visualize_feats(np.abs(enhanced_fft)**2,'stft', title='Filtered signal power spectrum'.upper()+'\n(frame {}: {})'.format( frame+1,frame_subtitle), scale='power_to_db')
                 pyst.visualize_feats(filtered_sig,'signal', title='Filtered signal'.upper()+'\n(up to frame {}: {})'.format(frame+1,frame_subtitle), sample_rate = fil.sr)
             # prepare for next iteration
             if 'wiener' in filter_type:
@@ -795,15 +795,18 @@ def filtersignal(output_filename,
     # make enhanced_ifft values real
     enhanced_signal = filtered_sig.real
     if visualize:
-        pyst.visualize_feats(enhanced_signal,'signal', title='Filtered signal'.upper()+'\n(final, unclipped)', sample_rate = fil.sr)
+        rows = len(filtered_sig)//increment_length
+        cols = increment_length
+        pyst.visualize_feats(np.abs(filtered_sig.reshape((
+                rows,cols,)))**2,
+            'stft', title='Final filtered signal power spectrum'.upper()+'\n(filter applied: {}, {})'.format(filter_type,frame_subtitle), scale='amplitude_to_db')
+        pyst.visualize_feats(enhanced_signal,'signal', title='Final filtered signal'.upper()+'\n(filter applied: {})'.format(filter_type), sample_rate = fil.sr)
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
     fil.save_filtered_signal(str(output_filename), 
                             enhanced_signal,
                             overwrite=True)
-    if visualize:
-        pyst.visualize_feats(enhanced_signal, 'signal', title='Final filtered input signal'.upper()+'\n({} filter scale: {})'.format(filter_type, filter_scale), sample_rate = fil.sr)
     return None
 
 
