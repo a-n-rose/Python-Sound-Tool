@@ -41,22 +41,6 @@ def load_sound(sound, samplerate=None):
         data = sound
     return data, sr
      
-     
-def visualize_soundfile2signal(sound, samplerate=None, 
-                               save_pic=False, name4pic=None):
-    data, sr = load_sound(sound, samplerate=samplerate)
-    dur_sec = len(data) / sr
-    time_sec = get_time_points(dur_sec, sr)
-    plt.clf()
-    plt.plot(time_sec, data)
-    plt.xlabel('Time (sec)')
-    plt.ylabel('Amplitude')
-    plt.title('Sound wave')
-    if save_pic:
-        outputname = name4pic or 'soundsignal'
-        plt.savefig('{}.png'.format(outputname))
-    else:
-        plt.show()
     
 # TODO Test for multiple channels   
 def visualize_feats(feature_matrix, feature_type, 
@@ -101,21 +85,26 @@ def visualize_feats(feature_matrix, feature_type,
     elif 'mfcc' in feature_type:
         axis_feature_label = 'Num Mel Freq Cepstral Coefficients'
     elif 'stft' in feature_type:
-        axis_feature_label = 'Energy (Magnitude or Power spectrum)'
+        axis_feature_label = 'Number of frames'
     elif 'signal' in feature_type:
         axis_feature_label = 'Amplitude'
     else:
         axis_feature_label = 'Energy'
     if scale is None or feature_type == 'signal':
+        energy_label = 'energy'
         pass
     elif scale == 'power_to_db':
         feature_matrix = librosa.power_to_db(feature_matrix)
+        energy_label = 'decicels'
     elif scale == 'db_to_power':
         feature_matrix = librosa.db_to_power(feature_matrix)
+        energy_label = 'power'
     elif scale == 'amplitude_to_db':
         feature_matrix = librosa.amplitude_to_db(feature_matrix)
+        energy_label = 'decibels'
     elif scale == 'db_to_amplitude':
         feature_matrix = librosa.db_to_amplitude(feature_matrix)
+        energy_label = 'amplitude'
     plt.clf()
     if feature_type != 'signal':
         x_axis_label = 'Frequency bins'
@@ -142,8 +131,12 @@ def visualize_feats(feature_matrix, feature_type,
         x_axis_label += ' across {} channel(s)'.format(channel+1)
     else:
         plt.pcolormesh(feature_matrix.T)
+        plt.colorbar(label=energy_label)
     plt.xlabel(x_axis_label)
     plt.ylabel(axis_feature_label)
+    if feature_matrix.shape[1] > 1:
+        plt.xlabel('Number of processed frames')
+        plt.ylabel('Frequency bins')
     if title is None:
         plt.title('{} Features'.format(feature_type.upper()))
     else:
@@ -154,19 +147,20 @@ def visualize_feats(feature_matrix, feature_type,
     else:
         plt.show()
 
-def visualize_soundfile2feats(sound, features='fbank', win_size_ms = 20, \
-    win_shift_ms = 10,num_filters=40,num_mfcc=40, samplerate=None,\
+def visualize_audiofile(audiofile, feature_type='fbank', win_size_ms = 20, \
+    win_shift_ms = 10, num_filters=40, num_mfcc=40, samplerate=None,\
         save_pic=False, name4pic=None):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
     Parameters
     ----------
-    sound : str or numpy.ndarray
+    audiofile : str or numpy.ndarray
         If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
         the samples of the sound data. Note: in the latter case, `samplerate`
         must be declared.
-    features : str
-        Either 'mfcc' or 'fbank' features. MFCC: mel frequency cepstral
+    feature_type : str
+        Options: 'signal', 'mfcc', or 'fbank' features. 
+        MFCC: mel frequency cepstral
         coefficients; FBANK: mel-log filterbank energies (default 'fbank')
     win_size_ms : int or float
         Window length in milliseconds for Fourier transform to be applied
@@ -189,33 +183,46 @@ def visualize_soundfile2feats(sound, features='fbank', win_size_ms = 20, \
         The sample rate of the sound data or the desired sample rate of
         the wavfile to be loaded. (default None)
     '''
-    data, sr = load_sound(sound, samplerate=samplerate)
+    if isinstance(audiofile, str):
+        data, sr = load_sound(audiofile, samplerate=samplerate)
+    else:
+        data = audiofile
+        sr = samplerate
     win_samples = int(win_size_ms * sr // 1000)
-    if 'fbank' in features:
-        feats = logfbank(data,
-                         samplerate=sr,
-                         winlen=win_size_ms * 0.001,
-                         winstep=win_shift_ms * 0.001,
-                         nfilt=num_filters,
-                         nfft=win_samples)
-        axis_feature_label = 'Mel Filters'
-    elif 'mfcc' in features:
-        feats = mfcc(data,
-                     samplerate=sr,
-                     winlen=win_size_ms * 0.001,
-                     winstep=win_shift_ms * 0.001,
-                     nfilt=num_filters,
-                     numcep=num_mfcc,
-                     nfft=win_samples)
-        axis_feature_label = 'Mel Freq Cepstral Coefficients'
-    feats = feats.T
-    plt.clf()
-    plt.pcolormesh(feats)
-    plt.xlabel('Frames (each {} ms)'.format(win_size_ms))
-    plt.ylabel('Num {}'.format(axis_feature_label))
-    plt.title('{} Features'.format(features.upper()))
+    if 'signal' in feature_type:
+        dur_sec = len(data) / sr
+        time_sec = get_time_points(dur_sec, sr)
+        plt.clf()
+        plt.plot(time_sec, data)
+        plt.xlabel('Time (sec)')
+        plt.ylabel('Amplitude')
+        plt.title('Sound wave')
+    else:
+        if 'fbank' in feature_type:
+            feats = logfbank(data,
+                            samplerate=sr,
+                            winlen=win_size_ms * 0.001,
+                            winstep=win_shift_ms * 0.001,
+                            nfilt=num_filters,
+                            nfft=win_samples)
+            axis_feature_label = 'Mel Filters'
+        elif 'mfcc' in feature_type:
+            feats = mfcc(data,
+                        samplerate=sr,
+                        winlen=win_size_ms * 0.001,
+                        winstep=win_shift_ms * 0.001,
+                        nfilt=num_filters,
+                        numcep=num_mfcc,
+                        nfft=win_samples)
+            axis_feature_label = 'Mel Freq Cepstral Coefficients'
+        feats = feats.T
+        plt.clf()
+        plt.pcolormesh(feats)
+        plt.xlabel('Frames (each {} ms)'.format(win_size_ms))
+        plt.ylabel('Num {}'.format(axis_feature_label))
+        plt.title('{} Features'.format(feature_type.upper()))
     if save_pic:
-        outputname = name4pic or 'visualize{}feats'.format(features.upper())
+        outputname = name4pic or 'visualize{}feats'.format(feature_type.upper())
         plt.savefig('{}.png'.format(outputname))
     else:
         plt.show()
