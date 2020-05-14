@@ -117,7 +117,10 @@ def visualize_feats(feature_matrix, feature_type,
     elif scale == 'db_to_amplitude':
         feature_matrix = librosa.db_to_amplitude(feature_matrix)
     plt.clf()
-    x_axis_label = 'Features over time'
+    if feature_type != 'signal':
+        x_axis_label = 'Frequency bins'
+    else:
+        x_axis_label = 'Samples over time'
     if feature_type == 'signal':
         # transpose matrix if second dimension is larger - probably 
         # because channels are in first dimension. Expect in second dimension
