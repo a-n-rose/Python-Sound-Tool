@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import hamming, hann, resample
 import librosa
+import librosa.display as display
 
 from .soundprep import resample_audio
 
@@ -128,9 +129,11 @@ def visualize_feats(feature_matrix, feature_type,
                 data = feature_matrix[:,channel]
                 # overlay the channel data
                 plt.plot(data)
+                ##display.waveplot(data,sr=sample_rate)
         x_axis_label += ' across {} channel(s)'.format(channel+1)
     else:
         plt.pcolormesh(feature_matrix.T)
+        ## display.specshow(feature_matrix.T, sr=sample_rate)
         plt.colorbar(label=energy_label)
     plt.xlabel(x_axis_label)
     plt.ylabel(axis_feature_label)
