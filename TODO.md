@@ -1,3 +1,12 @@
+
+## Current
+- make it easier to use / build different models
+- implement autoencoder model
+- implement denoising with autoencoder model
+- build autoencoder in keras
+- build autoencoder in pytorch
+- build via docker image
+
 ## Functionality
 
 - autoencoder training
