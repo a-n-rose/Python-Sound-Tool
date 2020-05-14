@@ -260,19 +260,23 @@ Add 'python' speech segment and traffic noise to create noisy speech. Save as .w
 >>> write(noisy_speech_filename, samplerate, data_noisy)
 >>> exsound.visualize_feats(noisy_speech_filename, feature_type='fbank')
 ```
-![Imgur](https://i.imgur.com/mgb6na7.png)
+![Imgur](https://i.imgur.com/X9whovI.png)
 
 ![Imgur](https://i.imgur.com/9G10mdb.png)
 
 Then filter the traffic out:
 
-![Imgur](https://i.imgur.com/aespvLC.png)
+![Imgur](https://i.imgur.com/FOcjwAl.png)
 
-![Imgur](https://i.imgur.com/wje4bQi.png)
-##### Full FFT: the FFT is mirrored
+This is what the noise power spectrum of the full FFT looks like:
 
-![Imgur](https://i.imgur.com/JpFnyIC.png)
-##### Half FFT: real fft (only first half of FFT)
+![Imgur](https://i.imgur.com/7CIiTfM.png)
+
+If you set `real_signal` to true, this is what the noise power spectrum looks like:
+
+![Imgur](https://i.imgur.com/6AWr5dV.png)
+
+In numpy, you can use the full fft signal by using numpy.fft.fft or you can use the real fft, for audio signals for example, by using numpy.fft.rfft. The latter may be more efficent and there isn't a difference between the two. I've seen some Implement the full fft and others the rfft.
 
 #### Wiener filter
 
@@ -280,12 +284,13 @@ Then filter the traffic out:
 >>> pyst.filtersignal(output_filename = 'python_traffic_wiener_filter.wav',
                     audiofile = noisy_speech_filename,
                     filter_type = 'wiener',
-                    filter_scale = 1.5) # how strong the filter should be
+                    filter_scale = 1) # how strong the filter should be
 ```
+What the filtered signal looks like in raw samples, power spectrum (basically stft), and fbank features: 
 
-![Imgur](https://i.imgur.com/JltdQFN.png)
+![Imgur](https://i.imgur.com/42liCr1.png)
 
-![Imgur](https://i.imgur.com/1KctABG.png)
+![Imgur](https://i.imgur.com/tx87UEL.png)
 
 ![Imgur](https://i.imgur.com/TrwKJ4j.png)
 
@@ -298,12 +303,14 @@ If there is some distortion in the signal, try a post filter:
 >>> pyst.filtersignal(output_filename = 'python_traffic_wiener_postfilter.wav',
                     audiofile = noisy_speech_filename,
                     filter_type = 'wiener_postfilter',
-                    filter_scale = 1.5, # how strong the filter should be
+                    filter_scale = 1, # how strong the filter should be
                     apply_postfilter = True) 
 ```
-![Imgur](https://i.imgur.com/FISCD7X.png)
+What the filtered signal looks like in raw samples, power spectrum (basically stft), and fbank features: 
 
-![Imgur](https://i.imgur.com/KCRezL5.png)
+![Imgur](https://i.imgur.com/zTR4kX3.png)
+
+![Imgur](https://i.imgur.com/lKe4dRQ.png)
 
 ![Imgur](https://i.imgur.com/AwontYt.png)
 
@@ -314,14 +321,16 @@ For comparison, try a band spectral subtraction filter:
 >>> pyst.filtersignal(output_filename = 'python_traffic_bandspecsub.wav',
                     audiofile = noisy_speech_filename,
                     filter_type = 'band_spectral_subtracion',
-                    filter_scale = 1.5, # how strong the filter should be
+                    filter_scale = 1, # how strong the filter should be
                     num_bands = 6) 
 ```
-![Imgur](https://i.imgur.com/vP9h3jS.png)
+What the filtered signal looks like in raw samples, power spectrum (basically stft), and fbank features: 
 
-![Imgur](https://i.imgur.com/SquTEoD.png)
+![Imgur](https://i.imgur.com/Kg9cR2S.png)
 
-![Imgur](https://i.imgur.com/GT2hrCi.png)
+![Imgur](https://i.imgur.com/jSX4ijV.png)
+
+![Imgur](https://i.imgur.com/cFdaGLl.png)
 
 ## Convolutional Neural Network: Simple sound classification
 
