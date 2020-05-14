@@ -51,8 +51,7 @@ def visualize_feats(feature_matrix, feature_type,
     
     Parameters
     ----------
-    feature_matrix : np.ndarray [shape=(len(data),), (len(data), num_features)]
-        or (len(data), num_channels), dtype=np.float].
+    feature_matrix : np.ndarray [shape=(num_samples,), (num_samples, num_channels), or (num_features, num_frames), dtype=np.float].
         Matrix of features. If the features are not of type 'signal' and the
         shape is 1 D, one dimension will be added to be plotted with a colormesh.
     feature_type : str
@@ -137,8 +136,13 @@ def visualize_feats(feature_matrix, feature_type,
         plt.colorbar(label=energy_label)
     plt.xlabel(x_axis_label)
     plt.ylabel(axis_feature_label)
+    # if feature_matrix has multiple frames, not just one
     if feature_matrix.shape[1] > 1:
-        plt.xlabel('Number of processed frames')
+        # the xticks basically show time but need to be multiplied by 0.01
+        plt.xlabel('Time (sec)') 
+        locs, labels = plt.xticks()
+        new_labels=[str(round(i*0.01,1)) for i in locs]
+        plt.xticks(ticks=locs,labels=new_labels)
         plt.ylabel('Frequency bins')
     if title is None:
         plt.title('{} Features'.format(feature_type.upper()))
