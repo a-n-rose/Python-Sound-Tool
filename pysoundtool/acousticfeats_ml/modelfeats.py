@@ -76,7 +76,8 @@ class AcousticData:
                  win_size = 25,
                  percent_overlap = 0.5,
                  window_type = 'hamming',
-                 real_signal = True
+                 real_signal = True,
+                 feature_shape = None,
                  ):
         self.feature_type = feature_type
         self.sr = sr
@@ -91,8 +92,27 @@ class AcousticData:
         self.fft_bins = self.frame_length
         self.real_signal = real_signal
         
+class FeatPrep_SpeechRecognition(AcousticData):
+    pass
 
-class PrepFeatures(AcousticData):
+class FeatPrep_DenoiseCNN(AcousticData):
+    '''FeatPrep_DenoiseAutoencoder, FeatPrep_DenoiseImage, FeatPrep_DenoiseWavelet?
+    '''
+    pass
+
+class FeatPrep_EmotionRecognition(AcousticData):
+    pass
+
+class FeatPrep_ClinicalDiagnosis(AcousticData):
+    pass
+
+class FeatPrep_LanguageClassifier(AcousticData):
+    pass
+
+class FeatPrep_SpeakerRecognition(AcosuticData):
+    pass
+
+class FeatPrep_SoundClassifier(AcousticData):
 
     def __init__(self,
                  feature_type='fbank',
