@@ -48,6 +48,28 @@ class SoundClassifier:
     A. Sehgal and N. Kehtarnavaz, "A Convolutional Neural Network 
     Smartphone App for Real-Time Voice Activity Detection," in IEEE Access, 
     vol. 6, pp. 9017-9026, 2018. 
+    
+    Attributes
+    ----------
+    model_path : str or pathlib.PosixPath
+        The full path to the model to be trained or pretrained model. If `str`, 
+        will be converted to pathlib.PosixPath object. The path will end with 
+        extension '.h5'.
+    models_dir : str or pathlib.PosixPath
+        The directory of where the model is stored.
+    features_dir : str or pathlib.PosixPath
+        The directory where relevant data files are located. Data files are 
+        expected to be in .npy format.
+    encoded_labels_path : str
+        A path to .csv file with dictionary containing the encoded labels for 
+        training data.
+    feature_session : None
+        Currently doesn't seem to be used within this class. TODO remove. 
+    data_settings : dict
+        Loaded dictionary containing data extraction settings, pulled from
+        `features_dir`.
+    modelsettings_path : str or pathlib.PosixPath
+        Path to where model training settings are to be saved.
     '''
     def __init__(self,
                  modelname, models_dir,
@@ -62,8 +84,28 @@ class SoundClassifier:
         self.data_settings = pathorg.load_dict(
             pathorg.load_settings_file(self.features_dir))
         self.modelsettings_path = modelsettings_path
+        '''Initializes class for training a sound classifier via CNN 
+        '''
 
     def create_model_path(self, models_dir, modelname, newmodel=True):
+        '''Creates directory and checks validity of model pathway.
+        
+        Parameters
+        ----------
+        models_dir : str or pathlib.PosixPath
+            TODO make this optional. 
+            
+        modelname : str or pathlib.PosixPath
+        
+        newmodel : bool 
+            If True and model path already exists, raises FileExistsError. 
+            (default True)
+            
+        Returns
+        -------
+        model_path : pathlib.PosixPath
+            The verified pathway to the model.
+        '''
         if isinstance(modelname, str) and '.h5' not in modelname:
             modelname += '.h5'
         if not models_dir:
@@ -83,9 +125,22 @@ class SoundClassifier:
         return model_path
 
     def load_train_val_data(self, test_model=False):
-        '''loads training data and trains model 
-
-        Expects at least train and validation data, test data optional '''
+        '''Loads training data and trains model
+        
+        Expects at least train and validation data, test data optional. If 
+        no test data, set `test_model` as False.
+        
+        Parameters
+        ----------
+        test_model : bool 
+            If False, model only trains with train and validation data. If 
+            True, model will train with train and validation data, and test 
+            with test data. (default False)
+            
+        Returns
+        -------
+        None
+        '''
         self.train_path = None
         self.val_path = None
         self.test_path = None
@@ -109,13 +164,38 @@ class SoundClassifier:
                     'No file for {} data found'.format('test'))
 
     def load_labels(self):
+        '''Loads the encoded labels for the training data.
+        
+        Parameters
+        ----------
+        self : class instance
+            Contains the attribute `encoded_labels_path` which is used to 
+            load the .csv file containing the encoded labels dictionary.
+            
+        Returns
+        -------
+        labels_encoded : dict { encoded_label : label }
+            The dictionary containing the encoded labels and labels for training
+            data.
+        '''
         labels_encoded = pathorg.load_dict(self.encoded_labels_path)
         return labels_encoded
 
+    # Continue documentation here
     def set_model_params(self,  color_scale=1, num_layers=None, feature_maps=None,
                          kernel_size=None, halve_feature_maps=True, strides=2,
                          dense_hidden_units=100, epochs=100, activation_layer='relu',
                          activation_output='softmax', dropout=0.25):
+        '''Sets parameters of model to class attributes to save in model settings.
+        
+        Parameters
+        ----------
+        color_scale : int 
+            Set to 1, gray scale; set to 3, RGB scale; set to 4, TODO: find out what happens. (default 1) 
+        num_layers : int, optional
+            Number of convolutional neural network layers. (default 3)
+        feature_maps : TODO 
+        '''
         self.num_features = featorg.make_number(
             self.data_settings['num_columns'])
         self.feature_sets = featorg.make_number(
