@@ -33,16 +33,66 @@ sys.path.insert(0, packagedir)
 
 import pysoundtool as pyst
 
+class AcousticData:
+    '''Base class for handling acoustic data and machine learning.
+    
+    Goal is to be able to prepare acoustic data for just about any model, and any format.
+    
+    Attributes
+    ----------
+    feature_type : str 
+        Options: 'signal' for raw samples, 'stft' for magnitude/power spectrum related data,
+        'fbank' for mel filterbank energies, and 'mfcc' for mel frequency cepstral coefficients. (default 'fbank') # TODO add DCT.
+    sr : int 
+        Sample rate of audio data, especially relevant for dealing with samples. 
+        (default 48000)
+    n_melfilters : int 
+        The number of mel filters to apply, especially 
+        relevant for 'fbank' features. (default 40)
+    n_mfcc : int 
+        The number of mel cepstral coefficients. For speech, around 13 is normal. Others have
+        used 22 and 40 coefficients. (default None)
+    win_size : int, float, optional
+        window in milliseconds to process acoustic data. (default 25 ms)
+    percent_overlap : float, optional
+        Percent of overlapping samples between windows. For example, if `win_size` is 
+        25 ms, a `percent_overlap` of 0.5 would result in 12.5 ms of overlapping samples
+        of consecutive windows. (default 0.5)
+    window_type : 'str', optional
+        Window type applied to each processing window. Options: 'hamming', 'hann'. 
+        (default 'hamming')
+    '''
+    def __init__(self,
+                 feature_type = 'fbank',
+                 sr= 48000, 
+                 n_melfilters = 40,
+                 num_mfcc = None,
+                 win_size = 25,
+                 percent_overlap = 0.5,
+                 window_type = 'hamming',
+                 ):
+        self.feature_type = feature_type
+        self.sr = sr
+        self.n_melfilters = n_melfilters
+        self.n_mfcc = n_mfcc
+        self.win_size = win_size
+        self.percent_overlap = percent_overlap
+        self.win_shift = self.win_size * self.percent_overlap
+        self.window_type = window_type
+        self.frame_length = pyst.dsp.calc_frame_length(self.window_size,
+                                                  self.sr)
+        self.fft_bins = self.frame_length
+        
 
-class PrepFeatures:
+class PrepFeatures(AcousticData):
 
     def __init__(self,
                  feature_type='fbank',
-                 sampling_rate=48000,
-                 num_filters=40,
-                 num_mfcc=None,
-                 window_size=25,
-                 window_shift=25/2.,
+                 sr=48000,
+                 n_melfilters=40,
+                 n_mfcc=None,
+                 win_size=25,
+                 percent_overlap=0.5,
                  training_segment_ms=1000,
                  num_columns=None,
                  num_images_per_audiofile=None,
@@ -61,41 +111,27 @@ class PrepFeatures:
         feature_type : str
             Which type of features extracted. Options: 'mfcc', 'fbank'. 
             (default 'fbank')
-        sampling_rate : int, default=48000
+        sr : int, default=48000
             The audio files will be processed by this sampling rate.
-        num_filters : int, default=40
+        n_melfilters : int, default=40
             Number of mel filters applied when calculating the melspectrogram
-        window_size : int or float, default=25
+        win_size : int or float, default=25
             In ms, the window size to calculate melspectrogram
-        window_shift : int or float, default=12.5
+        win_shift : int or float, default=12.5
             The amount of overlap of melspectrogram calculations. Default is
             50% overlap
         training_segment_ms : int or float, default=62.5
             In ms, the size of melspectrogram 'image' to feed to CNN.
         '''
-        self.feature_type = feature_type
-        self.sr = sampling_rate
-        if 'fbank' in feature_type:
-            self.num_filters = num_filters
-            self.num_mfcc = None
-        elif 'mfcc' in feature_type and num_mfcc is not None:
-            self.num_filters = num_filters
-            self.num_mfcc = num_mfcc
-        elif 'mfcc' in feature_type and num_mfcc is None:
-            self.num_filters = num_filters
-            self.num_mfcc = num_filters
-        elif 'stft' in feature_type:
-            raise ValueError("Unfortunately, 'stft' is not yet supported.")
-        else:
-            raise ValueError("Sorry. Feature type not recognized.")
-        self.window_size = window_size
-        if window_shift:
-            self.window_shift = window_shift
-        else:
-            self.window_shift = window_size/2.
-        self.frame_length = pyst.dsp.calc_frame_length(self.window_size,
-                                                  self.sr)
-        self.fft_bins = self.frame_length
+        AcousticData.__init__(self,
+                              feature_type = feature_type,
+                              sr = sr, 
+                              n_melfilters = n_melfilters, 
+                              n_mfcc = n_mfcc,
+                              win_size = win_size,
+                              percent_overlap = percent_overlap, 
+                              window_type = window_type)
+
         self.training_segment_ms = training_segment_ms
         self.num_columns = num_columns or self.num_filters
         if 'mfcc' in feature_type:
@@ -106,7 +142,6 @@ class PrepFeatures:
         self.num_waves = num_waves
         if 'fbank' in self.feature_type or 'mfcc' in self.feature_type:
             self.feature_sets = feature_sets or self.calc_filter_image_sets()
-        self.window_type = window_type
         self.augment_data = augment_data
 
     def calc_filter_image_sets(self):
