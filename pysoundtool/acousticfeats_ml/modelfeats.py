@@ -36,13 +36,15 @@ import pysoundtool as pyst
 class AcousticData:
     '''Base class for handling acoustic data and machine learning.
     
-    Goal is to be able to prepare acoustic data for just about any model, and any format.
+    Holds attributes relevant to acosutic data and how it is handled. Goal is to 
+    be able to prepare acoustic data for just about any model, and any format.
     
     Attributes
     ----------
     feature_type : str 
-        Options: 'signal' for raw samples, 'stft' for magnitude/power spectrum related data,
-        'fbank' for mel filterbank energies, and 'mfcc' for mel frequency cepstral coefficients. (default 'fbank') # TODO add DCT.
+        Options: 'signal' for raw samples, 'stft' for magnitude/power spectrum 
+        related data, 'fbank' for mel filterbank energies, and 'mfcc' for mel 
+        frequency cepstral coefficients. (default 'fbank') # TODO add DCT.
     sr : int 
         Sample rate of audio data, especially relevant for dealing with samples. 
         (default 48000)
@@ -50,26 +52,31 @@ class AcousticData:
         The number of mel filters to apply, especially 
         relevant for 'fbank' features. (default 40)
     n_mfcc : int 
-        The number of mel cepstral coefficients. For speech, around 13 is normal. Others have
-        used 22 and 40 coefficients. (default None)
+        The number of mel cepstral coefficients. For speech, around 13 is normal. 
+        Others have used 22 and 40 coefficients. (default None)
     win_size : int, float, optional
         window in milliseconds to process acoustic data. (default 25 ms)
     percent_overlap : float, optional
-        Percent of overlapping samples between windows. For example, if `win_size` is 
-        25 ms, a `percent_overlap` of 0.5 would result in 12.5 ms of overlapping samples
-        of consecutive windows. (default 0.5)
+        Percent of overlapping samples between windows. For example, if `win_size` 
+        is 25 ms, a `percent_overlap` of 0.5 would result in 12.5 ms of 
+        overlapping samples of consecutive windows. (default 0.5)
     window_type : 'str', optional
-        Window type applied to each processing window. Options: 'hamming', 'hann'. 
-        (default 'hamming')
+        Window type applied to each processing window. Options: 'hamming', 
+        'hann'. (default 'hamming')
+    real_signal : bool 
+        IF True, half of the fft will be used in feature extraction. If false, 
+        the full FFT will be used, which is symmetrical. For acoustic data, using 
+        half the FFT may be beneficial for increasing efficiency.
     '''
     def __init__(self,
                  feature_type = 'fbank',
                  sr= 48000, 
                  n_melfilters = 40,
-                 num_mfcc = None,
+                 n_mfcc = None,
                  win_size = 25,
                  percent_overlap = 0.5,
                  window_type = 'hamming',
+                 real_signal = True
                  ):
         self.feature_type = feature_type
         self.sr = sr
@@ -82,6 +89,7 @@ class AcousticData:
         self.frame_length = pyst.dsp.calc_frame_length(self.window_size,
                                                   self.sr)
         self.fft_bins = self.frame_length
+        self.real_signal = real_signal
         
 
 class PrepFeatures(AcousticData):
