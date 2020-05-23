@@ -353,6 +353,7 @@ def prepfeatures(filter_class, feature_type='mfcc', num_filters=40,
                                           filter_class.labels_waves_path,
                                           limit=limit)
 
+    # TODO make baseclass PrepFeatures for ClassifierFeats, AutoencoderFeats
     feats_class = PrepFeatures(feature_type=feature_type,
                                num_filters=num_filters,
                                training_segment_ms=segment_dur_ms,
@@ -368,6 +369,64 @@ def prepfeatures(filter_class, feature_type='mfcc', num_filters=40,
     filter_class.features = filter_class.features_dir
     return feats_class, filter_class
 
+
+def prepfeatures_autoencoder(filter_class, feature_type='mfcc', num_filters=40,
+                 segment_dur_ms=1000, limit=None, augment_data=False,
+                 sampling_rate=48000):
+    '''Pulls info from 'filter_class' instance to then extract, save features
+
+    Parameters
+    ----------
+    filter_class : class
+        The class instance holding attributes relating to path structure
+        and filenames necessary for feature extraction
+    feature_type : str, optional
+        Acceptable inputs: 'mfcc' and 'fbank'. These are the features that
+        will be extracted from the audio and saved (default 'mfcc')
+    num_filters : int, optional
+        The number of mel filters used during feature extraction. This number 
+        ranges for 'mfcc' extraction between 13 and 40 and for 'fbank'
+        extraction between 20 and 128. The higher the number, the greater the 
+        computational load and memory requirement. (default 40)
+    segment_dur_ms : int, optional
+        The length in milliseconds of the acoustic data to extract features
+        from. If 1000 ms, 1 second of acoustic data will be processed; 1 sec 
+        of feature data will be extracted. If not enough audio data is present,
+        the feature data will be zero padded. (default 1000)
+
+    Returns
+    ----------
+    feats_class : class
+        The class instance holding attributes relating to the current 
+        feature extraction session
+    filter_class : class
+        The updated class instance holding attributes relating to path
+        structure
+    '''
+    # extract features
+    # create namedtuple with train, val, and test wavfiles and labels
+    # TODO update filter_class with new autoencoder attributes
+    datasetwaves = pyst.featorg.audio2datasets(filter_class.audiodata_dir,
+                                          filter_class.inputdata_folder,
+                                          filter_class.outputdata_folder,
+                                          filter_class.features_dir,
+                                          limit=limit)
+
+    # TODO make baseclass PrepFeatures for ClassifierFeats, AutoencoderFeats
+    feats_class = PrepFeatures(feature_type=feature_type,
+                               num_filters=num_filters,
+                               training_segment_ms=segment_dur_ms,
+                               augment_data=augment_data)
+    # incase an error occurs; save this before extraction starts
+    feats_class.save_class_settings(filter_class.features_dir)
+    for i, dataset in enumerate(datasetwaves._fields):
+        feats_class.get_save_feats(datasetwaves[i],
+                                   filter_class.features_dir,
+                                   '{}.npy'.format(dataset))
+    # save again with added information, ie the total number of wavfiles
+    feats_class.save_class_settings(filter_class.features_dir, replace=True)
+    filter_class.features = filter_class.features_dir
+    return feats_class, filter_class
 
 def loadfeature_settings(feature_info):
     '''Loads prev extracted feature settings into new feature class instance
