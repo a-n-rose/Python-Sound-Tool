@@ -585,12 +585,10 @@ def create_autoencoder_data(audio_classes_dir, cleandata_folder, noisedata_folde
 
     Returns
     -------
-    dataset_audio : tuple
-        Named tuple including three lists of tuples: the train, validation, 
-        and test lists, respectively. The tuples within the lists contain
-        the audio paths associated to noisy audiofiles and the audio paths associate 
-        to the clean audiofiles. (i.e (['wav1_noisy.wav','wav2_noisy.wav'],
-        ['wav1.wav','wav2.wav']))
+    saveinput_path : pathlib.PosixPath
+        Path to where noisy train, validation, and test audio data are located
+    saveoutput_path : pathlib.PosixPath   
+        Path to where clean train, validation, and test audio data are located
     '''
     import math
     import time
@@ -692,57 +690,8 @@ def create_autoencoder_data(audio_classes_dir, cleandata_folder, noisedata_folde
     print('Dataset creation took a total of {} {}.'.format(
         round(total_time,2), 
         units))
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    count = 0
-    row = 0
-    train = []
-    val = []
-    test = []
-    for key, value in class_waves_dict.items():
-        audiolist = pyst.paths.string2list(value)
-        train_waves, val_waves, test_waves = waves2dataset(audiolist)
 
-        for i, wave in enumerate(train_waves):
-            train.append(tuple([label2int[key], wave]))
-
-        for i, wave in enumerate(val_waves):
-            val.append(tuple([label2int[key], wave]))
-
-        for i, wave in enumerate(test_waves):
-            test.append(tuple([label2int[key], wave]))
-    # be sure the classes are not in any certain order
-    shuffle(train)
-    shuffle(val)
-    shuffle(test)
-    # esure the number of training data is 80% of all available audiodata:
-    if len(train) < math.ceil((len(train)+len(val)+len(test))*perc_train):
-        raise pyst.errors.notsufficientdata_error(len(train),
-                                      len(val),
-                                      len(test),
-                                      math.ceil(
-                                          (len(train)+len(val)+len(test))*perc_train))
-    TrainingData = collections.namedtuple('TrainingData',
-                                          ['train_data', 'val_data', 'test_data'])
-    dataset_audio = TrainingData(
-        train_data=train, val_data=val, test_data=test)
-    return dataset_audio
+    return saveinput_path, saveoutput_path
 
 
 if __name__ == "__main__":
