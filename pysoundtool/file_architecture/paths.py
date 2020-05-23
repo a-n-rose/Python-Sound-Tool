@@ -160,6 +160,7 @@ class PathSetup:
                  feature_type='mfcc',
                  num_filters=40,
                  segment_length_ms=1000,
+                 model_type = 'classifier'
                  ):
         self.smartfilt_headpath = prep_path([smartfilt_headpath, project_name])
         self.audiodata_dir = prep_path(audiodata_dir, create_new=False)
@@ -181,8 +182,11 @@ class PathSetup:
         self.powspec_path = self.get_avepowspec_path()
         self.modelname = project_name+'_model'
         self.model_dir = self.get_modelpath()
-        self._model_settings_filename = 'settings_SceneClassifier.csv'
+        # TODO make more generalizable, e.g. autoencoder, speech recognition, etc.
+        #self._model_settings_filename = 'settings_SceneClassifier.csv'
+        self._model_settings_filename = 'settings_{}.csv'.format(model_type)
         self.model_settings_path = self.get_modelsettings_path()
+        self.model_type = model_type
 
     def prep_feat_dirname(self, feature_type, num_filters, segment_length_ms):
         len_sec = str(round(segment_length_ms/1000.0, 1))
