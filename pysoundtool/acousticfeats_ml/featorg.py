@@ -23,8 +23,10 @@
 
 import numpy as np
 from random import shuffle
+import random
 import collections
 import math 
+from scipy.io.wavfile import write
 
 import os, sys
 import inspect
@@ -315,6 +317,7 @@ def waves2dataset(audiolist, train_perc=0.8, seed=40):
     assert len(train_waves)+len(val_waves)+len(test_waves) == len(audiolist)
     return train_waves, val_waves, test_waves
 
+# TODO make more generalizable - works for classifer but not autoencoder
 def audio2datasets(audio_classes_dir, encoded_labels_path,
                    label_wavfiles_path, perc_train=0.8, limit=None):
     '''Organizes all audio in audio class directories into datasets.
@@ -407,6 +410,340 @@ def audio2datasets(audio_classes_dir, encoded_labels_path,
     dataset_audio = TrainingData(
         train_data=train, val_data=val, test_data=test)
     return dataset_audio
+
+#### TODO find where this is called and update it
+#### TODO rename to create_datasets?
+###def audio2datasets_autoencoder(audio_classes_dir, inputdata_folder, outputdata_folder, 
+                               ###features_dir, perc_train=0.8, perc_val=0.2,  limit=None):
+    ###'''Organizes all audio in audio class directories into datasets.
+    
+    ###Expects the name/id of files/data in the output_folder to be included 
+    ###in those in the input_folder. For example, take the output file 'wav1.wav' 
+    ###and the input file 'wav1_noisy.wav'. 'wav1' is in 'wav1_noisy' but 'wav1_noisy' 
+    ###is not in 'wav1'. (Autencoders tend to take in noisy data to produce cleaner
+    ###versions of that data.)
+
+    ###Parameters
+    ###----------
+    ###audio_classes_dir : pathlib.PosixPath
+        ###Directory path to where the 'clean' and 'noisy' audio dataset folders
+        ###are located.
+    ###inputdata_folder : str
+        ###Name of folder containing input data for autoencoder. E.g. 'clean'
+    ###outputdata_folder : str
+        ###Name of folder containing output data for autoencoder. E.g. 'noisy'
+    ###features_dir : pathlib.PosixPath
+        ###Directory of where feature data will be or is saved.
+    ###perc_train : int, float
+        ###The percentage or decimal representing the amount of training
+        ###data compared to the test data (default 0.8)
+    ###perc_val : int, float
+        ###The percentage or decimal representing the amount of training data to 
+        ###reserve for validation (default 0.2)
+
+    ###Returns
+    ###-------
+    ###dataset_audio : tuple
+        ###Named tuple including three lists of tuples: the train, validation, 
+        ###and test lists, respectively. The tuples within the lists contain
+        ###the audio paths associated to noisy audiofiles and the audio paths associate 
+        ###to the clean audiofiles. (i.e (['wav1_noisy.wav','wav2_noisy.wav'],
+        ###['wav1.wav','wav2.wav']))
+    ###'''
+    ###import math
+    ###if perc_train > 1:
+        ###perc_train /= 100.
+    ###if perc_val > 1:
+        ###perc_val /= 100.
+    ###if perc_train > 1:
+        ###raise ValueError('The percentage value of train data exceeds 100%')
+    ###if perc_val > 1:
+        ###raise ValueError('The percentage value of validation data exceeds 100%')
+
+    #### TODO incorporate autoencoder feature extraction 
+    ###input_path = audio_classes_dir.joinpath(inputdata_folder)
+    ###output_path = audio_classes_dir.joinpath(outputdata_folder)
+   
+    ###if limit is not None:
+        ###inputdata_folder += '_limit'+str(limit)
+        ###outputdata_folder += '_limit'+str(limit)
+    ###saveinput_path = features_dir.joinpath(inputdata_folder)
+    ###saveoutput_path = features_dir.joinpath(outputdata_folder)
+            
+    #### TODO test for existence of directories/files
+    ###input_datapaths = []
+    ###output_datapaths = []
+    
+    
+    ###for dataset in ['train', 'val', 'test']:
+        ###saveinput_dataset = saveinput_path.joinpath(dataset)
+        ###input_datapaths.append(saveinput_dataset)
+        
+        ###saveoutput_dataset = saveoutput_path.joinpath(dataset)
+        ###output_datapaths.append(saveoutput_dataset)
+    
+    #### TODO expand available file types
+    ###inputaudio = sorted(input_path.glob('**/*.wav'))
+    ###outputaudio = sorted(output_path.glob('**/*.wav'))
+    
+    ###shuffle(outputaudio)
+    
+    ###if limit is not None:
+        ###outputaudio = outputaudio[:limit]
+    
+    ###percentage_training = math.floor((1 - perc_train) * len(outputaudio))
+    ###train_audio, test_audio = outputaudio[:percentage_training], \
+        ###outputaudio[percentage_training:]
+
+    ###percentage_val = math.floor((1 - perc_val) * len(train_audio))
+    ###train_audio, validation_audio = train_audio[:percentage_val], train_audio[percentage_val:]
+    ###num_noises = len(noisewaves)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    ###count = 0
+    ###row = 0
+    ###train = []
+    ###val = []
+    ###test = []
+    ###for key, value in class_waves_dict.items():
+        ###audiolist = pyst.paths.string2list(value)
+        ###train_waves, val_waves, test_waves = waves2dataset(audiolist)
+
+        ###for i, wave in enumerate(train_waves):
+            ###train.append(tuple([label2int[key], wave]))
+
+        ###for i, wave in enumerate(val_waves):
+            ###val.append(tuple([label2int[key], wave]))
+
+        ###for i, wave in enumerate(test_waves):
+            ###test.append(tuple([label2int[key], wave]))
+    #### be sure the classes are not in any certain order
+    ###shuffle(train)
+    ###shuffle(val)
+    ###shuffle(test)
+    #### esure the number of training data is 80% of all available audiodata:
+    ###if len(train) < math.ceil((len(train)+len(val)+len(test))*perc_train):
+        ###raise pyst.errors.notsufficientdata_error(len(train),
+                                      ###len(val),
+                                      ###len(test),
+                                      ###math.ceil(
+                                          ###(len(train)+len(val)+len(test))*perc_train))
+    ###TrainingData = collections.namedtuple('TrainingData',
+                                          ###['train_data', 'val_data', 'test_data'])
+    ###dataset_audio = TrainingData(
+        ###train_data=train, val_data=val, test_data=test)
+    ###return dataset_audio
+
+
+
+def create_autoencoder_data(audio_classes_dir, cleandata_folder, noisedata_folder,
+                               features_dir, perc_train=0.8, perc_val=0.2,  limit=None,
+                               noise_scales=[0.3,0.2,0.1], sr = 22050):
+    '''Organizes all audio in audio class directories into datasets.
+    
+    Expects the name/id of files/data in the output_folder to be included 
+    in those in the input_folder. For example, take the output file 'wav1.wav' 
+    and the input file 'wav1_noisy.wav'. 'wav1' is in 'wav1_noisy' but 'wav1_noisy' 
+    is not in 'wav1'. (Autencoders tend to take in noisy data to produce cleaner
+    versions of that data.)
+
+    Parameters
+    ----------
+    audio_classes_dir : pathlib.PosixPath
+        Directory path to where the 'clean' and 'noisy' audio dataset folders
+        are located.
+    cleandata_folder : str
+        Name of folder containing clean audio data for autoencoder. E.g. 'clean_speech'
+    noisedata_folder : str
+        Name of folder containing noise to add to clean data. E.g. 'noise'
+    features_dir : pathlib.PosixPath
+        Directory of where feature data will be or is saved.
+    perc_train : int, float
+        The percentage or decimal representing the amount of training
+        data compared to the test data (default 0.8)
+    perc_val : int, float
+        The percentage or decimal representing the amount of training data to 
+        reserve for validation (default 0.2)
+
+    Returns
+    -------
+    dataset_audio : tuple
+        Named tuple including three lists of tuples: the train, validation, 
+        and test lists, respectively. The tuples within the lists contain
+        the audio paths associated to noisy audiofiles and the audio paths associate 
+        to the clean audiofiles. (i.e (['wav1_noisy.wav','wav2_noisy.wav'],
+        ['wav1.wav','wav2.wav']))
+    '''
+    import math
+    import time
+    
+    start = time.time()
+    if perc_train > 1:
+        perc_train /= 100.
+    if perc_val > 1:
+        perc_val /= 100.
+    if perc_train > 1:
+        raise ValueError('The percentage value of train data exceeds 100%')
+    if perc_val > 1:
+        raise ValueError('The percentage value of validation data exceeds 100%')
+
+    cleandata_path = audio_classes_dir.joinpath(cleandata_folder)
+    noisedata_path = audio_classes_dir.joinpath(noisedata_folder)
+   
+    if limit is not None:
+        cleandata_folder += '_limit'+str(limit)
+        noisedata_folder += '_limit'+str(limit)
+    # output of autoencoder should be clean data
+    saveoutput_path = features_dir.joinpath(cleandata_folder)
+    # input of autoencoder is noisy data
+    saveinput_path = features_dir.joinpath(noisedata_folder)
+            
+    # TODO test for existence of directories/files
+    # for example: q.exists() or q.is_dir() (pathlib objects) 
+    clean_datapaths = []
+    noisy_datapaths = []
+    
+    
+    for dataset in ['train', 'val', 'test']:
+        saveinput_dataset = saveinput_path.joinpath(dataset)
+        noisy_datapaths.append(saveinput_dataset)
+        
+        saveoutput_dataset = saveoutput_path.joinpath(dataset)
+        clean_datapaths.append(saveoutput_dataset)
+    
+    # TODO expand available file types
+    cleanaudio = sorted(cleandata_path.glob('**/*.wav'))
+    noiseaudio = sorted(noisedata_path.glob('**/*.wav'))
+    
+    random.shuffle(cleanaudio)
+    
+    if limit is not None:
+        cleanaudio = cleanaudio[:limit]
+    
+    percentage_training = math.floor((1 - perc_train) * len(cleanaudio))
+    train_audio, test_audio = cleanaudio[:percentage_training], \
+        cleanaudio[percentage_training:]
+
+    percentage_val = math.floor((1 - perc_val) * len(train_audio))
+    train_audio, val_audio = train_audio[:percentage_val], train_audio[percentage_val:]
+    num_noises = len(noiseaudio)
+    
+    for j, dataset_path in enumerate(cleanaudio):
+        print('Processing {}'.format(dataset_path))
+        print('Processing {}'.format(noiseaudio[j]))
+        if 'train' in dataset_path:
+            audiopaths = train_audio
+        elif 'val' in dataset_path:
+            audiopaths = val_audio
+        elif 'test' in dataset_path:
+            audiopaths = test_audio
+        for i, wavefile in enumerate(audiopaths):
+            rand_noise_id = random.choice(
+                range(num_noises))
+            noise = noisewaves[rand_noise_id]
+            scale = random.choice(noise_scales)
+            
+            # to save in noisy speech wavefile
+            #clean_stem = os.path.splitext(
+                #os.path.basename(wavefile))[0]
+            #noise_stem = os.path.splitext(
+                #os.path.basename(noise))[0]
+            # should work on posixpath objects
+            clean_stem = wavefile.stem
+            noise_stem = noise.stem
+            
+            noise_data, sr = pyst.soundprep.loadsound(
+                noise, samplerate=sr)
+            clean_data, sr2 = pyst.soundprep.loadsound(
+                wavefile, samplerate=sr)
+            clean_seconds = len(clean_data)/sr2
+            noisy_data, sr = pyst.soundprep.add_sound_to_signal(
+                wavefile, noise, scale = scale, delay_target_sec=0, total_len_sec = clean_seconds
+                )
+            write('{}{}__{}_scale{}.wav'.format(noiseaudio[j],clean_stem,noise_stem,scale), 
+                sr, 
+                noisy_data)
+            write(dataset_path+clean_stem+'.wav', sr, clean_data)
+            pyst.print_progress(iteration=i, 
+                        total_iterations=len(audiopaths),
+                        task='clean and noisy speech generation')
+        print('Finished processing {}'.format(dataset_path))
+        print('Finished processing {}'.format(noiseaudio[j]))
+    end = time.time()
+    total_time, units = pyst.adjust_time_units(end-start)
+    print('Dataset creation took a total of {} {}.'.format(
+        round(total_time,2), 
+        units))
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    count = 0
+    row = 0
+    train = []
+    val = []
+    test = []
+    for key, value in class_waves_dict.items():
+        audiolist = pyst.paths.string2list(value)
+        train_waves, val_waves, test_waves = waves2dataset(audiolist)
+
+        for i, wave in enumerate(train_waves):
+            train.append(tuple([label2int[key], wave]))
+
+        for i, wave in enumerate(val_waves):
+            val.append(tuple([label2int[key], wave]))
+
+        for i, wave in enumerate(test_waves):
+            test.append(tuple([label2int[key], wave]))
+    # be sure the classes are not in any certain order
+    shuffle(train)
+    shuffle(val)
+    shuffle(test)
+    # esure the number of training data is 80% of all available audiodata:
+    if len(train) < math.ceil((len(train)+len(val)+len(test))*perc_train):
+        raise pyst.errors.notsufficientdata_error(len(train),
+                                      len(val),
+                                      len(test),
+                                      math.ceil(
+                                          (len(train)+len(val)+len(test))*perc_train))
+    TrainingData = collections.namedtuple('TrainingData',
+                                          ['train_data', 'val_data', 'test_data'])
+    dataset_audio = TrainingData(
+        train_data=train, val_data=val, test_data=test)
+    return dataset_audio
+
 
 if __name__ == "__main__":
     import doctest
