@@ -483,6 +483,35 @@ def loadclassifier(filter_class):
                             )
     return scene
 
+
+def buildmodel(filter_class):
+    scene = SoundClassifier(modelname=filter_class.modelname,
+                            models_dir=filter_class.model_dir,
+                            features_dir=filter_class.features_dir,
+                            encoded_labels_path=filter_class.labels_encoded_path,
+                            feature_session=filter_class.features_dir.parts[-1],
+                            modelsettings_path=filter_class.model_settings_path,
+                            newmodel=True,
+                            model_type = filter_class.model_type
+                            )
+    scene.load_train_val_data(test_model=False)
+    scene.train_scene_classifier()
+    return scene
+
+def loadmodel(filter_class):
+    '''need to generalize loading of models.
+    '''
+    sm = SoundModel(modelname=filter_class.model,
+                            models_dir=None, #loaded from modelname
+                            features_dir=filter_class.features_dir,
+                            encoded_labels_path=None,
+                            feature_session=filter_class.feature_dirname,
+                            modelsettings_path=filter_class.model_settings_path,
+                            newmodel=False,
+                            model_type = filter_class.model_type
+                            )
+    return sm
+
 def prepdata_ml(matrix, is_train=True, scalars=None):
     X, y = matrixfun.separate_dependent_var(matrix)
     if is_train:
