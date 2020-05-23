@@ -109,3 +109,60 @@ def soundclassifier(classifier_project_name,
                                               classifier_class)
         label, label_encoded = classify.get_label()
         print('\nLabel classified: ', label)
+        
+def autoencoder_denoiser(project_name, 
+                    headpath,
+                    target_wavfile = None, 
+                    audiodir = None,
+                    feature_type = 'fbank',
+                    audioclass_wavfile_limit = None,
+                    model_type='autoencoder'):
+    '''Example code for implementing denoising autoencoder.
+    '''
+    import pysoundtool as pyst
+    #extract data
+    my_project = pyst.PathSetup(project_name,
+                            headpath,
+                            audiodir,
+                            feature_type = feature_type,
+                            model_type = model_type)
+    
+    no_conflicts_feats = my_project.cleanup_feats()
+    if no_conflicts_feats == False:
+        raise FileExistsError('Program cannot run.\
+            \nMove the conflicting files or change project name.')
+    feat_dir = my_project.feature_dirname
+    if my_project.features is True and \
+            feat_dir in str(my_project.features_dir) or \
+                my_project.features is False:
+        print('\nFeatures have been extracted.')
+        print('\nLoading corresponding feature settings.')
+        feats_class = pyst.getfeatsettings(my_project)
+    elif audiodir:
+        feats_class, my_project = pyst.run_featprep(
+            my_project,
+            feature_type=feature_type,
+            limit=audioclass_wavfile_limit)
+    import pysoundtool.models
+    # Has a model been trained and saved?
+    if my_project.model is not None \
+            and feat_dir in str(my_project.model.parts[-3]):
+        print('\nLoading previously trained {}.'.format(model_type))
+        classifier_class = pyst.models.loadautoencoder(my_project)
+    else:
+        print('\nNow training {} with train, val, test datasets.'.format(model_type))
+        # check for file conflicts
+        no_conflicts = my_project.cleanup_models()
+        if no_conflicts == False:
+            raise FileExistsError('Program cannot run.\
+                \nMove the conflicting files or change project name.')
+        classifier_class = pyst.models.buildautoencoder(my_project)
+    
+    if target_wavfile:
+        classify = pyst.models.ClassifySound(target_wavfile, 
+                                              my_project, 
+                                              feats_class, 
+                                              classifier_class)
+        label, label_encoded = classify.get_label()
+        print('\nLabel classified: ', label)
+
