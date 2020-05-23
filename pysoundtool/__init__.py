@@ -13,10 +13,11 @@ from .filterfun.filters import coll_beg_audioclass_samps as save_class_noise
 from .mathfun import dsp, matrixfun, augmentdata
 from . import exceptions as errors
 from .explore_sound import visualize_feats
-
+from .general_organization import adjust_time_units, print_progress, check_noisy_clean_match
 
 __all__=['paths', 'PathSetup', \
     'featorg', 'audio2datasets', 'PrepFeatures', 'run_featprep','getfeatsettings',\
         'filters','WienerFilter','BandSubtraction','welch2class', 'save_class_noise','filtersignal', \
              'dsp', 'matrixfun', 'augmentdata', \
-                'errors', 'visualize_feats']
+                'errors', 'visualize_feats', 'adjust_time_units', 'print_progress',
+            'check_noisy_clean_match']
