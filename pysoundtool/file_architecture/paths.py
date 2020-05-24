@@ -680,8 +680,7 @@ def save_wave(wavfile_name, signal_values, sampling_rate, overwrite=False):
     ----------
     True if successful, otherwise False
     """
-    if isinstance(wavfile_name, str):
-        wavfile_name = pathlib.Path(wavfile_name)
+    wavfile_name = str2path(wavfile_name)
     directory = wavfile_name.parent
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -693,6 +692,22 @@ def save_wave(wavfile_name, signal_values, sampling_rate, overwrite=False):
     except Exception as e:
         print(e)
     return False, wavfile_name
+
+def str2path(pathstring):
+    '''Turns string path into pathlib.PosixPath object
+    
+    Parameters
+    ----------
+    pathstring : str
+        The pathway to be turned into a pathlib object
+        
+    Returns
+    -------
+    pathlibpath : pathlib.PosixPath
+        The pathway as a pathlib object.
+    '''
+    pathlibpath = pathlib.Path(pathstring)
+    return pathlibpath
 
 if __name__ == "__main__":
     import doctest
