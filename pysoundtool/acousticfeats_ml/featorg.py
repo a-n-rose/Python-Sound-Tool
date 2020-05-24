@@ -298,7 +298,6 @@ def waves2dataset(audiolist, train_perc=0.8, seed=40):
     assert len(train_waves)+len(val_waves)+len(test_waves) == len(audiolist)
     return train_waves, val_waves, test_waves
 
-# TODO make more generalizable - works for classifer but not autoencoder
 def audio2datasets(audio_classes_dir, encoded_labels_path,
                    label_wavfiles_path, perc_train=0.8, limit=None):
     '''Organizes all audio in audio class directories into datasets.
