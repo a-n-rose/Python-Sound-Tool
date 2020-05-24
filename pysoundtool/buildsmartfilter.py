@@ -14,12 +14,6 @@ import pysoundtools as pyst
 import pysoundtool.models as models
 
 
-
-from pysoundtool.filterfun.filters import calc_audioclass_powerspecs,\
-    coll_beg_audioclass_samps
-from pysoundtool.filterfun.applyfilter import filtersignal
-
-
 def mysmartfilter(name_dataset, headpath, audio_classes_dir,
                   feature_type='mfcc', num_filters=40,
                   sounddata=None,
@@ -55,10 +49,10 @@ def mysmartfilter(name_dataset, headpath, audio_classes_dir,
                 my_filter.features is False:
         print('\nFeatures have been extracted.')
         print('\nLoading corresponding feature settings.')
-        prep_feats = pyst.getfeatsettings(my_filter)
+        prep_feats = pyst.feats.getfeatsettings(my_filter)
     elif audio_classes_dir:
         print('\nExtracting dataset features --> train.npy, val.npy, test.npy')
-        prep_feats, my_filter = pyst.run_featprep(
+        prep_feats, my_filter = pyst.prepfeatures(
             my_filter,
             feature_type=feature_type,
             num_filters=num_filters,
@@ -155,7 +149,7 @@ def mysmartfilter(name_dataset, headpath, audio_classes_dir,
     else:
         outputname = outputname+'.wav'
 
-    filtersignal(
+    pyst.filtersignal(
         output_filename = my_filter.features_dir.joinpath(outputname),
         wavfile = sounddata,
         noise_file = noise_powspec,

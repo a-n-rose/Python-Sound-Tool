@@ -62,9 +62,9 @@ def soundclassifier(classifier_project_name,
                 my_project.features is False:
         print('\nFeatures have been extracted.')
         print('\nLoading corresponding feature settings.')
-        feats_class = pyst.getfeatsettings(my_project)
+        feats_class = pyst.feats.getfeatsettings(my_project)
     elif audiodir:
-        feats_class, my_project = pyst.run_featprep(
+        feats_class, my_project = pyst.prepfeatures(
             my_project,
             feature_type=feature_type,
             limit=audioclass_wavfile_limit)
@@ -97,7 +97,8 @@ def autoencoder_denoiser(project_name,
                     audiodir = None,
                     feature_type = 'fbank',
                     audioclass_wavfile_limit = None,
-                    model_type='autoencoder'):
+                    model_type='autoencoder',
+                    ):
     '''Example code for implementing denoising autoencoder.
     '''
     import pysoundtool as pyst
@@ -118,9 +119,9 @@ def autoencoder_denoiser(project_name,
                 my_project.features is False:
         print('\nFeatures have been extracted.')
         print('\nLoading corresponding feature settings.')
-        feats_class = pyst.getfeatsettings(my_project)
+        feats_class = pyst.feats.getfeatsettings(my_project)
     elif audiodir:
-        feats_class, my_project = pyst.run_featprep(
+        feats_class, my_project = pyst.prepfeatures(
             my_project,
             feature_type=feature_type,
             limit=audioclass_wavfile_limit)

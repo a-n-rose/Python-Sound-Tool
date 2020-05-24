@@ -1,6 +1,9 @@
 
 
 ###############################################################################
+
+import os, sys
+import inspect
 import pathlib
 import numpy as np
 # for building and training models
@@ -9,16 +12,12 @@ from keras.layers import Dense, Conv2D, Flatten, Dropout
 from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
 from sklearn.preprocessing import StandardScaler, normalize
  
-import os, sys
-import inspect
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
-from file_architecture import paths as pathorg
-from acousticfeats_ml  import featorg, modelfeats
-from mathfun import matrixfun
+import pysoundtool as pyst
 
 
 class SoundClassifier:
@@ -62,8 +61,8 @@ class SoundClassifier:
         self.features_dir = features_dir
         self.encoded_labels_path = encoded_labels_path
         self.feature_session = feature_session
-        self.data_settings = pathorg.load_dict(
-            pathorg.load_settings_file(self.features_dir))
+        self.data_settings = pyst.paths.load_dict(
+            pyst.paths.load_settings_file(self.features_dir))
         self.modelsettings_path = modelsettings_path
         '''Initializes class for training a sound classifier via CNN 
         '''
@@ -159,7 +158,7 @@ class SoundClassifier:
             The dictionary containing the encoded labels and labels for training
             data.
         '''
-        labels_encoded = pathorg.load_dict(self.encoded_labels_path)
+        labels_encoded = pyst.paths.load_dict(self.encoded_labels_path)
         return labels_encoded
 
     # Continue documentation here
@@ -177,11 +176,11 @@ class SoundClassifier:
             Number of convolutional neural network layers. (default 3)
         feature_maps : TODO 
         '''
-        self.num_features = featorg.make_number(
+        self.num_features = pyst.tools.make_number(
             self.data_settings['num_columns'])
-        self.feature_sets = featorg.make_number(
+        self.feature_sets = pyst.tools.make_number(
             self.data_settings['feature_sets'])
-        self.num_env_images = featorg.make_number(
+        self.num_env_images = pyst.tools.make_number(
             self.data_settings['num_images_per_audiofile'])
         if num_layers is None:
             self.num_layers = 3
@@ -362,7 +361,7 @@ class SoundClassifier:
         '''saves class settings to dictionary
         '''
         class_settings = self.__dict__
-        pathorg.save_dict(class_settings, self.modelsettings_path,
+        pyst.paths.save_dict(class_settings, self.modelsettings_path,
                           replace=overwrite)
         return None
 
@@ -372,12 +371,12 @@ class ClassifySound:
     '''
     def __init__(self, sounddata, filter_class, feature_class, model_class):
         self.sounddata = sounddata
-        self.feature_settings = pathorg.load_dict(
-            pathorg.load_settings_file(model_class.features_dir))
-        self.modelsettings = pathorg.load_dict(model_class.modelsettings_path)
+        self.feature_settings = pyst.paths.load_dict(
+            pyst.paths.load_settings_file(model_class.features_dir))
+        self.modelsettings = pyst.paths.load_dict(model_class.modelsettings_path)
         self.model_path = model_class.model_path
         self.models_dir = model_class.models_dir
-        self.decode_label = pathorg.load_dict(filter_class.labels_encoded_path)
+        self.decode_label = pyst.paths.load_dict(filter_class.labels_encoded_path)
         self.label_encoded = None
         self.label = None
         self.average_power_dir = filter_class.powspec_path
@@ -407,7 +406,7 @@ class ClassifySound:
 
     def extract_feats(self):
         prev_featextraction_settings_dict = self.feature_settings
-        get_feats = modelfeats.loadfeature_settings(
+        get_feats = pyst.feats.getfeatsettings(
             prev_featextraction_settings_dict)
         dur_sec = get_feats.training_segment_ms/1000
         feats = get_feats.extractfeats(self.sounddata, dur_sec=dur_sec,
@@ -494,7 +493,7 @@ def loadmodel(filter_class):
     return sm
 
 def prepdata_ml(matrix, is_train=True, scalars=None):
-    X, y = matrixfun.separate_dependent_var(matrix)
+    X, y = dsp.separate_dependent_var(matrix)
     if is_train:
         scalars = {}
     for j in range(X.shape[2]):
@@ -505,6 +504,6 @@ def prepdata_ml(matrix, is_train=True, scalars=None):
             X[:, :, j] = scalars[j].transform(X[:, :, j])
         X[:, :, j] = normalize(X[:, :, j])
     # Keras needs an extra dimension as a tensor / holder of data
-    X = matrixfun.add_tensor(X)
-    y = matrixfun.add_tensor(y)
+    X = dsp.add_tensor(X)
+    y = dsp.add_tensor(y)
     return X, y, scalars

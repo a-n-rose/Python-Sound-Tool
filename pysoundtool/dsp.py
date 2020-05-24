@@ -3,13 +3,23 @@
 Script with functions useful in filtering / digital signal processing
 """
 ###############################################################################
+import sys
 import numpy as np
-from scipy.signal import hamming, hann, resample
 from scipy.io.wavfile import read
 from numpy.fft import fft, rfft, ifft, irfft
+from scipy.signal import hamming, hann, resample
 from python_speech_features import logfbank, mfcc
 import librosa
-from . import matrixfun
+import librosa.display as display
+import matplotlib.pyplot as plt
+
+currentdir = os.path.dirname(os.path.abspath(
+    inspect.getfile(inspect.currentframe())))
+#parentdir = os.path.dirname(currentdir)
+packagedir = os.path.dirname(currentdir)
+sys.path.insert(0, packagedir)
+
+import pysoundtool as pyst
 
 def create_signal(freq=200, amplitude=0.4, samplerate=8000, dur_sec=0.25):
     #The variable `time` holds the expected number of measurements taken: 
@@ -38,7 +48,7 @@ def load_signal(wav, sampling_rate=48000, dur_sec=None):
     if len(samps.shape) > 1:
         samps = np.take(samps,0,axis=-1) 
     if sr != sampling_rate:
-        samps, sr = resample_audio(samps, sr, sampling_rate)
+        samps, sr = pyst.tools.resample_audio(samps, sr, sampling_rate)
     if dur_sec:
         numsamps = int(dur_sec * sampling_rate)
     else:
@@ -56,6 +66,53 @@ def load_signal(wav, sampling_rate=48000, dur_sec=None):
     #ensure max and min are between 1 and -1
     samps = np.interp(samps,(samps.min(), samps.max()),(-1, 1))
     return samps, sr
+
+
+def loadsound(filename, samplerate=None, norm=True, mono=True):
+    '''Loads sound file with scipy.io.wavfile.read
+    
+    If the sound file is not compatible with scipy's read module
+    this functions converts the file to .wav format and/or
+    changes the bit depth to be compatible. 
+    
+    Parameters
+    ----------
+    filename : str
+        The filename of the sound to be loaded
+    '''
+    try:
+        sr, data = read(filename)
+        if samplerate:
+            if sr != samplerate:
+                data, sr = resample_audio(data, sr_original = sr, sr_desired = samplerate)
+    except ValueError:
+        print("Step 1: ensure filetype is compatible with scipy library".format(filename))
+        filename = convert2wav(filename)
+        try:
+            data, sr = loadsound(filename)
+            print("Success!")
+        except ValueError:
+            print("Step 2: ensure bitdepth is compatible with scipy library")
+            filename = newbitdepth(filename)
+            data, sr = loadsound(filename)
+            print("Success!")
+    if mono and len(data.shape) > 1:
+        if data.shape[1] > 1:
+            data = stereo2mono(data)
+    if norm:
+        data = normsound(data, -1, 1)
+    return data, sr
+
+# TODO do I need this?
+#def load_sound(sound, samplerate=None):
+    #if isinstance(sound, str):
+        #sr, data = read(sound)
+        #if samplerate and samplerate != sr:
+            #data, sr = resample_audio(data, sr, samplerate)
+    #else:
+        #sr = samplerate
+        #data = sound
+    #return data, sr
 
 def normalize(data, max_val=None, min_val=None):
     '''Normalizes data.
@@ -426,9 +483,9 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
     else:
         complex_vals = False
     total_rows = n_fft
-    output_matrix = matrixfun.create_empty_matrix((total_rows,), complex_vals=complex_vals)
+    output_matrix = create_empty_matrix((total_rows,), complex_vals=complex_vals)
     if band_reduced_noise_matrix.shape[0] < n_fft:
-        temp_matrix = matrixfun.create_empty_matrix((total_rows,), complex_vals=complex_vals)
+        temp_matrix = create_empty_matrix((total_rows,), complex_vals=complex_vals)
         temp_matrix[:len(band_reduced_noise_matrix)] += band_reduced_noise_matrix
         band_reduced_noise_matrix = temp_matrix
     # flip up-down
@@ -805,6 +862,298 @@ def postfilter(original_powerspec, noisereduced_powerspec, gain,
         num_freq_bins=original_powerspec.shape[0])
     gain_postfilter = np.convolve(gain, postfilter_coeffs, mode='valid')
     return gain_postfilter
+
+
+
+
+def adjust_volume(samples, vol_range):
+    samps = samples.copy()
+    adjusted_volume = np.interp(samps,
+                                (samps.min(), samps.max()),
+                                (-vol_range, vol_range))
+    return adjusted_volume
+
+def spread_volumes(samples, vol_list = [0.1,0.3,0.5]):
+    '''Returns samples with a range of volumes. 
+    
+    Parameters
+    ----------
+    samples : ndarray
+        Series belonging to acoustic signal.
+    vol_list : list 
+        List of floats or ints representing the volumes the samples
+        are to be oriented towards. (default [0.1,0.3,0.5])
+        
+    Returns
+    -------
+    volrange_dict : tuple 
+        Tuple of `volrange_dict` values containing `samples` at various vols.
+    '''
+    if samples is None or len(samples) == 0:
+        raise ValueError('No Audio sample data recognized.')
+    max_vol = max(samples)
+    if round(max_vol) > 1:
+        raise ValueError('Audio data not normalized.')
+    volrange_dict = {}
+    for i, vol in enumerate(vol_list):
+        volrange_dict[i] = adjust_volume(samples, vol) 
+    return tuple(volrange_dict.values())
+
+
+
+# TODO: https://github.com/biopython/biopython/issues/1496
+# Fix numpy array repr for Doctest. 
+def add_tensor(matrix):
+    '''Adds tensor / dimension to input ndarray.
+
+    Keras requires an extra dimension at some layers, which represents 
+    the 'tensor' encapsulating the data. 
+
+    Further clarification taking the example below. The input matrix has 
+    shape (2,3,4). Think of it as 2 different events, each having
+    3 sets of measurements, with each of those having 4 features. So, 
+    let's measure differences between 2 cities at 3 different times of
+    day. Let's take measurements at 08:00, 14:00, and 19:00 in... 
+    Magic City and Never-ever Town. We'll measure.. 1) tempurature, 
+    2) wind speed 3) light level 4) noise level.
+
+    How I best understand it, putting our measurements into a matrix
+    with an added dimension/tensor, this highlights the separate 
+    measurements, telling the algorithm: yes, these are 4 features
+    from the same city, BUT they occur at different times. Or it's 
+    just how Keras set up the code :P 
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        The `matrix` holds the numerical data to add a dimension to.
+
+    Returns
+    -------
+    matrix : numpy.ndarray
+        The `matrix` with an additional dimension.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> matrix = np.arange(24).reshape((2,3,4))
+    >>> matrix.shape
+    (2, 3, 4)
+    >>> matrix
+    array([[[ 0,  1,  2,  3],
+            [ 4,  5,  6,  7],
+            [ 8,  9, 10, 11]],
+    <BLANKLINE>
+           [[12, 13, 14, 15],
+            [16, 17, 18, 19],
+            [20, 21, 22, 23]]])
+    >>> matrix_2 = add_tensor(matrix)
+    >>> matrix_2.shape
+    (2, 3, 4, 1)
+    >>> matrix_2
+    array([[[[ 0],
+             [ 1],
+             [ 2],
+             [ 3]],
+    <BLANKLINE>
+            [[ 4],
+             [ 5],
+             [ 6],
+             [ 7]],
+    <BLANKLINE>
+            [[ 8],
+             [ 9],
+             [10],
+             [11]]],
+    <BLANKLINE>
+    <BLANKLINE>
+           [[[12],
+             [13],
+             [14],
+             [15]],
+    <BLANKLINE>
+            [[16],
+             [17],
+             [18],
+             [19]],
+    <BLANKLINE>
+            [[20],
+             [21],
+             [22],
+             [23]]]])
+    '''
+    if isinstance(matrix, np.ndarray) and len(matrix) > 0:
+        matrix = matrix.reshape(matrix.shape + (1,))
+        return matrix
+    elif isinstance(matrix, np.ndarray):
+        raise ValueError('Input matrix is empty.')
+    else:
+        raise TypeError('Expected type numpy.ndarray, recieved {}'.format(
+            type(matrix)))
+
+def create_empty_matrix(shape, complex_vals=False):
+    '''Allows creation of a matrix filled with real or complex zeros.
+
+    In digital signal processing, complex numbers are common; it is 
+    important to note that if complex_vals=False and complex values are
+    inserted into the matrix, the imaginary part will be removed.
+
+    Parameters
+    ----------
+    shape : tuple or int
+        tuple or int indicating the shape or length of desired matrix or
+        vector, respectively
+    complex_vals : bool
+        indicator of whether or not the matrix will receive real or complex
+        values (default False)
+
+    Returns
+    ----------
+    matrix : ndarray
+        a matrix filled with real or complex zeros
+
+    Examples
+    ----------
+    >>> matrix = create_empty_matrix((3,4))
+    >>> matrix
+    array([[0., 0., 0., 0.],
+           [0., 0., 0., 0.],
+           [0., 0., 0., 0.]])
+    >>> matrix_complex = create_empty_matrix((3,4),complex_vals=True)
+    >>> matrix_complex
+    array([[0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
+           [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j]])
+    >>> vector = create_empty_matrix(5,)
+    >>> vector
+    array([0., 0., 0., 0., 0.])
+    '''
+    if complex_vals:
+        matrix = np.zeros(shape, dtype=np.complex_)
+    else:
+        matrix = np.zeros(shape, dtype=float)
+    return matrix
+
+def separate_dependent_var(matrix):
+    '''Separates matrix into features and labels.
+
+    Assumes the last column of the last dimension of the matrix constitutes
+    the dependent variable (labels), and all other columns the indpendent variables
+    (features). Additionally, it is assumed that for each block of data, 
+    only one label is needed; therefore, just the first label is taken for 
+    each block.
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        The `matrix` holds the numerical data to separate
+
+    Returns
+    -------
+    X : numpy.ndarray
+        A matrix holding the (assumed) independent variables
+    y : numpy.ndarray, numpy.int64, numpy.float64
+        A vector holding the labels assigned to the independent variables.
+        If only one value in array, just the value inside is returned
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> #vector
+    >>> separate_dependent_var(np.array([1,2,3,4]))
+    (array([1, 2, 3]), 4)
+    >>> #simple matrix
+    >>> matrix = np.arange(4).reshape(2,2)
+    >>> matrix
+    array([[0, 1],
+           [2, 3]])
+    >>> X, y = separate_dependent_var(matrix)
+    >>> X
+    array([[0],
+           [2]])
+    >>> y 
+    1
+    >>> #more complex matrix
+    >>> matrix = np.arange(20).reshape((2,2,5))
+    >>> matrix
+    array([[[ 0,  1,  2,  3,  4],
+            [ 5,  6,  7,  8,  9]],
+    <BLANKLINE>
+           [[10, 11, 12, 13, 14],
+            [15, 16, 17, 18, 19]]])
+    >>> X, y = separate_dependent_var(matrix)
+    >>> X
+    array([[[ 0,  1,  2,  3],
+            [ 5,  6,  7,  8]],
+    <BLANKLINE>
+           [[10, 11, 12, 13],
+            [15, 16, 17, 18]]])
+    >>> y
+    array([ 4, 14])
+    '''
+    # get last column
+    y_step1 = np.take(matrix, -1, axis=-1)
+    # because the label is the same for each block of data, just need the first
+    # row,  not all the rows, as they are the same label.
+    y = np.take(y_step1, 0, axis=-1)
+    # get features:
+    X = np.delete(matrix, -1, axis=-1)
+    return X, y
+
+def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
+    '''Overlaps and adds windowed sections together to form 1D signal.
+    
+    Parameters
+    ----------
+    enhanced_matrix : np.ndarray [shape=(frame_length, num_frames), dtype=float]
+        Matrix with enhance values
+    frame_length : int 
+        Number of samples per frame 
+    overlap : int 
+        Number of samples that overlap
+        
+    Returns
+    -------
+    new_signal : np.ndarray [shape=(frame_length,), dtype=float]
+        Length equals (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
+        
+    Examples
+    --------
+    >>> import numpy as np
+    >>> enhanced_matrix = np.ones((4, 4))
+    >>> frame_length = 4
+    >>> overlap = 1
+    >>> sig = overlap_add(enhanced_matrix, frame_length, overlap)
+    >>> sig
+    [1. 1. 1. 2. 1. 1. 2. 1. 1. 2. 1. 1. 1.]
+    '''
+    try:
+        assert enhanced_matrix.shape[0] == frame_length
+    except AssertionError as e:
+        raise TypeError('The first dimension of the enhance matrix should '+ \
+            'match the frame length. {} does not match frame length {}'.format(
+                enhanced_matrix.shape[0], frame_length))
+    increments = frame_length - overlap
+    start= increments
+    mid= start + overlap
+    stop= start + frame_length
+    
+    expected_len = (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
+    new_signal = create_empty_matrix(
+        (expected_len,),
+        complex_vals=complex_vals)
+    
+    for i in range(enhanced_matrix.shape[1]):
+        if i == 0:
+            new_signal[:frame_length] += enhanced_matrix[:frame_length,i]
+        else:
+            new_signal[start:mid] += enhanced_matrix[:overlap,i] 
+            new_signal[mid:stop] += enhanced_matrix[overlap:frame_length,i]
+            start += increments
+            mid = start+overlap
+            stop = start+frame_length
+    return new_signal
+
 
 if __name__ == '__main__':
     import doctest

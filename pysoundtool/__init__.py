@@ -1,23 +1,19 @@
 ###############################################################################
-from .file_architecture import paths
-from .file_architecture.paths import PathSetup
-from .acousticfeats_ml import featorg
-from .acousticfeats_ml.featorg import audio2datasets
-from .acousticfeats_ml.modelfeats import FeatPrep_SoundClassifier
-from .acousticfeats_ml.modelfeats import prepfeatures as run_featprep 
-from .acousticfeats_ml.modelfeats import loadfeature_settings as getfeatsettings
-from .filterfun import filters
-from .filterfun.filters import WienerFilter, BandSubtraction, filtersignal
-from .filterfun.filters import calc_audioclass_powerspecs as welch2class
-from .filterfun.filters import coll_beg_audioclass_samps as save_class_noise
-from .mathfun import dsp, matrixfun, augmentdata
+from . import paths
+from .paths import PathSetup
+from .tools import tools
+from . import feats
+from .feats import FeatPrep_SoundClassifier, prepfeatures, getfeatsettings, \
+    visualize_feats
+from . import filters
+from .filters import WienerFilter, BandSubtraction, filtersignal
+from .filters import calc_audioclass_powerspecs as welch2class
+from .filters import coll_beg_audioclass_samps as save_class_noise
+from . import dsp
 from . import exceptions as errors
-from .explore_sound import visualize_feats
-from .general_organization import adjust_time_units, print_progress, check_noisy_clean_match
 
-__all__=['paths', 'PathSetup', \
-    'featorg', 'audio2datasets', 'FeatPrep_SoundClassifier', 'run_featprep','getfeatsettings',\
-        'filters','WienerFilter','BandSubtraction','welch2class', 'save_class_noise','filtersignal', \
-             'dsp', 'matrixfun', 'augmentdata', \
-                'errors', 'visualize_feats', 'adjust_time_units', 'print_progress',
-            'check_noisy_clean_match']
+__all__=['paths', 'PathSetup', 'tools', 'feats',\
+     'FeatPrep_SoundClassifier', 'prepfeatures','getfeatsettings',\
+        'filters','WienerFilter','BandSubtraction','welch2class',\
+            'save_class_noise','filtersignal', \
+             'dsp','errors', 'visualize_feats']
