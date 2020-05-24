@@ -1,13 +1,5 @@
 
 
-#Librosa and Soundfile are great Python libraries for analysing
-#and manipulating sound. However, they are not importable in 
-#Jupyter notebooks. These libraries may not work in for Jupyter
-#notebooks; however if one has a soundfile they would like to use 
-#in a Jupyter notebook, they can use these functions, which use
-#Librosa and soundfile, to prepare the soundfile(s) for use a 
-#Jupyter notebook with the scipy.io.wavfile module.
-
 from scipy.io.wavfile import read
 from scipy.signal import resample
 import soundfile as sf
