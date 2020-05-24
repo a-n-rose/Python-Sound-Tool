@@ -3,7 +3,7 @@ from .file_architecture import paths
 from .file_architecture.paths import PathSetup
 from .acousticfeats_ml import featorg
 from .acousticfeats_ml.featorg import audio2datasets
-from .acousticfeats_ml.modelfeats import PrepFeatures
+from .acousticfeats_ml.modelfeats import FeatPrep_SoundClassifier
 from .acousticfeats_ml.modelfeats import prepfeatures as run_featprep 
 from .acousticfeats_ml.modelfeats import loadfeature_settings as getfeatsettings
 from .filterfun import filters
@@ -16,7 +16,7 @@ from .explore_sound import visualize_feats
 from .general_organization import adjust_time_units, print_progress, check_noisy_clean_match
 
 __all__=['paths', 'PathSetup', \
-    'featorg', 'audio2datasets', 'PrepFeatures', 'run_featprep','getfeatsettings',\
+    'featorg', 'audio2datasets', 'FeatPrep_SoundClassifier', 'run_featprep','getfeatsettings',\
         'filters','WienerFilter','BandSubtraction','welch2class', 'save_class_noise','filtersignal', \
              'dsp', 'matrixfun', 'augmentdata', \
                 'errors', 'visualize_feats', 'adjust_time_units', 'print_progress',
