@@ -535,9 +535,9 @@ def audio2datasets_autoencoder(audio_classes_dir, inputdata_folder, outputdata_f
     return dataset_audio
 
 
-
-def create_autoencoder_data(audio_classes_dir, cleandata_folder, noisedata_folder,
-                               features_dir, perc_train=0.8, perc_val=0.2,  limit=None,
+# TODO speed this up, e.g. preload noise data?
+def create_autoencoder_data(cleandata_path, noisedata_path, newdata_directory,
+                               perc_train=0.8, perc_val=0.2,  limit=None,
                                noise_scales=[0.3,0.2,0.1], sr = 22050):
     '''Organizes all audio in audio class directories into datasets.
     
@@ -549,21 +549,24 @@ def create_autoencoder_data(audio_classes_dir, cleandata_folder, noisedata_folde
 
     Parameters
     ----------
-    audio_classes_dir : pathlib.PosixPath
-        Directory path to where the 'clean' and 'noisy' audio dataset folders
-        are located.
-    cleandata_folder : str
+    cleandata_path : str, pathlib.PosixPath
         Name of folder containing clean audio data for autoencoder. E.g. 'clean_speech'
-    noisedata_folder : str
+    noisedata_path : str, pathlib.PosixPath
         Name of folder containing noise to add to clean data. E.g. 'noise'
-    features_dir : pathlib.PosixPath
-        Directory of where feature data will be or is saved.
+    newdata_directory : str, pathlib.PosixPath
+        Directory to save newly created train, validation, and test data
     perc_train : int, float
         The percentage or decimal representing the amount of training
         data compared to the test data (default 0.8)
     perc_val : int, float
         The percentage or decimal representing the amount of training data to 
         reserve for validation (default 0.2)
+    limit : int, optional
+        Limit in number of audiofiles used for training data
+    noise_scales : list of floats
+        List of varying scales to apply to noise levels, for example, to 
+        allow for varying amounts of noise. (default [0.3,0.2,0.1]) The noise
+        sample will be multiplied by the scales.
 
     Returns
     -------
@@ -585,17 +588,24 @@ def create_autoencoder_data(audio_classes_dir, cleandata_folder, noisedata_folde
     if perc_val > 1:
         raise ValueError('The percentage value of validation data exceeds 100%')
 
-    cleandata_path = audio_classes_dir.joinpath(cleandata_folder)
-    noisedata_path = audio_classes_dir.joinpath(noisedata_folder)
-   
+    # change string path to pathlib
+    cleandata_path = pyst.paths.str2path(cleandata_path)
+    noisedata_path = pyst.paths.str2path(noisedata_path)
+    newdata_directory = pyst.paths.str2path(newdata_directory)
+    
+    cleandata_folder = 'clean'
+    noisedata_folder = 'noisy'
     if limit is not None:
         cleandata_folder += '_limit'+str(limit)
         noisedata_folder += '_limit'+str(limit)
-    # output of autoencoder should be clean data
-    saveoutput_path = features_dir.joinpath(cleandata_folder)
-    # input of autoencoder is noisy data
-    saveinput_path = features_dir.joinpath(noisedata_folder)
-            
+    
+    newdata_clean_dir = newdata_directory.joinpath(cleandata_folder)
+    newdata_noisy_dir = newdata_directory.joinpath(noisedata_folder)
+    
+    # create directory to save new data (if not exist)
+    newdata_clean_dir = pyst.paths.prep_path(newdata_clean_dir, create_new = True)
+    newdata_noisy_dir = pyst.paths.prep_path(newdata_noisy_dir, create_new = True)
+   
     # TODO test for existence of directories/files
     # for example: q.exists() or q.is_dir() (pathlib objects) 
     clean_datapaths = []
@@ -603,53 +613,55 @@ def create_autoencoder_data(audio_classes_dir, cleandata_folder, noisedata_folde
     
     
     for dataset in ['train', 'val', 'test']:
-        saveinput_dataset = saveinput_path.joinpath(dataset)
+        saveinput_dataset = newdata_noisy_dir.joinpath(dataset)
         noisy_datapaths.append(saveinput_dataset)
         
-        saveoutput_dataset = saveoutput_path.joinpath(dataset)
+        saveoutput_dataset = newdata_clean_dir.joinpath(dataset)
         clean_datapaths.append(saveoutput_dataset)
     
     # TODO expand available file types
-    cleanaudio = sorted(cleandata_path.glob('**/*.wav'))
-    noiseaudio = sorted(noisedata_path.glob('**/*.wav'))
+    # pathlib includes hidden files... :(
+    cleanaudio = sorted(cleandata_path.glob('*.wav'))
+    noiseaudio = sorted(noisedata_path.glob('*.wav'))
+    
+    # remove hidden files
+    cleanaudio = [x for x in cleanaudio if x.parts[-1][0] != '.']
+    noiseaudio = [x for x in noiseaudio if x.parts[-1][0] != '.']
     
     random.shuffle(cleanaudio)
     
     if limit is not None:
         cleanaudio = cleanaudio[:limit]
     
-    percentage_training = math.floor((1 - perc_train) * len(cleanaudio))
+    percentage_training = math.floor(perc_train * len(cleanaudio))
     train_audio, test_audio = cleanaudio[:percentage_training], \
         cleanaudio[percentage_training:]
 
     percentage_val = math.floor((1 - perc_val) * len(train_audio))
     train_audio, val_audio = train_audio[:percentage_val], train_audio[percentage_val:]
-    num_noises = len(noiseaudio)
     
-    for j, dataset_path in enumerate(cleanaudio):
-        print('Processing {}'.format(dataset_path))
-        print('Processing {}'.format(noiseaudio[j]))
-        if 'train' in dataset_path:
+    for j, dataset_path in enumerate(clean_datapaths):
+        # ensure directory exists:
+        pyst.paths.prep_path(dataset_path, create_new=True)
+        pyst.paths.prep_path(noisy_datapaths[j], create_new=True)
+        
+        if 'train' in dataset_path.parts[-1]:
+            print('\nProcessing train data')
             audiopaths = train_audio
-        elif 'val' in dataset_path:
+        elif 'val' in dataset_path.parts[-1]:
+            print('\nProcessing val data')
             audiopaths = val_audio
-        elif 'test' in dataset_path:
+        elif 'test' in dataset_path.parts[-1]:
+            print('\nProcessing test data')
             audiopaths = test_audio
         for i, wavefile in enumerate(audiopaths):
-            rand_noise_id = random.choice(
-                range(num_noises))
-            noise = noisewaves[rand_noise_id]
+            pyst.print_progress(iteration=i, 
+                        total_iterations=len(audiopaths),
+                        task='clean and noisy speech generation')
+            noise = random.choice(noiseaudio)
             scale = random.choice(noise_scales)
-            
-            # to save in noisy speech wavefile
-            #clean_stem = os.path.splitext(
-                #os.path.basename(wavefile))[0]
-            #noise_stem = os.path.splitext(
-                #os.path.basename(noise))[0]
-            # should work on posixpath objects
             clean_stem = wavefile.stem
             noise_stem = noise.stem
-            
             noise_data, sr = pyst.soundprep.loadsound(
                 noise, samplerate=sr)
             clean_data, sr2 = pyst.soundprep.loadsound(
@@ -658,13 +670,12 @@ def create_autoencoder_data(audio_classes_dir, cleandata_folder, noisedata_folde
             noisy_data, sr = pyst.soundprep.add_sound_to_signal(
                 wavefile, noise, scale = scale, delay_target_sec=0, total_len_sec = clean_seconds
                 )
-            write('{}{}__{}_scale{}.wav'.format(noiseaudio[j],clean_stem,noise_stem,scale), 
-                sr, 
-                noisy_data)
-            write(dataset_path+clean_stem+'.wav', sr, clean_data)
-            pyst.print_progress(iteration=i, 
-                        total_iterations=len(audiopaths),
-                        task='clean and noisy speech generation')
+            noisydata_filename = noisy_datapaths[j].joinpath(clean_stem+'_'+noise_stem\
+                +'_scale'+str(scale)+'.wav')
+            cleandata_filename = dataset_path.joinpath(clean_stem+'.wav')     
+            write(noisydata_filename, sr, noisy_data)
+            write(cleandata_filename, sr, clean_data)
+
         print('Finished processing {}'.format(dataset_path))
         print('Finished processing {}'.format(noiseaudio[j]))
     end = time.time()
@@ -673,7 +684,7 @@ def create_autoencoder_data(audio_classes_dir, cleandata_folder, noisedata_folde
         round(total_time,2), 
         units))
 
-    return saveinput_path, saveoutput_path
+    return newdata_noisy_dir, newdata_clean_dir
 
 
 if __name__ == "__main__":
