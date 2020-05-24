@@ -90,7 +90,7 @@ class FeatPrep_ClinicalDiagnosis(AcousticData):
 class FeatPrep_LanguageClassifier(AcousticData):
     pass
 
-class FeatPrep_SpeakerRecognition(AcosuticData):
+class FeatPrep_SpeakerRecognition(AcousticData):
     pass
 
 class FeatPrep_SoundClassifier(AcousticData):
