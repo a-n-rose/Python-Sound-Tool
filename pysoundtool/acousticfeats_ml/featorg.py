@@ -536,7 +536,7 @@ def audio2datasets_autoencoder(audio_classes_dir, inputdata_folder, outputdata_f
 
 
 # TODO speed this up, e.g. preload noise data?
-def create_autoencoder_data(cleandata_path, noisedata_path, newdata_directory,
+def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
                                perc_train=0.8, perc_val=0.2,  limit=None,
                                noise_scales=[0.3,0.2,0.1], sr = 22050):
     '''Organizes all audio in audio class directories into datasets.
@@ -553,7 +553,7 @@ def create_autoencoder_data(cleandata_path, noisedata_path, newdata_directory,
         Name of folder containing clean audio data for autoencoder. E.g. 'clean_speech'
     noisedata_path : str, pathlib.PosixPath
         Name of folder containing noise to add to clean data. E.g. 'noise'
-    newdata_directory : str, pathlib.PosixPath
+    trainingdata_dir : str, pathlib.PosixPath
         Directory to save newly created train, validation, and test data
     perc_train : int, float
         The percentage or decimal representing the amount of training
@@ -591,7 +591,7 @@ def create_autoencoder_data(cleandata_path, noisedata_path, newdata_directory,
     # change string path to pathlib
     cleandata_path = pyst.paths.str2path(cleandata_path)
     noisedata_path = pyst.paths.str2path(noisedata_path)
-    newdata_directory = pyst.paths.str2path(newdata_directory)
+    trainingdata_dir = pyst.paths.str2path(trainingdata_dir)
     
     cleandata_folder = 'clean'
     noisedata_folder = 'noisy'
@@ -599,8 +599,8 @@ def create_autoencoder_data(cleandata_path, noisedata_path, newdata_directory,
         cleandata_folder += '_limit'+str(limit)
         noisedata_folder += '_limit'+str(limit)
     
-    newdata_clean_dir = newdata_directory.joinpath(cleandata_folder)
-    newdata_noisy_dir = newdata_directory.joinpath(noisedata_folder)
+    newdata_clean_dir = trainingdata_dir.joinpath(cleandata_folder)
+    newdata_noisy_dir = trainingdata_dir.joinpath(noisedata_folder)
     
     # create directory to save new data (if not exist)
     newdata_clean_dir = pyst.paths.prep_path(newdata_clean_dir, create_new = True)
@@ -646,18 +646,18 @@ def create_autoencoder_data(cleandata_path, noisedata_path, newdata_directory,
         pyst.paths.prep_path(noisy_datapaths[j], create_new=True)
         
         if 'train' in dataset_path.parts[-1]:
-            print('\nProcessing train data')
+            print('\nProcessing train data...')
             audiopaths = train_audio
         elif 'val' in dataset_path.parts[-1]:
-            print('\nProcessing val data')
+            print('\nProcessing val data...')
             audiopaths = val_audio
         elif 'test' in dataset_path.parts[-1]:
-            print('\nProcessing test data')
+            print('\nProcessing test data...')
             audiopaths = test_audio
         for i, wavefile in enumerate(audiopaths):
             pyst.print_progress(iteration=i, 
                         total_iterations=len(audiopaths),
-                        task='clean and noisy speech generation')
+                        task='clean and noisy audio data generation')
             noise = random.choice(noiseaudio)
             scale = random.choice(noise_scales)
             clean_stem = wavefile.stem
