@@ -492,6 +492,7 @@ def loadmodel(filter_class):
                             )
     return sm
 
+# TODO prepare for other size data
 def scale_X_y(matrix, is_train=True, scalars=None):
     '''Separates and scales X and y data in matrix.
     
@@ -499,15 +500,24 @@ def scale_X_y(matrix, is_train=True, scalars=None):
     
     Parameters
     ----------
-    matrix : np.ndarray
-        Matrix with all X and y values
+    matrix : np.ndarray [size = (num_samples, num_frames, num_features)]
+        Matrix with X and y data
     is_train : bool
         Relevant for the `scalars` parameter. If the data is training
         data (i.e. True), the `scalars` will be created. If the data
         is test data (i.e. False), the function expects `scalars` to 
-        be provided.
-    scalars : np.ndarray
-        The scalars to be applied to 
+        be provided. (default True)
+    scalars : dict, optional
+        Dictionary with scalars to be applied to non-training data.
+        
+    Returns
+    -------
+    X : np.ndarray [size = (num_sampls, num_frames, num_features-1)]
+        Scaled features 
+    y : np.ndarray [size = (num_samples, 1)]
+        Scaled independent variable
+    scalars : dict
+        The scalars either created or previously loaded.
     '''
     X, y = dsp.separate_dependent_var(matrix)
     if is_train:
