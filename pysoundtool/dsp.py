@@ -3,7 +3,8 @@
 Script with functions useful in filtering / digital signal processing
 """
 ###############################################################################
-import sys
+import sys, os
+import inspect
 import numpy as np
 from scipy.io.wavfile import read
 from numpy.fft import fft, rfft, ifft, irfft
