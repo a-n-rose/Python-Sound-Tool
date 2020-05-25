@@ -319,8 +319,8 @@ class SoundClassifier:
         '''
         train_data = np.load(self.train_path)
         val_data = np.load(self.val_path)
-        X_train, y_train, scalars = prepdata_ml(train_data)
-        X_val, y_val, __ = prepdata_ml(val_data,
+        X_train, y_train, scalars = get_X_y(train_data)
+        X_val, y_val, __ = get_X_y(val_data,
                                        is_train=False,
                                        scalars=scalars)
         self.set_model_params(halve_feature_maps=True)
@@ -345,7 +345,7 @@ class SoundClassifier:
         )
         if self.test_path:
             test_data = np.load(self.test_path)
-            X_test, y_test, __ = prepdata_ml(
+            X_test, y_test, __ = get_X_y(
                 test_data, is_train=False, scalars=scalars)
             score = model.evaluate(X_test, y_test)
             loss = round(score[0], 2)
@@ -492,7 +492,7 @@ def loadmodel(filter_class):
                             )
     return sm
 
-def prepdata_ml(matrix, is_train=True, scalars=None):
+def get_X_y(matrix, is_train=True, scalars=None):
     X, y = dsp.separate_dependent_var(matrix)
     if is_train:
         scalars = {}
