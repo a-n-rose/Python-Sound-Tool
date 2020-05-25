@@ -1047,7 +1047,8 @@ def separate_dependent_var(matrix):
     Parameters
     ----------
     matrix : numpy.ndarray [size = (num_samples, num_frames, num_features)]
-        The `matrix` holds the numerical data to separate
+        The `matrix` holds the numerical data to separate. num_features is
+        expected to be at least 2.
 
     Returns
     -------
@@ -1095,6 +1096,10 @@ def separate_dependent_var(matrix):
     # get last column
     if len(matrix.shape) != 3:
         raise ValueError('3 Dimensional data expected, not shape {}.'.format(matrix.shape))
+    if matrix.shape[-1] == 1:
+        raise ValueError('Expects input matrix to be size (num_samples, num_frames, ' + \
+                         'num_features). Number of features must exceed 1 in order ' + \
+                         'to separate into X and y arrays.')
     y_step1 = np.take(matrix, -1, axis=-1)
     # because the label is the same for each block of data, just need the first
     # row,  not all the rows, as they are the same label.

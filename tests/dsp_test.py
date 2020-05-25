@@ -130,4 +130,16 @@ def test_separate_dependent_var_3d():
     assert np.array_equal(expected1, X)
     assert np.array_equal(expected2, y)
     
+def test_separate_dependent_var_3d_1feature_valueerror():
+    data = np.array(range(12)).reshape(2,6,1)
+    with pytest.raises(ValueError):
+        X, y = pyst.dsp.separate_dependent_var(data)
+        
+def test_separate_dependent_var_3d_2feats():
+    data = np.array(range(12)).reshape(2,3,2)
+    X, y = pyst.dsp.separate_dependent_var(data)
+    expected1 = np.array([[[ 0],[ 2],[ 4]],[[ 6],[ 8],[10]]])
+    expected2 = np.array([1, 7])
+    assert np.array_equal(expected1, X)
+    assert np.array_equal(expected2, y)
     
