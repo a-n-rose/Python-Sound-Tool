@@ -116,5 +116,18 @@ def test_overlap_add_framelength_mismatch():
                                     frame_length, 
                                     overlap)
         
-
+def test_separate_dependent_var_2d():
+    data = np.array(range(18)).reshape(-1,1)
+    with pytest.raises(ValueError):
+        X, y = pyst.dsp.separate_dependent_var(data)
+    
+    
+def test_separate_dependent_var_3d():
+    data = np.array(range(12)).reshape(2,2,3)
+    X, y = pyst.dsp.separate_dependent_var(data)
+    expected1 = np.array([[[ 0,  1],[ 3,  4]],[[ 6,  7],[ 9, 10]]])
+    expected2 = np.array([2, 8])
+    assert np.array_equal(expected1, X)
+    assert np.array_equal(expected2, y)
+    
     

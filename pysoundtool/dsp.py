@@ -1036,7 +1036,7 @@ def create_empty_matrix(shape, complex_vals=False):
     return matrix
 
 def separate_dependent_var(matrix):
-    '''Separates matrix into features and labels.
+    '''Separates matrix into features and labels. Expects 3D array.
 
     Assumes the last column of the last dimension of the matrix constitutes
     the dependent variable (labels), and all other columns the indpendent variables
@@ -1046,14 +1046,14 @@ def separate_dependent_var(matrix):
 
     Parameters
     ----------
-    matrix : numpy.ndarray
+    matrix : numpy.ndarray [size = (num_samples, num_frames, num_features)]
         The `matrix` holds the numerical data to separate
 
     Returns
     -------
-    X : numpy.ndarray
+    X : numpy.ndarray [size = (num_samples, num_frames, num_features -1)]
         A matrix holding the (assumed) independent variables
-    y : numpy.ndarray, numpy.int64, numpy.float64
+    y : numpy.ndarray, numpy.int64, numpy.float64 [size = (num_samples,)]
         A vector holding the labels assigned to the independent variables.
         If only one value in array, just the value inside is returned
 
@@ -1093,6 +1093,8 @@ def separate_dependent_var(matrix):
     array([ 4, 14])
     '''
     # get last column
+    if len(matrix.shape) != 3:
+        raise ValueError('3 Dimensional data expected, not shape {}.'.format(matrix.shape))
     y_step1 = np.take(matrix, -1, axis=-1)
     # because the label is the same for each block of data, just need the first
     # row,  not all the rows, as they are the same label.
