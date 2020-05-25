@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
-#parentdir = os.path.dirname(currentdir)
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
@@ -69,8 +68,41 @@ def load_signal(wav, sr=48000, dur_sec=None):
     samps = np.interp(samps,(samps.min(), samps.max()),(-1, 1))
     return samps, sr
 
+def set_signal_length(samples, numsamps):
+    '''Sets audio signal to be a certain length. Zeropads if too short.
+    
+    Parameters
+    ----------
+    samples : np.ndarray [size = (num_samples, num_channels), or (num_samples,)]
+        The array of sample data to be zero padded.
+    numsamps : int 
+        The desired number of samples. 
+        
+    Returns
+    -------
+    data : np.ndarray [size = (numsamps, num_channels), or (numsamps,)]
+        Copy of samples zeropadded or limited to `numsamps`.
+    '''
+    data = samples.copy()
+    if data.shape[0] < numsamps:
+        diff = numsamps - data.shape[0]
+        if len(data.shape) > 1:
+            signal_zeropadded = np.zeros(
+                (data.shape[0] + int(diff),data.shape[1]))
+        else:
+            signal_zeropadded = np.zeros(
+                (data.shape[0] + int(diff),))
+        for i, row in enumerate(data):
+            signal_zeropadded[i] += row
+        data = signal_zeropadded
+    else:
+        if len(data.shape) > 1:
+            data = data[:numsamps,:]
+        else:
+            data = data[:numsamps]
+    return data
 
-def loadsound(filename, sr=None, norm=True, mono=True):
+def loadsound(filename, sr=None, norm=True, mono=True, dur_sec = None):
     '''Loads sound file with scipy.io.wavfile.read
     
     If the sound file is not compatible with scipy's read module
@@ -90,6 +122,8 @@ def loadsound(filename, sr=None, norm=True, mono=True):
                                           sr_original = sr2, 
                                           sr_desired = sr)
                 assert sr2 == sr
+        else:
+            sr = sr2
     except ValueError:
         print("Step 1: ensure filetype is compatible with scipy library".format(filename))
         filename = pyst.tools.convert2wav(filename)
@@ -101,6 +135,12 @@ def loadsound(filename, sr=None, norm=True, mono=True):
             filename = pyst.tools.newbitdepth(filename)
             data, sr = loadsound(filename)
             print("Success!")
+    if dur_sec:
+        numsamps = int(dur_sec * sr)
+    else:
+        numsamps = data.shape[0]
+    data = set_signal_length(data, numsamps)
+
     if mono and len(data.shape) > 1:
         if data.shape[1] > 1:
             data = pyst.tools.stereo2mono(data)
