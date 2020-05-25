@@ -666,7 +666,7 @@ def load_feature_data(filename):
     data = np.load(filename)
     return data
 
-def save_wave(wavfile_name, signal_values, sampling_rate, overwrite=False):
+def save_wave(wavfile_name, signal_values, sr, overwrite=False):
     """saves the wave at designated path
 
     Parameters
@@ -687,7 +687,7 @@ def save_wave(wavfile_name, signal_values, sampling_rate, overwrite=False):
     if not overwrite:
         wavfile_name = if_exist_tweek_filename(wavfile_name)
     try:
-        wavfile.write(wavfile_name, sampling_rate, signal_values)
+        wavfile.write(wavfile_name, sr, signal_values)
         return True, wavfile_name
     except Exception as e:
         print(e)

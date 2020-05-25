@@ -244,7 +244,3 @@ def test_calc_relevant_band():
     #sub_signal = fil.sub_noise(powspec, powspec_noisy, 
                                #oversub_factor = a,
                                #speech = True)
-
-    
-    
-    

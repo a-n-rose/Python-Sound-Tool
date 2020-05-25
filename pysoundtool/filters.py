@@ -32,7 +32,7 @@ class FilterSettings:
         audio has other sampling rate. (default 48000)
     frame_length : int 
         Number of audio samples in each frame: frame_dur multiplied with
-        sampling_rate, divided by 1000. (default 960)
+        sr, divided by 1000. (default 960)
     percent_overlap : float
         Percentage of overlap between frames.
     overlap_length : int 
@@ -48,12 +48,12 @@ class FilterSettings:
     def __init__(self,
                  frame_duration_ms=None,
                  percent_overlap=None,
-                 sampling_rate=None,
+                 sr=None,
                  window_type=None):
         # set defaults if no values given
         self.frame_dur = frame_duration_ms if frame_duration_ms else 20
         self.percent_overlap = percent_overlap if percent_overlap else 0.5
-        self.sr = sampling_rate if sampling_rate else 48000
+        self.sr = sr if sr else 48000
         self.window_type = window_type if window_type else 'hamming'
         # set other attributes based on above values
         self.frame_length = pyst.dsp.calc_frame_length(
@@ -107,13 +107,13 @@ class Filter(FilterSettings):
     def __init__(self,
                  frame_duration_ms=None,
                  percent_overlap=None,
-                 sampling_rate=None,
+                 sr=None,
                  window_type=None,
                  max_vol = None):
         FilterSettings.__init__(self, 
                                 frame_duration_ms=frame_duration_ms,
                                 percent_overlap=percent_overlap,
-                                sampling_rate=sampling_rate,
+                                sr=sr,
                                 window_type=window_type)
         self.max_vol = max_vol if max_vol else 0.4
         self.target_subframes = None
@@ -251,14 +251,14 @@ class WienerFilter(Filter):
     def __init__(self,
                  frame_duration_ms=None,
                  percent_overlap=None,
-                 sampling_rate=None,
+                 sr=None,
                  window_type=None,
                  max_vol = 0.4,
                  smooth_factor=0.98,
                  first_iter=None):
         Filter.__init__(self, 
                         frame_duration_ms=frame_duration_ms,
-                        sampling_rate=sampling_rate,
+                        sr=sr,
                         window_type=window_type,
                         max_vol=max_vol)
         self.beta = smooth_factor
@@ -310,14 +310,14 @@ class BandSubtraction(Filter):
     def __init__(self,
                  frame_duration_ms=None,
                  percent_overlap=None,
-                 sampling_rate=None,
+                 sr=None,
                  window_type=None,
                  max_vol = 0.4,
                  num_bands = 6,
                  band_spacing = 'linear'):
         Filter.__init__(self, 
                         frame_duration_ms=frame_duration_ms,
-                        sampling_rate=sampling_rate,
+                        sr=sr,
                         window_type=window_type,
                         max_vol=max_vol)
         self.num_bands = num_bands
@@ -687,8 +687,8 @@ def filtersignal(output_filename,
         # set how many subframes are needed to process entire noise signal
         fil.set_num_subframes(len(samples_noise), is_noise=True)
     if visualize:
-        pyst.visualize_feats(samples_orig, 'signal', title='Signal to filter'.upper(),sample_rate = fil.sr)
-        pyst.visualize_feats(samples_noise, 'signal', title= 'Noise samples to filter out'.upper(), sample_rate=fil.sr)
+        pyst.visualize_feats(samples_orig, 'signal', title='Signal to filter'.upper(),sr = fil.sr)
+        pyst.visualize_feats(samples_noise, 'signal', title= 'Noise samples to filter out'.upper(), sr=fil.sr)
     # prepare noise power matrix (if it's not loaded already)
     if fil.noise_subframes:
         if real_signal:
@@ -712,7 +712,7 @@ def filtersignal(output_filename,
         assert section == fil.noise_subframes * fil.overlap_length
     if visualize:
         pyst.visualize_feats(noise_power, 'stft',title='Average noise power spectrum'.upper()+'\n{}'.format(frame_subtitle), scale='power_to_db',
-                             sample_rate = fil.sr)
+                             sr = fil.sr)
     
     # prepare target power matrix
     increment_length = int(fil.frame_length * fil.percent_overlap)
@@ -732,14 +732,14 @@ def filtersignal(output_filename,
             target_w_window = pyst.dsp.apply_window(target_section,
                                                     fil.get_window())
             if visualize and frame % visualize_every_n_frames == 0:
-                pyst.visualize_feats(target_section,'signal', title='Signal'.upper()+' \nframe {}: {}'.format( frame+1,frame_subtitle),sample_rate = fil.sr)
-                pyst.visualize_feats(target_w_window,'signal', title='Signal with {} window'.format(fil.window_type).upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle),sample_rate = fil.sr)
+                pyst.visualize_feats(target_section,'signal', title='Signal'.upper()+' \nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
+                pyst.visualize_feats(target_w_window,'signal', title='Signal with {} window'.format(fil.window_type).upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
             target_fft = pyst.dsp.calc_fft(target_w_window, real_signal=real_signal)
             target_power = pyst.dsp.calc_power(target_fft)
             # now start filtering!!
             # initialize SNR matrix
             if visualize and frame % visualize_every_n_frames == 0:
-                pyst.visualize_feats(target_power,'stft', title='Signal power spectrum'.upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle), scale='power_to_db', sample_rate = fil.sr)
+                pyst.visualize_feats(target_power,'stft', title='Signal power spectrum'.upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle), scale='power_to_db', sr = fil.sr)
             if 'wiener' in filter_type:
                 enhanced_fft = fil.apply_wienerfilter(frame, 
                                                        target_fft, 
@@ -760,7 +760,7 @@ def filtersignal(output_filename,
                                                real_signal=real_signal)
             filtered_sig[row:row+fil.frame_length] += enhanced_ifft
             if visualize and frame % visualize_every_n_frames == 0:
-                pyst.visualize_feats(filtered_sig,'signal', title='Filtered signal'.upper()+'\nup to frame {}: {}'.format(frame+1,frame_subtitle), sample_rate = fil.sr)
+                pyst.visualize_feats(filtered_sig,'signal', title='Filtered signal'.upper()+'\nup to frame {}: {}'.format(frame+1,frame_subtitle), sr = fil.sr)
             # prepare for next iteration
             if 'wiener' in filter_type:
                 fil.posteri_snr_prev = fil.posteri_snr
@@ -779,7 +779,7 @@ def filtersignal(output_filename,
         pyst.visualize_feats(np.abs(filtered_sig.reshape((
                 rows,cols,)))**2,
             'stft', title='Final filtered signal power spectrum'.upper()+'\n{}: {}'.format(filter_type,frame_subtitle), scale='power_to_db')
-        pyst.visualize_feats(enhanced_signal,'signal', title='Final filtered signal'.upper()+'\n{}'.format(filter_type), sample_rate = fil.sr)
+        pyst.visualize_feats(enhanced_signal,'signal', title='Final filtered signal'.upper()+'\n{}'.format(filter_type), sr = fil.sr)
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
@@ -1051,12 +1051,12 @@ def coll_beg_audioclass_samps(path_class,
             noisefiles.append(wavlist[index])
         get_save_begsamps(noisefiles, label_int,
                           path_class.powspec_path,
-                          samplerate=feature_class.sr,
+                          sr=feature_class.sr,
                           dur_ms=dur_ms)
     return None
 
 def get_save_begsamps(wavlist,audioclass_int,
-                      powspec_dir,samplerate=48000,dur_ms=1000):
+                      powspec_dir,sr=48000,dur_ms=1000):
     '''Saves the beginning raw samples from the audiofiles in `wavlist`.
     
     Parameters
@@ -1068,19 +1068,19 @@ def get_save_begsamps(wavlist,audioclass_int,
     powspec_dir : str, pathlib.PosixPath
         Path to where data relevant for audio class power spectrum data
         are to be saved.
-    samplerate : int 
+    sr : int 
         The sampling rate of audiofiles. This is needed to calculate num 
         samples necessary to get `dur_ms` of sound. (default 48000)
     dur_ms : int, float
         Time in milleseconds of the wavefiles to collect and save.
     '''
-    numsamps = pyst.dsp.calc_frame_length(dur_ms,samplerate)
+    numsamps = pyst.dsp.calc_frame_length(dur_ms,sr)
     for i, wav in enumerate(wavlist):
-        y, sr = pyst.dsp.load_signal(wav,sampling_rate=samplerate)
+        y, sr = pyst.dsp.load_signal(wav,sr=sr)
         y_beg = y[:numsamps]
         filename = powspec_dir.joinpath(
             'beg{}ms{}sr_{}_audioclass{}.npy'.format(dur_ms, 
-                                                     samplerate, 
+                                                     sr, 
                                                      i,
                                                      audioclass_int))
         pyst.paths.save_feature_data(filename, y_beg)

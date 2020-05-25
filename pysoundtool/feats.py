@@ -462,9 +462,9 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
             clean_stem = wavefile.stem
             noise_stem = noise.stem
             noise_data, sr = pyst.soundprep.loadsound(
-                noise, samplerate=sr)
+                noise, sr=sr)
             clean_data, sr2 = pyst.soundprep.loadsound(
-                wavefile, samplerate=sr)
+                wavefile, sr=sr)
             clean_seconds = len(clean_data)/sr2
             noisy_data, sr = pyst.soundprep.add_sound_to_signal(
                 wavefile, noise, scale = scale, delay_target_sec=0, total_len_sec = clean_seconds
@@ -683,7 +683,7 @@ class FeatPrep_SoundClassifier(AcousticData):
         sounddata = pyst.paths.str2path(sounddata)
         if pyst.paths.is_audio_ext_allowed(sounddata):
             y, sr = pyst.dsp.load_signal(sounddata,
-                                    sampling_rate=self.sr,
+                                    sr=self.sr,
                                     dur_sec=dur_sec)
         else:
             print('The following datatype for sounddata is not understood:')
@@ -772,7 +772,7 @@ class FeatPrep_SoundClassifier(AcousticData):
 
 def prepfeatures(filter_class, feature_type='mfcc', num_filters=40,
                  segment_dur_ms=1000, limit=None, augment_data=False,
-                 sampling_rate=48000):
+                 sr=48000):
     '''Pulls info from 'filter_class' instance to then extract, save features
 
     Parameters
@@ -829,7 +829,7 @@ def prepfeatures(filter_class, feature_type='mfcc', num_filters=40,
 
 def prepfeatures_autoencoder(filter_class, feature_type='mfcc', num_filters=40,
                  segment_dur_ms=1000, limit=None, augment_data=False,
-                 sampling_rate=48000):
+                 sr=48000):
     '''Pulls info from 'filter_class' instance to then extract, save features
 
     Parameters
@@ -931,7 +931,7 @@ def getfeatsettings(feature_info):
             num_filters = num_columns
         num_mfcc = num_columns
     feats_class = PrepFeatures(feature_type=feature_type,
-                               sampling_rate=sr,
+                               sr=sr,
                                num_filters=num_filters,
                                num_mfcc=num_mfcc,
                                window_size=window_size,
@@ -947,7 +947,7 @@ def getfeatsettings(feature_info):
 # TODO add graph for each channel? For all feature types?
 def visualize_feats(feature_matrix, feature_type, 
                     save_pic=False, name4pic=None, scale=None,
-                    title=None, sample_rate=None):
+                    title=None, sr=None):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
     
     Parameters
@@ -971,7 +971,7 @@ def visualize_feats(feature_matrix, feature_type,
         Default is None.
     title : str, optional
         The title for the graph. If None, `feature_type` is used.
-    sample_rate : int, optional
+    sr : int, optional
         Useful for plotting a signal type feature matrix. Allows x-axis to be
         presented as time in seconds.
     '''
@@ -1016,10 +1016,10 @@ def visualize_feats(feature_matrix, feature_type,
         # because channels are in first dimension. Expect in second dimension
         if not feature_matrix.shape[0] > feature_matrix.shape[1]:
             feature_matrix = feature_matrix.T
-        if sample_rate is not None:
+        if sr is not None:
             x_axis_label = 'Time (sec)'
-            dur_sec = feature_matrix.shape[0] / sample_rate
-            time_sec = pyst.dsp.get_time_points(dur_sec, sample_rate)
+            dur_sec = feature_matrix.shape[0] / sr
+            time_sec = pyst.dsp.get_time_points(dur_sec, sr)
             for channel in range(feature_matrix.shape[1]):
                 data = feature_matrix[:,channel]
                 # overlay the channel data
@@ -1029,11 +1029,11 @@ def visualize_feats(feature_matrix, feature_type,
                 data = feature_matrix[:,channel]
                 # overlay the channel data
                 plt.plot(data)
-                ##display.waveplot(data,sr=sample_rate)
+                ##display.waveplot(data,sr=sr)
         x_axis_label += ' across {} channel(s)'.format(channel+1)
     else:
         plt.pcolormesh(feature_matrix.T)
-        ## display.specshow(feature_matrix.T, sr=sample_rate)
+        ## display.specshow(feature_matrix.T, sr=sr)
         plt.colorbar(label=energy_label)
     plt.xlabel(x_axis_label)
     plt.ylabel(axis_feature_label)
@@ -1061,7 +1061,7 @@ def get_feats(sound,
               win_shift_ms = 10,
               num_filters=40,
               num_mfcc=None, 
-              samplerate=None, 
+              sr=None, 
               limit=None,
               mono=None):
     '''Feature extraction depending on set parameters; frames on y axis, features x axis
@@ -1070,7 +1070,7 @@ def get_feats(sound,
     ----------
     sound : str or numpy.ndarray
         If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
-        the samples of the sound data. Note: in the latter case, `samplerate`
+        the samples of the sound data. Note: in the latter case, `sr`
         must be declared.
     features : str
         Either 'mfcc' or 'fbank' features. MFCC: mel frequency cepstral
@@ -1092,7 +1092,7 @@ def get_feats(sound,
         Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
         is set to 40, all 40 coefficients will be included.
         (default None). 
-    samplerate : int, optional
+    sr : int, optional
         The sample rate of the sound data or the desired sample rate of
         the wavfile to be loaded. (default None)
     limit : float, optional
@@ -1110,7 +1110,7 @@ def get_feats(sound,
     if isinstance(sound, str):
         if mono is None:
             mono = True
-        data, sr = librosa.load(sound, sr=samplerate, duration=limit, mono=mono)
+        data, sr = librosa.load(sound, sr=sr, duration=limit, mono=mono)
         if mono is False and len(data.shape) > 1:
             index_samples = np.argmax(data.shape)
             index_channels = np.argmin(data.shape)
@@ -1123,10 +1123,10 @@ def get_feats(sound,
             if 'signal' not in features and num_channels > 1:
                 data = data[:,0]
     else:
-        if samplerate is None:
+        if sr is None:
             raise ValueError('No samplerate given. Either provide '+\
                 'filename or appropriate samplerate.')
-        data, sr = sound, samplerate
+        data, sr = sound, sr
     try:
         if 'fbank' in features:
             feats = librosa.feature.melspectrogram(
@@ -1164,13 +1164,13 @@ def get_feats(sound,
                           win_shift_ms = win_shift_ms,
                           num_filters = num_filters,
                           num_mfcc = num_mfcc,
-                          samplerate = sr,
+                          sr = sr,
                           limit = limit,
                           mono = mono)
     return feats
 
 def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
-    win_shift_ms = 10, num_filters=40, num_mfcc=40, samplerate=None,\
+    win_shift_ms = 10, num_filters=40, num_mfcc=40, sr=None,\
         save_pic=False, name4pic=None, power_scale=None, mono=None):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
@@ -1178,7 +1178,7 @@ def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
     ----------
     audiodata : str or numpy.ndarray
         If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
-        the samples of the sound data. Note: in the latter case, `samplerate`
+        the samples of the sound data. Note: in the latter case, `sr`
         must be declared.
     feature_type : str
         Options: 'signal', 'mfcc', or 'fbank' features. 
@@ -1201,7 +1201,7 @@ def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
         Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
         is set to 40, all 40 coefficients will be included.
         (default 40). 
-    samplerate : int, optional
+    sr : int, optional
         The sample rate of the sound data or the desired sample rate of
         the wavfile to be loaded. (default None)
     mono : bool, optional
@@ -1211,13 +1211,13 @@ def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
     '''
     feats = get_feats(audiodata, features=feature_type, 
                       win_size_ms = win_size_ms, win_shift_ms = win_shift_ms,
-                      num_filters=num_filters, num_mfcc = num_mfcc, samplerate=samplerate,
+                      num_filters=num_filters, num_mfcc = num_mfcc, sr=sr,
                       mono=mono)
     if 'signal' in feature_type:
         feats, sr = feats
     else:
         sr = None
-    visualize_feats(feats, feature_type=feature_type, sample_rate=sr,
+    visualize_feats(feats, feature_type=feature_type, sr=sr,
                     save_pic = save_pic, name4pic=name4pic, scale=power_scale)
 
 

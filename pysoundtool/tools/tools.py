@@ -195,7 +195,7 @@ def prep4scipywavfile(filename):
         filename = prep4scipywavfile(filename)
     return filename
 
-def convert2wav(filename, samplerate=None):
+def convert2wav(filename, sr=None):
     '''Converts soundfile to .wav type 
     '''
     import pathlib
@@ -206,8 +206,8 @@ def convert2wav(filename, samplerate=None):
     else:
         f = str(f)[:len(str(f))-len(extension_orig)]
     f_wavfile = f+'.wav'
-    if samplerate:
-        data, sr = librosa.load(filename, sr=samplerate)
+    if sr:
+        data, sr = librosa.load(filename, sr=sr)
     else:
         data, sr = sf.read(filename)
     sf.write(f_wavfile, data, sr)
@@ -521,10 +521,10 @@ def combine_sounds(file1, file2, match2shortest=True, time_delay_sec=1,total_dur
         added_sound = added_sound[:sr1*total_dur_sec]
     return added_sound, sr1
 
-def soundfile_limitduration(newfilename, soundfile, samplerate=None, 
+def soundfile_limitduration(newfilename, soundfile, sr=None, 
                             dur_sec=None, overwrite=False):
-    if samplerate:
-        data, sr = librosa.load(soundfile,sr=samplerate, duration=dur_sec)
+    if sr:
+        data, sr = librosa.load(soundfile,sr=sr, duration=dur_sec)
     else:
         data, sr = librosa.load(soundfile, duration=dur_sec)
     sf.write(newfilename, data, sr)

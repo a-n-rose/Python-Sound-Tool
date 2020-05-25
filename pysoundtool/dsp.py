@@ -22,18 +22,18 @@ sys.path.insert(0, packagedir)
 
 import pysoundtool as pyst
 
-def create_signal(freq=200, amplitude=0.4, samplerate=8000, dur_sec=0.25):
+def create_signal(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
     #The variable `time` holds the expected number of measurements taken: 
-    time = get_time_points(dur_sec, samplerate=samplerate)
+    time = get_time_points(dur_sec, sr=sr)
     # unit circle: 2pi equals a full circle
     full_circle = 2 * np.pi
     #TODO: add namedtuple
     sinewave_samples = amplitude * np.sin((freq*full_circle)*time)
-    return sinewave_samples, samplerate
+    return sinewave_samples, sr
 
-def get_time_points(dur_sec,samplerate):
+def get_time_points(dur_sec,sr):
     #duration in seconds multiplied by the sampling rate. 
-    time = np.linspace(0, dur_sec, np.floor(dur_sec*samplerate))
+    time = np.linspace(0, dur_sec, np.floor(dur_sec*sr))
     return time
 
 def create_noise(num_samples, amplitude=0.025, random_seed=None):
@@ -42,16 +42,17 @@ def create_noise(num_samples, amplitude=0.025, random_seed=None):
     noise = amplitude * np.random.randn(num_samples)
     return noise
 
-def load_signal(wav, sampling_rate=48000, dur_sec=None):
+def load_signal(wav, sr=48000, dur_sec=None):
     '''Loads wavfile, resamples if necessary, and normalizes signal.
     '''
-    sr, samps = read(wav)
+    sr2, samps = read(wav)
     if len(samps.shape) > 1:
         samps = np.take(samps,0,axis=-1) 
-    if sr != sampling_rate:
-        samps, sr = pyst.tools.resample_audio(samps, sr, sampling_rate)
+    if sr2 != sr:
+        samps, sr2 = pyst.tools.resample_audio(samps, sr2, sr)
+        assert sr2 == sr
     if dur_sec:
-        numsamps = int(dur_sec * sampling_rate)
+        numsamps = int(dur_sec * sr)
     else:
         numsamps = len(samps)
     # zero pad if signal is too short:
@@ -69,7 +70,7 @@ def load_signal(wav, sampling_rate=48000, dur_sec=None):
     return samps, sr
 
 
-def loadsound(filename, samplerate=None, norm=True, mono=True):
+def loadsound(filename, sr=None, norm=True, mono=True):
     '''Loads sound file with scipy.io.wavfile.read
     
     If the sound file is not compatible with scipy's read module
@@ -82,38 +83,30 @@ def loadsound(filename, samplerate=None, norm=True, mono=True):
         The filename of the sound to be loaded
     '''
     try:
-        sr, data = read(filename)
-        if samplerate:
-            if sr != samplerate:
-                data, sr = resample_audio(data, sr_original = sr, sr_desired = samplerate)
+        sr2, data = read(filename)
+        if sr:
+            if sr2 != sr:
+                data, sr2 = pyst.tools.resample_audio(data, 
+                                          sr_original = sr2, 
+                                          sr_desired = sr)
+                assert sr2 == sr
     except ValueError:
         print("Step 1: ensure filetype is compatible with scipy library".format(filename))
-        filename = convert2wav(filename)
+        filename = pyst.tools.convert2wav(filename)
         try:
             data, sr = loadsound(filename)
             print("Success!")
         except ValueError:
             print("Step 2: ensure bitdepth is compatible with scipy library")
-            filename = newbitdepth(filename)
+            filename = pyst.tools.newbitdepth(filename)
             data, sr = loadsound(filename)
             print("Success!")
     if mono and len(data.shape) > 1:
         if data.shape[1] > 1:
-            data = stereo2mono(data)
+            data = pyst.tools.stereo2mono(data)
     if norm:
-        data = normsound(data, -1, 1)
+        data = pyst.tools.normsound(data, -1, 1)
     return data, sr
-
-# TODO do I need this?
-#def load_sound(sound, samplerate=None):
-    #if isinstance(sound, str):
-        #sr, data = read(sound)
-        #if samplerate and samplerate != sr:
-            #data, sr = resample_audio(data, sr, samplerate)
-    #else:
-        #sr = samplerate
-        #data = sound
-    #return data, sr
 
 def normalize(data, max_val=None, min_val=None):
     '''Normalizes data.
@@ -143,14 +136,14 @@ def resample_audio(samples, sr_original, sr_desired):
     resampled = resample(samples, num_samples)
     return resampled, sr_desired
 
-def calc_frame_length(dur_frame_millisec, sampling_rate):
+def calc_frame_length(dur_frame_millisec, sr):
     """Calculates the number of samples necessary for each frame
 
     Parameters
     ----------
     dur_frame_millisec : int or float
         time in milliseconds each frame should be
-    sampling_rate : int
+    sr : int
         sampling rate of the samples to be framed
 
     Returns
@@ -160,14 +153,14 @@ def calc_frame_length(dur_frame_millisec, sampling_rate):
 
     Examples
     --------
-    >>> calc_frame_length(dur_frame_millisec=20, sampling_rate=1000)
+    >>> calc_frame_length(dur_frame_millisec=20, sr=1000)
     20
-    >>> calc_frame_length(dur_frame_millisec=20, sampling_rate=48000)
+    >>> calc_frame_length(dur_frame_millisec=20, sr=48000)
     960
-    >>> calc_frame_length(dur_frame_millisec=25.5, sampling_rate=22500)
+    >>> calc_frame_length(dur_frame_millisec=25.5, sr=22500)
     573
     """
-    frame_length = int(dur_frame_millisec * sampling_rate // 1000)
+    frame_length = int(dur_frame_millisec * sr // 1000)
     return frame_length
 
 def calc_num_overlap_samples(samples_per_frame, percent_overlap):
@@ -786,14 +779,14 @@ def collect_features(samples, feature_type='mfcc', sr=48000, window_size_ms=20,
     frame_length = calc_frame_length(window_size_ms, sr)
     if 'fbank' in feature_type:
         feats = logfbank(samples,
-                         samplerate=sr,
+                         sr=sr,
                          winlen=window_size_ms * 0.001,
                          winstep=window_shift_ms * 0.001,
                          nfilt=num_filters,
                          nfft=frame_length)
     elif 'mfcc' in feature_type:
         feats = mfcc(samples,
-                     samplerate=sr,
+                     sr=sr,
                      winlen=window_size_ms * 0.001,
                      winstep=window_shift_ms * 0.001,
                      nfilt=num_filters,
