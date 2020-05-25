@@ -113,6 +113,23 @@ def loadsound(filename, sr=None, norm=True, mono=True, dur_sec = None):
     ----------
     filename : str
         The filename of the sound to be loaded
+    sr : int, optional
+        The desired sample rate of the audio samples. If None, 
+        the sample rate of the audio file will be used.
+    norm : bool
+        If True, the samples will be normlized between -1 and 1
+    mono : bool
+        If True, the samples will be loaded in mono sound. If False,
+        if the samples are in stereo, they will be loaded in stereo sound.
+    dur_sec : int, float, optional
+        The length in seconds of the audio signal.
+        
+    Returns
+    -------
+    data : nd.array [size=(num_samples,) or (num_samples, num_channels)]
+        The sample data returned according to the specified settings.
+    sr : int 
+        The sample rate of the loaded samples.
     '''
     try:
         sr2, data = read(filename)
