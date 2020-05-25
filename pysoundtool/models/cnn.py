@@ -492,9 +492,8 @@ def loadmodel(filter_class):
                             )
     return sm
 
-# TODO prepare for other size data
 def scale_X_y(matrix, is_train=True, scalars=None):
-    '''Separates and scales X and y data in matrix.
+    '''Separates, scales X and y data from 3D matrix. Adds dimension for keras.
     
     Assumes the last column is the y data.
     
@@ -512,16 +511,21 @@ def scale_X_y(matrix, is_train=True, scalars=None):
         
     Returns
     -------
-    X : np.ndarray [size = (num_sampls, num_frames, num_features-1)]
-        Scaled features 
-    y : np.ndarray [size = (num_samples, 1)]
-        Scaled independent variable
+    X : np.ndarray [size = (num_sampls, num_frames, num_features-1, 1)]
+        Scaled features with extra dimension
+    y : np.ndarray [size = (num_samples, 1, 1)]
+        Scaled independent variable with extra dimension
     scalars : dict
         The scalars either created or previously loaded.
     '''
-    X, y = dsp.separate_dependent_var(matrix)
+    X, y = pyst.dsp.separate_dependent_var(matrix)
     if is_train:
         scalars = {}
+    elif scalars is None:
+        raise TypeError('If non-train data, `scalars` cannot be of type None.')
+    if len(X.shape) != 3:
+        raise ValueError('Expected 3d input, not input of shape {}.'.format(
+            matrix.shape))
     for j in range(X.shape[2]):
         if is_train:
             scalars[j] = StandardScaler()
@@ -530,6 +534,6 @@ def scale_X_y(matrix, is_train=True, scalars=None):
             X[:, :, j] = scalars[j].transform(X[:, :, j])
         X[:, :, j] = normalize(X[:, :, j])
     # Keras needs an extra dimension as a tensor / holder of data
-    X = dsp.add_tensor(X)
-    y = dsp.add_tensor(y)
+    X = pyst.dsp.add_tensor(X)
+    y = pyst.dsp.add_tensor(y)
     return X, y, scalars
