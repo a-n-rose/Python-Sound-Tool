@@ -86,14 +86,17 @@ def set_signal_length(samples, numsamps):
     data = samples.copy()
     if data.shape[0] < numsamps:
         diff = numsamps - data.shape[0]
+        # set zeros to mean values
+        mean_value = int(np.mean(data))
         if len(data.shape) > 1:
             signal_zeropadded = np.zeros(
                 (data.shape[0] + int(diff),data.shape[1]))
         else:
             signal_zeropadded = np.zeros(
                 (data.shape[0] + int(diff),))
+        signal_zeropadded += mean_value
         for i, row in enumerate(data):
-            signal_zeropadded[i] += row
+            signal_zeropadded[i] = row
         data = signal_zeropadded
     else:
         if len(data.shape) > 1:
@@ -152,17 +155,16 @@ def loadsound(filename, sr=None, norm=True, mono=True, dur_sec = None):
             filename = pyst.tools.newbitdepth(filename)
             data, sr = loadsound(filename)
             print("Success!")
-    if dur_sec:
-        numsamps = int(dur_sec * sr)
-    else:
-        numsamps = data.shape[0]
-    data = set_signal_length(data, numsamps)
-
     if mono and len(data.shape) > 1:
         if data.shape[1] > 1:
             data = pyst.tools.stereo2mono(data)
     if norm:
         data = pyst.tools.normsound(data, -1, 1)
+    if dur_sec:
+        numsamps = int(dur_sec * sr)
+    else:
+        numsamps = data.shape[0]
+    data = set_signal_length(data, numsamps)
     return data, sr
 
 def normalize(data, max_val=None, min_val=None):
