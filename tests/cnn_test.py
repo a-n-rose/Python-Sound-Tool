@@ -35,7 +35,8 @@ def test_scale_X_y_3d_test():
     np.random.seed(seed=40)
     data2 = np.random.random_sample(size=(2,1,3))
     X, y, scalars = sound_models.cnn.scale_X_y(data1)
-    X, y, scalars = sound_models.cnn.scale_X_y(data2, is_train=False, scalars=scalars)
+    X, y, scalars = sound_models.cnn.scale_X_y(data2, is_train=False, 
+                                               scalars=scalars)
     expected1 = np.array([[[[-1.],[-1.]]],[[[-1.],[-1.]]]])
     expected2 = np.array([[0.78853488],[0.30391231]])
     assert np.allclose(expected1, X)
