@@ -493,9 +493,9 @@ def loadmodel(filter_class):
     return sm
 
 def scale_X_y(matrix, is_train=True, scalars=None):
-    '''Separates, scales X and y data from 3D matrix. Adds dimension for keras.
+    '''Separates and scales data into X and y arrays. Adds dimension for keras.
     
-    Assumes the last column is the y data.
+    Assumes the last column of the last dimension is the y or label data.
     
     Parameters
     ----------
