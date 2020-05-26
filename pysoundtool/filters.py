@@ -322,6 +322,11 @@ class BandSubtraction(Filter):
                         max_vol=max_vol)
         self.num_bands = num_bands
         self.band_spacing = band_spacing
+        # Band spectral subtraction has been successful with 48000 sr.
+        if self.sr != 48000:
+            print('Band spectral subtraction requires a 48000 Hz sampling rate.'+\
+                'Sampling rate is automatically adjusted accordingly.')
+            self.sr = 48000
         
     def apply_bandspecsub(self, target_power, target_phase, noise_power):
         self.setup_bands()
