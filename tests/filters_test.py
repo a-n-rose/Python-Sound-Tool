@@ -227,6 +227,13 @@ def test_calc_relevant_band():
     expected = 0
     assert expected == rel_band
     
+def test_bandsub_reset_samplerate_22050():
+    sr = 22050 
+    fil = pyst.BandSubtraction(num_bands=4, sr=sr)
+    updated_sr = fil.sr
+    expected = 48000
+    assert expected == updated_sr
+    
 #def test_sub_noise():
     #fil = pyst.BandSubtraction(num_bands = 4)
     #fil.setup_bands()
