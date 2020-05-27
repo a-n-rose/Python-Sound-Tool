@@ -44,3 +44,27 @@
 - make features/feature_type namespace consistent
 - use keyword arguments for librosa and scipy?
 - simplify
+
+
+## Organization ideas:
+
+pyst.loadsound(audiofile, sr)
+pyst.playsound(audiofile, sr)?
+pyst.plotsound(audiofile, sr, feature_type)
+
+pyst.data.train_val_test(input_data, output_data)
+pyst.data.analyze(audo_dir)? For example for audio types, lengths?, sizes? etc. Useful for logging?
+pyst.feats.plot()
+pyst.feats.hear()
+pyst.feats.extract()
+model = pyst.models.speechrec_simple() # model will be a class instance..
+history = pyst.models.train(model, train_path, val_path)
+matplotplib.pyplot.plot(history) ?
+pyst.models.plot(history)
+pyst.models.run(model, test_path)
+
+pyst.filters.wiener()
+pyst.filters.bandsubtraction()
+pyst.models.soundclassifier()
+pyst.models.autoencoder_denoise()
+pyst.models.speechrec()
