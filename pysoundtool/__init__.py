@@ -1,7 +1,7 @@
 ###############################################################################
 from . import paths
 from .paths import PathSetup
-from .tools import tools
+from .utils import utils
 from . import feats
 from .feats import FeatPrep_SoundClassifier, prepfeatures, getfeatsettings, \
     visualize_feats
@@ -13,7 +13,7 @@ from . import dsp
 from . import exceptions as errors
 from .dsp import loadsound
 
-__all__=['paths', 'PathSetup', 'tools', 'feats',\
+__all__=['paths', 'PathSetup', 'utils', 'feats',\
      'FeatPrep_SoundClassifier', 'prepfeatures','getfeatsettings',\
         'filters','WienerFilter','BandSubtraction','welch2class',\
             'save_class_noise','filtersignal', \

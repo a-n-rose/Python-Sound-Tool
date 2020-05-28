@@ -1,7 +1,7 @@
-
-"""
-Script with functions useful in filtering / digital signal processing
-"""
+'''dsp module contains functions pertaining to the actual generation,
+manipulation, and analysis of sound. This ranges from generating sounds to
+calculating sound to noise ratio.
+'''
 ###############################################################################
 import sys, os
 import inspect
@@ -21,7 +21,7 @@ sys.path.insert(0, packagedir)
 
 import pysoundtool as pyst
 
-def create_signal(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
+def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
     #The variable `time` holds the expected number of measurements taken: 
     time = get_time_points(dur_sec, sr=sr)
     # unit circle: 2pi equals a full circle
@@ -35,7 +35,7 @@ def get_time_points(dur_sec,sr):
     time = np.linspace(0, dur_sec, np.floor(dur_sec*sr))
     return time
 
-def create_noise(num_samples, amplitude=0.025, random_seed=None):
+def generate_noise(num_samples, amplitude=0.025, random_seed=None):
     if random_seed:
         np.random.seed(random_seed)
     noise = amplitude * np.random.randn(num_samples)
@@ -67,6 +67,12 @@ def load_signal(wav, sr=48000, dur_sec=None):
     #ensure max and min are between 1 and -1
     samps = np.interp(samps,(samps.min(), samps.max()),(-1, 1))
     return samps, sr
+
+def normsound(samples,min_val=-1,max_val=1):
+    '''Scales the input array to range between `min_val` and `max_val`
+    '''
+    samples = np.interp(samples,(samples.min(), samples.max()),(min_val, max_val))
+    return samples
 
 def set_signal_length(samples, numsamps):
     '''Sets audio signal to be a certain length. Zeropads if too short.
@@ -188,6 +194,197 @@ def resample_audio(samples, sr_original, sr_desired):
     num_samples = int(time_sec * sr_desired)
     resampled = resample(samples, num_samples)
     return resampled, sr_desired
+
+def resample_audio(samples, sr_original, sr_desired):
+    '''Allows audio samples to be resampled to desired sample rate.
+    '''
+    time_sec = len(samples)/sr_original 
+    num_samples = int(time_sec * sr_desired)
+    resampled = resample(samples, num_samples)
+    return resampled, sr_desired
+
+def stereo2mono(data):
+    '''If sound data has multiple channels, reduces to first channel
+    
+    Parameters
+    ----------
+    data : numpy.ndarray
+        The series of sound samples, with 1+ columns/channels
+    
+    Returns
+    -------
+    data_mono : numpy.ndarray
+        The series of sound samples, with first column
+        
+    Examples
+    --------
+    >>> import numpy as np
+    >>> data = np.linspace(0,20)
+    >>> data_2channel = data.reshape(25,2)
+    >>> data_2channel[5]
+    array([[0.        , 0.40816327],
+       [0.81632653, 1.2244898 ],
+       [1.63265306, 2.04081633],
+       [2.44897959, 2.85714286],
+       [3.26530612, 3.67346939]])
+    >>> data_mono = stereo2mono(data)
+    >>> data_mono[:5]
+    array([0.        , 0.81632653, 1.63265306, 2.44897959, 3.26530612])
+    '''
+    data_mono = data.copy()
+    if len(data.shape) > 1 and data.shape[1] > 1:
+        data_mono = np.take(data,0,axis=-1) 
+    return data_mono
+
+def add_sound_to_signal(signal, sound, scale=1, delay_target_sec = 1, total_len_sec=None):
+    '''Adds a sound (i.e. background noise) to a target signal 
+    
+    Parameters
+    ----------
+    signal : str 
+        Sound file of the target sound
+    sound : str 
+        Sound file of the background noise or sound
+    scale : int or float, optional
+        The loudness of the sound to be added (default 1)
+    delay_target_sec : int or float, optional
+        Length of time in seconds the sound will be played before the target
+        (default 1)
+    total_len_sec : int or float, optional
+        Total length of combined sound in seconds. If none, the sound will end
+        after target sound ends (default None)
+    
+    Returns
+    -------
+    combined : numpy.ndarray
+        The samples of the sounds added together
+    sr : int 
+        The sample rate of the samples
+    '''
+    target, sr = pyst.dsp.loadsound(signal)
+    sound2add, sr2 = pyst.dsp.loadsound(sound)
+    if sr != sr2:
+        sound2add, sr = resample_audio(sound2add, sr2, sr)
+    sound2add *= scale
+    if total_len_sec:
+        total_samps = int(sr*total_len_sec)
+    else:
+        total_samps = int(sr*(len(target)+delay_target_sec))
+    if len(sound2add) < total_samps:
+        sound2add = extend_sound(sound2add, total_samps)
+    beginning_delay = sound2add[:int(sr*delay_target_sec)]
+    noise2mix = sound2add[int(sr*delay_target_sec):len(target)+int(sr*delay_target_sec)]
+    ending = sound2add[len(target)+int(sr*delay_target_sec):total_samps]
+    combined = noise2mix + target
+    if delay_target_sec:
+        combined = np.concatenate((beginning_delay,combined))
+    if total_len_sec:
+        combined = np.concatenate((combined, ending))
+    return combined, sr
+
+def extend_sound(data, target_len):
+    '''Extends a sound by repeating it until its `target_len`
+    
+    This is perhaps useful when working with repetitive or
+    stationary sounds.
+    '''
+    new_data = np.zeros((target_len,))
+    row_id = 0
+    while row_id < len(new_data):
+        if row_id + len(data) > len(new_data):
+            diff = row_id + len(data) - len(new_data)
+            new_data[row_id:] += data[:-diff]
+        else:
+            new_data[row_id:row_id+len(data)] += data
+            row_id += len(data)
+    return new_data
+
+
+def zeropad_sound(data, target_len, sr, delay_sec=1):
+    '''If the sound data needs to be a certain length, zero pad it.
+    
+    Parameters
+    ----------
+    data : numpy.ndarray
+        The sound data that needs zero padding. Shape (len(data),). 
+        Expects mono channel.
+    target_len : int 
+        The number of samples the `data` should have
+    sr : int
+        The samplerate of the `data`
+    delay_sec : int, float, optional
+        If the data should be zero padded also at the beginning.
+        (default 1)
+    
+    Returns
+    -------
+    signal_zeropadded : numpy.ndarray
+        The data zero padded to the shape (target_len,)
+    '''
+    if len(data.shape) > 1 and data.shape[1] > 1: 
+        data = stereo2mono(data)
+    delay_samps = sr * delay_sec
+    if len(data) < target_len:
+        diff = target_len - len(data)
+        signal_zeropadded = np.zeros((data.shape[0] + int(diff)))
+        for i, row in enumerate(data):
+            signal_zeropadded[i+delay_samps] += row
+    return signal_zeropadded
+
+def combine_sounds(file1, file2, match2shortest=True, time_delay_sec=1,total_dur_sec=5):
+    '''Combines sounds
+    
+    Parameters
+    ----------
+    file1 : str 
+        One of two files to be added together
+    file2 : str 
+        Second of two files to be added together
+    match2shortest : bool
+        If the lengths of the addition should be limited by the shorter sound. 
+        (defaul True)
+    time_delay_sec : int, float, optional
+        The amount of time in seconds before the sounds are added together. 
+        The longer sound will play for this period of time before the shorter
+        sound is added to it. (default 1)
+    total_dur_sec : int, float, optional
+        The total duration in seconds of the combined sounds. (default 5)
+        
+    Returns
+    -------
+    added_sound : numpy.ndarray
+        The sound samples of the two soundfiles added together
+    sr1 : int 
+        The sample rate of the original signals and added sound
+    '''
+    data1, sr1 = pyst.dsp.loadsound(file1)
+    data2, sr2 = pyst.dsp.loadsound(file2)
+    if sr1 != sr2:
+        data2, sr2 = resample_audio(data2, sr2, sr1)
+    if time_delay_sec:
+        num_extra_samples = int(sr1*time_delay_sec)
+    else:
+        num_extra_samples = 0
+    if len(data1) > len(data2):
+        data_long = data1
+        data_short = data2
+    else:
+        data_long = data2
+        data_short = data1
+    dl_copy = data_long.copy()
+    ds_copy = data_short.copy()
+    
+    if match2shortest:
+        data_short = zeropad_sound(data_short, len(ds_copy) + num_extra_samples, sr1, delay_sec= time_delay_sec)
+        data_long = data_long[:len(ds_copy)+num_extra_samples]
+    else:
+        data_short = zeropad_sound(data_short,len(dl_copy), sr1, delay_sec= time_delay_sec)
+    added_sound = data_long + data_short
+    
+    if total_dur_sec:
+        added_sound = added_sound[:sr1*total_dur_sec]
+    return added_sound, sr1
+
 
 def calc_frame_length(dur_frame_millisec, sr):
     """Calculates the number of samples necessary for each frame
@@ -880,39 +1077,6 @@ def calc_linear_impulse(noise_frame_len, num_freq_bins):
             linear_filter_impulse[i] = 0
     return linear_filter_impulse
 
-def postfilter(original_powerspec, noisereduced_powerspec, gain,
-               threshold=0.4, scale=10):
-    '''Apply filter that reduces musical noise resulting from other filter.
-    
-    If it is estimated that speech (or target signal) is present, reduced
-    filtering is applied.
-
-    References 
-    ----------
-    
-    T. Esch and P. Vary, "Efficient musical noise suppression for speech enhancement 
-    system," Proceedings of IEEE International Conference on Acoustics, Speech and 
-    Signal Processing, Taipei, 2009.
-    '''
-    power_ratio_current_frame = calc_power_ratio(
-        original_powerspec,
-        noisereduced_powerspec)
-    # is there speech? If so, SNR decision = 1
-    if power_ratio_current_frame < threshold:
-        SNR_decision = power_ratio_current_frame
-    else:
-        SNR_decision = 1
-    noise_frame_len = calc_noise_frame_len(SNR_decision, threshold, scale)
-    # apply window
-    postfilter_coeffs = calc_linear_impulse(
-        noise_frame_len,
-        num_freq_bins=original_powerspec.shape[0])
-    gain_postfilter = np.convolve(gain, postfilter_coeffs, mode='valid')
-    return gain_postfilter
-
-
-
-
 def adjust_volume(samples, vol_range):
     samps = samples.copy()
     adjusted_volume = np.interp(samps,
@@ -945,98 +1109,6 @@ def spread_volumes(samples, vol_list = [0.1,0.3,0.5]):
     for i, vol in enumerate(vol_list):
         volrange_dict[i] = adjust_volume(samples, vol) 
     return tuple(volrange_dict.values())
-
-
-
-# TODO: https://github.com/biopython/biopython/issues/1496
-# Fix numpy array repr for Doctest. 
-def add_tensor(matrix):
-    '''Adds tensor / dimension to input ndarray.
-
-    Keras requires an extra dimension at some layers, which represents 
-    the 'tensor' encapsulating the data. 
-
-    Further clarification taking the example below. The input matrix has 
-    shape (2,3,4). Think of it as 2 different events, each having
-    3 sets of measurements, with each of those having 4 features. So, 
-    let's measure differences between 2 cities at 3 different times of
-    day. Let's take measurements at 08:00, 14:00, and 19:00 in... 
-    Magic City and Never-ever Town. We'll measure.. 1) tempurature, 
-    2) wind speed 3) light level 4) noise level.
-
-    How I best understand it, putting our measurements into a matrix
-    with an added dimension/tensor, this highlights the separate 
-    measurements, telling the algorithm: yes, these are 4 features
-    from the same city, BUT they occur at different times. Or it's 
-    just how Keras set up the code :P 
-
-    Parameters
-    ----------
-    matrix : numpy.ndarray
-        The `matrix` holds the numerical data to add a dimension to.
-
-    Returns
-    -------
-    matrix : numpy.ndarray
-        The `matrix` with an additional dimension.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> matrix = np.arange(24).reshape((2,3,4))
-    >>> matrix.shape
-    (2, 3, 4)
-    >>> matrix
-    array([[[ 0,  1,  2,  3],
-            [ 4,  5,  6,  7],
-            [ 8,  9, 10, 11]],
-    <BLANKLINE>
-           [[12, 13, 14, 15],
-            [16, 17, 18, 19],
-            [20, 21, 22, 23]]])
-    >>> matrix_2 = add_tensor(matrix)
-    >>> matrix_2.shape
-    (2, 3, 4, 1)
-    >>> matrix_2
-    array([[[[ 0],
-             [ 1],
-             [ 2],
-             [ 3]],
-    <BLANKLINE>
-            [[ 4],
-             [ 5],
-             [ 6],
-             [ 7]],
-    <BLANKLINE>
-            [[ 8],
-             [ 9],
-             [10],
-             [11]]],
-    <BLANKLINE>
-    <BLANKLINE>
-           [[[12],
-             [13],
-             [14],
-             [15]],
-    <BLANKLINE>
-            [[16],
-             [17],
-             [18],
-             [19]],
-    <BLANKLINE>
-            [[20],
-             [21],
-             [22],
-             [23]]]])
-    '''
-    if isinstance(matrix, np.ndarray) and len(matrix) > 0:
-        matrix = matrix.reshape(matrix.shape + (1,))
-        return matrix
-    elif isinstance(matrix, np.ndarray):
-        raise ValueError('Input matrix is empty.')
-    else:
-        raise TypeError('Expected type numpy.ndarray, recieved {}'.format(
-            type(matrix)))
 
 def create_empty_matrix(shape, complex_vals=False):
     '''Allows creation of a matrix filled with real or complex zeros.
@@ -1080,79 +1152,6 @@ def create_empty_matrix(shape, complex_vals=False):
     else:
         matrix = np.zeros(shape, dtype=float)
     return matrix
-
-def separate_dependent_var(matrix):
-    '''Separates matrix into features and labels. Expects 3D array.
-
-    Assumes the last column of the last dimension of the matrix constitutes
-    the dependent variable (labels), and all other columns the indpendent variables
-    (features). Additionally, it is assumed that for each block of data, 
-    only one label is needed; therefore, just the first label is taken for 
-    each block.
-
-    Parameters
-    ----------
-    matrix : numpy.ndarray [size = (num_samples, num_frames, num_features)]
-        The `matrix` holds the numerical data to separate. num_features is
-        expected to be at least 2.
-
-    Returns
-    -------
-    X : numpy.ndarray [size = (num_samples, num_frames, num_features -1)]
-        A matrix holding the (assumed) independent variables
-    y : numpy.ndarray, numpy.int64, numpy.float64 [size = (num_samples,)]
-        A vector holding the labels assigned to the independent variables.
-        If only one value in array, just the value inside is returned
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> #vector
-    >>> separate_dependent_var(np.array([1,2,3,4]))
-    (array([1, 2, 3]), 4)
-    >>> #simple matrix
-    >>> matrix = np.arange(4).reshape(2,2)
-    >>> matrix
-    array([[0, 1],
-           [2, 3]])
-    >>> X, y = separate_dependent_var(matrix)
-    >>> X
-    array([[0],
-           [2]])
-    >>> y 
-    1
-    >>> #more complex matrix
-    >>> matrix = np.arange(20).reshape((2,2,5))
-    >>> matrix
-    array([[[ 0,  1,  2,  3,  4],
-            [ 5,  6,  7,  8,  9]],
-    <BLANKLINE>
-           [[10, 11, 12, 13, 14],
-            [15, 16, 17, 18, 19]]])
-    >>> X, y = separate_dependent_var(matrix)
-    >>> X
-    array([[[ 0,  1,  2,  3],
-            [ 5,  6,  7,  8]],
-    <BLANKLINE>
-           [[10, 11, 12, 13],
-            [15, 16, 17, 18]]])
-    >>> y
-    array([ 4, 14])
-    '''
-    # get last column
-    if len(matrix.shape) != 3:
-        raise ValueError('3 Dimensional data expected, not shape {}.'.format(matrix.shape))
-    if matrix.shape[-1] == 1:
-        raise ValueError('Expects input matrix to be size (num_samples, num_frames, ' + \
-                         'num_features). Number of features must exceed 1 in order ' + \
-                         'to separate into X and y arrays.')
-    y_step1 = np.take(matrix, -1, axis=-1)
-    # because the label is the same for each block of data, just need the first
-    # row,  not all the rows, as they are the same label.
-    y = np.take(y_step1, 0, axis=-1)
-    # get features:
-    X = np.delete(matrix, -1, axis=-1)
-    return X, y
 
 def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
     '''Overlaps and adds windowed sections together to form 1D signal.

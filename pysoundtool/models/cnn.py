@@ -518,7 +518,7 @@ def scale_X_y(matrix, is_train=True, scalars=None):
     scalars : dict
         The scalars either created or previously loaded.
     '''
-    X, y = pyst.dsp.separate_dependent_var(matrix)
+    X, y = pyst.feats.separate_dependent_var(matrix)
     if is_train:
         scalars = {}
     elif scalars is None:
@@ -534,6 +534,6 @@ def scale_X_y(matrix, is_train=True, scalars=None):
             X[:, :, j] = scalars[j].transform(X[:, :, j])
         X[:, :, j] = normalize(X[:, :, j])
     # Keras needs an extra dimension as a tensor / holder of data
-    X = pyst.dsp.add_tensor(X)
-    y = pyst.dsp.add_tensor(y)
+    X = pyst.feats.add_tensor(X)
+    y = pyst.feats.add_tensor(y)
     return X, y, scalars

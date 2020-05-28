@@ -1090,3 +1090,34 @@ def get_save_begsamps(wavlist,audioclass_int,
                                                      audioclass_int))
         pyst.paths.save_feature_data(filename, y_beg)
     return None
+
+
+def postfilter(original_powerspec, noisereduced_powerspec, gain,
+               threshold=0.4, scale=10):
+    '''Apply filter that reduces musical noise resulting from other filter.
+    
+    If it is estimated that speech (or target signal) is present, reduced
+    filtering is applied.
+
+    References 
+    ----------
+    
+    T. Esch and P. Vary, "Efficient musical noise suppression for speech enhancement 
+    system," Proceedings of IEEE International Conference on Acoustics, Speech and 
+    Signal Processing, Taipei, 2009.
+    '''
+    power_ratio_current_frame = dsp.calc_power_ratio(
+        original_powerspec,
+        noisereduced_powerspec)
+    # is there speech? If so, SNR decision = 1
+    if power_ratio_current_frame < threshold:
+        SNR_decision = power_ratio_current_frame
+    else:
+        SNR_decision = 1
+    noise_frame_len = dsp.calc_noise_frame_len(SNR_decision, threshold, scale)
+    # apply window
+    postfilter_coeffs = dsp.calc_linear_impulse(
+        noise_frame_len,
+        num_freq_bins=original_powerspec.shape[0])
+    gain_postfilter = np.convolve(gain, postfilter_coeffs, mode='valid')
+    return gain_postfilter
