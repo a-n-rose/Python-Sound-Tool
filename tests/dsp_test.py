@@ -18,7 +18,6 @@ def test_calc_phase():
     value1 = np.array([0.67324134+0.73942281j, 0.79544405+0.60602703j])
     assert np.allclose(value1, phase)
     
-
 def test_calc_phase_framelength10_default():
     frame_length = 10
     time = np.arange(0, 10, 0.1)
@@ -90,7 +89,6 @@ def test_reconstruct_whole_spectrum_complexvals():
     assert np.allclose(expected, x_reconstructed)
     assert len(x_reconstructed) == n_fft    
     
-    
 def test_overlap_add():
     enhanced_matrix = np.ones((4, 4))
     frame_length = 4
@@ -115,3 +113,47 @@ def test_overlap_add_framelength_mismatch():
         sig = pyst.dsp.overlap_add(enhanced_matrix, 
                                     frame_length, 
                                     overlap)
+        
+def test_generate_sound_default():
+    data, sr = pyst.dsp.generate_sound()
+    expected1 = np.array([0., 0.06260483, 0.12366658, 0.18168021, 0.2352158 ])
+    expected2 = 2000
+    expected3 = 8000
+    assert np.allclose(expected1, data[:5])
+    assert len(data) == expected2
+    assert sr == expected3
+    
+def test_generate_sound_freq5():
+    sound, sr = pyst.dsp.generate_sound(freq=5, amplitude=0.5, sr=5, dur_sec=1)
+    expected1 = np.array([ 0.000000e+00,  5.000000e-01,  
+                         3.061617e-16, -5.000000e-01, -6.123234e-16])
+    expected_sr = 5
+    expected_len = expected_sr * 1
+    assert np.allclose(expected1, sound)
+    assert sr == expected_sr
+    assert len(sound) == expected_len
+    
+def test_get_time_points():
+    time = pyst.dsp.get_time_points(dur_sec = 0.1, sr=50)
+    expected = np.array([0.    ,0.025 ,0.05 , 0.075, 0.1  ])
+    assert np.allclose(time, expected)
+    
+def test_generate_noise():
+    noise = pyst.dsp.generate_noise(5, random_seed=0)
+    expected = np.array([0.04410131, 0.01000393, 0.02446845, 0.05602233, 0.04668895])
+    assert np.allclose(expected, noise)
+    
+def test_set_signal_length_longer():
+    input_samples = np.array([1,2,3,4,5])
+    samples = pyst.dsp.set_signal_length(input_samples, numsamps = 8)
+    expected = np.array([1,2,3,4,5,0,0,0])
+    assert len(samples) == 8
+    assert np.array_equal(samples, expected)
+    
+def test_set_signal_length_shorter():
+    input_samples = np.array([1,2,3,4,5])
+    samples = pyst.dsp.set_signal_length(input_samples, numsamps = 4)
+    expected = np.array([1,2,3,4])
+    assert len(samples) == 4
+    assert np.array_equal(samples, expected)
+    
