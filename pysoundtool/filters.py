@@ -134,7 +134,7 @@ class Filter(FilterSettings):
         samples : ndarray
             Array containing signal amplitude values in time domain
         """
-        samples, sr = pyst.load_signal(
+        samples, sr = pyst.loadsound(
             audiofile, self.sr, dur_sec=dur_sec)
         self.set_volume(samples, max_vol = self.max_vol)
         return samples
