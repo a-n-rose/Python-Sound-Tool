@@ -1,10 +1,6 @@
 '''Useful functions for PySoundTool but not directly related to sound data.
 ''' 
 import os, sys
-from scipy.io.wavfile import read
-from scipy.signal import resample
-import soundfile as sf
-import librosa
 import numpy as np
 import datetime
 
