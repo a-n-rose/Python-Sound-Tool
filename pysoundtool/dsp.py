@@ -6,7 +6,6 @@ calculating sound to noise ratio.
 import sys, os
 import inspect
 import numpy as np
-from scipy.io.wavfile import read
 from numpy.fft import fft, rfft, ifft, irfft
 from scipy.signal import hamming, hann, resample
 from python_speech_features import logfbank, mfcc
@@ -22,60 +21,102 @@ sys.path.insert(0, packagedir)
 import pysoundtool as pyst
 
 def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
+    '''Generates a sound signal with the provided parameters. Signal begins at 0.
+    
+    Parameters
+    ----------
+    freq : int, float
+        The frequency in Hz the signal should have (default 200 Hz). This pertains
+        to the number of ossicliations per second.
+    amplitude : int, float
+        The parameter controling how much energy the signal should have. 
+        (default 0.4)
+    sr : int 
+        The sampling rate of the signal, or how many samples make up the signal 
+        per second. (default 8000)
+        
+    Returns
+    -------
+    sound_samples : np.ndarray [size = ()]
+        The samples of the generated sound 
+    sr : int 
+        The sample rate of the generated signal
+        
+    Examples
+    --------
+    >>> sound, sr = generate_sound(freq=5, amplitude=0.5, sr=5, dur_sec=1)
+    >>> sound 
+    array([ 0.000000e+00,  5.000000e-01,  3.061617e-16, -5.000000e-01, -6.123234e-16])
+    >>> sr
+    5
+    '''
     #The variable `time` holds the expected number of measurements taken: 
     time = get_time_points(dur_sec, sr=sr)
     # unit circle: 2pi equals a full circle
     full_circle = 2 * np.pi
     #TODO: add namedtuple
-    sinewave_samples = amplitude * np.sin((freq*full_circle)*time)
-    return sinewave_samples, sr
+    sound_samples = amplitude * np.sin((freq*full_circle)*time)
+    return sound_samples, sr
 
 def get_time_points(dur_sec,sr):
-    #duration in seconds multiplied by the sampling rate. 
-    time = np.linspace(0, dur_sec, np.floor(dur_sec*sr))
+    '''Get evenly spaced time points from zero to length of `dur_sec`.
+    
+    The time points align with the provided sample rate, making it easy 
+    to plot a signal with a time line in seconds.
+    
+    Parameters
+    ----------
+    dur_sec : int, float
+        The amount of time in seconds 
+    sr : int
+        The sample rate relevant for the signal
+    
+    Returns
+    -------
+    time : np.ndarray [size = (num_time_points,)]
+    
+    Examples
+    --------
+    >>> # 50 milliseconds at sample rate of 100 (100 samples per second)
+    >>> x = get_time_points(0.05,100)
+    >>> x.shape
+    (5,)
+    >>> x
+    array([0.    , 0.0125, 0.025 , 0.0375, 0.05  ])
+    '''
+    time = np.linspace(0, dur_sec, int(np.floor(dur_sec*sr)))
     return time
 
 def generate_noise(num_samples, amplitude=0.025, random_seed=None):
-    if random_seed:
+    '''Generates noise to be of a certain amplitude and number of samples.
+    
+    Useful for adding noise to another signal of length `num_samples`.
+    
+    Parameters
+    ----------
+    num_samples : int
+        The number of total samples making up the noise signal.
+    amplitude : float 
+        Allows the noise signal to be louder or quieter. (default 0.025)
+    random_seed : int, optional
+        Useful for repeating 'random' noise samples.
+        
+    Examples
+    --------
+    >>> noise = generate_noise(10, random_seed = 0)
+    >>> noise
+    array([0.04410131, 0.01000393, 0.02446845, 0.05602233, 0.04668895])
+    '''
+    if random_seed is not None:
         np.random.seed(random_seed)
     noise = amplitude * np.random.randn(num_samples)
     return noise
 
-def load_signal(wav, sr=48000, dur_sec=None):
-    '''Loads wavfile, resamples if necessary, and normalizes signal.
-    '''
-    sr2, samps = read(wav)
-    if len(samps.shape) > 1:
-        samps = np.take(samps,0,axis=-1) 
-    if sr2 != sr:
-        samps, sr2 = pyst.tools.resample_audio(samps, sr2, sr)
-        assert sr2 == sr
-    if dur_sec:
-        numsamps = int(dur_sec * sr)
-    else:
-        numsamps = len(samps)
-    # zero pad if signal is too short:
-    if len(samps) < numsamps:
-        diff = numsamps - len(samps)
-        signal_zeropadded = np.zeros(
-            (samps.shape[0] + int(diff)))
-        for i, row in enumerate(samps):
-            signal_zeropadded[i] += row
-        samps = signal_zeropadded
-    elif len(samps) > numsamps:
-        samps = samps[:numsamps]
-    #ensure max and min are between 1 and -1
-    samps = np.interp(samps,(samps.min(), samps.max()),(-1, 1))
-    return samps, sr
-
-def normsound(samples,min_val=-1,max_val=1):
-    '''Scales the input array to range between `min_val` and `max_val`
-    '''
-    samples = np.interp(samples,(samples.min(), samples.max()),(min_val, max_val))
-    return samples
-
 def set_signal_length(samples, numsamps):
     '''Sets audio signal to be a certain length. Zeropads if too short.
+    
+    Useful for setting signals to be a certain length, regardless of how 
+    long the audio signal is.
     
     Parameters
     ----------
@@ -88,6 +129,16 @@ def set_signal_length(samples, numsamps):
     -------
     data : np.ndarray [size = (numsamps, num_channels), or (numsamps,)]
         Copy of samples zeropadded or limited to `numsamps`.
+        
+    Examples
+    --------
+    >>> input_samples = np.array([1,2,3,4,5])
+    >>> output_samples = set_signal_length(input_samples, numsamps = 8)
+    >>> output_samples
+    array([1, 2, 3, 4, 5, 0, 0, 0])
+    >>> output_samples = set_signal_length(input_samples, numsamps = 4)
+    >>> output_samples
+    array([1, 2, 3, 4])
     '''
     data = samples.copy()
     if data.shape[0] < numsamps:
@@ -106,69 +157,21 @@ def set_signal_length(samples, numsamps):
             data = data[:numsamps,:]
         else:
             data = data[:numsamps]
+    # ensure returned data same dtype as input 
+    data = data.astype(samples.dtype)
     return data
 
-def loadsound(filename, sr=None, mono=True, dur_sec = None):
-    '''Loads sound file with scipy.io.wavfile.read
-    
-    If the sound file is not compatible with scipy's read module
-    this functions converts the file to .wav format and/or
-    changes the bit depth to be compatible. 
-    
-    Parameters
-    ----------
-    filename : str
-        The filename of the sound to be loaded
-    sr : int, optional
-        The desired sample rate of the audio samples. If None, 
-        the sample rate of the audio file will be used.
-    mono : bool
-        If True, the samples will be loaded in mono sound. If False,
-        if the samples are in stereo, they will be loaded in stereo sound.
-    dur_sec : int, float, optional
-        The length in seconds of the audio signal.
-        
-    Returns
-    -------
-    data : nd.array [size=(num_samples,) or (num_samples, num_channels)]
-        The normalized (between 1 and -1) sample data returned 
-        according to the specified settings.
-    sr : int 
-        The sample rate of the loaded samples.
+def scalesound(samples,min_val=-1,max_val=1):
+    '''Scales the input array to range between `min_val` and `max_val`
     '''
-    try:
-        sr2, data = read(filename)
-        if sr:
-            if sr2 != sr:
-                data, sr2 = pyst.tools.resample_audio(data, 
-                                          sr_original = sr2, 
-                                          sr_desired = sr)
-                assert sr2 == sr
-        else:
-            sr = sr2
-    except ValueError:
-        print("Step 1: ensure filetype is compatible with scipy library".format(filename))
-        filename = pyst.tools.convert2wav(filename)
-        try:
-            data, sr = loadsound(filename)
-            print("Success!")
-        except ValueError:
-            print("Step 2: ensure bitdepth is compatible with scipy library")
-            filename = pyst.tools.newbitdepth(filename)
-            data, sr = loadsound(filename)
-            print("Success!")
-    if mono and len(data.shape) > 1:
-        if data.shape[1] > 1:
-            data = pyst.tools.stereo2mono(data)
-    # normalize samples
-    data = pyst.tools.normsound(data, -1, 1)
-    if dur_sec:
-        numsamps = int(dur_sec * sr)
-        data = set_signal_length(data, numsamps)
-    return data, sr
+    samples = np.interp(samples,(samples.min(), samples.max()),(min_val, max_val))
+    return samples
 
 def normalize(data, max_val=None, min_val=None):
     '''Normalizes data.
+    
+    This is usefule if you have predetermined max and min values you want to normalize
+    new data with.
     
     Parameters
     ----------
@@ -186,14 +189,6 @@ def normalize(data, max_val=None, min_val=None):
     else:
         normed_data = (data - min_val) / (max_val - min_val)
     return normed_data
-
-def resample_audio(samples, sr_original, sr_desired):
-    '''Allows audio samples to be resampled to desired sample rate.
-    '''
-    time_sec = len(samples)/sr_original 
-    num_samples = int(time_sec * sr_desired)
-    resampled = resample(samples, num_samples)
-    return resampled, sr_desired
 
 def resample_audio(samples, sr_original, sr_desired):
     '''Allows audio samples to be resampled to desired sample rate.
@@ -236,7 +231,7 @@ def stereo2mono(data):
         data_mono = np.take(data,0,axis=-1) 
     return data_mono
 
-def add_sound_to_signal(signal, sound, scale=1, delay_target_sec = 1, total_len_sec=None):
+def combine_sounds(signal, sound, scale=1, delay_target_sec = 1, total_len_sec=None):
     '''Adds a sound (i.e. background noise) to a target signal 
     
     Parameters
