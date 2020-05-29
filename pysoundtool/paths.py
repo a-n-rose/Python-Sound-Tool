@@ -1,5 +1,3 @@
-
-
 '''
 The module paths.py contains functionality that manages how files are 
 stored. 
