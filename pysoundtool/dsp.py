@@ -246,6 +246,32 @@ def normalize(data, max_val=None, min_val=None):
 
 def resample_audio(samples, sr_original, sr_desired):
     '''Allows audio samples to be resampled to desired sample rate.
+    
+    Parameters
+    ----------
+    samples : np.ndarray [size = (num_samples,)]
+        The samples to be resampled.
+    sr_original : int 
+        The orignal sample rate of the samples.
+    sr_desired : int 
+        The desired sample rate of the samples.
+        
+    Returns
+    -------
+    resampled : np.ndarray [size = (num_samples_resampled,)]
+        The resampled samples.
+    sr_desired : int 
+        The newly applied sample rate
+        
+    Examples
+    --------
+    >>> import numpy as np
+    >>> # example samples from 5 millisecond signal with sr 100 and frequency 10
+    >>> input_samples = np.array([0.00e+00, 2.82842712e-01, 4.000e-01, 2.82842712e-01, 4.89858720e-17]
+    >>> # we want to resample to 80 instead of 100 (for this example's sake)
+    >>> output_samples = resample_audio(input_samples, sr_original = 100, sr_desired = 80)
+    >>> output_samples
+    array([-2.22044605e-17, 3.35408001e-01, 3.72022523e-01, 6.51178161e-02])
     '''
     time_sec = len(samples)/sr_original 
     num_samples = int(time_sec * sr_desired)

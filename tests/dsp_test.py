@@ -11,6 +11,8 @@ import numpy as np
 import pytest
 
 
+test_wav = './audio2channels.wav'
+
 def test_calc_phase():
     np.random.seed(seed=0)
     rand_fft = np.random.random(2) + np.random.random(2) * 1j
@@ -196,3 +198,22 @@ def test_normalize_min_max():
                                         max_val = max_val, min_val = min_val)
     expected = np.array([0.67303388, 0.89996095, 0.74661839, 0.66767314, 0.50232462])
     assert np.allclose(output_samples, expected)
+    
+def test_resample_audio_sr22050_to_16000():
+    test_audio_1sec, sr = pyst.loadsound(test_wav,dur_sec=1, sr=22050)
+    assert sr == 22050
+    assert len(test_audio_1sec) == 22050
+    test_audio_newsr, sr_new = pyst.dsp.resample_audio(test_audio_1sec, 
+                                               sr_original = sr,
+                                               sr_desired = 16000)
+    assert sr_new == 16000
+    assert len(test_audio_newsr) == 16000
+    
+def test_resample_audio_sr100_to_80():
+    # signal 5 milliseconds long
+    test_audio, sr1 = pyst.dsp.generate_sound(freq=10, sr=100,dur_sec=0.05)
+    test_resampled, sr2 = pyst.dsp.resample_audio(test_audio, 
+                                             sr_original=sr1,
+                                             sr_desired=80)
+    expected = np.array([-2.22044605e-17, 3.35408001e-01, 3.72022523e-01, 6.51178161e-02])
+    assert np.allclose(test_resampled, expected)
