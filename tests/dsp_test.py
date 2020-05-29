@@ -242,3 +242,18 @@ def test_resample_audio_sr100_to_80():
                                              sr_desired=80)
     expected = np.array([-2.22044605e-17, 3.35408001e-01, 3.72022523e-01, 6.51178161e-02])
     assert np.allclose(test_resampled, expected)
+    
+def test_stereo2mono_stereo_input():
+    # 50 samples:
+    data = np.linspace(0,20)
+    data_2channel = data.reshape(25,2)
+    data_mono = pyst.dsp.stereo2mono(data_2channel)
+    expected = np.array([0., 0.81632653, 1.63265306, 2.44897959, 3.26530612])
+    assert np.allclose(data_mono[:5],expected)
+    
+def test_stereo2mono_mono_input():
+    # 50 samples mono 
+    data = np.expand_dims(np.linspace(0,20),axis=1)
+    data_mono = pyst.dsp.stereo2mono(data)
+    assert np.array_equal(data, data_mono)
+    

@@ -302,7 +302,7 @@ def stereo2mono(data):
        [1.63265306, 2.04081633],
        [2.44897959, 2.85714286],
        [3.26530612, 3.67346939]])
-    >>> data_mono = stereo2mono(data)
+    >>> data_mono = stereo2mono(data_2channel)
     >>> data_mono[:5]
     array([0.        , 0.81632653, 1.63265306, 2.44897959, 3.26530612])
     '''
