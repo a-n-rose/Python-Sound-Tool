@@ -161,9 +161,19 @@ def set_signal_length(samples, numsamps):
     data = data.astype(samples.dtype)
     return data
 
-def scalesound(samples,min_val=-1,max_val=1):
-    '''Scales the input array to range between `min_val` and `max_val`
+def scalesound(data,min_val=-1,max_val=1):
+    '''Scales the input array to range between `min_val` and `max_val`. 
+    
+    Parameters
+    ----------
+    data : np.ndarray [size = (num_samples,)]
+        Original samples
+    Returns
+    -------
+    samples : np.ndarray [size = (num_samples,)]
+        Copy of original data, scaled to the min and max values.
     '''
+    samples = data.copy()
     samples = np.interp(samples,(samples.min(), samples.max()),(min_val, max_val))
     return samples
 

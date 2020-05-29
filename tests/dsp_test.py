@@ -157,3 +157,23 @@ def test_set_signal_length_shorter():
     assert len(samples) == 4
     assert np.array_equal(samples, expected)
     
+def test_scalesound_default():
+    np.random.seed(0)
+    input_samples = np.random.random_sample((5,))
+    output_samples = pyst.dsp.scalesound(input_samples)
+    expected = np.array([-0.14138 ,1., 0.22872961, -0.16834299, -1.])
+    assert np.allclose(output_samples, expected)
+    
+def test_scalesound_min_minus100_max100():
+    np.random.seed(0)
+    input_samples = np.random.random_sample((5,))
+    output_samples = pyst.dsp.scalesound(input_samples, min_val=-100, max_val=100)
+    expected = np.array([ -14.13800026,100., 22.87296052,-16.83429866,-100.])
+    assert np.allclose(output_samples, expected)
+    
+def test_scalesound_min_minuspoint25_maxpoint25():
+    np.random.seed(0)
+    input_samples = np.random.random_sample((5,))
+    output_samples = pyst.dsp.scalesound(input_samples, min_val=-.25, max_val=.25)
+    expected = np.array([-0.035345, 0.25, 0.0571824, -0.04208575, -0.25])
+    assert np.allclose(output_samples, expected)
