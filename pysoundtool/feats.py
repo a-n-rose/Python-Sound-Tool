@@ -216,7 +216,7 @@ class FeatPrep_SoundClassifier(AcousticData):
         '''
         sounddata = pyst.paths.str2path(sounddata)
         if pyst.paths.is_audio_ext_allowed(sounddata):
-            y, sr = pyst.dsp.load_signal(sounddata,
+            y, sr = pyst.loadsound(sounddata,
                                     sr=self.sr,
                                     dur_sec=dur_sec)
         else:
@@ -443,15 +443,15 @@ def getfeatsettings(feature_info):
         featuresettings_path = pyst.paths.load_settings_file(
             feature_info.features_dir)
         feature_settings = pyst.paths.load_dict(featuresettings_path)
-    sr = pyst.tools.make_number(feature_settings['sr'])
-    window_size = pyst.tools.make_number(feature_settings['window_size'])
-    window_shift = pyst.tools.make_number(feature_settings['window_shift'])
-    feature_sets = pyst.tools.make_number(feature_settings['feature_sets'])
+    sr = pyst.utils.make_number(feature_settings['sr'])
+    window_size = pyst.utils.make_number(feature_settings['window_size'])
+    window_shift = pyst.utils.make_number(feature_settings['window_shift'])
+    feature_sets = pyst.utils.make_number(feature_settings['feature_sets'])
     feature_type = feature_settings['feature_type']
-    num_columns = pyst.tools.make_number(feature_settings['num_columns'])
-    num_images_per_audiofile = pyst.tools.make_number(
+    num_columns = pyst.utils.make_number(feature_settings['num_columns'])
+    num_images_per_audiofile = pyst.utils.make_number(
         feature_settings['num_images_per_audiofile'])
-    training_segment_ms = pyst.tools.make_number(
+    training_segment_ms = pyst.utils.make_number(
         feature_settings['training_segment_ms'])
     if 'fbank' in feature_type.lower():
         feature_type = 'fbank'
