@@ -203,7 +203,7 @@ def normalize(data, max_val=None, min_val=None):
     '''Normalizes data.
     
     This is usefule if you have predetermined max and min values you want to normalize
-    new data with.
+    new data with. Should work with stereo sound: TODO test for stereo sound.
     
     Parameters
     ----------
@@ -215,6 +215,28 @@ def normalize(data, max_val=None, min_val=None):
     min_val : int or float, optional
         Predetermined minimum value. If None, will use min value
         from `data`.
+        
+    Returns
+    -------
+    normed_data : np.ndarray [size = (num_samples,)]
+    
+    Examples
+    --------
+    >>> # using the min and max of a previous dataset:
+    >>> import numpy as np
+    >>> np.random.seed(0)
+    >>> input_samples = np.random.random_sample((5,))
+    >>> input_samples
+    array([0.5488135, 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
+    >>> np.random.seed(40)
+    >>> previous_samples = np.random.random_sample((5,))
+    >>> previous_samples
+    array([0.40768703, 0.05536604, 0.78853488, 0.28730518, 0.45035059])
+    >>> max_prev = np.max(previous_samples)
+    >>> min_prev = np.min(previous_samples)
+    >>> output_samples = normalize(input_samples, min_val = min_prev, max_val = max_prev)
+    >>> output_samples
+    array([0.67303388, 0.89996095, 0.74661839, 0.66767314, 0.50232462])
     '''
     if max_val is None:
          normed_data = (data - np.min(data)) / (np.max(data) - np.min(data))

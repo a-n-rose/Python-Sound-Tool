@@ -177,3 +177,22 @@ def test_scalesound_min_minuspoint25_maxpoint25():
     output_samples = pyst.dsp.scalesound(input_samples, min_val=-.25, max_val=.25)
     expected = np.array([-0.035345, 0.25, 0.0571824, -0.04208575, -0.25])
     assert np.allclose(output_samples, expected)
+    
+def test_normalize_default():
+    np.random.seed(0)
+    input_samples = np.random.random_sample((5,))
+    output_samples = pyst.dsp.normalize(input_samples)
+    expected = np.array([0.42931, 1., 0.6143648, 0.41582851, 0.])
+    assert np.allclose(output_samples, expected)
+    
+def test_normalize_min_max():
+    np.random.seed(0)
+    input_samples = np.random.random_sample((5,))
+    np.random.seed(40)
+    previous_samples = np.random.random_sample((5,))
+    min_val = np.min(previous_samples)
+    max_val = np.max(previous_samples)
+    output_samples = pyst.dsp.normalize(input_samples, 
+                                        max_val = max_val, min_val = min_val)
+    expected = np.array([0.67303388, 0.89996095, 0.74661839, 0.66767314, 0.50232462])
+    assert np.allclose(output_samples, expected)
