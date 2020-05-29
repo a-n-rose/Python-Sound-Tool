@@ -6,12 +6,20 @@ currentdir = os.path.dirname(os.path.abspath(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
-import pysoundtool as pyst
 import numpy as np
 import pytest
+import librosa
+import pysoundtool as pyst
 
 
-test_wav = './audio2channels.wav'
+
+test_audiofile = './audio2channels.wav'
+
+samples_48000, sr_48000 = librosa.load(test_audiofile, sr=48000)
+samples_44100, sr_44100 = librosa.load(test_audiofile, sr=44100)
+samples_22050, sr_22050 = librosa.load(test_audiofile, sr=22050)
+samples_16000, sr_16000 = librosa.load(test_audiofile, sr=16000)
+samples_8000, sr_8000 = librosa.load(test_audiofile, sr=8000)
 
 def test_calc_phase():
     np.random.seed(seed=0)
@@ -116,6 +124,23 @@ def test_overlap_add_framelength_mismatch():
                                     frame_length, 
                                     overlap)
         
+def test_calc_num_subframes_fullframes():
+    expected = 5
+    subframes = pyst.dsp.calc_num_subframes(30,10,5)
+    assert expected == subframes
+    
+def test_calc_num_subframes_mismatchframes():
+    expected = 5
+    subframes = pyst.dsp.calc_num_subframes(33,10,5)
+    print(subframes)
+    assert expected == subframes
+    
+def test_calc_num_subframes_mismatchframes_zeropad():
+    expected = 6
+    subframes = pyst.dsp.calc_num_subframes(33,10,5, zeropad=True)
+    print(subframes)
+    assert expected == subframes
+        
 def test_generate_sound_default():
     data, sr = pyst.dsp.generate_sound()
     expected1 = np.array([0., 0.06260483, 0.12366658, 0.18168021, 0.2352158 ])
@@ -200,7 +225,7 @@ def test_normalize_min_max():
     assert np.allclose(output_samples, expected)
     
 def test_resample_audio_sr22050_to_16000():
-    test_audio_1sec, sr = pyst.loadsound(test_wav,dur_sec=1, sr=22050)
+    test_audio_1sec, sr = pyst.loadsound(test_audiofile,dur_sec=1, sr=22050)
     assert sr == 22050
     assert len(test_audio_1sec) == 22050
     test_audio_newsr, sr_new = pyst.dsp.resample_audio(test_audio_1sec, 
