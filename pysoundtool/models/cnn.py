@@ -176,11 +176,11 @@ class SoundClassifier:
             Number of convolutional neural network layers. (default 3)
         feature_maps : TODO 
         '''
-        self.num_features = pyst.tools.make_number(
+        self.num_features = pyst.utils.make_number(
             self.data_settings['num_columns'])
-        self.feature_sets = pyst.tools.make_number(
+        self.feature_sets = pyst.utils.make_number(
             self.data_settings['feature_sets'])
-        self.num_env_images = pyst.tools.make_number(
+        self.num_env_images = pyst.utils.make_number(
             self.data_settings['num_images_per_audiofile'])
         if num_layers is None:
             self.num_layers = 3
