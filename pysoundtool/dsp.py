@@ -520,7 +520,7 @@ def calc_num_overlap_samples(samples_per_frame, percent_overlap):
     num_overlap_samples = int(samples_per_frame * percent_overlap)
     return num_overlap_samples
 
-def calc_num_subframes(tot_samples, frame_length, overlap_samples):
+def calc_num_subframes(tot_samples, frame_length, overlap_samples, zeropad=False):
     """Assigns total frames needed to process entire noise or target series
 
     This function calculates the number of full frames that can be 
@@ -535,6 +535,10 @@ def calc_num_subframes(tot_samples, frame_length, overlap_samples):
         total number of samples in each frame / processing window
     overlap_samples : int
         number of samples in overlap between frames
+    zeropad : bool, optional
+        If False, number of subframes limited to full frames. If True, 
+        number of subframes extended to zeropad the last partial frame.
+        (default False)
 
     Returns
     -------
@@ -547,9 +551,13 @@ def calc_num_subframes(tot_samples, frame_length, overlap_samples):
     >>> calc_num_subframes(30,20,5)
     3
     """
+    import math
     trim = frame_length - overlap_samples
     totsamps_adjusted = tot_samples-trim
-    subframes = int(totsamps_adjusted / overlap_samples)
+    if zeropad:
+        subframes = int(math.ceil(totsamps_adjusted / overlap_samples))
+    else:
+        subframes = int(totsamps_adjusted / overlap_samples)
     return subframes
 
 def create_window(window_type, frame_length):
