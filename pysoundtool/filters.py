@@ -134,7 +134,7 @@ class Filter(FilterSettings):
         samples : ndarray
             Array containing signal amplitude values in time domain
         """
-        samples, sr = pyst.dsp.load_signal(
+        samples, sr = pyst.load_signal(
             audiofile, self.sr, dur_sec=dur_sec)
         self.set_volume(samples, max_vol = self.max_vol)
         return samples
@@ -902,7 +902,7 @@ class WelchMethod(FilterSettings):
         noise_powspec = pyst.matrixfun.create_empty_matrix(
             pwspec_shape, complex_vals=False)
         for j, wav in enumerate(wave_list):
-            n, sr = pyst.dsp.load_signal(wav, dur_sec=self.len_noise_sec)
+            n, sr = pyst.loadsound(wav, dur_sec=self.len_noise_sec)
             if augment_data:
                 samples = pyst.augmentdata.spread_volumes(n)
             else:
@@ -1081,7 +1081,7 @@ def get_save_begsamps(wavlist,audioclass_int,
     '''
     numsamps = pyst.dsp.calc_frame_length(dur_ms,sr)
     for i, wav in enumerate(wavlist):
-        y, sr = pyst.dsp.load_signal(wav,sr=sr)
+        y, sr = pyst.loadsound(wav,sr=sr)
         y_beg = y[:numsamps]
         filename = powspec_dir.joinpath(
             'beg{}ms{}sr_{}_audioclass{}.npy'.format(dur_ms, 
