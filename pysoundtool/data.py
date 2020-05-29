@@ -606,17 +606,39 @@ def prep4scipywavfile(filename):
         filename = prep4scipywavfile(filename)
     return filename
 
-def convert2wav(filename, sr=None):
-    '''Converts soundfile to .wav type 
+def convert2wav(filename, sr=None, new_path=False):
+    '''Converts and saves soundfile as .wav type in same or new directory.
+    
+    Parameters
+    ----------
+    filename : str or pathlib.PosixPath
+        The filename of the audiofile to be converted to .wav type
+    new_path : str, pathlib.PosixPath, optional 
+        If False, the converted files will be saved in same directory as originals.
+        If a path is provided, the converted files will be saved there. If no such directory
+        exists, one will be created.
+    sr : int, optional
+        The sample rate to be applied to the signal. If none supplied, the sample rate 
+        of the original file will be used.
+        
+    Returns 
+    -------
+    f_wavfile : str or pathlib.PosixPath
+        The filename and path where the .wav file is saved.
     '''
     import pathlib
     f = pathlib.Path(filename)
     extension_orig = f.suffix
+    stem_orig = f.stem
     if not extension_orig:
         f = str(f)
     else:
         f = str(f)[:len(str(f))-len(extension_orig)]
-    f_wavfile = f+'.wav'
+    if new_path:
+        f_dir = pyst.paths.prep_path(new_path)
+        f_wavfile = new_path + stem_orig + '.wav'        
+    else:
+        f_wavfile = f+'.wav'
     # soundfile can load several datatypes
     try:
         data, sr = sf.read(filename, samplerate=sr)
