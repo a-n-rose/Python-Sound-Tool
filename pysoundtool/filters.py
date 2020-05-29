@@ -14,7 +14,6 @@ import pysoundtool as pyst
 
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
-#parentdir = os.path.dirname(currentdir)
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
@@ -44,12 +43,16 @@ class FilterSettings:
     num_fft_bins : int 
         The number of frequency bins used when calculating the fft. 
         Currently the `frame_length` is used to set `num_fft_bins`.
+    zeropad : bool, optional
+        If False, only full frames of audio data are processed. 
+        If True, the last partial frame will be zeropadded. (default False)
     """
     def __init__(self,
                  frame_duration_ms=None,
                  percent_overlap=None,
                  sr=None,
-                 window_type=None):
+                 window_type=None,
+                 zeropad = None):
         # set defaults if no values given
         self.frame_dur = frame_duration_ms if frame_duration_ms else 20
         self.percent_overlap = percent_overlap if percent_overlap else 0.5
@@ -63,6 +66,7 @@ class FilterSettings:
             self.frame_length,
             self.percent_overlap)
         self.num_fft_bins = self.frame_length
+        self.zeropad = zeropad or False
         
     def get_window(self):
         '''Returns window acc. to attributes `window_type` and `frame_length`
@@ -109,12 +113,14 @@ class Filter(FilterSettings):
                  percent_overlap=None,
                  sr=None,
                  window_type=None,
-                 max_vol = None):
+                 max_vol = None,
+                 zeropad = None):
         FilterSettings.__init__(self, 
                                 frame_duration_ms=frame_duration_ms,
                                 percent_overlap=percent_overlap,
                                 sr=sr,
-                                window_type=window_type)
+                                window_type=window_type,
+                                zeropad = zeropad)
         self.max_vol = max_vol if max_vol else 0.4
         self.target_subframes = None
         self.noise_subframes = None
@@ -174,7 +180,7 @@ class Filter(FilterSettings):
             self.max_vol = max_amplitude
         return None
 
-    def set_num_subframes(self, len_samples, is_noise=False):
+    def set_num_subframes(self, len_samples, is_noise=False, zeropad=False):
         """Sets the number of target or noise subframes available for processing
 
         Parameters
@@ -184,6 +190,8 @@ class Filter(FilterSettings):
         is_noise : bool
             If False, subframe number saved under self.target_subframes, otherwise 
             self.noise_subframes (default False)
+        zeropad : bool
+            If False, number of frames limited to full frames. If True, last frame is zeropadded.
 
         Returns
         -------
@@ -193,13 +201,15 @@ class Filter(FilterSettings):
             self.noise_subframes = pyst.dsp.calc_num_subframes(
                 tot_samples=len_samples,
                 frame_length=self.frame_length,
-                overlap_samples=self.overlap_length
+                overlap_samples=self.overlap_length,
+                zeropad=zeropad
             )
         else:
             self.target_subframes = pyst.dsp.calc_num_subframes(
                 tot_samples=len_samples,
                 frame_length=self.frame_length,
-                overlap_samples=self.overlap_length
+                overlap_samples=self.overlap_length,
+                zeropad=zeropad
             )
         return None
 
@@ -255,12 +265,14 @@ class WienerFilter(Filter):
                  window_type=None,
                  max_vol = 0.4,
                  smooth_factor=0.98,
-                 first_iter=None):
+                 first_iter=None,
+                 zeropad = None):
         Filter.__init__(self, 
                         frame_duration_ms=frame_duration_ms,
                         sr=sr,
                         window_type=window_type,
-                        max_vol=max_vol)
+                        max_vol=max_vol,
+                        zeropad = zeropad)
         self.beta = smooth_factor
         self.first_iter = first_iter
         self.gain = None
@@ -314,12 +326,14 @@ class BandSubtraction(Filter):
                  window_type=None,
                  max_vol = 0.4,
                  num_bands = 6,
-                 band_spacing = 'linear'):
+                 band_spacing = 'linear',
+                 zeropad = None):
         Filter.__init__(self, 
                         frame_duration_ms=frame_duration_ms,
                         sr=sr,
                         window_type=window_type,
-                        max_vol=max_vol)
+                        max_vol=max_vol,
+                        zeropad = zeropad)
         self.num_bands = num_bands
         self.band_spacing = band_spacing
         # Band spectral subtraction has been successful with 48000 sr.
@@ -610,7 +624,8 @@ def filtersignal(output_filename,
                  num_bands=None,
                  frame_duration_ms = None,
                  percent_overlap = None,
-                 real_signal=False):
+                 real_signal=False,
+                 zeropad = False):
     """Apply Wiener or band spectral subtraction filter to signal using noise. Saves at `output_filename`.
 
     Parameters 
@@ -639,6 +654,9 @@ def filtersignal(output_filename,
         The maximum volume level of the filtered signal.
     filter_type : str
         Type of filter to apply. Options 'wiener' or 'band_specsub'.
+    zeropad : bool, optional
+        If False, only full frames of audio data are processed. 
+        If True, last partial frame is zeropadded.
     
     Returns
     -------
@@ -658,18 +676,22 @@ def filtersignal(output_filename,
     """
     if 'wiener' in filter_type:
         fil = pyst.WienerFilter(frame_duration_ms=frame_duration_ms, 
-                                percent_overlap=percent_overlap)
+                                percent_overlap=percent_overlap,
+                                sr=sr,
+                                zeropad = zeropad)
     elif 'band' in filter_type:
         fil = pyst.BandSubtraction(frame_duration_ms=frame_duration_ms,
                                    percent_overlap=percent_overlap,
-                                   num_bands=num_bands)
+                                   num_bands=num_bands,
+                                   sr=sr,
+                                   zeropad = zeropad)
     if visualize:
         frame_subtitle = 'frame size {}ms, window shift {}ms'.format(fil.frame_dur, int(fil.percent_overlap*fil.frame_dur))
 
     # load signal (to be filtered)
     samples_orig = fil.get_samples(audiofile)
     # set how many subframes are needed to process entire target signal
-    fil.set_num_subframes(len(samples_orig), is_noise=False)
+    fil.set_num_subframes(len(samples_orig), is_noise=False, zeropad=fil.zeropad)
     # prepare noise
     # set up how noise will be considered: either as audiofile, averaged
     # power values, or the first section of the target audiofile (i.e. None)
@@ -690,7 +712,7 @@ def filtersignal(output_filename,
     # if noise samples have been collected...
     if samples_noise is not None:
         # set how many subframes are needed to process entire noise signal
-        fil.set_num_subframes(len(samples_noise), is_noise=True)
+        fil.set_num_subframes(len(samples_noise), is_noise=True, zeropad=fil.zeropad)
     if visualize:
         pyst.visualize_feats(samples_orig, 'signal', title='Signal to filter'.upper(),sr = fil.sr)
         pyst.visualize_feats(samples_noise, 'signal', title= 'Noise samples to filter out'.upper(), sr=fil.sr)
@@ -705,7 +727,8 @@ def filtersignal(output_filename,
         section = 0
         for frame in range(fil.noise_subframes):
             noise_section = samples_noise[section:section+fil.frame_length]
-            noise_w_win = pyst.dsp.apply_window(noise_section, fil.get_window())
+            noise_w_win = pyst.dsp.apply_window(noise_section, fil.get_window(),
+                                                zeropad=fil.zeropad)
             noise_fft = pyst.dsp.calc_fft(noise_w_win, real_signal=real_signal)
             noise_power_frame = pyst.dsp.calc_power(noise_fft)
             noise_power += noise_power_frame
@@ -735,7 +758,8 @@ def filtersignal(output_filename,
         for frame in range(fil.target_subframes):
             target_section = samples_orig[section:section+fil.frame_length]
             target_w_window = pyst.dsp.apply_window(target_section,
-                                                    fil.get_window())
+                                                    fil.get_window(), 
+                                                    zeropad=fil.zeropad)
             if visualize and frame % visualize_every_n_frames == 0:
                 pyst.visualize_feats(target_section,'signal', title='Signal'.upper()+' \nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
                 pyst.visualize_feats(target_w_window,'signal', title='Signal with {} window'.format(fil.window_type).upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)

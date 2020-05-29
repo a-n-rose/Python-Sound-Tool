@@ -254,49 +254,58 @@ def test_bandsub_reset_samplerate_22050():
                                #oversub_factor = a,
                                #speech = True)
 
-def test_filtersettings_getsamples_default():
+
+
+def test_filtersettings_getsamples_default_wiener():
     wf = pyst.WienerFilter()
-    bs = pyst.BandSubtraction()
     samps_wf = wf.get_samples(test_audiofile,
                               dur_sec = 1)
+    assert wf.sr == 48000
+    assert len(samps_wf) == wf.sr
+    
+def test_filtersettings_getsamples_default_bandsubtraction():
+    bs = pyst.BandSubtraction()
     samps_bs = bs.get_samples(test_audiofile,
                               dur_sec = 1)
-    assert len(samps_wf) == len(samps_bs)
-    assert np.array_equal(samps_wf, samps_bs)
+    assert bs.sr == 48000
+    assert len(samps_bs) == bs.sr
     
-def test_filtersettings_getsamples_sr22050():
+    
+def test_filtersettings_getsamples_sr22050_wiener():
     sr = 22050
     wf = pyst.WienerFilter(sr=sr)
-    bs = pyst.BandSubtraction(sr=sr)
     samps_wf = wf.get_samples(test_audiofile,
                               dur_sec = 1)
-    samps_bs = bs.get_samples(test_audiofile,
-                              dur_sec = 1)
-    assert len(samps_wf) == sr
-    assert len(samps_bs) == sr
-    assert np.array_equal(samps_wf, samps_bs)
+    assert wf.sr == sr
+    assert len(samps_wf) == wf.sr
     
-def test_filtersettings_getsamples_sr48000():
-    sr = 48000
-    wf = pyst.WienerFilter(sr=sr)
+def test_filtersettings_getsamples_sr22050_bandsubtraction():
+    sr = 22050
+    sr_permanent = 48000
     bs = pyst.BandSubtraction(sr=sr)
-    samps_wf = wf.get_samples(test_audiofile,
-                              dur_sec = 1)
     samps_bs = bs.get_samples(test_audiofile,
                               dur_sec = 1)
-    assert len(samps_wf) == sr
-    assert len(samps_bs) == sr
-    assert np.array_equal(samps_wf, samps_bs)
-    
-    
-def test_filtersettings_getsamples_sr8000():
+    print('IF ERROR: Check whether or not BandSubtraction works with '+\
+        'sample rates other than 48000. If not, the sr must stay at 48000.')
+    assert bs.sr == sr_permanent
+    assert len(samps_bs) == bs.sr
+
+def test_filtersettings_getsamples_sr8000_wiener():
     sr = 8000
     wf = pyst.WienerFilter(sr=sr)
-    bs = pyst.BandSubtraction(sr=sr)
     samps_wf = wf.get_samples(test_audiofile,
                               dur_sec = 1)
+    assert wf.sr == sr
+    assert len(samps_wf) == wf.sr
+
+def test_filtersettings_getsamples_sr8000_bandsubtraction():
+    sr = 8000
+    sr_permanent = 48000
+    bs = pyst.BandSubtraction(sr=sr)
     samps_bs = bs.get_samples(test_audiofile,
                               dur_sec = 1)
-    assert len(samps_wf) == sr
-    assert len(samps_bs) == sr
-    assert np.array_equal(samps_wf, samps_bs)
+    print('IF ERROR: Check whether or not BandSubtraction works with '+\
+        'sample rates other than 48000. If not, the sr must stay at 48000.')
+    assert bs.sr == sr_permanent
+    assert len(samps_bs) == bs.sr
+    
