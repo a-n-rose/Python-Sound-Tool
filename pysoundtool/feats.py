@@ -233,7 +233,7 @@ class FeatPrep_SoundClassifier(AcousticData):
         feats = feats[:self.feature_sets]
         return feats
 
-    def get_feats(self, list_waves, dur_sec=None):
+    def get_feats(self, list_waves, dur_sec=None, seed=None):
         '''collects fbank or mfcc features of entire wavfile list
         '''
         tot_waves = len(list_waves)
@@ -279,6 +279,8 @@ class FeatPrep_SoundClassifier(AcousticData):
                       diff, tot_len_matrix))
             feats_matrix = feats_matrix[:row]
         # randomize rows
+        if seed is not None:
+            np.random.seed(seed)
         np.random.shuffle(feats_matrix)
         return feats_matrix
 

@@ -1039,7 +1039,8 @@ def calc_audioclass_powerspecs(path_class, dur_ms = 1000,
 def coll_beg_audioclass_samps(path_class, 
                               feature_class, 
                               num_each_audioclass=1, 
-                              dur_ms=1000):
+                              dur_ms=1000,
+                              seed = None):
     '''Saves `dur_ms` of `num_each_audioclass` audiofiles of each audio class.
     
     This is an option for using noise data that comes from an audio class but is 
@@ -1060,6 +1061,9 @@ def coll_beg_audioclass_samps(path_class,
         sample collection. (default 1)
     dur_ms : int, float
         Time in milliseconds of raw sample data to be saved. (default 1000)
+    seed : int, optional
+        Value to be able to set the 'randomized' order of items. (default None)
+        If None, the order will be different each time. 
     
     Returns
     -------
@@ -1073,6 +1077,9 @@ def coll_beg_audioclass_samps(path_class,
     for key, value in class_waves_dict.items():
         wavlist = pyst.paths.string2list(value)
         label_int = encodelabel_dict[key]
+        # TODO: ensure this seed is useful and doesn't make data too repetitive
+        if seed is not None:
+            np.random.seed(seed)
         rand_indices = np.random.randint(
             0,len(class_waves_dict),num_each_audioclass)
         noisefiles = []

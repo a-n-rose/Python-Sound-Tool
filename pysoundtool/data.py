@@ -2,7 +2,6 @@
 audio data match in format to creating training, validation, and test datasets.
 '''
 
-from random import shuffle
 import random
 import collections
 import math 
@@ -330,7 +329,7 @@ def waves2dataset(audiolist, train_perc=0.8, seed=40):
     return train_waves, val_waves, test_waves
 
 def audio2datasets(audio_classes_dir, encoded_labels_path,
-                   label_wavfiles_path, perc_train=0.8, limit=None):
+                   label_wavfiles_path, perc_train=0.8, limit=None, seed=None):
     '''Organizes all audio in audio class directories into datasets.
 
     If they don't already exist, dictionaries with the encoded labels of the 
@@ -350,6 +349,9 @@ def audio2datasets(audio_classes_dir, encoded_labels_path,
     perc_train : int, float
         The percentage or decimal representing the amount of training
         data compared to the test and validation data (default 0.8)
+    seed : int, optional
+        A value to allow random order of audiofiles to be predictable. 
+        (default None). If None, the order of audiofiles will not be predictable.
 
     Returns
     -------
@@ -406,9 +408,15 @@ def audio2datasets(audio_classes_dir, encoded_labels_path,
         for i, wave in enumerate(test_waves):
             test.append(tuple([label2int[key], wave]))
     # be sure the classes are not in any certain order
-    shuffle(train)
-    shuffle(val)
-    shuffle(test)
+    if seed is not None: 
+        random.seed(seed)
+    random.shuffle(train)
+    if seed is not None: 
+        random.seed(seed)
+    random.shuffle(val)
+    if seed is not None: 
+        random.seed(seed)
+    random.shuffle(test)
     # esure the number of training data is 80% of all available audiodata:
     if len(train) < math.ceil((len(train)+len(val)+len(test))*perc_train):
         raise pyst.errors.notsufficientdata_error(len(train),
@@ -426,7 +434,8 @@ def audio2datasets(audio_classes_dir, encoded_labels_path,
 # TODO speed this up, e.g. preload noise data?
 def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
                                perc_train=0.8, perc_val=0.2,  limit=None,
-                               noise_scales=[0.3,0.2,0.1], sr = 22050):
+                               noise_scales=[0.3,0.2,0.1], sr = 22050,
+                               seed = None):
     '''Organizes all audio in audio class directories into datasets.
     
     Expects the name/id of files/data in the output_folder to be included 
@@ -455,6 +464,10 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
         List of varying scales to apply to noise levels, for example, to 
         allow for varying amounts of noise. (default [0.3,0.2,0.1]) The noise
         sample will be multiplied by the scales.
+    seed : int 
+        A value to allow random order of audiofiles to be predictable. 
+        (default None). If None, the order of audiofiles will not be predictable.
+        
 
     Returns
     -------
@@ -515,6 +528,8 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
     cleanaudio = [x for x in cleanaudio if x.parts[-1][0] != '.']
     noiseaudio = [x for x in noiseaudio if x.parts[-1][0] != '.']
     
+    if seed is not None:
+        random.seed(seed)
     random.shuffle(cleanaudio)
     
     if limit is not None:
@@ -545,6 +560,8 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
             pyst.utils.print_progress(iteration=i, 
                         total_iterations=len(audiopaths),
                         task='clean and noisy audio data generation')
+            # no random seed applied here:
+            # each choice would be the same for each iteration
             noise = random.choice(noiseaudio)
             scale = random.choice(noise_scales)
             clean_stem = wavefile.stem
