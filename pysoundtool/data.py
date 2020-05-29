@@ -6,7 +6,10 @@ from random import shuffle
 import random
 import collections
 import math 
-from scipy.io.wavfile import write
+from scipy.io.wavfile import write, read
+from scipy.signal import resample
+import soundfile as sf
+import librosa
 
 import os, sys
 import inspect
@@ -21,6 +24,93 @@ import pysoundtool as pyst
 ###############################################################################
 
 
+def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=False):
+    '''Loads sound file with scipy.io.wavfile.read
+    
+    If the sound file is not compatible with scipy's read module
+    this functions converts the file to .wav format and/or
+    changes the bit depth to be compatible. 
+    
+    Parameters
+    ----------
+    filename : str
+        The filename of the sound to be loaded
+    sr : int, optional
+        The desired sample rate of the audio samples. If None, 
+        the sample rate of the audio file will be used.
+    mono : bool
+        If True, the samples will be loaded in mono sound. If False,
+        if the samples are in stereo, they will be loaded in stereo sound.
+    dur_sec : int, float, optional
+        The length in seconds of the audio signal.
+        
+    Returns
+    -------
+    data : nd.array [size=(num_samples,) or (num_samples, num_channels)]
+        The normalized (between 1 and -1) sample data returned 
+        according to the specified settings.
+    sr : int 
+        The sample rate of the loaded samples.
+    '''
+    if use_librosa:
+        # the sample data will be a litle different from scipy.io.wavfile
+        # as librosa does a litle extra work with the data
+        data, sr = librosa.load(filename, sr=sr, mono=mono, duration=dur_sec)
+        if mono is False and data.shape[0] < data.shape[1]:
+            # change shape from (channels, samples) to (samples, channels)
+            data = data.T
+        return data, sr
+    try:
+        sr2, data = read(filename)
+        if sr:
+            if sr2 != sr:
+                data, sr2 = pyst.dsp.resample_audio(data, 
+                                          sr_original = sr2, 
+                                          sr_desired = sr)
+                assert sr2 == sr
+        else:
+            sr = sr2
+    except ValueError:
+        print("Converting {} to wavfile".format(filename))
+        try:
+            filename = pyst.data.convert2wav(filename)
+        except RuntimeError as e:
+            raise RuntimeError('Try setting `use_librosa` to True in pysoundtool.loadsound().'.format(
+                filename))
+        try:
+            data, sr = loadsound(filename, sr=sr, mono=mono, dur_sec=dur_sec)
+            print("File saved as {}".format(filename))
+        except ValueError:
+            print("Ensure bitdepth is compatible with scipy library")
+            filename = pyst.data.newbitdepth(filename)
+            data, sr = loadsound(filename, sr=sr, mono=mono, dur_sec=dur_sec)
+    
+    if mono and len(data.shape) > 1:
+        if data.shape[1] > 1:
+            data = pyst.dsp.stereo2mono(data)
+    # scale samples to be between -1 and 1
+    data = pyst.dsp.scalesound(data, -1, 1)
+    if dur_sec:
+        numsamps = int(dur_sec * sr)
+        data = pyst.dsp.set_signal_length(data, numsamps)
+    return data, sr
+
+def get_incompatible_formats():
+    '''According to SoundFile
+    '''
+    return(['.m4a','.mp3'])
+
+def get_compatible_formats():
+    '''According to SoundFile
+    '''
+    return(['.wav', '.aiff', '.flac', '.ogg'])
+
+def list_audioformats():
+    msg = '\nPySoundTool can work with the following file types: '+\
+        ', '.join(get_compatible_formats())+ \
+            '\nSo far, functionality does not work with the following types: '+\
+                ', '.join(get_incompatible_formats())
+    return msg
 
 def setup_audioclass_dicts(audio_classes_dir, encoded_labels_path, label_waves_path,
                            limit=None):
@@ -452,7 +542,7 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
             print('\nProcessing test data...')
             audiopaths = test_audio
         for i, wavefile in enumerate(audiopaths):
-            pyst.tools.print_progress(iteration=i, 
+            pyst.utils.print_progress(iteration=i, 
                         total_iterations=len(audiopaths),
                         task='clean and noisy audio data generation')
             noise = random.choice(noiseaudio)
@@ -476,7 +566,7 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
         print('Finished processing {}'.format(dataset_path))
         print('Finished processing {}'.format(noiseaudio[j]))
     end = time.time()
-    total_time, units = pyst.tools.adjust_time_units(end-start)
+    total_time, units = pyst.utils.adjust_time_units(end-start)
     print('Dataset creation took a total of {} {}.'.format(
         round(total_time,2), 
         units))
@@ -527,10 +617,14 @@ def convert2wav(filename, sr=None):
     else:
         f = str(f)[:len(str(f))-len(extension_orig)]
     f_wavfile = f+'.wav'
-    if sr:
-        data, sr = librosa.load(filename, sr=sr)
-    else:
-        data, sr = sf.read(filename)
+    # soundfile can load several datatypes
+    try:
+        data, sr = sf.read(filename, samplerate=sr)
+    except RuntimeError as e:
+        print(e)
+        raise RuntimeError('Audioformat `{}` is not compatible with soundfile.'.format(
+            os.path.splitext(filename)[1]))
+    # save the data at wavfile
     sf.write(f_wavfile, data, sr)
     return f_wavfile
 
