@@ -99,7 +99,7 @@ def test_loadsound_librosa_wav():
     samples2, sr2 = pyst.loadsound(test_wav)
     assert np.allclose(samples[:5], np.array([0., 0., 0., 0., 0.]))
     assert sr==16000
-    print('Librosa and Scipy.io.wavfile load data a little differently.')
+    print('IF ERROR: Librosa and Scipy.io.wavfile load data a little differently.')
     print('Therefore, slight differences between the data values are expected.')
     assert np.allclose(samples, samples2)
     
