@@ -10,6 +10,8 @@ import pysoundtool as pyst
 import numpy as np
 import pytest
 
+test_audiofile = './audio2channels.wav'
+
 
 def test_setup_bands_default():
     fil = pyst.BandSubtraction()
@@ -251,3 +253,50 @@ def test_bandsub_reset_samplerate_22050():
     #sub_signal = fil.sub_noise(powspec, powspec_noisy, 
                                #oversub_factor = a,
                                #speech = True)
+
+def test_filtersettings_getsamples_default():
+    wf = pyst.WienerFilter()
+    bs = pyst.BandSubtraction()
+    samps_wf = wf.get_samples(test_audiofile,
+                              dur_sec = 1)
+    samps_bs = bs.get_samples(test_audiofile,
+                              dur_sec = 1)
+    assert len(samps_wf) == len(samps_bs)
+    assert np.array_equal(samps_wf, samps_bs)
+    
+def test_filtersettings_getsamples_sr22050():
+    sr = 22050
+    wf = pyst.WienerFilter(sr=sr)
+    bs = pyst.BandSubtraction(sr=sr)
+    samps_wf = wf.get_samples(test_audiofile,
+                              dur_sec = 1)
+    samps_bs = bs.get_samples(test_audiofile,
+                              dur_sec = 1)
+    assert len(samps_wf) == sr
+    assert len(samps_bs) == sr
+    assert np.array_equal(samps_wf, samps_bs)
+    
+def test_filtersettings_getsamples_sr48000():
+    sr = 48000
+    wf = pyst.WienerFilter(sr=sr)
+    bs = pyst.BandSubtraction(sr=sr)
+    samps_wf = wf.get_samples(test_audiofile,
+                              dur_sec = 1)
+    samps_bs = bs.get_samples(test_audiofile,
+                              dur_sec = 1)
+    assert len(samps_wf) == sr
+    assert len(samps_bs) == sr
+    assert np.array_equal(samps_wf, samps_bs)
+    
+    
+def test_filtersettings_getsamples_sr8000():
+    sr = 8000
+    wf = pyst.WienerFilter(sr=sr)
+    bs = pyst.BandSubtraction(sr=sr)
+    samps_wf = wf.get_samples(test_audiofile,
+                              dur_sec = 1)
+    samps_bs = bs.get_samples(test_audiofile,
+                              dur_sec = 1)
+    assert len(samps_wf) == sr
+    assert len(samps_bs) == sr
+    assert np.array_equal(samps_wf, samps_bs)
