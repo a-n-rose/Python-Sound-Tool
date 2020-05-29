@@ -132,6 +132,7 @@ def set_signal_length(samples, numsamps):
         
     Examples
     --------
+    >>> import numpy as np
     >>> input_samples = np.array([1,2,3,4,5])
     >>> output_samples = set_signal_length(input_samples, numsamps = 8)
     >>> output_samples
@@ -168,10 +169,31 @@ def scalesound(data,min_val=-1,max_val=1):
     ----------
     data : np.ndarray [size = (num_samples,)]
         Original samples
+    min_val : int, float
+        The minimum value the dataset is to range from (default -1)
+    max_val : int, float
+        The maximum value the dataset is to range from (default 1)
+    
     Returns
     -------
     samples : np.ndarray [size = (num_samples,)]
         Copy of original data, scaled to the min and max values.
+        
+    Examples
+    --------
+    >>> import numpy as np
+    >>> np.random.seed(0)
+    >>> input_samples = np.random.random_sample((5,))
+    >>> input_samples
+    array([0.5488135 , 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
+    >>> # default setting: between -1 and 1
+    >>> output_samples = scalesound(input_smaples)
+    >>> output_samples 
+    array([-0.14138 ,1., 0.22872961, -0.16834299, -1.])
+    >>> # range between -100 and 100
+    >>> output_samples = scalesound(input_samples, min_val = -100, max_val = 100)
+    >>> output_samples
+    array([ -14.13800026,100., 22.87296052,-16.83429866,-100.])
     '''
     samples = data.copy()
     samples = np.interp(samples,(samples.min(), samples.max()),(min_val, max_val))
