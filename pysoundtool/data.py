@@ -24,7 +24,7 @@ import pysoundtool as pyst
 
 
 def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=False):
-    '''Loads sound file with scipy.io.wavfile.read
+    '''Loads sound file with scipy.io.wavfile.read or librosa.load (default scipy)
     
     If the sound file is not compatible with scipy's read module
     this functions converts the file to .wav format and/or
@@ -74,8 +74,7 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=False):
         try:
             filename = pyst.data.convert2wav(filename)
         except RuntimeError as e:
-            raise RuntimeError('Try setting `use_librosa` to True in pysoundtool.loadsound().'.format(
-                filename))
+            raise RuntimeError('Try setting `use_librosa` to True in pysoundtool.loadsound().')
         try:
             data, sr = loadsound(filename, sr=sr, mono=mono, dur_sec=dur_sec)
             print("File saved as {}".format(filename))
