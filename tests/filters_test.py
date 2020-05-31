@@ -11,6 +11,10 @@ import numpy as np
 import pytest
 
 test_audiofile = './audio2channels.wav'
+test_noisyfile = './audiodata/python_traffic.wav'
+test_filtered_wiener = './audiodata/python_traffic_wiener.wav'
+test_filtered_wiener_postfilter = './audiodata/python_traffic_pf.wav'
+test_filtered_bandsub = './audiodata/python_traffic_bs.wav'
 
 
 def test_setup_bands_default():
@@ -308,4 +312,7 @@ def test_filtersettings_getsamples_sr8000_bandsubtraction():
         'sample rates other than 48000. If not, the sr must stay at 48000.')
     assert bs.sr == sr_permanent
     assert len(samps_bs) == bs.sr
+    
+def test_filtersignal_wiener_default():
+    pass
     

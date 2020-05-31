@@ -9,47 +9,59 @@ noise_file = None#'/home/airos/Projects/Data/CDBook_SpeechEnhancement/Databases/
 
 
 
-duration_noise_ms = 1000
+#duration_noise_ms = 1000
 
-pyst.filtersignal(output_filename = output_wave_name1, 
-                 audiofile = target_wav, 
-                 noise_file= noise_file,
-                 visualize=True,
-                 visualize_every_n_frames=100,
-                 filter_scale=1,
-                 duration_noise_ms=duration_noise_ms,
-                 frame_duration_ms=20,
-                 percent_overlap=0.5,
-                 filter_type='band_specsub', # 'band_specsub', 'wiener'
-                 num_bands = 6,
-                 apply_postfilter=False,
-                 phase_radians=True,
-                 real_signal=False)
+#pyst.filtersignal( 
+                 #audiofile = target_wav, 
+                 #noise_file= noise_file,
+                 #visualize=True,
+                 #visualize_every_n_frames=100,
+                 #filter_scale=1,
+                 #duration_noise_ms=duration_noise_ms,
+                 #frame_duration_ms=20,
+                 #percent_overlap=0.5,
+                 #filter_type='band_specsub', # 'band_specsub', 'wiener'
+                 #num_bands = 6,
+                 #apply_postfilter=False,
+                 #phase_radians=True,
+                 #real_signal=False,
+                 #save2wav=True,
+                 #output_filename = output_wave_name1)
 
-pyst.filtersignal(output_filename = output_wave_name2, 
-                 audiofile = target_wav, 
-                 noise_file= noise_file,
-                 visualize=True,
-                 visualize_every_n_frames=100,
-                 filter_scale=1,
-                 duration_noise_ms=duration_noise_ms,
-                 frame_duration_ms=20,
-                 percent_overlap=0.5,
-                 filter_type='wiener', # 'band_specsub', 'wiener'
-                 apply_postfilter=False,
-                 phase_radians=True,
-                 real_signal=True)
+#pyst.filtersignal( 
+                 #audiofile = target_wav, 
+                 #noise_file= noise_file,
+                 #visualize=True,
+                 #visualize_every_n_frames=100,
+                 #filter_scale=1,
+                 #duration_noise_ms=duration_noise_ms,
+                 #frame_duration_ms=20,
+                 #percent_overlap=0.5,
+                 #filter_type='wiener', # 'band_specsub', 'wiener'
+                 #apply_postfilter=False,
+                 #phase_radians=True,
+                 #real_signal=True,
+                 #save2wav=True,
+                 #output_filename = output_wave_name2)
 
-pyst.filtersignal(output_filename = output_wave_name3, 
-                 audiofile = target_wav, 
-                 noise_file= noise_file,
-                 visualize=True,
-                 visualize_every_n_frames=100,
-                 filter_scale=1,
-                 duration_noise_ms=duration_noise_ms,
-                 frame_duration_ms=20,
-                 percent_overlap=0.5,
-                 filter_type='wiener (post filter)', # 'band_specsub', 'wiener'
-                 apply_postfilter=True,
-                 phase_radians=True,
-                 real_signal=True)
+#pyst.filtersignal( 
+                 #audiofile = target_wav, 
+                 #noise_file= noise_file,
+                 #visualize=True,
+                 #visualize_every_n_frames=100,
+                 #filter_scale=1,
+                 #duration_noise_ms=duration_noise_ms,
+                 #frame_duration_ms=20,
+                 #percent_overlap=0.5,
+                 #filter_type='wiener (post filter)', # 'band_specsub', 'wiener'
+                 #apply_postfilter=True,
+                 #phase_radians=True,
+                 #real_signal=True,
+                 #save2wav=True,
+                 #output_filename = output_wave_name2)
+
+pyst.filtersignal(audiofile = target_wav, filter_type = 'bandsubptraction', save2wav=True)
+                 
+pyst.filtersignal(audiofile = target_wav, filter_type = 'wiener',save2wav=True)
+
+pyst.filtersignal(audiofile = target_wav, filter_type='wiener (post filter)',save2wav=True)
