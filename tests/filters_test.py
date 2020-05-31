@@ -313,6 +313,21 @@ def test_filtersettings_getsamples_sr8000_bandsubtraction():
     assert bs.sr == sr_permanent
     assert len(samps_bs) == bs.sr
     
-def test_filtersignal_wiener_default():
-    pass
+def test_filtersignal_wiener_default_doesitrun():
+    signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'wiener')
+    sig_expected, sr_expected = pyst.loadsound(test_filtered_wiener)
+    #assert np.allclose(signal, sig_expected)
+    assert sr == sr_expected
+
+def test_filtersignal_wiener_posfilter_default_doesitrun():
+    signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'wiener_pf')
+    sig_expected, sr_expected = pyst.loadsound(test_filtered_wiener_postfilter)
+    #assert np.allclose(signal, sig_expected)
+    assert sr == sr_expected
+    
+def test_filtersignal_bandsubtraction_default_doesitrun():
+    signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'bandsubtraction')
+    sig_expected, sr_expected = pyst.loadsound(test_filtered_bandsub)
+    #assert np.allclose(signal, sig_expected)
+    assert sr == sr_expected
     
