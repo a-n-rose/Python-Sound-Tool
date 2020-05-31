@@ -842,7 +842,7 @@ def create_window(window_type, frame_length):
         window = hann(frame_length)
     return window
 
-def apply_window(samples, window):
+def apply_window(samples, window, zeropad=False):
     """Applies predefined window to a section of samples
 
     The length of the samples must be the same length as the window. 
@@ -871,6 +871,12 @@ def apply_window(samples, window):
     >>> apply_window(input_signal, window_hann)
     array([ 0.        ,  0.18185948, -0.302721  , -0.0558831 ,  0.        ])
     """
+    if zeropad:
+        if samples.shape != window.shape:
+            temp_matrix = matrixfun.create_empty_matrix(
+                window.shape)
+            temp_matrix[:len(samples)] = samples
+            samples = temp_matrix
     samples_win = samples * window
     return samples_win
 
