@@ -574,15 +574,14 @@ def apply_length(data, target_len):
     new_data = pyst.utils.match_dtype(new_data, data)
     return new_data
 
-# TODO: allow for stereo sound
+# TODO: raise error or only warning if original data cut off?
 def zeropad_sound(data, target_len, sr, delay_sec=None):
     '''If the sound data needs to be a certain length, zero pad it.
     
     Parameters
     ----------
-    data : numpy.ndarray
+    data : numpy.ndarray [size = (num_samples,) or (num_samples, num_channels)]
         The sound data that needs zero padding. Shape (len(data),). 
-        Expects mono channel.
     target_len : int 
         The number of samples the `data` should have
     sr : int
@@ -593,8 +592,8 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
     
     Returns
     -------
-    signal_zeropadded : numpy.ndarray
-        The data zero padded to the shape (target_len,)
+    signal_zeropadded : numpy.ndarray [size = (target_len,) or (target_len, num_channels)]
+        The data zero padded.
         
     Examples
     --------
@@ -619,6 +618,18 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
     if delay_sec is None:
         delay_sec = 0
     delay_samps = sr * delay_sec
+    if target_len  < len(data) + delay_samps:
+        import warnings
+        # data must be truncated:
+        remove_samples = len(data) - len(data[:target_len-delay_samps])
+        if remove_samples >= len(data):
+            warnings.warn('All data will be lost and replaced with zeros with the '+\
+                'provided `target_len` and `delay_sec` settings. Data length is '+\
+                    '{}, target_len is {}, and delay samples is {}.'.format(
+                        len(data), target_len, delay_samps))
+        data = data[:target_len-delay_samps]
+        warnings.warn('The `target_len` is shorter than the `data` and `delay_sec`. '+\
+            'Therefore the data will be cut off by {} sample(s).'.format(remove_samples))
     if len(data) < target_len:
         diff = target_len - len(data)
         signal_zeropadded = np.zeros((data.shape[0] + int(diff)))
