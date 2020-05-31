@@ -6,9 +6,10 @@ currentdir = os.path.dirname(os.path.abspath(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
-import pysoundtool as pyst
+import librosa
 import numpy as np
 import pytest
+import pysoundtool as pyst
 
 test_audiofile = './audio2channels.wav'
 test_noisyfile = './audiodata/python_traffic.wav'
@@ -258,8 +259,6 @@ def test_bandsub_reset_samplerate_22050():
                                #oversub_factor = a,
                                #speech = True)
 
-
-
 def test_filtersettings_getsamples_default_wiener():
     wf = pyst.WienerFilter()
     samps_wf = wf.get_samples(test_audiofile,
@@ -313,21 +312,21 @@ def test_filtersettings_getsamples_sr8000_bandsubtraction():
     assert bs.sr == sr_permanent
     assert len(samps_bs) == bs.sr
     
-def test_filtersignal_wiener_default_doesitrun():
+def test_filtersignal_wiener_default_doesitrun_librosa():
     signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'wiener')
-    sig_expected, sr_expected = pyst.loadsound(test_filtered_wiener)
-    #assert np.allclose(signal, sig_expected)
+    sig_expected, sr_expected = librosa.load(test_filtered_wiener, sr=sr)
+    assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
 
-def test_filtersignal_wiener_posfilter_default_doesitrun():
+def test_filtersignal_wiener_posfilter_default_doesitrun_librosa():
     signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'wiener_pf')
-    sig_expected, sr_expected = pyst.loadsound(test_filtered_wiener_postfilter)
-    #assert np.allclose(signal, sig_expected)
+    sig_expected, sr_expected = librosa.load(test_filtered_wiener_postfilter, sr=sr)
+    assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
     
-def test_filtersignal_bandsubtraction_default_doesitrun():
+def test_filtersignal_bandsubtraction_default_doesitrun_lirosa():
     signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'bandsubtraction')
-    sig_expected, sr_expected = pyst.loadsound(test_filtered_bandsub)
-    #assert np.allclose(signal, sig_expected)
+    sig_expected, sr_expected = librosa.load(test_filtered_bandsub,sr=sr)
+    assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
     
