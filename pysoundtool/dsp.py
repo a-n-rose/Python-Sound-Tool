@@ -574,8 +574,8 @@ def apply_length(data, target_len):
     new_data = pyst.utils.match_dtype(new_data, data)
     return new_data
 
-
-def zeropad_sound(data, target_len, sr, delay_sec=1):
+# TODO: allow for stereo sound
+def zeropad_sound(data, target_len, sr, delay_sec=None):
     '''If the sound data needs to be a certain length, zero pad it.
     
     Parameters
@@ -589,23 +589,52 @@ def zeropad_sound(data, target_len, sr, delay_sec=1):
         The samplerate of the `data`
     delay_sec : int, float, optional
         If the data should be zero padded also at the beginning.
-        (default 1)
+        (default None)
     
     Returns
     -------
     signal_zeropadded : numpy.ndarray
         The data zero padded to the shape (target_len,)
+        
+    Examples
+    --------
+    >>> import numpy as np
+    >>> x = np.array([1,2,3,4])
+    >>> # with 1 second delay (with sr of 4, that makes 4 sample delay)
+    >>> x_zeropadded = zeropad_sound(x, target_len=10, sr=4, delay_sec=1)
+    array([0., 0., 0., 0., 1., 2., 3., 4., 0., 0.])
+    >>> # without delay
+    >>> x_zeropadded = zeropad_sound(x, target_len=10, sr=4)
+    array([1., 2., 3., 4., 0., 0., 0., 0., 0., 0.])
+    >>> # if signal is longer than desired length:
+    >>> x_zeropadded = zeropad_sound(x, target_len=3, sr=4)
+    UserWarning: The signal cannot be zeropadded and will instead be truncated as length of `data` is 4 and `target_len` is 3.
+  len(data), target_len))
+    >>> x_zeropadded
+    array([1, 2, 3])
     '''
+    # ensure data follows shape of (num_samples,) or (num_samples, num_channels)
+    data = pyst.utils.shape_samps_channels(data)
     if len(data.shape) > 1 and data.shape[1] > 1: 
         data = stereo2mono(data)
+    if delay_sec is None:
+        delay_sec = 0
     delay_samps = sr * delay_sec
     if len(data) < target_len:
         diff = target_len - len(data)
         signal_zeropadded = np.zeros((data.shape[0] + int(diff)))
         for i, row in enumerate(data):
             signal_zeropadded[i+delay_samps] += row
+    else:
+        import warnings
+        warnings.warn('The signal cannot be zeropadded and will instead be truncated '+\
+            'as length of `data` is {} and `target_len` is {}.'.format(
+                len(data), target_len))
+        signal_zeropadded = data[:target_len]
     return signal_zeropadded
 
+# TODO clarify how length of output array is established
+# TODO change time_delay_sec=1 to None default, as well as total_dur_sec
 def combine_sounds(file1, file2, match2shortest=True, time_delay_sec=1,total_dur_sec=5):
     '''Combines sounds
     

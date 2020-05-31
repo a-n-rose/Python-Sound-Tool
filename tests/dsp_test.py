@@ -433,3 +433,23 @@ def test_apply_num_channels_3d_to_2d():
     data2d = pyst.dsp.apply_num_channels(data, 2)
     expected = np.array([[1, 1],[1, 1],[1, 1],[1, 1]])
     assert np.array_equal(expected, data2d)
+    
+def test_zeropad_sound_mono_targetlen8():
+    data = np.array([1,2,3,4])
+    data_zeropadded = pyst.dsp.zeropad_sound(data, sr=4, target_len=8)
+    expected = np.array([1., 2., 3., 4., 0., 0., 0., 0.])
+    assert np.array_equal(data_zeropadded, expected)
+    
+def test_zeropad_sound_mono_targetlen8_delay1sec():
+    data = np.array([1,2,3,4])
+    data_zeropadded = pyst.dsp.zeropad_sound(data, sr=4, target_len=8, delay_sec=1)
+    expected = np.array([0., 0., 0., 0., 1., 2., 3., 4.])
+    assert np.array_equal(data_zeropadded, expected)
+    
+def test_zeropad_stereo_targetlen_5():
+    data = np.zeros((3,2))
+    data[:,0] = np.array([0,1,2])
+    data[:,1] = np.array([1,2,3])
+    data_zeropadded = pyst.dsp.zeropad_sound(data, sr=3, target_len=5)
+    expected = np.array([[0., 1.],[1., 2.],[2., 3.],[0., 0.],[0., 0.]])
+    assert np.array_equal(data_zeropadded, expected)
