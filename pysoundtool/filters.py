@@ -279,7 +279,7 @@ class WienerFilter(Filter):
         
     def apply_wienerfilter(self, frame_index, target_fft, target_power_frame, noise_power):
         if frame_index == 0:
-            posteri = pyst.matrixfun.create_empty_matrix(
+            posteri = pyst.dsp.create_empty_matrix(
                 (len(target_power_frame),))
             self.posteri_snr = pyst.dsp.calc_posteri_snr(
                 target_power_frame, noise_power)
@@ -611,8 +611,8 @@ class BandSubtraction(Filter):
         assert sub_power.shape == target_powspec.shape
         return sub_power
     
-def filtersignal(output_filename, 
-                 audiofile, 
+def filtersignal(audiofile, 
+                 sr = None,
                  noise_file=None,
                  visualize=False,
                  visualize_every_n_frames=50,
@@ -625,13 +625,13 @@ def filtersignal(output_filename,
                  frame_duration_ms = None,
                  percent_overlap = None,
                  real_signal=False,
-                 zeropad = False):
-    """Apply Wiener or band spectral subtraction filter to signal using noise. Saves at `output_filename`.
+                 zeropad = False,
+                 save2wav=False,
+                 output_filename=None):
+    """Apply Wiener or band spectral subtraction filter to signal using noise. 
 
     Parameters 
     ----------
-    output_filename : str
-        path and name the filtered signal is to be saved
     audiofile : str 
         the filename to the signal for filtering; if None, a signal will be 
         generated (default None)
@@ -657,11 +657,18 @@ def filtersignal(output_filename,
     zeropad : bool, optional
         If False, only full frames of audio data are processed. 
         If True, last partial frame is zeropadded.
+    save2wav : bool 
+        If True, will save the filtered signal as a .wav file
+    output_filename : str, pathlib.PosixPath, optional
+        path and name the filtered signal is to be saved. (default None) If no filename
+        provided, will save under date.
     
     Returns
     -------
-    None
-    
+    enhanced_signal : np.ndarray [size = (num_samples, )]
+        The enhanced signal in raw sample form
+    sr : int 
+        The sample rate of the signal
     '''
     %  References for band spectral subtraction (from MATLAB code):
     %   [1] Kamath, S. and Loizou, P. (2002). A multi-band spectral subtraction 
@@ -723,7 +730,7 @@ def filtersignal(output_filename,
             total_rows = fil.num_fft_bins//2+1
         else:
             total_rows = fil.num_fft_bins
-        noise_power = pyst.matrixfun.create_empty_matrix((total_rows,))
+        noise_power = pyst.dsp.create_empty_matrix((total_rows,))
         section = 0
         for frame in range(fil.noise_subframes):
             noise_section = samples_noise[section:section+fil.frame_length]
@@ -745,7 +752,7 @@ def filtersignal(output_filename,
     # prepare target power matrix
     increment_length = int(fil.frame_length * fil.percent_overlap)
     total_rows =  increment_length + increment_length * fil.target_subframes
-    filtered_sig = pyst.matrixfun.create_empty_matrix(
+    filtered_sig = pyst.dsp.create_empty_matrix(
         (total_rows,), complex_vals=True)
     section = 0
     row = 0
@@ -812,10 +819,13 @@ def filtersignal(output_filename,
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
-    fil.save_filtered_signal(str(output_filename), 
-                            enhanced_signal,
-                            overwrite=True)
-    return None
+    if save2wav:
+        if output_filename is None:
+            output_filename = pyst.utils.get_date()+'.wav'
+        fil.save_filtered_signal(str(output_filename), 
+                                enhanced_signal,
+                                overwrite=True)
+    return enhanced_signal, fil.sr
 
 
 class WelchMethod(FilterSettings):
@@ -923,7 +933,7 @@ class WelchMethod(FilterSettings):
             The average power spectrum of the entire `wave_list`
         '''
         pwspec_shape = self.get_window().shape+(1,)
-        noise_powspec = pyst.matrixfun.create_empty_matrix(
+        noise_powspec = pyst.dsp.create_empty_matrix(
             pwspec_shape, complex_vals=False)
         for j, wav in enumerate(wave_list):
             n, sr = pyst.loadsound(wav, dur_sec=self.len_noise_sec)
