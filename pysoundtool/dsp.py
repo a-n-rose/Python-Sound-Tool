@@ -381,6 +381,23 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
     >>> # set total length with delay: target sound will get cut off
     >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), total_len_sec = 1.5, delay_mainsound_sec=1)
     array([1, 1, 1, 1, 1, 2, 3])
+    >>> # also works with stereo sound
+    >>> sound = np.zeros((3,2))
+    >>> sound[:,0] = np.array([1,2,3])
+    >>> sound[:,1] = np.array([0,1,2])
+    >>> sound
+    array([[1., 0.],
+        [2., 1.],
+        [3., 2.]])
+    >>> noise = np.array([1,1,1,])
+    >>> sr = 3
+    >>> input1 = sound, sr
+    >>> input2 = noise, sr
+    >>> combined, sr2 = pyst.dsp.add_backgroundsound(input1, input2)
+    >>> combined
+    array([[2., 1.],
+        [3., 2.],
+        [4., 3.]])
     '''
     input_type_main = pyst.utils.path_or_samples(audio_main)
     input_type_background = pyst.utils.path_or_samples(audio_background)
@@ -395,6 +412,17 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
     if sr != sr2:
         sound2add, sr2 = pyst.dsp.resample_audio(sound2add, sr2, sr)
         assert sr2 == sr
+        
+    # make background same shape as signal
+    if len(target.shape) != len(sound2add.shape):
+        # ensure in shape (num_samples,) or (num_samples, num_channels)
+        target = pyst.utils.shape_samps_channels(target)
+        if len(target.shape) > 1:
+            num_channels = target.shape[1]
+        else:
+            num_channels = 1
+        sound2add = apply_num_channels(sound2add, num_channels)
+            
     # TODO add snr calculation instead of scale
     sound2add = sound2add * scale_background
     if delay_mainsound_sec is None:
@@ -425,6 +453,58 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
         ending_sound = sound2add[len(target)+int(sr*delay_mainsound_sec):total_samps]
         combined = np.concatenate((combined, ending_sound))
     return combined, sr
+
+def apply_num_channels(sound_data, num_channels):
+    '''Ensures `data` has indicated `num_channels`. 
+    
+    To increase number of channels, the first column will be duplicated. To limit 
+    channels, channels will simply be removed.
+    
+    Parameters
+    ----------
+    sound_data : np.ndarray [size= (num_samples,) or (num_samples, num_channels)]
+        The data to adjust the number of channels
+    num_channels : int 
+        The number of channels desired
+        
+    Returns
+    -------
+    data : np.ndarray [size = (num_samples, num_channels)]
+    
+    Examples 
+    --------
+    >>> import numpy as np
+    >>> data = np.array([1, 1, 1, 1])
+    >>> data_3d = apply_num_channels(data, 3)
+    >>> data_3d
+    array([[1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1]])
+    >>> data_2d = apply_num_channels(data_3d, 2)
+    >>> data_2d
+    array([[1, 1],
+        [1, 1],
+        [1, 1],
+        [1, 1]])
+    '''
+    if len(sound_data.shape)== 1:
+        data = np.expand_dims(sound_data, axis=1)
+    else:
+        data = sound_data
+    diff = num_channels - data.shape[1]
+    if diff < 0:
+        # limit number of channels
+        data = data[:,:num_channels]
+        return data
+    elif diff == 0:
+        # no change necessary
+        return sound_data
+    # add channels
+    duplicated_data = np.expand_dims(data[:,0], axis=1)
+    for i in range(diff):
+        data = np.append(data, duplicated_data, axis=1)
+    return data
 
 def apply_length(data, target_len):
     '''Extends a sound by repeating it until its `target_len`.

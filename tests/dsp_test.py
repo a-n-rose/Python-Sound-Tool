@@ -343,6 +343,41 @@ def test_add_backgroundsound_totallen_delay_long():
     expected = np.array([1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 1, 1, 1, 1, 1])
     assert np.array_equal(expected, combined)
     assert sr == sr2
+    
+def test_add_backgroundsound_stereo():
+    sound = np.zeros((3,2))
+    sound[:,0] = np.array([1,2,3])
+    sound[:,1] = np.array([0,1,2])
+    noise = np.array([1,1,1,])
+    sr = 3
+    input1 = sound, sr
+    input2 = noise, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(input1, input2)
+    assert combined is not None
+    
+def test_add_backgroundsound_stereo():
+    sound = np.zeros((3,2))
+    sound[:,0] = np.array([1,2,3])
+    sound[:,1] = np.array([0,1,2])
+    noise = np.array([1,1,1,])
+    sr = 3
+    input1 = sound, sr
+    input2 = noise, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(input1, input2)
+    expected = np.array([[2., 1.],[3., 2.],[4., 3.]])
+    assert np.array_equal(combined, expected)
+    
+def test_add_backgroundsound_stereo_delay():
+    sound = np.zeros((3,2))
+    sound[:,0] = np.array([1,2,3])
+    sound[:,1] = np.array([0,1,2])
+    noise = np.array([1,1,1,])
+    sr = 3
+    input1 = sound, sr
+    input2 = noise, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(input1, input2, delay_mainsound_sec=1)
+    expected = np.array([[1., 1.],[1., 1.],[1., 1.],[2., 1.],[3., 2.],[4., 3.]])
+    assert np.array_equal(combined, expected)
 
 def test_apply_length():
     data = np.array([1,2,3,4,5])
@@ -386,3 +421,15 @@ def test_apply_length_toomany_dimensions():
     data = np.zeros((2,3,3))
     with pytest.raises(ValueError):
         pyst.dsp.apply_length(data,5)
+        
+def test_apply_num_channels_1d_to_3d():
+    data = np.array([1, 1, 1, 1])
+    data3d = pyst.dsp.apply_num_channels(data, 3)
+    expected = np.array([[1, 1, 1],[1, 1, 1],[1, 1, 1],[1, 1, 1]])
+    assert np.array_equal(expected, data3d)
+    
+def test_apply_num_channels_3d_to_2d():
+    data = np.array([[1, 1, 1],[1, 1, 1],[1, 1, 1],[1, 1, 1]])
+    data2d = pyst.dsp.apply_num_channels(data, 2)
+    expected = np.array([[1, 1],[1, 1],[1, 1],[1, 1]])
+    assert np.array_equal(expected, data2d)
