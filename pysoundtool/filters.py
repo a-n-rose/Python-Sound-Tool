@@ -819,7 +819,8 @@ def filtersignal(audiofile,
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
-    if save2wav:
+    # for backwards compatibility
+    if output_filename is not None or save2wav:
         if output_filename is None:
             output_filename = pyst.utils.get_date()+'.wav'
         fil.save_filtered_signal(str(output_filename), 
