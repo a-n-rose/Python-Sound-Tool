@@ -3,8 +3,97 @@
 import os, sys
 import numpy as np
 import datetime
+import pathlib
 
+# TODO make str path into Pathlib.PosixPath
+def path_or_samples(input_value):
+    '''Checks whether `input_value` is a path or sample data. Does not check path validity.
+    
+    This is useful for functions that take both pathways to audio as well as 
+    pre-loaded audio data.
+    
+    Parameters
+    ----------
+    input_value : str, pathlib.PosixPath, or tuple [size= ( (samples,), sr)]
+    
+    Returns
+    -------
+    'path' or 'samples' : str 
+    
+    Examples
+    --------
+    >>> import numpy as np
+    >>> # create some example samples and sample rate
+    >>> samples = np.array([1,2,3,2,1,0])
+    >>> sr = 5
+    >>> path_or_samples( (samples, sr) )
+    'samples'
+    >>> # expects both audio samples and sr
+    >>> path_or_samples(samples)
+    TypeError: The input for `path_or_samples` expected a str, pathlib.PosixPath, or tuple with samples and sample rate, not type <class 'numpy.ndarray'>
+    >>> # create example string pathway
+    >>> path_or_samples('my_audio.wav')
+    'path'
+    >>> # create pathlib.PosixPath object 
+    >>> import pathlb
+    >>> path_or_samples(pathlib.Path('my_audio.wav')
+    'path'
+    '''
+    if isinstance(input_value, str):
+        return 'path'
+    elif isinstance(input_value, pathlib.PosixPath):
+        return 'path'
+    elif isinstance(input_value, tuple):
+        if isinstance(input_value[0], np.ndarray):
+            return 'samples'
+    else:
+        raise TypeError('The input for `path_or_samples` expected a str, '+\
+            'pathlib.PosixPath, or tuple with samples and sample rate, '+\
+                'not type {}'.format(type(input_value)))
+    
+def match_dtype(array1, array2):
+    '''Match the dtype of the second array to the first.
+    
+    Parameters
+    ----------
+    array1 : np.ndarray
+        The numpy array with the dataype to be adjusted and returned.
+    array2 : np.ndarray
+        The numpy array with the orginal or desired datatype.
 
+        
+    Returns
+    -------
+    array1 : np.ndarray 
+        The `array1` with the dtype of `array2`
+    '''
+    array1 = array1.astype(array2.dtype)
+    assert array1.dtype == array2.dtype
+    return array1
+    
+def shape_samps_channels(data):
+    '''Returns data in shape (num_samps, num_channels)
+    
+    Parameters
+    ----------
+    data : np.ndarray [size= (num_samples,) or (num_samples, num_channels), or (num_channels, num_samples)]
+        The data that needs to be checked for correct format 
+    
+    Returns
+    -------
+    data : np.ndarray [size = (num_samples,) or (num_samples, num_channels)]
+    '''
+    if len(data.shape) == 1:
+        return data
+    if len(data.shape) > 2:
+        raise ValueError('Expected 2 dimensional data: (num_samples, num_channels,) not '+\
+            'shape {}'.format(data.shape))
+    if data.shape[0] < data.shape[1]:
+        # assumes number of samples will be greater than number of channels
+        data = data.T
+    assert data.shape[0] > data.shape[1] 
+    return data
+    
 def get_date():
     time = datetime.datetime.now()
     time_str = "{}m{}d{}h{}m{}s".format(time.month,

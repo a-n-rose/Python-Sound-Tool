@@ -257,3 +257,132 @@ def test_stereo2mono_mono_input():
     data_mono = pyst.dsp.stereo2mono(data)
     assert np.array_equal(data, data_mono)
     
+def test_add_backgroundsound():
+    sound_samples = np.array([1,2,3,4,5])
+    background_samples = np.array([1,1,1,1,1])
+    sr = 5
+    sound = sound_samples, sr
+    background = background_samples, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(sound, background)
+    expected = sound_samples + background_samples
+    assert np.array_equal(expected, combined)
+    assert sr == sr2
+    
+def test_add_backgroundsound_scale():
+    sound_samples = np.array([1,2,3,4,5])
+    background_samples = np.array([1,1,1,1,1])
+    sr = 5
+    sound = sound_samples, sr
+    background = background_samples, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
+                                                 background, 
+                                                 scale_background=0.5)
+    expected = np.array([1.5, 2.5, 3.5, 4.5, 5.5])
+    assert np.array_equal(expected, combined)
+    assert sr == sr2
+    
+def test_add_backgroundsound_delay_1sec():
+    sound_samples = np.array([1,2,3,4,5])
+    background_samples = np.array([1,1,1,1,1])
+    sr = 5
+    sound = sound_samples, sr
+    background = background_samples, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
+                                                 background, 
+                                                 delay_mainsound_sec=1)
+    expected = np.array([1, 1, 1, 1, 1, 2, 3, 4, 5, 6])
+
+def test_add_backgroundsound_delay_halfsec():
+    sound_samples = np.array([1,2,3,4,5])
+    background_samples = np.array([1,1,1,1,1])
+    sr = 5
+    sound = sound_samples, sr
+    background = background_samples, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
+                                                 background, 
+                                                 delay_mainsound_sec=0.5)
+    expected = np.array([1, 1, 2, 3, 4, 5, 6])
+
+def test_add_backgroundsound_totallen_long():
+    sound_samples = np.array([1,2,3,4,5])
+    background_samples = np.array([1,1,1,1,1])
+    sr = 5
+    sound = sound_samples, sr
+    background = background_samples, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
+                                                 background, 
+                                                 total_len_sec=3)
+    expected = np.array([2, 3, 4, 5, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+    assert np.array_equal(expected, combined)
+    assert sr == sr2
+    
+def test_add_backgroundsound_totallen_delay_short():
+    sound_samples = np.array([1,2,3,4,5])
+    background_samples = np.array([1,1,1,1,1])
+    sr = 5
+    sound = sound_samples, sr
+    background = background_samples, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
+                                                 background,
+                                                 delay_mainsound_sec=1,
+                                                 total_len_sec=1.5)
+    expected = np.array([1, 1, 1, 1, 1, 2, 3])
+    assert np.array_equal(expected, combined)
+    assert sr == sr2
+
+def test_add_backgroundsound_totallen_delay_long():
+    sound_samples = np.array([1,2,3,4,5])
+    background_samples = np.array([1,1,1,1,1])
+    sr = 5
+    sound = sound_samples, sr
+    background = background_samples, sr
+    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
+                                                 background,
+                                                 delay_mainsound_sec=1,
+                                                 total_len_sec=3)
+    expected = np.array([1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 1, 1, 1, 1, 1])
+    assert np.array_equal(expected, combined)
+    assert sr == sr2
+
+def test_apply_length():
+    data = np.array([1,2,3,4,5])
+    num_samps = 10
+    new_data = pyst.dsp.apply_length(data, num_samps)
+    expected = np.array([1,2,3,4,5,1,2,3,4,5])
+    assert np.array_equal(new_data, expected)
+    assert len(new_data) == num_samps
+    assert data.dtype == new_data.dtype
+    
+def test_apply_length_tooshort():
+    data = np.array([1,2,3,4,5])
+    num_samps = 3
+    new_data = pyst.dsp.apply_length(data, num_samps)
+    print(new_data)
+    assert len(new_data) == num_samps
+    assert data.dtype == new_data.dtype
+    
+def test_apply_length_stereo_longer():
+    data = np.zeros((3,2))
+    data[:,0] = np.array([0,1,2])
+    data[:,1] = np.array([1,2,3])
+    num_samps = 5
+    new_data = pyst.dsp.apply_length(data,num_samps)
+    assert len(new_data) == num_samps
+    assert len(new_data.shape) == len(data.shape)
+    assert new_data.shape[1] == data.shape[1]
+    
+def test_apply_length_stereo_shorter():
+    data = np.zeros((3,2))
+    data[:,0] = np.array([0,1,2])
+    data[:,1] = np.array([1,2,3])
+    num_samps = 2
+    new_data = pyst.dsp.apply_length(data,num_samps)
+    assert len(new_data) == num_samps
+    assert len(new_data.shape) == len(data.shape)
+    assert new_data.shape[1] == data.shape[1]
+    assert np.array_equal(data[:2], new_data)
+    
+def test_apply_length_toomany_dimensions():
+    data = np.zeros((2,3,3))
+    with pytest.raises(ValueError):
+        pyst.dsp.apply_length(data,5)
