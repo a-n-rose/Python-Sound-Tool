@@ -615,14 +615,16 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
     '''
     # ensure data follows shape of (num_samples,) or (num_samples, num_channels)
     data = pyst.utils.shape_samps_channels(data)
-    if len(data.shape) > 1 and data.shape[1] > 1: 
-        data = stereo2mono(data)
+    num_channels = get_num_channels(data)
     if delay_sec is None:
         delay_sec = 0
     delay_samps = sr * delay_sec
     if len(data) < target_len:
         diff = target_len - len(data)
         signal_zeropadded = np.zeros((data.shape[0] + int(diff)))
+        if num_channels > 1:
+            signal_zeropadded = apply_num_channels(signal_zeropadded, num_channels)
+            assert signal_zeropadded.shape[1] == data.shape[1]
         for i, row in enumerate(data):
             signal_zeropadded[i+delay_samps] += row
     else:
@@ -632,6 +634,13 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
                 len(data), target_len))
         signal_zeropadded = data[:target_len]
     return signal_zeropadded
+
+def get_num_channels(data):
+    if len(data.shape) > 1 and data.shape[1] > 1: 
+        num_channels = data.shape[1]
+    else:
+        num_channels = 1
+    return num_channels
 
 # TODO clarify how length of output array is established
 # TODO change time_delay_sec=1 to None default, as well as total_dur_sec
