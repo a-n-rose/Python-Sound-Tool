@@ -241,6 +241,7 @@ def test_bandsub_reset_samplerate_22050():
     expected = 48000
     assert expected == updated_sr
     
+# TODO: just seems a bit complicated.. remove?
 #def test_sub_noise():
     #fil = pyst.BandSubtraction(num_bands = 4)
     #fil.setup_bands()
