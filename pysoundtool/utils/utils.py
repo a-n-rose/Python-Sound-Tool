@@ -96,11 +96,12 @@ def shape_samps_channels(data):
     
 def get_date():
     time = datetime.datetime.now()
-    time_str = "{}m{}d{}h{}m{}s".format(time.month,
+    time_str = "{}m{}d{}h{}m{}s{}ms".format(time.month,
                                         time.day,
                                         time.hour,
                                         time.minute,
-                                        time.second)
+                                        time.second,
+                                        int(time.microsecond*0.001))
     return(time_str)
 
 ## TODO can probably remove / consolidate with paths module
