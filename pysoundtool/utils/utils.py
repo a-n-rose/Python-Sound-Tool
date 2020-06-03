@@ -71,6 +71,7 @@ def match_dtype(array1, array2):
     assert array1.dtype == array2.dtype
     return array1
     
+# TODO move to dsp?
 def shape_samps_channels(data):
     '''Returns data in shape (num_samps, num_channels)
     
@@ -104,22 +105,44 @@ def get_date():
                                         int(time.microsecond*0.001))
     return(time_str)
 
-## TODO can probably remove / consolidate with paths module
-## TODO use pathlib instead
-#def check_directory(directory, makenew=False, overwrite=None):
-    #if directory[-1] != '/':
-        #directory += '/'
-    #if not os.path.exists(directory):
-        #if makenew:
-            #os.mkdir(directory)
-        #else:
-            #raise FileNotFoundError('Directory {} does not exist.'.format(
-                #directory))
-    #else:
-        #if overwrite is False:
-            #raise FileExistsError('Directory {} exists. '.format(directory) +\
-                #'Set "overwrite" to True if new files should be saved here.')
-    #return directory
+    
+def check_dir(directory, make=True, write_into=True):
+    '''Checks if directory exists
+    
+    Parameters
+    ----------
+    directory : str or pathlib.PosixPath
+        The directory of interest
+    make : bool 
+        Whether or not the directory should be created or just checked to
+        ensure it exists. (default True)
+    write_into : bool 
+        If True, if a directory with the same name exists, new items will be
+        saved into the old directory. Otherwise, an error will be raised. 
+        (default True)
+        
+    Returns
+    -------
+    directory : str, pathlib.PosixPath
+        If a directory could be created or confirmed to exist, the directory
+        path will be returned. Otherwise Errors will be raised.
+    '''
+    import os 
+    if not os.path.isdir(directory):
+        raise TypeError('Expected directory as input. '+\
+            'The following is not a directory:\n{} '.format(directory))
+    if not os.path.exists(directory):
+        if make:
+            os.mkdir(directory)
+        else:
+            raise FileNotFoundError('The following directory does not exist: '+\
+                '\n{}'.format(directory)+)
+    else:
+        if not write_into:
+            raise FileExistsError('The following directory already exists: '+\
+                '\n{}'.format(directory)+'\nTo write into this directory, '+\
+                    'set `write_into` to True.')
+    return directory
 
 def adjust_time_units(time_sec):
     if time_sec >= 60 and time_sec < 3600:
