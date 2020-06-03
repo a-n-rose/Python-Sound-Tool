@@ -252,6 +252,7 @@ class SoundClassifier:
         model.add(Dense(self.num_labels, activation=self.activation_output))
         return model
 
+    # don't need
     def compile_model(self, model, optimizer='adam',
                       loss='sparse_categorical_crossentropy',
                       metrics=['accuracy']):
