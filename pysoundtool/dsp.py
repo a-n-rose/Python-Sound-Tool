@@ -1346,6 +1346,8 @@ def control_volume(samples, max_limit):
                             (-max_limit, max_limit))
     return samples
 
+# TODO add stft features?
+# TODO move to feats.py? Consolidate with those functions
 def collect_features(samples, feature_type='mfcc', sr=48000, window_size_ms=20,
                      window_shift_ms=10, num_filters=40, num_mfcc=40,
                      window_function=None):
@@ -1425,6 +1427,8 @@ def adjust_volume(samples, vol_range):
 def spread_volumes(samples, vol_list = [0.1,0.3,0.5]):
     '''Returns samples with a range of volumes. 
     
+    This may be useful in applying to training data (transforming data).
+    
     Parameters
     ----------
     samples : ndarray
@@ -1491,6 +1495,7 @@ def create_empty_matrix(shape, complex_vals=False):
         matrix = np.zeros(shape, dtype=float)
     return matrix
 
+# TODO test this in applications (currently not implemented)
 def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
     '''Overlaps and adds windowed sections together to form 1D signal.
     
