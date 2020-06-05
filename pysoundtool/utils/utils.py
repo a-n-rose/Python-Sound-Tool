@@ -136,7 +136,7 @@ def check_dir(directory, make=True, write_into=True):
             os.mkdir(directory)
         else:
             raise FileNotFoundError('The following directory does not exist: '+\
-                '\n{}'.format(directory)+)
+                '\n{}'.format(directory))
     else:
         if not write_into:
             raise FileExistsError('The following directory already exists: '+\
@@ -264,3 +264,4 @@ def make_number(value):
     except ValueError as e:
         print(e)
     return value
+
