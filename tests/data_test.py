@@ -157,3 +157,113 @@ def test_loadsound_librosa_mp3():
   0.0000000e+00])
     assert np.allclose(samples[:5], expected)
     assert sr==44100
+
+
+def test_adjust_data_shape_last_column():
+    desired_shape = (3,3,5)
+    input_data = np.ones((3,3,3))
+    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+                                           desired_shape = desired_shape)
+    expected = np.array([[[1., 1., 1., 0., 0.],
+                          [1., 1., 1., 0., 0.],
+                          [1., 1., 1., 0., 0.]],
+                        [[1., 1., 1., 0., 0.],
+                         [1., 1., 1., 0., 0.],
+                         [1., 1., 1., 0., 0.]],
+                        [[1., 1., 1., 0., 0.],
+                         [1., 1., 1., 0., 0.],
+                         [1., 1., 1., 0., 0.]]])
+    assert np.array_equal(input_adjusted, expected)
+    assert input_adjusted.shape == desired_shape
+
+def test_adjust_feature_shape_several_columns():
+    desired_shape = (3,4,5)
+    input_data = np.ones((3,3,3))
+    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+                                           desired_shape = desired_shape)
+    expected = np.array([[[1., 1., 1., 0., 0.],
+                          [1., 1., 1., 0., 0.],
+                          [1., 1., 1., 0., 0.],
+                          [0., 0., 0., 0., 0.]],
+                        [[1., 1., 1., 0., 0.],
+                         [1., 1., 1., 0., 0.],
+                         [1., 1., 1., 0., 0.],
+                         [0., 0., 0., 0., 0.]],
+                        [[1., 1., 1., 0., 0.],
+                         [1., 1., 1., 0., 0.],
+                         [1., 1., 1., 0., 0.],
+                         [0., 0., 0., 0., 0.]]])
+    assert np.array_equal(input_adjusted, expected)
+    assert input_adjusted.shape == desired_shape
+    
+def test_adjust_feature_shape_smaller():
+    desired_shape = (3,3,2)
+    input_data = np.ones((3,3,3))
+    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+                                           desired_shape = desired_shape)
+    expected = np.array([[[1., 1.],
+                          [1., 1.],
+                          [1., 1.]],
+                        [[1., 1.],
+                         [1., 1.],
+                         [1., 1.]],
+                        [[1., 1.],
+                         [1., 1.],
+                         [1., 1.]]])
+    assert np.array_equal(input_adjusted, expected)
+    assert input_adjusted.shape == desired_shape
+    
+def test_adjust_feature_shape_tuple_smaller():
+    desired_shape = (3,2,2)
+    input_data = np.ones((3,3,3))
+    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+                                           desired_shape = desired_shape)
+    expected = np.array([[[1., 1.],
+                          [1., 1.]],
+                        [[1., 1.],
+                         [1., 1.]],
+                        [[1., 1.],
+                         [1., 1.]]])
+    assert np.array_equal(input_adjusted, expected)
+    assert input_adjusted.shape == desired_shape
+
+def test_adjust_feature_shape_mismatch_dims_error():
+    desired_shape = (3,2,2)
+    input_data = np.ones((3,3,3,3))
+    with pytest.raises(ValueError):
+        input_adjusted = pyst.data.adjust_data_shape(input_data, 
+                                            desired_shape = desired_shape)
+
+def test_adjust_feature_shape_2dims():
+    desired_shape = (3,4)
+    input_data = np.ones((3,3))
+    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+                                            desired_shape = desired_shape)
+    expected = np.array([[1., 1., 1., 0.],[1., 1., 1., 0.],[1., 1., 1., 0.]])
+    assert np.array_equal(input_adjusted, expected)
+    assert input_adjusted.shape == desired_shape 
+    
+def test_adjust_feature_shape_1dim_zeropad():
+    desired_shape = (4,)
+    input_data = np.ones((3,))
+    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+                                            desired_shape = desired_shape)
+    expected = np.array([1., 1., 1., 0.])
+    assert np.array_equal(input_adjusted, expected)
+    assert input_adjusted.shape == desired_shape 
+    
+def test_adjust_feature_shape_1dim_limit():
+    desired_shape = (2,)
+    input_data = np.ones((3,))
+    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+                                            desired_shape = desired_shape)
+    expected = np.array([1., 1.])
+    assert np.array_equal(input_adjusted, expected)
+    assert input_adjusted.shape == desired_shape 
+    
+def test_adjust_feature_shape_adding_extra_dimensions():
+    desired_shape = (3,2,2,1)
+    input_data = np.ones((3,3,3))
+    with pytest.raises(ValueError):
+        input_adjusted = pyst.data.adjust_data_shape(input_data, 
+                                            desired_shape = desired_shape)

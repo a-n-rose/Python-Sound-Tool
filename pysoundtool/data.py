@@ -1,7 +1,7 @@
 '''Functions related to handling audio data files. This ranges from making 
 audio data match in format to creating training, validation, and test datasets.
 '''
-
+import numpy as np
 import random
 import collections
 import math 
@@ -791,3 +791,112 @@ def soundfile_limitduration(newfilename, soundfile, sr=None,
     else:
         data, sr = librosa.load(soundfile, duration=dur_sec)
     sf.write(newfilename, data, sr)
+    
+    
+# better here or in dsp module?
+def zeropad_features(feats, desired_shape, complex_vals = False):
+    '''Applies zeropadding to a copy of feats. 
+    '''
+    fts = feats.copy()
+    if feats.shape != desired_shape:
+        if complex_vals:
+            dtype = np.complex_
+        else:
+            dtype = np.float
+        empty_matrix = np.zeros(desired_shape, dtype = dtype)
+        try:
+            if len(desired_shape) == 1:
+                empty_matrix[:feats.shape[0]] += feats
+            elif len(desired_shape) == 2:
+                empty_matrix[:feats.shape[0], 
+                            :feats.shape[1]] += feats
+            elif len(desired_shape) == 3:
+                empty_matrix[:feats.shape[0], 
+                            :feats.shape[1],
+                            :feats.shape[2]] += feats
+            elif len(desired_shape) == 4:
+                empty_matrix[:feats.shape[0], 
+                            :feats.shape[1],
+                            :feats.shape[2],
+                            :feats.shape[3]] += feats
+            elif len(desired_shape) == 5:
+                empty_matrix[:feats.shape[0], 
+                            :feats.shape[1],
+                            :feats.shape[2],
+                            :feats.shape[3],
+                            :feats.shape[4]] += feats
+            else:
+                raise TypeError('Zeropadding columns requires a matrix with a minimum of 1 dimension and maximum of 5 dimensions.')
+            fts = empty_matrix
+        except ValueError as e:
+            print(e)
+            raise ValueError('The desired shape is smaller than the original shape.'+ \
+                ' No zeropadding necessary.')
+        except IndexError as e:
+            print(e)
+            raise IndexError('The dimensions do not align. Zeropadding '+ \
+                'expects same number of dimensions.')
+    assert fts.shape == desired_shape
+    return fts
+
+def reduce_num_features(feats, desired_shape, complex_vals = False):
+    '''Limits number features of a copy of feats. 
+    '''
+    fts = feats.copy()
+    if feats.shape != desired_shape:
+        if complex_vals:
+            dtype = np.complex_
+        else:
+            dtype = np.float
+        empty_matrix = np.zeros(desired_shape, dtype = dtype)
+        try:
+            if len(desired_shape) == 1:
+                empty_matrix += feats[:empty_matrix.shape[0]]
+            elif len(desired_shape) == 2:
+                empty_matrix += feats[:empty_matrix.shape[0], 
+                            :empty_matrix.shape[1]]
+            elif len(desired_shape) == 3:
+                empty_matrix += feats[:empty_matrix.shape[0], 
+                            :empty_matrix.shape[1],
+                            :empty_matrix.shape[2]]
+            elif len(desired_shape) == 4:
+                empty_matrix += feats[:empty_matrix.shape[0], 
+                            :empty_matrix.shape[1],
+                            :empty_matrix.shape[2],
+                            :empty_matrix.shape[3]]
+            elif len(desired_shape) == 5:
+                empty_matrix += feats[:empty_matrix.shape[0], 
+                            :empty_matrix.shape[1],
+                            :empty_matrix.shape[2],
+                            :empty_matrix.shape[3],
+                            :empty_matrix.shape[4]]
+            else:
+                raise TypeError('Reducing items in columns requires a matrix with a minimum of 1 dimension and maximum of 5 dimensions.')
+            fts = empty_matrix
+        except ValueError as e:
+            print(e)
+            raise ValueError('The desired shape is larger than the original shape.'+ \
+                ' Perhaps try zeropadding.')
+        except IndexError as e:
+            print(e)
+            raise IndexError('The dimensions do not align. Zeropadding '+ \
+                'expects same number of dimensions.')
+    assert fts.shape == desired_shape
+    return fts
+
+# TODO remove warning for 'operands could not be broadcast together with shapes..'
+def adjust_data_shape(data, desired_shape):
+    if len(data.shape) != len(desired_shape):
+        raise ValueError('Cannot adjust data to a different number of '+\
+            'dimensions.\nOriginal data shape: '+str(data.shape)+ \
+                '\nDesired shape: '+str(desired_shape))
+    # attempt to zeropad data:
+    try:
+        data_prepped = pyst.data.zeropad_features(data, 
+                                                  desired_shape = desired_shape)
+    # if zeropadding is smaller than data.shape/features:
+    except ValueError:
+        # remove extra data/columns to match desired_shape:
+        data_prepped = pyst.data.reduce_num_features(data, 
+                                                 desired_shape = desired_shape)
+    return data_prepped
