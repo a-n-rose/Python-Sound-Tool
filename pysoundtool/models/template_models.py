@@ -17,7 +17,7 @@ import pysoundtool as pyst
 ###############################################################################
 
 # TODO add maxpooling layer
-def cnn_template(feature_maps, kernel_size, strides, activation_layer, 
+def cnn_classifier(feature_maps, kernel_size, strides, activation_layer, 
                  activation_output, input_shape, num_labels, 
                  dense_hidden_units=None, dropout=None):
     '''Build a single or multilayer convolutional neural network.
