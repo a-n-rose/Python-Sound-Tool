@@ -115,40 +115,7 @@ def list_audioformats():
                 ', '.join(get_incompatible_formats())
     return msg
 
-def setup_audioclass_dicts(audio_classes_dir, encoded_labels_path, label_waves_path,
-                           limit=None):
-    '''Saves dictionaries containing encoded label and audio class wavfiles.
-
-    Parameters
-    ----------
-    audio_classes_dir : str, pathlib.PosixPath
-        Directory path to where all audio class folders are located.
-    encoded_labels_path : str, pathlib.PosixPath
-        path to the dictionary where audio class labels and their 
-        encoded integers are stored or will be stored.
-    label_waves_path : str, pathlib.PosixPath
-        path to the dictionary where audio class labels and the 
-        paths of all audio files belonging to each class are or will
-        be stored.
-    limit : int, optional
-        The integer indicating a limit to number of audiofiles to each class. This
-        may be useful if one wants to ensure a balanced dataset (default None)
-
-    Returns
-    -------
-    label2int_dict : dict
-        Dictionary containing the string labels as keys and encoded 
-        integers as values.
-    '''
-    paths, labels = pyst.paths.collect_audio_and_labels(audio_classes_dir)
-    label2int_dict, int2label_dict = create_dicts_labelsencoded(set(labels))
-    __ = pyst.data.save_dict(int2label_dict, encoded_labels_path)
-    label2audiofiles_dict = create_label2audio_dict(
-        set(labels), paths, limit=limit)
-    __ = pyst.data.save_dict(label2audiofiles_dict, label_waves_path)
-    return label2int_dict
-
-def create_label2audio_dict(labels_set, paths_list, limit=None, seed=40):
+def create_encodedlabel2audio_dict(dict_encodelabels, paths_list, limit=None, seed=40):
     '''Creates dictionary with audio labels as keys and filename lists as values.
 
     If no label is found in the filename path, the label is not included
@@ -157,8 +124,8 @@ def create_label2audio_dict(labels_set, paths_list, limit=None, seed=40):
 
     Parameters
     ----------
-    labels_set : set, list
-        Set containing the labels of all audio training classes
+    dict_encodelabels : dict 
+        Dictionary containing the labels as keys and their encoded values as values.
     paths_list : set, list 
         List containing pathlib.PosixPath objects (i.e. paths) of all audio 
         files; expected the audio files reside in directories with names 
@@ -174,9 +141,10 @@ def create_label2audio_dict(labels_set, paths_list, limit=None, seed=40):
     Returns
     -------
     label_waves_dict : OrderedDict
-        A dictionary with audio labels as keys with values being the audio files 
+        A dictionary with encoded audio labels as keys with values being the audio files 
         corresponding to that label
 
+    TODO update:
     Examples
     --------
     >>> from pathlib import Path
@@ -202,15 +170,17 @@ PosixPath('data/audio/vacuum/vacuum2.wav')]), \
 ('vacuum', [PosixPath('data/audio/vacuum/vacuum1.wav')]), \
 ('wind', [PosixPath('data/audio/wind/wind1.wav')])])
     '''
-    if not isinstance(labels_set, set) and not isinstance(labels_set, list):
+    if not isinstance(dict_encodelabels, dict):
         raise TypeError(
-            'Expected labels list as type set or list, not type {}'.format(type(
-                labels_set)))
+            'Expected dict_encodelabels to be type dict, not type {}'.format(type(
+                dict_encodelabels)))
     if not isinstance(paths_list, set) and not isinstance(paths_list, list):
         raise TypeError(
             'Expected paths list as type set or list, not type {}'.format(type(
                 paths_list)))
     label_waves_dict = collections.OrderedDict()
+    # get labels from dict_encodelabels:
+    labels_set = set(list(dict_encodelabels.keys()))
     for label in sorted(labels_set):
         # expects name of parent directory to match label
         label_paths = [path for path in paths_list if
@@ -224,7 +194,8 @@ PosixPath('data/audio/vacuum/vacuum2.wav')]), \
                                             replace=False)
                 paths_idx = rand_idx[:limit]
                 label_paths = list(np.array(label_paths)[paths_idx])
-            label_waves_dict[label] = sorted(label_paths)
+                # encode label in the label_waves_dict
+            label_waves_dict[dict_encodelabels[label]] = sorted(label_paths)
     if not label_waves_dict:
         raise ValueError('No matching labels found in paths list.')
     return label_waves_dict
@@ -368,24 +339,16 @@ def waves2dataset(audiolist, train_perc=0.8, seed=40):
     assert len(train_waves)+len(val_waves)+len(test_waves) == len(audiolist)
     return train_waves, val_waves, test_waves
 
-def audio2datasets(audio_classes_dir, encoded_labels_path,
-                   label_wavfiles_path, perc_train=0.8, limit=None, seed=None):
-    '''Organizes all audio in audio class directories into datasets.
-
-    If they don't already exist, dictionaries with the encoded labels of the 
-    audio classes as well as the wavfiles belonging to each class are saved. 
+def audio2datasets(label_wavfiles, perc_train=0.8, limit=None, seed=None):
+    '''Organizes all audio in audio class directories into datasets (randomized).
 
     Parameters
     ----------
-    audio_classes_dir : str, pathlib.PosixPath
-        Directory path to where all audio class folders are located.
-    encoded_labels_path : str, pathlib.PosixPath
-        path to the dictionary where audio class labels and their 
-        encoded integers are stored or will be stored.
-    label_wavfiles_path : str, pathlib.PosixPath
+    label_wavfiles : str, pathlib.PosixPath, or dict
         path to the dictionary where audio class labels and the 
         paths of all audio files belonging to each class are or will
-        be stored.
+        be stored. The dictionary with the labels and their encoded values
+        can also directly supplied here.
     perc_train : int, float
         The percentage or decimal representing the amount of training
         data compared to the test and validation data (default 0.8)
@@ -411,42 +374,30 @@ def audio2datasets(audio_classes_dir, encoded_labels_path,
             'The percentage of train data is too small: {}\
             \nPlease check your values.'.format(
                 perc_train))
-    if os.path.exists(encoded_labels_path) and \
-            os.path.exists(label_wavfiles_path):
-        print('Loading preexisting encoded labels file: {}'.format(
-            encoded_labels_path))
-        print('Loading preexisting label and wavfiles file: {}'.format(
-            label_wavfiles_path))
-        encodelabels_dict_inverted = pyst.paths.load_dict(encoded_labels_path)
-        label2int = {}
-        for key, value in encodelabels_dict_inverted.items():
-            label2int[value] = key
-        class_waves_dict = pyst.paths.load_dict(label_wavfiles_path)
+    if isinstance(label_wavfiles, dict):
+        class_waves_dict = label_wavfiles
     else:
-        kwargs = {'audio_classes_dir': audio_classes_dir,
-                  'encoded_labels_path': encoded_labels_path,
-                  'label_waves_path': label_wavfiles_path,
-                  'limit': limit}
-        label2int = setup_audioclass_dicts(**kwargs)
-        # load the just created label to wavfiles dictionary
-        class_waves_dict = pyst.paths.load_dict(label_wavfiles_path)
+        class_waves_dict = pyst.paths.load_dict(label_wavfiles)
     count = 0
     row = 0
     train = []
     val = []
     test = []
     for key, value in class_waves_dict.items():
-        audiolist = pyst.paths.string2list(value)
+        if isinstance(value, str):
+            audiolist = pyst.paths.string2list(value)
+        else:
+            audiolist = value
         train_waves, val_waves, test_waves = waves2dataset(audiolist)
 
         for i, wave in enumerate(train_waves):
-            train.append(tuple([label2int[key], wave]))
+            train.append(tuple([key, wave]))
 
         for i, wave in enumerate(val_waves):
-            val.append(tuple([label2int[key], wave]))
+            val.append(tuple([key, wave]))
 
         for i, wave in enumerate(test_waves):
-            test.append(tuple([label2int[key], wave]))
+            test.append(tuple([key, wave]))
     # be sure the classes are not in any certain order
     if seed is not None: 
         random.seed(seed)
