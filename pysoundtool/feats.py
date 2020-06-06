@@ -591,6 +591,7 @@ def plot(feature_matrix, feature_type,
     else:
         plt.show()
 
+# TODO test duration limit on all settings
 def get_feats(sound,
               sr=None, 
               features='fbank', 
@@ -599,7 +600,7 @@ def get_feats(sound,
               window = 'hann',
               num_filters=40,
               num_mfcc=None, 
-              limit=None,
+              duration=None,
               mono=None):
     '''Collects raw signal data, stft, fbank, or mfcc features via librosa.
     
@@ -638,7 +639,7 @@ def get_feats(sound,
         Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
         is set to 40, all 40 coefficients will be included.
         (default None). 
-    limit : float, optional
+    duration : float, optional
         Time in seconds to limit in loading a signal. (default None)
     mono: bool, optional
         For loading an audiofile, True will result in only one channel of 
@@ -654,7 +655,7 @@ def get_feats(sound,
     if isinstance(sound, str):
         if mono is None:
             mono = True
-        data, sr = librosa.load(sound, sr=sr, duration=limit, mono=mono)
+        data, sr = librosa.load(sound, sr=sr, duration=duration, mono=mono)
         if mono is False and len(data.shape) > 1:
             index_samples = np.argmax(data.shape)
             index_channels = np.argmin(data.shape)
@@ -671,6 +672,8 @@ def get_feats(sound,
             raise ValueError('No samplerate given. Either provide '+\
                 'filename or appropriate samplerate.')
         data, sr = sound, sr
+        if duration:
+            data = data[:int(sr*duration)]
     # ensure percent overlap is between 0 and 1
     percent_overlap = check_percent_overlap(percent_overlap)
     win_shift_ms = win_size_ms * percent_overlap
@@ -715,7 +718,7 @@ def get_feats(sound,
                           num_filters = num_filters,
                           num_mfcc = num_mfcc,
                           sr = sr,
-                          limit = limit,
+                          duration = duration,
                           mono = mono)
     return feats
 
