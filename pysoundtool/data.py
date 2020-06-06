@@ -5,6 +5,8 @@ import numpy as np
 import random
 import collections
 import math 
+import csv
+import pathlib
 from scipy.io.wavfile import write, read
 from scipy.signal import resample
 import soundfile as sf
@@ -140,10 +142,10 @@ def setup_audioclass_dicts(audio_classes_dir, encoded_labels_path, label_waves_p
     '''
     paths, labels = pyst.paths.collect_audio_and_labels(audio_classes_dir)
     label2int_dict, int2label_dict = create_dicts_labelsencoded(set(labels))
-    __ = pyst.paths.save_dict(int2label_dict, encoded_labels_path)
+    __ = pyst.data.save_dict(int2label_dict, encoded_labels_path)
     label2audiofiles_dict = create_label2audio_dict(
         set(labels), paths, limit=limit)
-    __ = pyst.paths.save_dict(label2audiofiles_dict, label_waves_path)
+    __ = pyst.data.save_dict(label2audiofiles_dict, label_waves_path)
     return label2int_dict
 
 def create_label2audio_dict(labels_set, paths_list, limit=None, seed=40):
@@ -266,6 +268,42 @@ def create_dicts_labelsencoded(labels_class):
         dict_label2int[label] = i
         dict_int2label[i] = label
     return dict_label2int, dict_int2label
+
+
+def save_dict(dict2save, filename, replace=False):
+    '''Saves dictionary as csv file to indicated path and filename
+
+    Parameters
+    ----------
+    dict2save : dict
+        The dictionary that is to be saved 
+    filename : str 
+        The path and name to save the dictionary under. If '.csv' 
+        extension is not given, it is added.
+    replace : bool, optional
+        Whether or not the saved dictionary should overwrite a 
+        preexisting file (default False)
+
+    Returns
+    ----------
+    path : pathlib.PosixPath
+        The path where the dictionary was saved
+    '''
+    if not isinstance(filename, pathlib.PosixPath):
+        filename = pathlib.Path(filename)
+    if filename.parts[-1][-4:] != '.csv':
+        filename_str = filename.resolve()
+        filename_csv = filename_str+'.csv'
+        filename = pathlib.Path(filename_csv)
+    if not replace:
+        if os.path.exists(filename):
+            raise FileExistsError(
+                'The file {} already exists at this path:\
+                \n{}'.format(filename.parts[-1], filename))
+    with open(filename, 'w') as f:
+        w = csv.writer(f)
+        w.writerows(dict2save.items())
+    return filename
 
 def waves2dataset(audiolist, train_perc=0.8, seed=40):
     '''Organizes audio files list into train, validation and test datasets.
@@ -903,3 +941,8 @@ def adjust_data_shape(data, desired_shape):
         data_prepped = pyst.data.reduce_num_features(data, 
                                                  desired_shape = desired_shape)
     return data_prepped
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
