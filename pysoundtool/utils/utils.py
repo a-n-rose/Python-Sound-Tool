@@ -5,6 +5,22 @@ import numpy as np
 import datetime
 import pathlib
 
+def str2path(pathstring):
+    '''Turns string path into pathlib.PosixPath object
+    
+    Parameters
+    ----------
+    pathstring : str
+        The pathway to be turned into a pathlib object
+        
+    Returns
+    -------
+    pathlibpath : pathlib.PosixPath
+        The pathway as a pathlib object.
+    '''
+    pathlibpath = pathlib.Path(pathstring)
+    return pathlibpath
+
 # TODO make str path into Pathlib.PosixPath
 def path_or_samples(input_value):
     '''Checks whether `input_value` is a path or sample data. Does not check path validity.
@@ -35,7 +51,7 @@ def path_or_samples(input_value):
     >>> path_or_samples('my_audio.wav')
     'path'
     >>> # create pathlib.PosixPath object 
-    >>> import pathlb
+    >>> import pathlib
     >>> path_or_samples(pathlib.Path('my_audio.wav')
     'path'
     '''
@@ -128,9 +144,12 @@ def check_dir(directory, make=True, write_into=True):
         path will be returned. Otherwise Errors will be raised.
     '''
     import os 
-    if not os.path.isdir(directory):
-        raise TypeError('Expected directory as input. '+\
-            'The following is not a directory:\n{} '.format(directory))
+    if not isinstance(directory, pathlib.PosixPath):
+        directory = pathlib.Path(directory)
+    # check to ensure the pathway does not have an extension
+    if directory.suffix:
+        raise('Expected pathway without extension. Did you mean to set \n~ '#\
+            +str(directory)+' ~\nas a directory?')
     if not os.path.exists(directory):
         if make:
             os.mkdir(directory)
@@ -265,3 +284,7 @@ def make_number(value):
         print(e)
     return value
 
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
