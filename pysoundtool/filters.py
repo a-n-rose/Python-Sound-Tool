@@ -721,8 +721,8 @@ def filtersignal(audiofile,
         # set how many subframes are needed to process entire noise signal
         fil.set_num_subframes(len(samples_noise), is_noise=True, zeropad=fil.zeropad)
     if visualize:
-        pyst.visualize_feats(samples_orig, 'signal', title='Signal to filter'.upper(),sr = fil.sr)
-        pyst.visualize_feats(samples_noise, 'signal', title= 'Noise samples to filter out'.upper(), sr=fil.sr)
+        pyst.feats.plot(samples_orig, 'signal', title='Signal to filter'.upper(),sr = fil.sr)
+        pyst.feats.plot(samples_noise, 'signal', title= 'Noise samples to filter out'.upper(), sr=fil.sr)
     # prepare noise power matrix (if it's not loaded already)
     if fil.noise_subframes:
         if real_signal:
@@ -746,7 +746,7 @@ def filtersignal(audiofile,
                                                    fil.noise_subframes)
         assert section == fil.noise_subframes * fil.overlap_length
     if visualize:
-        pyst.visualize_feats(noise_power, 'stft',title='Average noise power spectrum'.upper()+'\n{}'.format(frame_subtitle), scale='power_to_db',
+        pyst.feats.plot(noise_power, 'stft',title='Average noise power spectrum'.upper()+'\n{}'.format(frame_subtitle), scale='power_to_db',
                              sr = fil.sr)
     
     # prepare target power matrix
@@ -768,14 +768,14 @@ def filtersignal(audiofile,
                                                     fil.get_window(), 
                                                     zeropad=fil.zeropad)
             if visualize and frame % visualize_every_n_frames == 0:
-                pyst.visualize_feats(target_section,'signal', title='Signal'.upper()+' \nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
-                pyst.visualize_feats(target_w_window,'signal', title='Signal with {} window'.format(fil.window_type).upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
+                pyst.feats.plot(target_section,'signal', title='Signal'.upper()+' \nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
+                pyst.feats.plot(target_w_window,'signal', title='Signal with {} window'.format(fil.window_type).upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
             target_fft = pyst.dsp.calc_fft(target_w_window, real_signal=real_signal)
             target_power = pyst.dsp.calc_power(target_fft)
             # now start filtering!!
             # initialize SNR matrix
             if visualize and frame % visualize_every_n_frames == 0:
-                pyst.visualize_feats(target_power,'stft', title='Signal power spectrum'.upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle), scale='power_to_db', sr = fil.sr)
+                pyst.feats.plot(target_power,'stft', title='Signal power spectrum'.upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle), scale='power_to_db', sr = fil.sr)
             if 'wiener' in filter_type:
                 enhanced_fft = fil.apply_wienerfilter(frame, 
                                                        target_fft, 
@@ -796,7 +796,7 @@ def filtersignal(audiofile,
                                                real_signal=real_signal)
             filtered_sig[row:row+fil.frame_length] += enhanced_ifft
             if visualize and frame % visualize_every_n_frames == 0:
-                pyst.visualize_feats(filtered_sig,'signal', title='Filtered signal'.upper()+'\nup to frame {}: {}'.format(frame+1,frame_subtitle), sr = fil.sr)
+                pyst.feats.plot(filtered_sig,'signal', title='Filtered signal'.upper()+'\nup to frame {}: {}'.format(frame+1,frame_subtitle), sr = fil.sr)
             # prepare for next iteration
             if 'wiener' in filter_type:
                 fil.posteri_snr_prev = fil.posteri_snr
@@ -812,10 +812,10 @@ def filtersignal(audiofile,
     if visualize:
         rows = len(filtered_sig)//increment_length
         cols = increment_length
-        pyst.visualize_feats(np.abs(filtered_sig.reshape((
+        pyst.feats.plot(np.abs(filtered_sig.reshape((
                 rows,cols,)))**2,
             'stft', title='Final filtered signal power spectrum'.upper()+'\n{}: {}'.format(filter_type,frame_subtitle), scale='power_to_db')
-        pyst.visualize_feats(enhanced_signal,'signal', title='Final filtered signal'.upper()+'\n{}'.format(filter_type), sr = fil.sr)
+        pyst.feats.plot(enhanced_signal,'signal', title='Final filtered signal'.upper()+'\n{}'.format(filter_type), sr = fil.sr)
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
