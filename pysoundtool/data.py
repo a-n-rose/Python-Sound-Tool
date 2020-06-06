@@ -23,7 +23,7 @@ import pysoundtool as pyst
 ###############################################################################
 
 
-def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=False):
+def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=True):
     '''Loads sound file with scipy.io.wavfile.read or librosa.load (default scipy)
     
     If the sound file is not compatible with scipy's read module
@@ -42,6 +42,9 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=False):
         if the samples are in stereo, they will be loaded in stereo sound.
     dur_sec : int, float, optional
         The length in seconds of the audio signal.
+    use_librosa : bool 
+        If True, librosa will be used to load the audiofile. If False, 
+        scipy.io.wavfile and/or soundfile will be used. (default True)
         
     Returns
     -------
