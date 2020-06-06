@@ -5,9 +5,6 @@ learning, filtering)
 
 
 ###############################################################################
-
-import numpy as np
-
 import os, sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(
@@ -16,6 +13,8 @@ currentdir = os.path.dirname(os.path.abspath(
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
+import numpy as np
+import librosa
 import pysoundtool as pyst
 
 
@@ -197,11 +196,11 @@ class FeatPrep_SoundClassifier(AcousticData):
              self.num_columns))
         row = 0
         for sample_set in samples:
-            feats, frame_length, window_size_ms = pyst.dsp.collect_features(
+            feats, frame_length, win_size_ms = pyst.dsp.collect_features(
                 feature_type=self.feature_type,
                 samples=y,
                 sr=self.sr,
-                window_size_ms=self.window_size,
+                win_size_ms=self.window_size,
                 window_shift_ms=self.window_shift,
                 num_filters=self.num_filters,
                 num_mfcc=self.num_mfcc,
@@ -481,7 +480,7 @@ def getfeatsettings(feature_info):
 ################################### TODO Consolidate with other functions ################
 # TODO Clean up   
 # TODO add graph for each channel? For all feature types?
-def visualize_feats(feature_matrix, feature_type, 
+def plot(feature_matrix, feature_type, 
                     save_pic=False, name4pic=None, scale=None,
                     title=None, sr=None):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
@@ -591,32 +590,42 @@ def visualize_feats(feature_matrix, feature_type,
     else:
         plt.show()
 
-def get_feats(sound, 
+def get_feats(sound,
+              sr=None, 
               features='fbank', 
               win_size_ms = 20, 
-              win_shift_ms = 10,
+              percent_overlap = 0.5,
+              window = 'hann',
               num_filters=40,
               num_mfcc=None, 
-              sr=None, 
               limit=None,
               mono=None):
-    '''Feature extraction depending on set parameters; frames on y axis, features x axis
+    '''Collects raw signal data, stft, fbank, or mfcc features via librosa.
     
     Parameters
     ----------
-    sound : str or numpy.ndarray
+    sound : str or numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
         If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
         the samples of the sound data. Note: in the latter case, `sr`
         must be declared.
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. (default None)
     features : str
-        Either 'mfcc' or 'fbank' features. MFCC: mel frequency cepstral
-        coefficients; FBANK: mel-log filterbank energies (default 'fbank')
+        Options include 'signal', 'stft', 'fbank', or 'mfcc' data (default 'fbank').
+        signal: energy/amplitude measurements along time
+        STFT: short-time fourier transform
+        FBANK: mel-log filterbank energies 
+        MFCC: mel frequency cepstral coefficients 
     win_size_ms : int or float
         Window length in milliseconds for Fourier transform to be applied
         (default 20)
-    win_shift_ms : int or float 
-        Window overlap in milliseconds; default set at 50% window size 
-        (default 10)
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1. 
+    window : str or np.ndarray [size (n_fft, )]
+        The window function to be applied to each window. (Default 'hann')
     num_filters : int
         Number of mel-filters to be used when applying mel-scale. For 
         'fbank' features, 20-128 are common, with 40 being very common.
@@ -628,9 +637,6 @@ def get_feats(sound,
         Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
         is set to 40, all 40 coefficients will be included.
         (default None). 
-    sr : int, optional
-        The sample rate of the sound data or the desired sample rate of
-        the wavfile to be loaded. (default None)
     limit : float, optional
         Time in seconds to limit in loading a signal. (default None)
     mono: bool, optional
@@ -643,6 +649,7 @@ def get_feats(sound,
     feats : tuple (num_samples, sr) or np.ndarray [size (num_frames, num_filters) dtype=np.float or np.complex]
         Feature data. If `feature_type` is 'signal', returns a tuple containing samples and sampling rate. If `feature_type` is of another type, returns np.ndarray with shape (num_frames, num_filters/features)
     '''
+    # load data
     if isinstance(sound, str):
         if mono is None:
             mono = True
@@ -663,6 +670,9 @@ def get_feats(sound,
             raise ValueError('No samplerate given. Either provide '+\
                 'filename or appropriate samplerate.')
         data, sr = sound, sr
+    # ensure percent overlap is between 0 and 1
+    percent_overlap = check_percent_overlap(percent_overlap)
+    win_shift_ms = win_size_ms * percent_overlap
     try:
         if 'fbank' in features:
             feats = librosa.feature.melspectrogram(
@@ -670,7 +680,7 @@ def get_feats(sound,
                 sr = sr,
                 n_fft = int(win_size_ms * sr // 1000),
                 hop_length = int(win_shift_ms*0.001*sr),
-                n_mels = num_filters).T
+                n_mels = num_filters, window=window).T
             # have found better results if not conducted:
             # especially if recreating audio signal later
             #feats -= (np.mean(feats, axis=0) + 1e-8)
@@ -683,17 +693,20 @@ def get_feats(sound,
                 n_mfcc = num_mfcc,
                 n_fft = int(win_size_ms * sr // 1000),
                 hop_length = int(win_shift_ms*0.001*sr),
-                n_mels = num_filters).T
+                n_mels = num_filters,
+                window=window).T
             #feats -= (np.mean(feats, axis=0) + 1e-8)
         elif 'stft' in features:
             feats = librosa.stft(
                 data,
                 n_fft = int(win_size_ms * sr // 1000),
-                hop_length = int(win_shift_ms*0.001*sr)).T
+                hop_length = int(win_shift_ms*0.001*sr),
+                window=window).T
             #feats -= (np.mean(feats, axis=0) + 1e-8)
         elif 'signal' in features:
             feats = (data, sr)
     except librosa.ParameterError as e:
+        # potential error in handling fortran array
         feats = get_feats(np.asfortranarray(data),
                           features = features,
                           win_size_ms = win_size_ms,
@@ -705,8 +718,50 @@ def get_feats(sound,
                           mono = mono)
     return feats
 
-def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
-    win_shift_ms = 10, num_filters=40, num_mfcc=40, sr=None,\
+# TODO possibly remove?
+def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
+                     percent_overlap=0.5, num_filters=40, num_mfcc=40,
+                     window_function=None):
+    '''Collects fbank or mfcc features via python speech features.
+    '''
+    if not window_function:
+        # default for python_speech_features:
+        def window_function(x): return np.ones((x,))
+    else:
+        if 'hamming' in window_function:
+            window_function = hamming
+        elif 'hann' in window_function:
+            window_function = hann
+        else:
+            # default for python_speech_features:
+            def window_function(x): return np.ones((x,))
+    if len(samples)/sr*1000 < win_size_ms:
+        win_size_ms = len(samples)/sr*1000
+    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    percent_overlap = check_percent_overlap(percent_overlap)
+    window_shift_ms = win_size_ms * percent_overlap
+    if 'fbank' in feature_type:
+        feats = logfbank(samples,
+                         sr=sr,
+                         winlen=win_size_ms * 0.001,
+                         winstep=window_shift_ms * 0.001,
+                         nfilt=num_filters,
+                         nfft=frame_length,
+                         winfunc=window_function)
+    elif 'mfcc' in feature_type:
+        feats = mfcc(samples,
+                     sr=sr,
+                     winlen=win_size_ms * 0.001,
+                     winstep=window_shift_ms * 0.001,
+                     nfilt=num_filters,
+                     numcep=num_mfcc,
+                     nfft=frame_length,
+                     winfunc=window_function)
+    return feats, frame_length, win_size_ms
+
+
+def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
+    percent_overlap = 0.5, num_filters=40, num_mfcc=40, sr=None,\
         save_pic=False, name4pic=None, power_scale=None, mono=None):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
@@ -723,9 +778,10 @@ def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
     win_size_ms : int or float
         Window length in milliseconds for Fourier transform to be applied
         (default 20)
-    win_shift_ms : int or float 
-        Window overlap in milliseconds; default set at 50% window size 
-        (default 10)
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1.
     num_filters : int
         Number of mel-filters to be used when applying mel-scale. For 
         'fbank' features, 20-128 are common, with 40 being very common.
@@ -745,7 +801,9 @@ def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
         one; False will allow more channels to be loaded. (default None, 
         which results in mono channel loading.)
     '''
-    feats = get_feats(audiodata, features=feature_type, 
+    percent_overlap = check_percent_overlap(percent_overlap)
+    win_shift_ms = win_size_ms * percent_overlap
+    feats = pyst.feats.get_feats(audiodata, features=feature_type, 
                       win_size_ms = win_size_ms, win_shift_ms = win_shift_ms,
                       num_filters=num_filters, num_mfcc = num_mfcc, sr=sr,
                       mono=mono)
@@ -753,8 +811,17 @@ def visualize_audio(audiodata, feature_type='fbank', win_size_ms = 20, \
         feats, sr = feats
     else:
         sr = None
-    visualize_feats(feats, feature_type=feature_type, sr=sr,
+    pyst.feats.plot(feats, feature_type=feature_type, sr=sr,
                     save_pic = save_pic, name4pic=name4pic, scale=power_scale)
+
+def check_percent_overlap(percent_overlap):
+    if percent_overlap > 1:
+        percent_overlap *= 0.01
+        if percent_overlap > 1:
+            raise ValueError('The percent overlap value '+str(percent_overlap)+\
+                ' is too large. Please use a value between 0 and 1 or 0 and 100.')
+    return percent_overlap
+
 
 def separate_dependent_var(matrix):
     '''Separates matrix into features and labels. Expects 3D array.
