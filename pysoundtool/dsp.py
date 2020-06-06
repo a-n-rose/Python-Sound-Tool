@@ -8,7 +8,6 @@ import inspect
 import numpy as np
 from numpy.fft import fft, rfft, ifft, irfft
 from scipy.signal import hamming, hann, resample
-from python_speech_features import logfbank, mfcc
 import librosa
 import librosa.display as display
 import matplotlib.pyplot as plt
@@ -1234,7 +1233,6 @@ def calc_prior_snr(snr, snr_prime, smooth_factor=0.98, first_iter=None, gain=Non
         prior_snr = first_arg + second_arg
     return prior_snr
 
-
 def calc_gain(prior_snr):
     '''Calculates the gain (i.e. attenuation) values to reduce noise.
 
@@ -1311,7 +1309,6 @@ def calc_ifft(signal_section, real_signal=None, norm=False):
         ifft_vals = ifft(signal_section, norm=norm)
     return ifft_vals
 
-
 def control_volume(samples, max_limit):
     """Keeps max volume of samples to within a specified range.
 
@@ -1345,44 +1342,6 @@ def control_volume(samples, max_limit):
                             (samples.min(), samples.max()),
                             (-max_limit, max_limit))
     return samples
-
-# TODO add stft features?
-# TODO move to feats.py? Consolidate with those functions
-def collect_features(samples, feature_type='mfcc', sr=48000, window_size_ms=20,
-                     window_shift_ms=10, num_filters=40, num_mfcc=40,
-                     window_function=None):
-    '''Collects fbank and mfcc features.
-    '''
-    if not window_function:
-        # default for python_speech_features:
-        def window_function(x): return np.ones((x,))
-    else:
-        if 'hamming' in window_function:
-            window_function = hamming
-        elif 'hann' in window_function:
-            window_function = hann
-        else:
-            # default for python_speech_features:
-            def window_function(x): return np.ones((x,))
-    if len(samples)/sr*1000 < window_size_ms:
-        window_size_ms = len(samples)/sr*1000
-    frame_length = calc_frame_length(window_size_ms, sr)
-    if 'fbank' in feature_type:
-        feats = logfbank(samples,
-                         sr=sr,
-                         winlen=window_size_ms * 0.001,
-                         winstep=window_shift_ms * 0.001,
-                         nfilt=num_filters,
-                         nfft=frame_length)
-    elif 'mfcc' in feature_type:
-        feats = mfcc(samples,
-                     sr=sr,
-                     winlen=window_size_ms * 0.001,
-                     winstep=window_shift_ms * 0.001,
-                     nfilt=num_filters,
-                     numcep=num_mfcc,
-                     nfft=frame_length)
-    return feats, frame_length, window_size_ms
 
 ######### Functions related to postfilter###############
 
