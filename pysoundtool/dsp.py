@@ -872,7 +872,7 @@ def apply_window(samples, window, zeropad=False):
     """
     if zeropad:
         if samples.shape != window.shape:
-            temp_matrix = matrixfun.create_empty_matrix(
+            temp_matrix = create_empty_matrix(
                 window.shape)
             temp_matrix[:len(samples)] = samples
             samples = temp_matrix
