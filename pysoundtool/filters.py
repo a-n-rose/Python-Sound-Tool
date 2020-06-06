@@ -1163,3 +1163,8 @@ def postfilter(original_powerspec, noisereduced_powerspec, gain,
         num_freq_bins=original_powerspec.shape[0])
     gain_postfilter = np.convolve(gain, postfilter_coeffs, mode='valid')
     return gain_postfilter
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
