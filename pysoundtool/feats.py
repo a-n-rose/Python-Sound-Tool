@@ -15,6 +15,7 @@ sys.path.insert(0, packagedir)
 
 import numpy as np
 import librosa
+from python_speech_features import logfbank, mfcc
 import pysoundtool as pyst
 
 
