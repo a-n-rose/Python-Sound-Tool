@@ -6,14 +6,12 @@ import pysoundtool.models as soundmodels
 
 ###############################################################################
 
-# make sure data exists:
+# make sure data files exists:
 dataset_path = pyst.utils.check_dir('./audiodata/test_classifier/', make = False) 
 feature_type = 'stft'
 data_train_path = dataset_path.joinpath('train_data_{}.npy'.format(feature_type))
 data_val_path = dataset_path.joinpath('val_data_{}.npy'.format(feature_type))
 data_test_path = dataset_path.joinpath('test_data_{}.npy'.format(feature_type))
-
-# make sure dictionary with labels is there
 dict_decode_path = dataset_path.joinpath('dict_decode.csv')
 
 for pathway in [data_train_path, data_val_path, data_test_path, dict_decode_path]:
@@ -25,10 +23,9 @@ for pathway in [data_train_path, data_val_path, data_test_path, dict_decode_path
 # figure out input size of data:
 # load smaller dataset
 data_val = np.load(data_val_path)
-# expects shape (num_audiofiles, num_frames, num_features + label_column)
-# subtract the label column:
+# expect shape (num_audiofiles, num_frames, num_features + label_column)
+# subtract the label column and add dimension for 'color scale' 
 input_shape = (data_val.shape[1], data_val.shape[2] - 1, 1) 
-print(input_shape)
 
 # load dictionary with labels to find out the number of labels:
 dict_decode = pyst.data.load_dict(dict_decode_path)
