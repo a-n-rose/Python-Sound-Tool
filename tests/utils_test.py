@@ -81,3 +81,35 @@ def test_shape_samps_channels_too_many_dimensions():
     input_data = np.array([1,2,3,4,5,6,7,8,9,10,11,12]).reshape(2,3,2)
     with pytest.raises(ValueError):
         output_data = pyst.utils.shape_samps_channels(input_data)
+
+def test_check_dir_default_create():
+    test_dir = './testtesttest/'
+    test_dir = pyst.utils.check_dir(test_dir)
+    assert isinstance(test_dir, pathlib.PosixPath)
+    assert os.path.exists(test_dir)
+    os.rmdir(test_dir)
+    
+def test_check_dir_check_exists():
+    test_dir = './testtesttest/'
+    test_dir = pyst.utils.check_dir(test_dir, make=True)
+    test_dir = pyst.utils.check_dir(test_dir, make=False)
+    assert isinstance(test_dir, pathlib.PosixPath)
+    assert os.path.exists(test_dir)
+    os.rmdir(test_dir)
+    
+def test_check_dir_check_exists_raiseerror():
+    test_dir = './testtesttest/'
+    with pytest.raises(FileNotFoundError):
+        test_dir = pyst.utils.check_dir(test_dir, make=False)
+    
+def test_check_dir_check_exists_notwriteinto_raiseerror():
+    test_dir = './testtesttest/'
+    test_dir = pyst.utils.check_dir(test_dir, make=True)
+    with pytest.raises(FileExistsError):
+        test_dir = pyst.utils.check_dir(test_dir, make=False, write_into=False)
+    os.rmdir(test_dir)
+    
+def test_check_dir_pathwithextension_raiseerror():
+    test_dir = './testtesttest.py/'
+    with pytest.raises(TypeError):
+        test_dir = pyst.utils.check_dir(test_dir, make=False)
