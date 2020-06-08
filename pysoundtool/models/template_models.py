@@ -25,7 +25,7 @@ def cnn_classifier(feature_maps = [40, 20, 10],
                  activation_output = 'softmax', 
                  input_shape = (79, 40, 1), 
                  num_labels = 3, 
-                 dense_hidden_units=None, dropout=None):
+                 dense_hidden_units=100, dropout=0.25):
     '''Build a single or multilayer convolutional neural network.
     
     Parameters
