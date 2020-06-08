@@ -252,12 +252,13 @@ class SoundClassifier:
         model.add(Dense(self.num_labels, activation=self.activation_output))
         return model
 
-    # don't need
-    def compile_model(self, model, optimizer='adam',
-                      loss='sparse_categorical_crossentropy',
-                      metrics=['accuracy']):
-        model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
-        return model
+    ## TODO remove
+    ## don't need
+    #def compile_model(self, model, optimizer='adam',
+                      #loss='sparse_categorical_crossentropy',
+                      #metrics=['accuracy']):
+        #model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+        #return model
 
     def set_up_callbacks(self, early_stop=True, patience=15, csv_log=True,
                          csv_filename=None, save_bestmodel=True, best_modelname=None,
@@ -320,8 +321,8 @@ class SoundClassifier:
         '''
         train_data = np.load(self.train_path)
         val_data = np.load(self.val_path)
-        X_train, y_train, scalars = scale_X_y(train_data)
-        X_val, y_val, __ = scale_X_y(val_data,
+        X_train, y_train, scalars = pyst.feats.scale_X_y(train_data)
+        X_val, y_val, __ = pyst.feats.scale_X_y(val_data,
                                        is_train=False,
                                        scalars=scalars)
         self.set_model_params(halve_feature_maps=True)
@@ -346,7 +347,7 @@ class SoundClassifier:
         )
         if self.test_path:
             test_data = np.load(self.test_path)
-            X_test, y_test, __ = scale_X_y(
+            X_test, y_test, __ = pyst.feats.scale_X_y(
                 test_data, is_train=False, scalars=scalars)
             score = model.evaluate(X_test, y_test)
             loss = round(score[0], 2)
