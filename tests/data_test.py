@@ -17,8 +17,8 @@ test_m4a = './audiodata/505803__skennison__new-recording.m4a'
 test_mp3 = './audiodata/244287__kleinhirn2000__toast-glas-langsam.mp3'
 test_ogg = './audiodata/240674__zajo__you-have-been-denied.ogg'
 
-def test_loadsound_default_mono():
-    samples, sr = pyst.loadsound(test_wav)
+def test_loadsound_mono_uselibrosa_False():
+    samples, sr = pyst.loadsound(test_wav,use_librosa=False)
     expected = np.array([0.06140351, 0.06140351, 0.06140351, 0.06140351, 0.06140351])
     expected_shape = (len(expected),)
     expected_sr = 16000 # sr of the audiofile (no default)
@@ -26,8 +26,8 @@ def test_loadsound_default_mono():
     assert expected_shape == samples[:5].shape 
     assert expected_sr == sr
     
-def test_loadsound_default_mono_dur1():
-    samples, sr = pyst.loadsound(test_wav, dur_sec=1)
+def test_loadsound_mono_dur1_uselibrosa_False():
+    samples, sr = pyst.loadsound(test_wav, dur_sec=1,use_librosa=False)
     expected = np.array([0.06140351, 0.06140351, 0.06140351, 0.06140351, 0.06140351])
     expected_shape = (len(expected),)
     expected_sr = 16000 # sr of the audiofile (no default)
@@ -35,8 +35,8 @@ def test_loadsound_default_mono_dur1():
     assert expected_shape == samples[:5].shape 
     assert len(samples) == expected_sr
     
-def test_loadsound_stereo():
-    samples, sr = pyst.loadsound(test_wav, mono=False)
+def test_loadsound_stereo_uselibrosa_False():
+    samples, sr = pyst.loadsound(test_wav, mono=False,use_librosa=False)
     expected = np.array([[0.06140351, 0.06140351],[0.06140351, 0.06140351],[0.06140351, 0.06140351]])
     expected_shape = expected.shape
     expected_sr = 16000 # sr of the audiofile (no default)
@@ -44,8 +44,8 @@ def test_loadsound_stereo():
     assert expected_shape == samples[:3].shape 
     assert expected_sr == sr
     
-def test_loadsound_stereo_dur1():
-    samples, sr = pyst.loadsound(test_wav, mono=False, dur_sec=1)
+def test_loadsound_stereo_dur1_uselibrosa_False():
+    samples, sr = pyst.loadsound(test_wav, mono=False, dur_sec=1,use_librosa=False)
     expected = np.array([[0.06140351, 0.06140351],[0.06140351, 0.06140351],[0.06140351, 0.06140351]])
     expected_shape = expected.shape
     expected_sr = 16000 # sr of the audiofile (no default)
@@ -54,15 +54,15 @@ def test_loadsound_stereo_dur1():
     assert expected_sr == sr
     assert len(samples) == expected_sr
     
-def test_loadsound_mono_sr48000():
-    samples, sr = pyst.loadsound(test_wav, mono=True, sr=48000)
+def test_loadsound_mono_sr48000_uselibrosa_False():
+    samples, sr = pyst.loadsound(test_wav, mono=True, sr=48000,use_librosa=False)
     expected = np.array([0.07632732, 0.07633357, 0.07633357, 0.07632732, 0.07632107])
     expected_sr = 48000
     assert np.allclose(samples[:5], expected)
     assert sr == expected_sr
     
-def test_loadsound_stereo_sr48000():
-    samples, sr = pyst.loadsound(test_wav, sr=48000, mono=False)
+def test_loadsound_stereo_sr48000_uselibrosa_False():
+    samples, sr = pyst.loadsound(test_wav, sr=48000, mono=False,use_librosa=False)
     expected = np.array([[0.07632732, 0.07632732],[0.07633357, 0.07628564],[0.07633357, 0.07628563]])
     expected_shape = expected.shape
     expected_sr = 48000 
@@ -74,21 +74,21 @@ def test_loadsound_aiff2wav_sr22050():
     samples, sr = pyst.loadsound(test_aiff, sr=22050)
     assert samples is not None
     
-def test_loadsound_flac2wav_sr22050():
-    samples, sr = pyst.loadsound(test_flac, sr=22050)
+def test_loadsound_flac2wav_sr22050_uselibrosa_False():
+    samples, sr = pyst.loadsound(test_flac, sr=22050,use_librosa=False)
     assert samples is not None
     assert sr == 22050
     
-def test_loadsound_m4a2wav_sr22050_error():
+def test_loadsound_m4a2wav_sr22050_error_uselibrosa_False():
     with pytest.raises(RuntimeError):
-        samples, sr = pyst.loadsound(test_m4a, sr=22050)
+        samples, sr = pyst.loadsound(test_m4a, sr=22050, use_librosa=False)
     
-def test_loadsound_mp32wav_sr22050_error():
+def test_loadsound_mp32wav_sr22050_error_uselibrosa_False():
     with pytest.raises(RuntimeError):
-        samples, sr = pyst.loadsound(test_mp3, sr=22050)
+        samples, sr = pyst.loadsound(test_mp3, sr=22050,use_librosa=False)
     
-def test_loadsound_ogg2wav_sr22050():
-    samples, sr = pyst.loadsound(test_ogg, sr=22050)
+def test_loadsound_ogg2wav_sr22050_uselibrosa_False():
+    samples, sr = pyst.loadsound(test_ogg, sr=22050,use_librosa=False)
     assert samples is not None
     assert sr == 22050
     

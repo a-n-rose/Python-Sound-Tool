@@ -313,20 +313,23 @@ def test_filtersettings_getsamples_sr8000_bandsubtraction():
     assert bs.sr == sr_permanent
     assert len(samps_bs) == bs.sr
     
-def test_filtersignal_wiener_default_doesitrun_librosa():
-    signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'wiener')
+def test_filtersignal_wiener_simple_doesitrun_uselibrosa_False():
+    signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'wiener',
+                                   use_librosa=False)
     sig_expected, sr_expected = librosa.load(test_filtered_wiener, sr=sr)
     assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
 
-def test_filtersignal_wiener_posfilter_default_doesitrun_librosa():
-    signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'wiener_pf')
+def test_filtersignal_wiener_posfilter_simple_doesitrun_uselibrosa_False():
+    signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'wiener_pf',
+                                   use_librosa=False)
     sig_expected, sr_expected = librosa.load(test_filtered_wiener_postfilter, sr=sr)
     assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
     
-def test_filtersignal_bandsubtraction_default_doesitrun_lirosa():
-    signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'bandsubtraction')
+def test_filtersignal_bandsubtraction_simple_doesitrun_uselibrosa_False():
+    signal, sr = pyst.filtersignal(test_noisyfile, filter_type = 'bandsubtraction',
+                                   use_librosa=False)
     sig_expected, sr_expected = librosa.load(test_filtered_bandsub,sr=sr)
     assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
