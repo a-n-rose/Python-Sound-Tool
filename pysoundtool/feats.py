@@ -1031,8 +1031,10 @@ def scale_X_y(matrix, is_train=True, scalars=None):
     if len(X.shape) != 3:
         raise ValueError('Expected 3d input, not input of shape {}.'.format(
             matrix.shape))
-    if X.dtype is not np.float:
+    if X.dtype == np.complex_:
         # convert stft to power spectrum
+        print('\nTaking absolute value and power of complex data..'+\
+            '\ni.e. Removing complex values.')
         X = np.abs(X)**2
     for j in range(X.shape[2]):
         if is_train:
