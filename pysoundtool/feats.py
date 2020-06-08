@@ -17,6 +17,7 @@ import numpy as np
 import librosa
 import pathlib
 from python_speech_features import logfbank, mfcc
+from sklearn.preprocessing import StandardScaler, normalize
 import matplotlib.pyplot as plt
 import pysoundtool as pyst
 
@@ -892,8 +893,6 @@ def separate_dependent_var(matrix):
     array([ 4, 14])
     '''
     # get last column
-    if len(matrix.shape) != 3:
-        raise ValueError('3 Dimensional data expected, not shape {}.'.format(matrix.shape))
     if matrix.shape[-1] == 1:
         raise ValueError('Expects input matrix to be size (num_samples, num_frames, ' + \
                          'num_features). Number of features must exceed 1 in order ' + \
@@ -996,6 +995,53 @@ def add_tensor(matrix):
     else:
         raise TypeError('Expected type numpy.ndarray, recieved {}'.format(
             type(matrix)))
+    
+# TODO improve / remove
+def scale_X_y(matrix, is_train=True, scalars=None):
+    '''Separates and scales data into X and y arrays. Adds dimension for keras.
+    
+    Assumes the last column of the last dimension is the y or label data.
+    
+    Parameters
+    ----------
+    matrix : np.ndarray [size = (num_samples, num_frames, num_features)]
+        Matrix with X and y data
+    is_train : bool
+        Relevant for the `scalars` parameter. If the data is training
+        data (i.e. True), the `scalars` will be created. If the data
+        is test data (i.e. False), the function expects `scalars` to 
+        be provided. (default True)
+    scalars : dict, optional
+        Dictionary with scalars to be applied to non-training data.
+        
+    Returns
+    -------
+    X : np.ndarray [size = (num_sampls, num_frames, num_features-1, 1)]
+        Scaled features with extra dimension
+    y : np.ndarray [size = (num_samples, 1, 1)]
+        Scaled independent variable with extra dimension
+    scalars : dict
+        The scalars either created or previously loaded.
+    '''
+    X, y = pyst.feats.separate_dependent_var(matrix)
+    if is_train:
+        scalars = {}
+    elif scalars is None:
+        raise TypeError('If non-train data, `scalars` cannot be of type None.')
+    if len(X.shape) != 3:
+        raise ValueError('Expected 3d input, not input of shape {}.'.format(
+            matrix.shape))
+    for j in range(X.shape[2]):
+        if is_train:
+            scalars[j] = StandardScaler()
+            X[:, :, j] = scalars[j].fit_transform(X[:, :, j])
+        else:
+            X[:, :, j] = scalars[j].transform(X[:, :, j])
+        X[:, :, j] = normalize(X[:, :, j])
+    # Keras needs an extra dimension as a tensor / holder of data
+    X = pyst.feats.add_tensor(X)
+    y = pyst.feats.add_tensor(y)
+    return X, y, scalars
 
 if __name__ == "__main__":
     import doctest
