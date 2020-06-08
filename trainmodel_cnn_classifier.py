@@ -8,9 +8,10 @@ import pysoundtool.models as soundmodels
 
 # make sure data exists:
 dataset_path = pyst.utils.check_dir('./audiodata/test_classifier/', make = False) 
-data_train_path = dataset_path.joinpath('train_data_fbank.npy')
-data_val_path = dataset_path.joinpath('val_data_fbank.npy')
-data_test_path = dataset_path.joinpath('test_data_fbank.npy')
+feature_type = 'stft'
+data_train_path = dataset_path.joinpath('train_data_{}.npy'.format(feature_type))
+data_val_path = dataset_path.joinpath('val_data_{}.npy'.format(feature_type))
+data_test_path = dataset_path.joinpath('test_data_{}.npy'.format(feature_type))
 
 # make sure dictionary with labels is there
 dict_decode_path = dataset_path.joinpath('dict_decode.csv')
@@ -44,7 +45,7 @@ data_train = np.load(data_train_path)
 data_val = np.load(data_val_path)
 data_test = np.load(data_test_path)
 
-use_generator = True
+use_generator = False
 num_epochs = 10
 
 if use_generator:
@@ -61,14 +62,37 @@ if use_generator:
                                             callbacks = callbacks,
                                             validation_data = val_generator.generator(),
                                             validation_steps = data_val.shape[0])
+    
+    X_test, y_test = pyst.feats.separate_dependent_var(data_test)
+    y_predicted = scene_classifier.predict_generator(test_generator.generator(),
+                                       steps = data_test.shape[0])
 
 else:
-    X_train, y_train, scalars = pyst.feats.scale_X_y(data_train, train=True)
-    X_val, y_val, __ = pyst.feats.scale_X_y(data_val, train=False, scalars=scalars)
-    X_test, y_test, __ = pyst.feats.scale_X_y(data_test, train=False, scalars=scalars)
+    X_train, y_train, scalars = pyst.feats.scale_X_y(data_train, is_train=True)
+    X_val, y_val, __ = pyst.feats.scale_X_y(data_val, is_train=False, scalars=scalars)
+    X_test, y_test, __ = pyst.feats.scale_X_y(data_test, is_train=False, scalars=scalars)
     
     history = scene_classifier.fit(X_train, y_train, 
                                    epochs = num_epochs, 
                                    callbacks = callbacks, 
                                    validation_data = (X_val, y_val))
-
+    
+    scene_classifier.evaluate(X_test, y_test)
+    y_predicted = scene_classifier.predict(X_test)
+    # which category did the model predict?
+    
+y_pred = np.argmax(y_predicted, axis=1)
+if len(y_pred.shape) > len(y_test.shape):
+    y_test = np.expand_dims(y_test, axis=1)
+elif len(y_pred.shape) < len(y_test.shape):
+    y_pred = np.expand_dims(y_pred, axis=1)
+try:
+    assert y_pred.shape == y_test.shape
+except AssertionError:
+    raise ValueError('The shape of prediction data {}'.format(y_pred.shape) +\
+        ' does not match the `y_test` dataset {}'.format(y_test.shape) +\
+            '\nThe shapes much match in order to measure accuracy.')
+match = sum(y_test == y_pred)
+if len(match.shape) == 1:
+    match = match[0]
+print('\nModel reached accuracy of {}%'.format(round(match/len(y_test)*100,2)))
