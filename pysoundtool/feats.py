@@ -15,7 +15,9 @@ sys.path.insert(0, packagedir)
 
 import numpy as np
 import librosa
+import pathlib
 from python_speech_features import logfbank, mfcc
+import matplotlib.pyplot as plt
 import pysoundtool as pyst
 
 
@@ -483,7 +485,7 @@ def getfeatsettings(feature_info):
 # TODO add graph for each channel? For all feature types?
 def plot(feature_matrix, feature_type, 
                     save_pic=False, name4pic=None, scale=None,
-                    title=None, sr=None):
+                    title=None, sr=None, x_label=None, y_label=None):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
     
     Parameters
@@ -512,7 +514,7 @@ def plot(feature_matrix, feature_type,
         presented as time in seconds.
     '''
     # ensure real numbers
-    if isinstance(feature_matrix[0], np.complex):
+    if isinstance(feature_matrix[0], np.complex_):
         feature_matrix = feature_matrix.real
     # features presented via colormesh need 2D format.
     if len(feature_matrix.shape) == 1:
@@ -585,6 +587,10 @@ def plot(feature_matrix, feature_type,
         plt.title('{} Features'.format(feature_type.upper()))
     else:
         plt.title(title)
+    if x_label is not None:
+        plt.xlabel(x_label)
+    if y_label is not None:
+        plt.ylabel(y_label)
     if save_pic:
         outputname = name4pic or 'visualize{}feats'.format(feature_type.upper())
         plt.savefig('{}.png'.format(outputname))
@@ -652,7 +658,7 @@ def get_feats(sound,
         Feature data. If `feature_type` is 'signal', returns a tuple containing samples and sampling rate. If `feature_type` is of another type, returns np.ndarray with shape (num_frames, num_filters/features)
     '''
     # load data
-    if isinstance(sound, str):
+    if isinstance(sound, str) or isinstance(sound, pathlib.PosixPath):
         if mono is None:
             mono = True
         data, sr = librosa.load(sound, sr=sr, duration=duration, mono=mono)
@@ -714,7 +720,7 @@ def get_feats(sound,
         feats = get_feats(np.asfortranarray(data),
                           features = features,
                           win_size_ms = win_size_ms,
-                          win_shift_ms = win_shift_ms,
+                          percent_overlap = percent_overlap,
                           num_filters = num_filters,
                           num_mfcc = num_mfcc,
                           sr = sr,
