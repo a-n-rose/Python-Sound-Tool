@@ -16,7 +16,7 @@ import numpy as np
 class Generator:
     def __init__(self, data_matrix1, data_matrix2=None, 
                  normalized=False, apply_log = False, adjust_shape = None,
-                 batches = False, labeled_data = False):
+                 labeled_data = False):
         '''
         This generator pulls data out in sections (i.e. batch sizes). Prepared for 3 dimensional data.
         
@@ -57,15 +57,17 @@ class Generator:
         self.datay = data_matrix2
         self.normalized = normalized
         self.apply_log = apply_log
-        if batches:
+        if len(self.datax.shape) == 4:
             # expects shape (num_samples, batch_size, num_frames, num_feats)
             self.batches_per_sample = self.datax.shape[1]
             self.num_frames = self.datax.shape[2]
-        else:
+        elif len(self.datax.shape) == 3:
             # expects shape (num_samples, num_frames, num_feats)
             self.batches_per_sample = None
             self.num_frames = self.datax.shape[1]
-        
+        else:
+            raise ValueError('Expected 4 or 3 dimensional data, not data '+\
+                'with shape {}.'.format(self.datax.shape))
         if self.datay is None:
             # separate the label from the feature data
             self.datax, self.datay = pyst.feats.separate_dependent_var(self.datax)
@@ -154,6 +156,7 @@ class Generator:
             y_batch = batch_y.reshape(batch_y.shape+(1,))
             
             if len(X_batch.shape) == 3:
+                # needs to be 4 dimensions / have extra tensor
                 X_batch = X_batch.reshape((1,)+X_batch.shape)
                 y_batch = y_batch.reshape((1,)+y_batch.shape)
             
