@@ -125,6 +125,7 @@ class Filter(FilterSettings):
         self.target_subframes = None
         self.noise_subframes = None
 
+    # TODO remove
     def get_samples(self, audiofile, dur_sec=None):
         """Load signal and save original volume
 
@@ -627,7 +628,8 @@ def filtersignal(audiofile,
                  real_signal=False,
                  zeropad = False,
                  save2wav=False,
-                 output_filename=None):
+                 output_filename=None,
+                 use_librosa=True):
     """Apply Wiener or band spectral subtraction filter to signal using noise. 
 
     Parameters 
@@ -696,7 +698,11 @@ def filtersignal(audiofile,
         frame_subtitle = 'frame size {}ms, window shift {}ms'.format(fil.frame_dur, int(fil.percent_overlap*fil.frame_dur))
 
     # load signal (to be filtered)
-    samples_orig = fil.get_samples(audiofile)
+    samples_orig, sr = pyst.loadsound(audiofile, fil.sr, dur_sec=None, use_librosa=use_librosa)
+    assert fil.sr == sr
+    # TODO improve on volume control, improve SNR 
+    # set volume max and min, or based on original sample data
+    fil.set_volume(samples_orig, max_vol = 0.4, min_vol = 0.15)
     # set how many subframes are needed to process entire target signal
     fil.set_num_subframes(len(samples_orig), is_noise=False, zeropad=fil.zeropad)
     # prepare noise
@@ -704,19 +710,53 @@ def filtersignal(audiofile,
     # power values, or the first section of the target audiofile (i.e. None)
     samples_noise = None
     if noise_file:
-        if '.wav' == str(noise_file)[-4:]:
-            samples_noise = fil.get_samples(noise_file)
-        elif '.npy' == str(noise_file)[-4:]:
-            if 'powspec' in noise_file.stem:
-                noise_power = fil.load_power_vals(noise_file)
-                samples_noise = None
-            elif 'beg' in noise_file.stem:
-                samples_noise = pyst.paths.load_feature_data(noise_file)
+        if isinstance(noise_file, tuple):
+            # tuple must contain samples and sampling rate
+            samples_noise, sr_noise = noise_file
+            if sr_noise != fil.sr:
+                samples_noise, sr_noise = pyst.dsp.resample_audio(samples_noise,
+                                                                  sr_noise,
+                                                                  fil.sr)
+                assert sr_noise == fil.sr
+        # ensure string objects converted to pathlib.PosixPath objects:
+        elif not isinstance(noise_file, pathlib.PosixPath) and isinstance(noise_file, str):
+            noise_file = pathlib.Path(noise_file)
+        # find out path information
+        if isinstance(noise_file, pathlib.PosixPath):
+            extension = noise_file.suffix
+            if '.npy' in extension:
+                # if noise power spectrum already calculated or not
+                if 'powspec' in noise_file.stem or 'powerspectrum' in noise_file.stem:
+                    noise_power = fil.load_power_vals(noise_file)
+                    samples_noise = None
+                ## TODO remove
+                ## don't like this
+                #elif 'beg' in noise_file.stem:
+                    #samples_noise = pyst.paths.load_feature_data(noise_file)
+            else:
+                # assume audio pathway
+                if duration_noise_ms is not None:
+                    dur_sec = duration_noise_ms/1000
+                else:
+                    dur_sec = None
+                samples_noise, sr_noise = pyst.loadsound(noise_file, 
+                                                         fil.sr, 
+                                                         dur_sec=dur_sec,
+                                                         use_librosa=use_librosa)
+                assert sr_noise == fil.sr
+        if samples_noise is None and noise_power is None:
+            raise TypeError('Expected one of the following: '+\
+                '\ntype tuple containing (samples, samplerate) of noise data'+\
+                    '\naudiofile pathway to noise file'+\
+                        '\n.npy file with powerspectrum values for noise'+\
+                            '\n\nDid not expect {} as input.'.format(noise_file))
+
     else:
         starting_noise_len = pyst.dsp.calc_frame_length(fil.sr, 
                                                          duration_noise_ms)
         samples_noise = samples_orig[:starting_noise_len]
     # if noise samples have been collected...
+    # TODO improve snr / volume measurements
     if samples_noise is not None:
         # set how many subframes are needed to process entire noise signal
         fil.set_num_subframes(len(samples_noise), is_noise=True, zeropad=fil.zeropad)
