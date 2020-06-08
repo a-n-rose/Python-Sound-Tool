@@ -12,6 +12,7 @@ from scipy.signal import resample
 import soundfile as sf
 import librosa
 
+
 import os, sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(
@@ -276,6 +277,29 @@ def save_dict(dict2save, filename, replace=False):
         w.writerows(dict2save.items())
     return filename
 
+def load_dict(csv_path):
+    '''Loads a dictionary from csv file. Expands csv limit if too large.
+    '''
+    try:
+        with open(csv_path, mode='r') as infile:
+            reader = csv.reader(infile)
+            dict_prepped = {rows[0]: rows[1] for rows in reader}
+    except csv.Error:
+        print('Dictionary values or size is too large.')
+        print('Maxing out field size limit for loading this dictionary:')
+        print(csv_path)
+        print('\nThe new field size limit is:')
+        maxInt = sys.maxsize
+        print(maxInt)
+        csv.field_size_limit(maxInt)
+        dict_prepped = load_dict(csv_path)
+    except OverflowError as e:
+        print(e)
+        maxInt = int(maxInt/10)
+        print('Reducing field size limit to: ', maxInt)
+        dict_prepped = load_dict(csv_path)
+    return dict_prepped
+
 def waves2dataset(audiolist, train_perc=0.8, seed=40):
     '''Organizes audio files list into train, validation and test datasets.
 
@@ -377,7 +401,7 @@ def audio2datasets(label_wavfiles, perc_train=0.8, limit=None, seed=None):
     if isinstance(label_wavfiles, dict):
         class_waves_dict = label_wavfiles
     else:
-        class_waves_dict = pyst.paths.load_dict(label_wavfiles)
+        class_waves_dict = pyst.data.load_dict(label_wavfiles)
     count = 0
     row = 0
     train = []
@@ -892,6 +916,8 @@ def adjust_data_shape(data, desired_shape):
         data_prepped = pyst.data.reduce_num_features(data, 
                                                  desired_shape = desired_shape)
     return data_prepped
+
+
 
 
 if __name__ == '__main__':
