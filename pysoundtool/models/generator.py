@@ -14,7 +14,7 @@ import numpy as np
 
 #feed data to models
 class Generator:
-    def __init__(self, data_matrix1, data_matrix2=None, feature_type=None, 
+    def __init__(self, data_matrix1, data_matrix2=None, 
                  normalized=False, apply_log = False, adjust_shape = None,
                  batches = False, labeled_data = False):
         '''
@@ -49,7 +49,6 @@ class Generator:
             should have shape (num_samples, num_frames, num_features+label_column).
             (default False)
         '''
-        self.feat_type = feature_type
         self.batch_size = 1
         self.samples_per_epoch = data_matrix1.shape[0]
         self.number_of_batches = self.samples_per_epoch/self.batch_size
@@ -114,9 +113,9 @@ class Generator:
             batch_y = self.datay[self.counter]
             # TODO: is there a difference between taking log of stft before 
             # or after normalization?
-            if not self.normalized:
+            if not self.normalized or self.datax.dtype == np.complex_:
                 # need to take power - complex values in stft
-                if self.feat_type is not None and self.feat_type == 'stft':
+                if self.datax.dtype == np.complex_:
                     # take power of absoulte value of stft
                     batch_x = np.abs(batch_x)**2
                     if self.labels is None:
