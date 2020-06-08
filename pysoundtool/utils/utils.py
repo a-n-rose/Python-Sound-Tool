@@ -149,7 +149,7 @@ def check_dir(directory, make=True, write_into=True):
     # check to ensure the pathway does not have an extension
     if directory.suffix:
         raise('Expected pathway without extension. Did you mean to set \n~ '#\
-            +str(directory)+' ~\nas a directory?')
+            +str(directory)+' ~\nas a directory? If so, remove extension.')
     if not os.path.exists(directory):
         if make:
             os.mkdir(directory)
