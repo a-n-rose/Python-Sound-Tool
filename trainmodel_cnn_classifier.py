@@ -45,13 +45,20 @@ data_train = np.load(data_train_path)
 data_val = np.load(data_val_path)
 data_test = np.load(data_test_path)
 
-use_generator = False
+use_generator = True
 num_epochs = 10
+if feature_type == 'mfcc':
+    normalized = True
+else:
+    normalized = False
 
 if use_generator:
-    train_generator = soundmodels.Generator(data_matrix1 = data_train)
-    val_generator = soundmodels.Generator(data_matrix1 = data_val)
-    test_generator = soundmodels.Generator(data_matrix1 = data_test)
+    train_generator = soundmodels.Generator(data_matrix1 = data_train, 
+                                            normalized = normalized)
+    val_generator = soundmodels.Generator(data_matrix1 = data_val,
+                                          normalized = normalized)
+    test_generator = soundmodels.Generator(data_matrix1 = data_test,
+                                           normalized = normalized)
 
     train_generator.generator()
     val_generator.generator()
