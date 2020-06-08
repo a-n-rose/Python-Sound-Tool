@@ -139,7 +139,7 @@ def check_dir(directory, make=True, write_into=True):
         
     Returns
     -------
-    directory : str, pathlib.PosixPath
+    directory : pathlib.PosixPath
         If a directory could be created or confirmed to exist, the directory
         path will be returned. Otherwise Errors will be raised.
     '''
@@ -148,7 +148,7 @@ def check_dir(directory, make=True, write_into=True):
         directory = pathlib.Path(directory)
     # check to ensure the pathway does not have an extension
     if directory.suffix:
-        raise('Expected pathway without extension. Did you mean to set \n~ '#\
+        raise TypeError('Expected pathway without extension. Did you mean to set \n~ '#\
             +str(directory)+' ~\nas a directory? If so, remove extension.')
     if not os.path.exists(directory):
         if make:
