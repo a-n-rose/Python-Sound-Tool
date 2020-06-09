@@ -149,27 +149,27 @@ def create_encodedlabel2audio_dict(dict_encodelabels, paths_list, limit=None, se
     Examples
     --------
     >>> from pathlib import Path
-    >>> labels = set(['vacuum','fridge','wind'])
+    >>> labels = dict([('vacuum',2),('fridge',0),('wind',1)])
     >>> paths = [Path('data/audio/vacuum/vacuum1.wav'), 
     ...         Path('data/audio/fridge/fridge1.wav'), 
     ...         Path('data/audio/vacuum/vacuum2.wav'),
     ...         Path('data/audio/wind/wind1.wav')]
-    >>> label_waves_dict = create_label2audio_dict(labels, paths)
+    >>> label_waves_dict = create_encodedlabel2audio_dict(labels, paths)
     >>> label_waves_dict
-    OrderedDict([('fridge', [PosixPath('data/audio/fridge/fridge1.wav')]), \
-('vacuum', [PosixPath('data/audio/vacuum/vacuum1.wav'), \
-PosixPath('data/audio/vacuum/vacuum2.wav')]), \
-('wind', [PosixPath('data/audio/wind/wind1.wav')])])
+    OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
+    (2, [PosixPath('data/audio/vacuum/vacuum1.wav'), \
+    PosixPath('data/audio/vacuum/vacuum2.wav')]), \
+    (1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #to set a limit on number of audiofiles per class:
-    >>> create_label2audio_dict(labels, paths, limit=1, seed=40)
-    OrderedDict([('fridge', [PosixPath('data/audio/fridge/fridge1.wav')]), \
-('vacuum', [PosixPath('data/audio/vacuum/vacuum2.wav')]), \
-('wind', [PosixPath('data/audio/wind/wind1.wav')])])
+    >>> create_encodedlabel2audio_dict(labels, paths, limit=1, seed=40)
+    OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
+    (2, [PosixPath('data/audio/vacuum/vacuum2.wav')]), \
+    (1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #change the limited pathways chosen:
-    >>> create_label2audio_dict(labels, paths, limit=1, seed=10)
-    OrderedDict([('fridge', [PosixPath('data/audio/fridge/fridge1.wav')]), \
-('vacuum', [PosixPath('data/audio/vacuum/vacuum1.wav')]), \
-('wind', [PosixPath('data/audio/wind/wind1.wav')])])
+    >>> create_encodedlabel2audio_dict(labels, paths, limit=1, seed=10)
+    OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
+    (2, [PosixPath('data/audio/vacuum/vacuum1.wav')]), \
+    (1, [PosixPath('data/audio/wind/wind1.wav')])])
     '''
     if not isinstance(dict_encodelabels, dict):
         raise TypeError(
@@ -842,7 +842,8 @@ def zeropad_features(feats, desired_shape, complex_vals = False):
                             :feats.shape[3],
                             :feats.shape[4]] += feats
             else:
-                raise TypeError('Zeropadding columns requires a matrix with a minimum of 1 dimension and maximum of 5 dimensions.')
+                raise TypeError('Zeropadding columns requires a matrix with '+\
+                    'a minimum of 1 dimension and maximum of 5 dimensions.')
             fts = empty_matrix
         except ValueError as e:
             print(e)
@@ -887,7 +888,8 @@ def reduce_num_features(feats, desired_shape, complex_vals = False):
                             :empty_matrix.shape[3],
                             :empty_matrix.shape[4]]
             else:
-                raise TypeError('Reducing items in columns requires a matrix with a minimum of 1 dimension and maximum of 5 dimensions.')
+                raise TypeError('Reducing items in columns requires a matrix with'+\
+                    ' a minimum of 1 dimension and maximum of 5 dimensions.')
             fts = empty_matrix
         except ValueError as e:
             print(e)
