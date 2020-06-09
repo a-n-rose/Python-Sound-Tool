@@ -10,13 +10,12 @@ process.
 import os, sys
 import inspect
 import numpy as np
-import pysoundtool as pyst
 
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
-
+import pysoundtool as pyst
 
 # what Wiener Filter and Average pow spec can inherit
 class FilterSettings:
@@ -377,19 +376,19 @@ class BandSubtraction(Filter):
         >>> import pysoundtool as pyst
         >>> import numpy as np
         >>> # Default is set to 6 bands:
-        >>> fil = pyst.Filter()
+        >>> fil = pyst.BandSubtraction()
         >>> fil.setup_bands()
         >>> fil.band_start_freq
-        [  0. 160. 320. 480. 640. 800.]
+        array([  0.,  80., 160., 240., 320., 400.])
         >>> fil.band_end_freq
-        [160. 320. 480. 640. 800. 960.]
+        array([ 80., 160., 240., 320., 400., 480.])
         >>> # change default settings
-        >>> fil = pyst.Filter(num_bands=5)
+        >>> fil = pyst.BandSubtraction(num_bands=5)
         >>> fil.setup_bands()
         >>> fil.band_start_freq
-        [  0. 192. 384. 576. 768.]
+        array([  0.,  96., 192., 288., 384.])
         >>> fil.band_end_freq
-        [192. 384. 576. 768. 960.]
+        array([ 96., 192., 288., 384., 480.])
         '''
         if self.num_bands is None:
             self.num_bands = 6
@@ -445,20 +444,22 @@ class BandSubtraction(Filter):
         >>> import pysoundtool as pyst
         >>> import numpy as np
         >>> # setting to 4 bands for space:
-        >>> fil = pyst.Filter(num_bands=4)
+        >>> fil = pyst.BandSubtraction(num_bands=4)
         >>> fil.setup_bands()
         >>> # generate sine signal with and without noise
         >>> time = np.arange(0, 10, 0.01)
         >>> signal = np.sin(time)[:fil.frame_length]
+        >>> np.random.seed(0)
         >>> noise = np.random.normal(np.mean(signal),np.mean(signal)+0.3,960)
         >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
         >>> powerspec_noisy = np.abs(np.fft.fft(signal + noise))**2
         >>> fil.update_posteri_bands(powerspec_clean, powerspec_noisy)
         >>> fil.snr_bands
-        [ -2.16634315 -44.82425811 -44.81157068  -1.15580912]
+        array([ -1.91189028, -39.22078063, -44.16682922, -45.65265895])
         >>> # compare with no noise in signal:
         >>> fil.update_posteri_bands(powerspec_clean, powerspec_clean)
-        [0. 0. 0. 0.]
+        >>> fil.snr_bands
+        array([0., 0., 0., 0.])
         '''
         snr_bands = np.zeros((self.num_bands,))
         for band in range(self.num_bands):
@@ -483,26 +484,28 @@ class BandSubtraction(Filter):
         >>> import pysoundtool as pyst
         >>> import numpy as np
         >>> # setting to 4 bands for space:
-        >>> fil = pyst.Filter(num_bands=4)
+        >>> fil = pyst.BandSubtraction(num_bands=4)
         >>> fil.setup_bands()
         >>> # generate sine signal with and without noise
         >>> time = np.arange(0, 10, 0.01)
         >>> signal = np.sin(time)[:fil.frame_length]
+        >>> np.random.seed(0)
         >>> noise = np.random.normal(np.mean(signal),np.mean(signal)+0.3,960)
         >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
         >>> powerspec_noisy = np.abs(np.fft.fft(signal + noise))**2
         >>> fil.update_posteri_bands(powerspec_clean, powerspec_noisy)
         >>> fil.snr_bands
-        [ -2.16634315 -44.82425811 -44.81157068  -1.15580912]
+        array([ -1.91189028, -39.22078063, -44.16682922, -45.65265895])
         >>> a = fil.calc_oversub_factor()
         >>> a
-        [4.33042222 4.75       4.75       4.16179247]
+        array([4.28678354, 4.75      , 4.75      , 4.75      ])
         >>> # compare with no noise in signal:
         >>> fil.update_posteri_bands(powerspec_clean, powerspec_clean)
-        [0. 0. 0. 0.]
+        >>> fil.snr_bands
+        array([0., 0., 0., 0.])
         >>> a = fil.calc_oversub_factor()
         >>> a
-        [4. 4. 4. 4.]
+        array([4., 4., 4., 4.])
         '''
         a = np.zeros(self.snr_bands.shape[0])
         for band in range(self.num_bands):
@@ -537,7 +540,7 @@ class BandSubtraction(Filter):
         >>> import pysoundtool as pyst
         >>> import numpy as np
         >>> # setting to 4 bands for this example (default is 6):
-        >>> fil = pyst.Filter(num_bands=4)
+        >>> fil = pyst.BandSubtraction(num_bands=4)
         >>> fil.setup_bands()
         >>> # generate sine signal with and with frequency 25
         >>> time = np.arange(0, 10, 0.01)
@@ -545,16 +548,16 @@ class BandSubtraction(Filter):
         >>> freq = 25
         >>> signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
         >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
-        >>> rel_band_inex, band_power_energies = fil.calc_relevant_band(powerspec_clean)
+        >>> rel_band_index, band_power_energies = fil.calc_relevant_band(powerspec_clean)
         >>> rel_band_index
-        1
+        2
         >>> # and with frequency 50
         >>> freq = 50
         >>> signal = np.sin((freq*full_circle)*time)[:fil.frame_length]
         >>> powerspec_clean = np.abs(np.fft.fft(signal))**2
-        >>> rel_band_inex, band_power_energies = fil.calc_relevant_band(powerspec_clean)
+        >>> rel_band_index, band_power_energies = fil.calc_relevant_band(powerspec_clean)
         >>> rel_band_index
-        2
+        3
         '''
         band_energy_matrix = np.zeros(self.num_bands)
         for band in range(self.num_bands):
