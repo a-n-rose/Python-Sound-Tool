@@ -102,7 +102,7 @@ def generate_noise(num_samples, amplitude=0.025, random_seed=None):
         
     Examples
     --------
-    >>> noise = generate_noise(10, random_seed = 0)
+    >>> noise = generate_noise(5, random_seed = 0)
     >>> noise
     array([0.04410131, 0.01000393, 0.02446845, 0.05602233, 0.04668895])
     '''
@@ -186,7 +186,7 @@ def scalesound(data,min_val=-1,max_val=1):
     >>> input_samples
     array([0.5488135 , 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
     >>> # default setting: between -1 and 1
-    >>> output_samples = scalesound(input_smaples)
+    >>> output_samples = scalesound(input_samples)
     >>> output_samples 
     array([-0.14138 ,1., 0.22872961, -0.16834299, -1.])
     >>> # range between -100 and 100
@@ -226,7 +226,7 @@ def normalize(data, max_val=None, min_val=None):
     >>> np.random.seed(0)
     >>> input_samples = np.random.random_sample((5,))
     >>> input_samples
-    array([0.5488135, 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
+    array([0.5488135 , 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
     >>> np.random.seed(40)
     >>> previous_samples = np.random.random_sample((5,))
     >>> previous_samples
@@ -266,9 +266,9 @@ def resample_audio(samples, sr_original, sr_desired):
     --------
     >>> import numpy as np
     >>> # example samples from 5 millisecond signal with sr 100 and frequency 10
-    >>> input_samples = np.array([0.00e+00, 2.82842712e-01, 4.000e-01, 2.82842712e-01, 4.89858720e-17]
+    >>> input_samples = np.array([0.00e+00, 2.82842712e-01, 4.000e-01, 2.82842712e-01, 4.89858720e-17])
     >>> # we want to resample to 80 instead of 100 (for this example's sake)
-    >>> output_samples = resample_audio(input_samples, sr_original = 100, sr_desired = 80)
+    >>> output_samples, sr = resample_audio(input_samples, sr_original = 100, sr_desired = 80)
     >>> output_samples
     array([-2.22044605e-17, 3.35408001e-01, 3.72022523e-01, 6.51178161e-02])
     '''
@@ -295,12 +295,12 @@ def stereo2mono(data):
     >>> import numpy as np
     >>> data = np.linspace(0,20)
     >>> data_2channel = data.reshape(25,2)
-    >>> data_2channel[5]
+    >>> data_2channel[:5]
     array([[0.        , 0.40816327],
-       [0.81632653, 1.2244898 ],
-       [1.63265306, 2.04081633],
-       [2.44897959, 2.85714286],
-       [3.26530612, 3.67346939]])
+           [0.81632653, 1.2244898 ],
+           [1.63265306, 2.04081633],
+           [2.44897959, 2.85714286],
+           [3.26530612, 3.67346939]])
     >>> data_mono = stereo2mono(data_2channel)
     >>> data_mono[:5]
     array([0.        , 0.81632653, 1.63265306, 2.44897959, 3.26530612])
@@ -362,9 +362,11 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
     5
     >>> # increase the scale of the sound
     >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), scale_background=1.5)
+    >>> combined
     array([2.5, 3.5, 4.5, 5.5, 6.5])
     >>> # decrese the scale of the sound
     >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), scale_background = 0.5)
+    >>> combined
     array([1.5, 2.5, 3.5, 4.5, 5.5])
     >>> # delay `main_sound`
     >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), delay_mainsound_sec=1)
@@ -376,9 +378,11 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
     array([2, 3, 4, 5, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
     >>> # set total length with delay
     >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), total_len_sec = 3, delay_mainsound_sec=1)
+    >>> combined
     array([1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 1, 1, 1, 1, 1])
     >>> # set total length with delay: target sound will get cut off
     >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), total_len_sec = 1.5, delay_mainsound_sec=1)
+    >>> combined
     array([1, 1, 1, 1, 1, 2, 3])
     >>> # also works with stereo sound
     >>> sound = np.zeros((3,2))
@@ -386,8 +390,8 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
     >>> sound[:,1] = np.array([0,1,2])
     >>> sound
     array([[1., 0.],
-        [2., 1.],
-        [3., 2.]])
+           [2., 1.],
+           [3., 2.]])
     >>> noise = np.array([1,1,1,])
     >>> sr = 3
     >>> input1 = sound, sr
@@ -395,8 +399,8 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
     >>> combined, sr2 = pyst.dsp.add_backgroundsound(input1, input2)
     >>> combined
     array([[2., 1.],
-        [3., 2.],
-        [4., 3.]])
+           [3., 2.],
+           [4., 3.]])
     '''
     input_type_main = pyst.utils.path_or_samples(audio_main)
     input_type_background = pyst.utils.path_or_samples(audio_background)
@@ -477,15 +481,15 @@ def apply_num_channels(sound_data, num_channels):
     >>> data_3d = apply_num_channels(data, 3)
     >>> data_3d
     array([[1, 1, 1],
-        [1, 1, 1],
-        [1, 1, 1],
-        [1, 1, 1]])
+           [1, 1, 1],
+           [1, 1, 1],
+           [1, 1, 1]])
     >>> data_2d = apply_num_channels(data_3d, 2)
     >>> data_2d
     array([[1, 1],
-        [1, 1],
-        [1, 1],
-        [1, 1]])
+           [1, 1],
+           [1, 1],
+           [1, 1]])
     '''
     if len(sound_data.shape)== 1:
         data = np.expand_dims(sound_data, axis=1)
@@ -537,14 +541,14 @@ def apply_length(data, target_len):
     >>> data[:,1] = np.array([1,2,3])
     >>> data
     array([[0., 1.],
-        [1., 2.],
-        [2., 3.]])
+           [1., 2.],
+           [2., 3.]])
     >>> pyst.dsp.apply_length(data,5)
     array([[0., 1.],
-        [1., 2.],
-        [2., 3.],
-        [0., 1.],
-        [1., 2.]])
+           [1., 2.],
+           [2., 3.],
+           [0., 1.],
+           [1., 2.]])
     '''
     if len(data) > target_len:
         new_data = data[:target_len]
@@ -600,14 +604,16 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
     >>> x = np.array([1,2,3,4])
     >>> # with 1 second delay (with sr of 4, that makes 4 sample delay)
     >>> x_zeropadded = zeropad_sound(x, target_len=10, sr=4, delay_sec=1)
+    >>> x_zeropadded
     array([0., 0., 0., 0., 1., 2., 3., 4., 0., 0.])
     >>> # without delay
     >>> x_zeropadded = zeropad_sound(x, target_len=10, sr=4)
+    >>> x_zeropadded
     array([1., 2., 3., 4., 0., 0., 0., 0., 0., 0.])
     >>> # if signal is longer than desired length:
     >>> x_zeropadded = zeropad_sound(x, target_len=3, sr=4)
     UserWarning: The signal cannot be zeropadded and will instead be truncated as length of `data` is 4 and `target_len` is 3.
-  len(data), target_len))
+    len(data), target_len))
     >>> x_zeropadded
     array([1, 2, 3])
     '''
@@ -1480,7 +1486,7 @@ def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
     >>> overlap = 1
     >>> sig = overlap_add(enhanced_matrix, frame_length, overlap)
     >>> sig
-    [1. 1. 1. 2. 1. 1. 2. 1. 1. 2. 1. 1. 1.]
+    array([1., 1., 1., 2., 1., 1., 2., 1., 1., 2., 1., 1., 1.])
     '''
     try:
         assert enhanced_matrix.shape[0] == frame_length
