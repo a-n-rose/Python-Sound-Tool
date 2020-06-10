@@ -203,7 +203,43 @@ def check_extraction_variables(sr, feature_type,
         raise ValueError('window_shift must be an integer or float, '+\
             'not {} of type {}.'.format(window_shift, type(window_shift)))
     
-def check_noisy_clean_match(cleanfilename, noisyfilename):
+def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursive=False):
+    '''Collects all files within a given directory.
+    
+    Parameters
+    ----------
+    directory : str or pathlib.PosixPath
+        The path to where desired files are located.
+    hidden_files : bool 
+        If True, hidden files will be included. If False, they won't.
+        (default False)
+    wav_only : bool 
+        If True, only .wav files will be included. Otherwise, no limit
+        on file type. 
+    
+    Returns
+    -------
+    paths_list : list of pathlib.PosixPath objects
+        Sorted list of file pathways.
+    '''
+    if not isinstance(directory, pathlib.PosixPath):
+        directory = pathlib.Path(directory)
+    paths_list = []
+    # allow all data types to be collected (not only .wav)
+    if wav_only:
+        filetype = '*.wav'
+    else: 
+        filetype = '*'
+    if recursive:
+        filetype = '**/' + filetype
+    for item in directory.glob(filetype):
+        paths_list.append(item)
+    # pathlib.glob collects hidden files as well - remove them if they are there:
+    if not hidden_files:
+        paths_list = [x for x in paths_list if x.stem[0] != '.']
+    return paths_list
+    
+def check_noisy_clean_match(noisyfilename, cleanfilename):
     clean = os.path.splitext(os.path.basename(cleanfilename))[0]
     noisy = os.path.splitext(os.path.basename(noisyfilename))[0]
     if clean in noisy:
