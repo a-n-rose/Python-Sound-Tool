@@ -391,6 +391,14 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
                 if i >= 1:
                     raise ValueError('Expected only 1 key, not {}.'.format(len(waves)))
                 audiolist = waves[key]
+                if isinstance(audiolist, str):
+                    try:
+                        # turn string list into list
+                        audiolist = ast.literal_eval(audiolist)
+                    # ast doesn't handle lists of pathlib.PosixPath objects
+                    except ValueError:
+                        audiolist = pyst.utils.string2list(audiolist)
+                        audiolist = pyst.data.ensure_only_audiofiles(audiolist)
         else:
             audiolist = waves
         # sort to ensure a consistent order of audio; otherwise cannot control randomization

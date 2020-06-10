@@ -288,7 +288,8 @@ def test_audio2datasets_seed0_error():
                            '11.ogg','12.ogg','13.ogg','14.ogg','15.ogg',]),
                       (2, ['1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
-                           '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff',])])
+                           '11.aiff','12.aiff','13.aiff','14.aiff',
+                           '15.aiff',])])
     with pytest.raises(ValueError):
         dataset_tuple = pyst.data.audio2datasets(dict_input, seed=0)
 
@@ -301,7 +302,8 @@ def test_audio2datasets_labeledaudio_dict():
                            '11.ogg','12.ogg','13.ogg','14.ogg','15.ogg',]),
                       (2, ['1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
-                           '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff',])])
+                           '11.aiff','12.aiff','13.aiff','14.aiff',
+                           '15.aiff',])])
     dataset_tuple = pyst.data.audio2datasets(dict_input, seed=40)
     expected_train = [(0, '9.wav'), (0, '10.wav'), (2, '13.aiff'), 
                       (0, '5.wav'), (0, '2.wav'), (2, '2.aiff'), (1, '2.ogg'),
@@ -333,7 +335,8 @@ def test_audio2datasets_labeledaudio_loaddict():
                            '11.ogg','12.ogg','13.ogg','14.ogg','15.ogg',]),
                       (2, ['1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
-                           '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff',])])
+                           '11.aiff','12.aiff','13.aiff','14.aiff',
+                           '15.aiff',])])
     saved_dict_path = 'testtest.csv'
     if os.path.exists(saved_dict_path):
         os.remove(saved_dict_path)
@@ -351,9 +354,44 @@ def test_audio2datasets_labeledaudio_loaddict():
                       (1, '10.ogg'), (0, '7.wav'), (0, '12.wav'), 
                       (2, '7.aiff'), (1, '9.ogg'), (0, '1.wav'), (1, '7.ogg'), 
                       (1, '3.ogg'), (2, '4.aiff'), (0, '14.wav'), 
-                      (1, '14.ogg'), (0, '11.wav'), (1, '1.ogg'), (1, '4.ogg'), (1, '8.ogg'), (0, '8.wav'), (2, '10.aiff'), (2, '14.aiff'), (2, '9.aiff')]
+                      (1, '14.ogg'), (0, '11.wav'), (1, '1.ogg'), (1, '4.ogg'), 
+                      (1, '8.ogg'), (0, '8.wav'), (2, '10.aiff'), (2, '14.aiff'), 
+                      (2, '9.aiff')]
     expected_val = [(2, '6.aiff'), (0, '6.wav'), (1, '6.ogg')]
     expected_test = [(2, '15.aiff'), (0, '15.wav'), (1, '15.ogg')]
+    assert expected_train == dataset_tuple[0]
+    assert expected_val == dataset_tuple[1]
+    assert expected_test == dataset_tuple[2]
+    os.remove(saved_dict_path)
+    
+def test_audio2datasets_labeledaudio_loaddict_1label():
+    dict_input = dict([(0,['1.wav','2.wav','3.wav','4.wav','5.wav',
+                           '6.wav','7.wav','8.wav','9.wav','10.wav',
+                           '11.wav','12.wav','13.wav','14.wav','15.wav',
+                           '1.ogg','2.ogg','3.ogg','4.ogg','5.ogg',
+                           '6.ogg','7.ogg','8.ogg','9.ogg','10.ogg',
+                           '11.ogg','12.ogg','13.ogg','14.ogg','15.ogg',
+                           '1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
+                           '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
+                           '11.aiff','12.aiff','13.aiff','14.aiff',
+                           '15.aiff',])])
+    saved_dict_path = 'testtest.csv'
+    if os.path.exists(saved_dict_path):
+        os.remove(saved_dict_path)
+    saved_dict_path = pyst.utils.save_dict(dict_input,saved_dict_path)
+    dataset_tuple = pyst.data.audio2datasets(saved_dict_path, seed=40)
+    for i, dataset in enumerate(dataset_tuple):
+        print(i)
+        print(dataset)
+    expected_train = ['8.ogg', '14.ogg', '1.aiff', '4.ogg', '4.wav', '5.wav', 
+                      '5.ogg', '2.wav', '12.aiff', '12.ogg', '11.wav', '8.wav', 
+                      '15.wav', '6.aiff', '5.aiff', '15.aiff', '9.wav', '6.wav', 
+                      '14.aiff', '8.aiff', '10.aiff', '2.ogg', '14.wav', '13.ogg', 
+                      '3.ogg', '1.wav', '3.wav', '12.wav', '6.ogg', '13.wav', 
+                      '10.ogg', '3.aiff', '7.wav', '10.wav', '7.aiff', '9.ogg', 
+                      '2.aiff']
+    expected_val = ['9.aiff', '15.ogg', '13.aiff', '1.ogg']
+    expected_test = ['11.ogg', '7.ogg', '4.aiff', '11.aiff']
     assert expected_train == dataset_tuple[0]
     assert expected_val == dataset_tuple[1]
     assert expected_test == dataset_tuple[2]
@@ -368,7 +406,8 @@ def test_audio2datasets_audio_1label_dict():
                            '11.ogg','12.ogg','13.ogg','14.ogg','15.ogg',
                            '1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
-                           '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff',])])
+                           '11.aiff','12.aiff','13.aiff','14.aiff',
+                           '15.aiff',])])
     dataset_tuple = pyst.data.audio2datasets(dict_input, seed=40)
     expected_train =['8.ogg', '14.ogg', '1.aiff', '4.ogg', '4.wav', '5.wav', 
                      '5.ogg', '2.wav', '12.aiff', '12.ogg', '11.wav', '8.wav',
@@ -487,8 +526,10 @@ def test_audio2datasets_noisy_clean_datasets_match():
                             '11_clean.ogg', '3_clean.aiff', '7_clean.wav',
                             '11_clean.wav', '7_clean.aiff', '9_clean.ogg',
                             '2_clean.aiff']
-    expected_val_clean = ['9_clean.aiff', '1_clean.ogg', '14_clean.aiff', '10_clean.ogg']
-    expected_test_clean = ['12_clean.ogg', '7_clean.ogg', '4_clean.aiff', '12_clean.aiff']
+    expected_val_clean = ['9_clean.aiff', '1_clean.ogg', '14_clean.aiff', 
+                          '10_clean.ogg']
+    expected_test_clean = ['12_clean.ogg', '7_clean.ogg', '4_clean.aiff', 
+                           '12_clean.aiff']
     expected_train_noisy = ['8_noisy.ogg', '15_noisy.ogg', '10_noisy.aiff',
                             '4_noisy.ogg', '4_noisy.wav', '5_noisy.wav',
                             '5_noisy.ogg', '2_noisy.wav', '13_noisy.aiff',
@@ -518,3 +559,4 @@ def test_audio2datasets_noisy_clean_datasets_match():
     assert expected_train_noisy == dataset_tuple_noisy[0]
     assert expected_val_noisy == dataset_tuple_noisy[1]
     assert expected_test_noisy == dataset_tuple_noisy[2]
+    
