@@ -321,6 +321,64 @@ def make_number(value):
     return value
 
 
+def save_dict(dict2save, filename, replace=False):
+    '''Saves dictionary as csv file to indicated path and filename
+
+    Parameters
+    ----------
+    dict2save : dict
+        The dictionary that is to be saved 
+    filename : str 
+        The path and name to save the dictionary under. If '.csv' 
+        extension is not given, it is added.
+    replace : bool, optional
+        Whether or not the saved dictionary should overwrite a 
+        preexisting file (default False)
+
+    Returns
+    ----------
+    path : pathlib.PosixPath
+        The path where the dictionary was saved
+    '''
+    if not isinstance(filename, pathlib.PosixPath):
+        filename = pathlib.Path(filename)
+    if filename.parts[-1][-4:] != '.csv':
+        filename_str = filename.resolve()
+        filename_csv = filename_str+'.csv'
+        filename = pathlib.Path(filename_csv)
+    if not replace:
+        if os.path.exists(filename):
+            raise FileExistsError(
+                'The file {} already exists at this path:\
+                \n{}'.format(filename.parts[-1], filename))
+    with open(filename, 'w') as f:
+        w = csv.writer(f)
+        w.writerows(dict2save.items())
+    return filename
+
+def load_dict(csv_path):
+    '''Loads a dictionary from csv file. Expands csv limit if too large.
+    '''
+    try:
+        with open(csv_path, mode='r') as infile:
+            reader = csv.reader(infile)
+            dict_prepped = {rows[0]: rows[1] for rows in reader}
+    except csv.Error:
+        print('Dictionary values or size is too large.')
+        print('Maxing out field size limit for loading this dictionary:')
+        print(csv_path)
+        print('\nThe new field size limit is:')
+        maxInt = sys.maxsize
+        print(maxInt)
+        csv.field_size_limit(maxInt)
+        dict_prepped = load_dict(csv_path)
+    except OverflowError as e:
+        print(e)
+        maxInt = int(maxInt/10)
+        print('Reducing field size limit to: ', maxInt)
+        dict_prepped = load_dict(csv_path)
+    return dict_prepped
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
