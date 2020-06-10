@@ -21,7 +21,7 @@ dict_decode_path = classify_data_path.joinpath('dict_decode.csv')
 dict_encdodedlabel2audio_path = classify_data_path.joinpath('dict_encdodedlabel2audio.csv')
 # train, val, and test data
 # which features will we extract?
-feature_type = 'stft'  # 'fbank', 'stft', 'mfcc'
+feature_type = 'mfcc'  # 'fbank', 'stft', 'mfcc'
 data_train_path = classify_data_path.joinpath('{}_data_{}.npy'.format('train',
                                                                       feature_type))
 data_val_path = classify_data_path.joinpath('{}_data_{}.npy'.format('val',
@@ -37,28 +37,25 @@ feature_settings_path = classify_data_path.joinpath('feature_settings.csv')
 dict_encode, dict_decode = pyst.data.create_dicts_labelsencoded(labels)
 
 try:
-    dict_encode_path = pyst.data.save_dict(dict_encode, 
-                                       filename = dict_encode_path)
+    dict_encode_path = pyst.utils.save_dict(dict_encode, 
+                                       filename = dict_encode_path,
+                                       overwrite=False)
 except FileExistsError:
     pass
 try:
-    dict_decode_path = pyst.data.save_dict(dict_encode, 
-                                       filename = dict_decode_path)
+    dict_decode_path = pyst.utils.save_dict(dict_encode, 
+                                       filename = dict_decode_path,
+                                       overwrite=False)
 except FileExistsError:
     pass
 
 # 4) save audio paths to each label in dict 
-paths_list = []
-# allow all data types to be collected (not only .wav)
-for item in data_scene_dir.glob('**/*'):
-    paths_list.append(item)
-# pathlib.glob collects hidden files as well - remove them if they are there:
-paths_list = [x for x in paths_list if x.stem[0] != '.']
+paths_list = pyst.utils.collect_audiofiles(data_scene_dir, recursive=True)
 dict_encodedlabel2audio = pyst.data.create_encodedlabel2audio_dict(dict_encode,
                                                      paths_list)
 try:
-    dict_encdodedlabel2audio_path = pyst.data.save_dict(dict_encodedlabel2audio, 
-                                            filename = dict_encdodedlabel2audio_path, replace=True)
+    dict_encdodedlabel2audio_path = pyst.utils.save_dict(dict_encodedlabel2audio, 
+                                            filename = dict_encdodedlabel2audio_path, overwrite=False)
 except FileExistsError:
     pass
 
@@ -66,6 +63,16 @@ train, val, test = pyst.data.audio2datasets(dict_encdodedlabel2audio_path,
                                              perc_train=0.8,
                                              limit=None,
                                              seed=40)
+
+# save audiofiles for each dataset:
+dataset_dict = dict([('train',train),('val', val),('test',test)])
+dataset_dict_path = classify_data_path.joinpath('dataset_audiofiles.csv')
+
+try:
+    dataset_dict_path = pyst.utils.save_dict(dataset_dict, dataset_dict_path, 
+                                            overwrite=True)
+except FileExistsError:
+    pass
 
 # 5) extract features
 
@@ -147,7 +154,7 @@ if use_librosa:
                 scale = None
             else:
                 scale = 'power_to_db'
-            # visualize features only ever n num frames
+            # visualize features only every n num frames
             every_n_frames = 50
             if j % every_n_frames == 0:
                 pyst.feats.plot(feats, feature_type = feature_type, scale=scale)
