@@ -10,6 +10,8 @@ import pysoundtool as pyst
 import numpy as np
 import pytest
 
+###############################################################################
+
 test_wav = './audio2channels.wav'
 test_aiff = './audiodata/traffic.aiff'
 test_flac = './audiodata/259672__nooc__this-is-not-right.flac'
@@ -267,3 +269,102 @@ def test_adjust_feature_shape_adding_extra_dimensions():
     with pytest.raises(ValueError):
         input_adjusted = pyst.data.adjust_data_shape(input_data, 
                                             desired_shape = desired_shape)
+
+def test_audio2datasets_labeledaudio():
+    dict_input = dict([(0,['1.wav','2.wav','3.wav','4.wav','5.wav',
+                           '6.wav','7.wav','8.wav','9.wav','10.wav',
+                           '11.wav','12.wav','13.wav','14.wav','15.wav',]),
+                      (1, ['1.ogg','2.ogg','3.ogg','4.ogg','5.ogg',
+                           '6.ogg','7.ogg','8.ogg','9.ogg','10.ogg',
+                           '11.ogg','12.ogg','13.ogg','14.ogg','15.ogg',]),
+                      (2, ['1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
+                           '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
+                           '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff',])])
+    dataset_tuple = pyst.data.audio2datasets(dict_input, seed=0)
+    expected_train = [(0, '1.wav'), (2, '6.aiff'), (0, '8.wav'), (2, '3.aiff'), 
+                      (2, '13.aiff'), (2, '9.aiff'), (2, '15.aiff'), (1, '13.ogg'), 
+                      (1, '1.ogg'), (1, '2.ogg'), (0, '2.wav'), (0, '10.wav'), 
+                      (0, '9.wav'), (0, '13.wav'), (2, '14.aiff'), (1, '3.ogg'), 
+                      (1, '9.ogg'), (1, '11.ogg'), (1, '4.ogg'), (0, '3.wav'), 
+                      (2, '2.aiff'), (0, '15.wav'), (2, '8.aiff'), (0, '11.wav'), 
+                      (0, '4.wav'), (2, '11.aiff'), (0, '5.wav'), (1, '10.ogg'), 
+                      (0, '6.wav'), (1, '14.ogg'), (2, '4.aiff'), (1, '5.ogg'), 
+                      (1, '8.ogg'), (2, '10.aiff'), (2, '5.aiff'), (1, '15.ogg'), 
+                      (0, '14.wav'), (2, '1.aiff'), (1, '6.ogg')]
+    expected_val = [(0, '12.wav'), (2, '12.aiff'), (1, '12.ogg')]
+    expected_test = [(0, '7.wav'), (2, '7.aiff'), (1, '7.ogg')]
+    assert expected_train == dataset_tuple[0]
+    assert expected_val == dataset_tuple[1]
+    assert expected_test == dataset_tuple[2]
+    
+def test_audio2datasets_onelabel_audio():
+    dict_input = dict([(0,['1.wav','2.wav','3.wav','4.wav','5.wav',
+                           '6.wav','7.wav','8.wav','9.wav','10.wav',
+                           '11.wav','12.wav','13.wav','14.wav','15.wav',
+                           '1.ogg','2.ogg','3.ogg','4.ogg','5.ogg',
+                           '6.ogg','7.ogg','8.ogg','9.ogg','10.ogg',
+                           '11.ogg','12.ogg','13.ogg','14.ogg','15.ogg',
+                           '1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
+                           '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
+                           '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff'])])
+    dataset_tuple = pyst.data.audio2datasets(dict_input, seed=0)
+    expected_train = ['11.ogg', '9.ogg', '3.wav', '6.aiff', '4.aiff', '1.aiff', 
+                      '12.aiff', '3.ogg', '2.ogg', '15.aiff', '4.ogg', '10.ogg', 
+                      '2.aiff', '8.ogg', '3.aiff', '12.ogg', '12.wav', '11.aiff', 
+                      '4.wav', '9.wav', '5.wav', '14.aiff', '10.aiff', '9.aiff', 
+                      '5.aiff', '6.wav', '14.ogg', '11.wav', '1.ogg', '7.ogg', 
+                      '15.ogg', '1.wav', '10.wav', '14.wav', '7.aiff', '6.ogg', 
+                      '15.wav']
+    expected_val = ['13.wav', '5.ogg', '13.aiff', '2.wav']
+    expected_test = ['13.ogg', '8.aiff', '8.wav', '7.wav']
+    assert expected_train == dataset_tuple[0]
+    assert expected_val == dataset_tuple[1]
+    assert expected_test == dataset_tuple[2]
+    
+def test_audio2datasets_noisy_clean_datasets_match():
+    dict_input_clean = dict([(0,['1_clean.wav','2_clean.wav','3_clean.wav','4_clean.wav','5_clean.wav',
+                           '6_clean.wav','7_clean.wav','8_clean.wav','9_clean.wav','10_clean.wav',
+                           '11_clean.wav','12_clean.wav','13_clean.wav','14_clean.wav','15_clean.wav',
+                           '1_clean.ogg','2_clean.ogg','3_clean.ogg','4_clean.ogg','5_clean.ogg',
+                           '6_clean.ogg','7_clean.ogg','8_clean.ogg','9_clean.ogg','10_clean.ogg',
+                           '11_clean.ogg','12_clean.ogg','13_clean.ogg','14_clean.ogg','15_clean.ogg',
+                           '1_clean.aiff','2_clean.aiff','3_clean.aiff','4_clean.aiff','5_clean.aiff',
+                           '6_clean.aiff','7_clean.aiff','8_clean.aiff','9_clean.aiff','10_clean.aiff',
+                           '11_clean.aiff','12_clean.aiff','13_clean.aiff','14_clean.aiff','15_clean.aiff'])])
+    dict_input_noisy = dict([(0,['1_noisy.wav','2_noisy.wav','3_noisy.wav','4_noisy.wav','5_noisy.wav',
+                           '6_noisy.wav','7_noisy.wav','8_noisy.wav','9_noisy.wav','10_noisy.wav',
+                           '11_noisy.wav','12_noisy.wav','13_noisy.wav','14_noisy.wav','15_noisy.wav',
+                           '1_noisy.ogg','2_noisy.ogg','3_noisy.ogg','4_noisy.ogg','5_noisy.ogg',
+                           '6_noisy.ogg','7_noisy.ogg','8_noisy.ogg','9_noisy.ogg','10_noisy.ogg',
+                           '11_noisy.ogg','12_noisy.ogg','13_noisy.ogg','14_noisy.ogg','15_noisy.ogg',
+                           '1_noisy.aiff','2_noisy.aiff','3_noisy.aiff','4_noisy.aiff','5_noisy.aiff',
+                           '6_noisy.aiff','7_noisy.aiff','8_noisy.aiff','9_noisy.aiff','10_noisy.aiff',
+                           '11_noisy.aiff','12_noisy.aiff','13_noisy.aiff','14_noisy.aiff','15_noisy.aiff'])])
+    dataset_tuple_clean = pyst.data.audio2datasets(dict_input_clean, seed=0)
+    dataset_tuple_noisy = pyst.data.audio2datasets(dict_input_noisy, seed=0)
+    expected_train_clean = ['11_clean.ogg', '9_clean.ogg', '3_clean.wav', '6_clean.aiff', '4_clean.aiff', 
+                            '1_clean.aiff', '12_clean.aiff', '3_clean.ogg', '2_clean.ogg', '15_clean.aiff', 
+                            '4_clean.ogg', '10_clean.ogg', '2_clean.aiff', '8_clean.ogg', '3_clean.aiff', 
+                            '12_clean.ogg', '12_clean.wav', '11_clean.aiff', '4_clean.wav', '9_clean.wav', 
+                            '5_clean.wav', '14_clean.aiff', '10_clean.aiff', '9_clean.aiff', '5_clean.aiff', 
+                            '6_clean.wav', '14_clean.ogg', '11_clean.wav', '1_clean.ogg', '7_clean.ogg', 
+                            '15_clean.ogg', '1_clean.wav', '10_clean.wav', '14_clean.wav', '7_clean.aiff', 
+                            '6_clean.ogg', '15_clean.wav']
+    expected_val_clean = ['13_clean.wav', '5_clean.ogg', '13_clean.aiff', '2_clean.wav']
+    expected_test_clean = ['13_clean.ogg', '8_clean.aiff', '8_clean.wav', '7_clean.wav']
+    expected_train_noisy = ['11_noisy.ogg', '9_noisy.ogg', '3_noisy.wav', '6_noisy.aiff', '4_noisy.aiff', 
+                            '1_noisy.aiff', '12_noisy.aiff', '3_noisy.ogg', '2_noisy.ogg', '15_noisy.aiff', 
+                            '4_noisy.ogg', '10_noisy.ogg', '2_noisy.aiff', '8_noisy.ogg', '3_noisy.aiff', 
+                            '12_noisy.ogg', '12_noisy.wav', '11_noisy.aiff', '4_noisy.wav', '9_noisy.wav', 
+                            '5_noisy.wav', '14_noisy.aiff', '10_noisy.aiff', '9_noisy.aiff', '5_noisy.aiff', 
+                            '6_noisy.wav', '14_noisy.ogg', '11_noisy.wav', '1_noisy.ogg', '7_noisy.ogg', 
+                            '15_noisy.ogg', '1_noisy.wav', '10_noisy.wav', '14_noisy.wav', '7_noisy.aiff', 
+                            '6_noisy.ogg', '15_noisy.wav']
+    expected_val_noisy = ['13_noisy.wav', '5_noisy.ogg', '13_noisy.aiff', '2_noisy.wav']
+    expected_test_noisy = ['13_noisy.ogg', '8_noisy.aiff', '8_noisy.wav', '7_noisy.wav']
+    assert expected_train_clean == dataset_tuple_clean[0]
+    assert expected_val_clean == dataset_tuple_clean[1]
+    assert expected_test_clean == dataset_tuple_clean[2]
+    assert expected_train_noisy == dataset_tuple_noisy[0]
+    assert expected_val_noisy == dataset_tuple_noisy[1]
+    assert expected_test_noisy == dataset_tuple_noisy[2]
