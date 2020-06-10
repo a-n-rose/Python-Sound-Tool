@@ -13,6 +13,7 @@ import pysoundtool as pyst
 
 
 test_audiofile = './audio2channels.wav'
+audiodata_dir = './audiodata/'
 
 
 def test_path_or_samples_str():
@@ -113,3 +114,26 @@ def test_check_dir_pathwithextension_raiseerror():
     test_dir = './testtesttest.py/'
     with pytest.raises(TypeError):
         test_dir = pyst.utils.check_dir(test_dir, make=False)
+        
+def test_string2list():
+    audiofiles = pyst.utils.collect_audiofiles(audiodata_dir,wav_only=False,
+                                         recursive=False)
+    audiofiles_string = str(audiofiles)
+    audiofiles_checked = pyst.utils.string2list(audiofiles_string)
+    assert audiofiles ==  audiofiles_checked
+    
+def test_string2list_loaddict():
+    audiofiles = pyst.utils.collect_audiofiles(audiodata_dir,wav_only=False,
+                                         recursive=False)
+    d = dict([(0,audiofiles)])
+    test_dict_path = 'testest.csv'
+    if os.path.exists(test_dict_path):
+        os.remove(test_dict_path)
+    d_path = pyst.utils.save_dict(d, test_dict_path)
+    d_loaded = pyst.utils.load_dict(d_path)
+    for i, key in enumerate(d_loaded):
+        key = key
+    audiofiles_string = d_loaded[key]
+    audiofiles_checked = pyst.utils.string2list(audiofiles_string)
+    assert audiofiles ==  audiofiles_checked
+    os.remove(test_dict_path)

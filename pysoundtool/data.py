@@ -99,15 +99,11 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=True):
         data = pyst.dsp.set_signal_length(data, numsamps)
     return data, sr
 
-def get_incompatible_formats():
-    '''According to SoundFile
-    '''
-    return(['.m4a','.mp3'])
-
-def get_compatible_formats():
-    '''According to SoundFile
-    '''
-    return(['.wav', '.aiff', '.flac', '.ogg'])
+def list_possibleformats(use_librosa=True):
+    if use_librosa:
+        return(['.wav', '.aiff', '.flac', '.ogg','.m4a','.mp3'])
+    else:
+        return(['.wav', '.aiff', '.flac', '.ogg'])
 
 def list_audioformats():
     msg = '\nPySoundTool can work with the following file types: '+\
@@ -304,6 +300,16 @@ def waves2dataset(audiolist, train_perc=0.8, seed=40):
     assert len(train_waves)+len(val_waves)+len(test_waves) == len(audiolist)
     return train_waves, val_waves, test_waves
 
+def ensure_only_audiofiles(audiolist):
+    possible_extensions = pyst.data.list_possibleformats(use_librosa=True)
+    audiolist_checked = [x for x in audiolist if pathlib.Path(x).suffix in possible_extensions]
+    if len(audiolist_checked) < len(audiolist):
+        import warnings
+        message = 'Some files did not match those acceptible by this program. '+\
+            'The number of files removed: {}'.format(len(audiolist)-len(audiolist_checked))
+        warnings.warn(message)
+    return audiolist_checked
+
 def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
     '''Organizes all audio in audio class directories into datasets (randomized).
 
@@ -361,7 +367,13 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
     if multiple_labels:
         for key, value in waves.items():
             if isinstance(value, str):
-                audiolist = ast.literal_eval(value)
+                try:
+                    # turn string list into list
+                    audiolist = ast.literal_eval(value)
+                # ast doesn't handle lists of pathlib.PosixPath objects
+                except ValueError:
+                    audiolist = pyst.utils.string2list(value)
+                    audiolist = pyst.data.ensure_only_audiofiles(audiolist)
                 key = int(key)
             else:
                 audiolist = value
@@ -372,11 +384,13 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
                 val.append(tuple([key, wave]))
             for i, wave in enumerate(test_waves):
                 test.append(tuple([key, wave]))
-
     else:
         # data has all same label, can be in a simple list, not paired with a label
         if isinstance(waves, dict):
-            audiolist = waves[0]
+            for i, key in enumerate(waves):
+                if i >= 1:
+                    raise ValueError('Expected only 1 key, not {}.'.format(len(waves)))
+                audiolist = waves[key]
         else:
             audiolist = waves
         # sort to ensure a consistent order of audio; otherwise cannot control randomization
