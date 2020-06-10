@@ -3,9 +3,10 @@ audio data match in format to creating training, validation, and test datasets.
 '''
 import numpy as np
 import random
+# for converting string lists back into list:
+import ast
 import collections
 import math 
-import csv
 import pathlib
 from scipy.io.wavfile import write, read
 from scipy.signal import resample
@@ -330,6 +331,9 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
         the encoded label integer (e.g. 0 instead of 'air_conditioner') and the 
         audio paths associated to that class and dataset.
     '''
+    if seed == 0:
+        raise ValueError('Seed equals 0. This will result in unreliable '+\
+            'randomization. Either set `seed` to None or to another integer.')
     if perc_train > 1:
         perc_train /= 100.
     if perc_train > 1:
@@ -343,27 +347,25 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
     if isinstance(audiodata, dict) or isinstance(audiodata, list) or \
         isinstance(audiodata, set):
         waves = audiodata
-        # to ensure a consistent order of audio; otherwise cannot control randomization
-        if isinstance(audiodata, set):
-            waves = sorted(list(waves))
     else:
         waves = pyst.utils.load_dict(audiodata)
-    if isinstance(audiodata, list) or isinstance(audiodata, set):
-        labeled_audio = False
+    if isinstance(waves, list) or isinstance(waves,set) or len(waves) == 1:
+        multiple_labels = False
     else:
-        labeled_audio = True
+        multiple_labels = True
     count = 0
     row = 0
     train = []
     val = []
     test = []
-    if labeled_audio:
+    if multiple_labels:
         for key, value in waves.items():
             if isinstance(value, str):
-                audiolist = pyst.paths.string2list(value)
+                audiolist = ast.literal_eval(value)
+                key = int(key)
             else:
                 audiolist = value
-            train_waves, val_waves, test_waves = waves2dataset(audiolist, seed=seed)
+            train_waves, val_waves, test_waves = waves2dataset(sorted(audiolist), seed=seed)
             for i, wave in enumerate(train_waves):
                 train.append(tuple([key, wave]))
             for i, wave in enumerate(val_waves):
@@ -372,7 +374,13 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
                 test.append(tuple([key, wave]))
 
     else:
-        train_waves, val_waves, test_waves = waves2dataset(waves, seed=seed)
+        # data has all same label, can be in a simple list, not paired with a label
+        if isinstance(waves, dict):
+            audiolist = waves[0]
+        else:
+            audiolist = waves
+        # sort to ensure a consistent order of audio; otherwise cannot control randomization
+        train_waves, val_waves, test_waves = waves2dataset(sorted(audiolist), seed=seed)
         for i, wave in enumerate(train_waves):
             train.append(wave)
         for i, wave in enumerate(val_waves):
