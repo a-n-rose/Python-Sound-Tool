@@ -308,7 +308,7 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
 
     Parameters
     ----------
-    audiodata : str, pathlib.PosixPath, or dict
+    audiodata : str, pathlib.PosixPath, dict, list, or set
         path to the dictionary where audio class labels and the 
         paths of all audio files belonging to each class are or will
         be stored. The dictionary with the labels and their encoded values
@@ -339,42 +339,46 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
             'The percentage of train data is too small: {}\
             \nPlease check your values.'.format(
                 perc_train))
-    if isinstance(audiodata, dict):
-        class_waves_dict = audiodata
+    if isinstance(audiodata, dict) or isinstance(audiodata, list) or \
+        isinstance(audiodata, set):
+        waves = audiodata
+        # to ensure a consistent order of audio; otherwise cannot control randomization
+        if isinstance(audiodata, set):
+            waves = sorted(list(waves))
     else:
-        class_waves_dict = pyst.utils.load_dict(audiodata)
+        waves = pyst.utils.load_dict(audiodata)
+    if isinstance(audiodata, list) or isinstance(audiodata, set):
+        labeled_audio = False
+    else:
+        labeled_audio = True
     count = 0
     row = 0
     train = []
     val = []
     test = []
-    for key, value in class_waves_dict.items():
-        if isinstance(value, str):
-            audiolist = pyst.paths.string2list(value)
-        else:
-            audiolist = value
-        train_waves, val_waves, test_waves = waves2dataset(audiolist)
-
-        for i, wave in enumerate(train_waves):
-            if len(class_waves_dict) > 1:
-                # if more than one label
+    if labeled_audio:
+        for key, value in waves.items():
+            if isinstance(value, str):
+                audiolist = pyst.paths.string2list(value)
+            else:
+                audiolist = value
+            train_waves, val_waves, test_waves = waves2dataset(audiolist, seed=seed)
+            for i, wave in enumerate(train_waves):
                 train.append(tuple([key, wave]))
-            else:
-                train.append(wave)
-
-        for i, wave in enumerate(val_waves):
-            if len(class_waves_dict) > 1:
-                # if more than one label
+            for i, wave in enumerate(val_waves):
                 val.append(tuple([key, wave]))
-            else:
-                val.append(wave)
-
-        for i, wave in enumerate(test_waves):
-            if len(class_waves_dict) > 1:
-                # if more than one label
+            for i, wave in enumerate(test_waves):
                 test.append(tuple([key, wave]))
-            else:
-                test.append(wave)
+
+    else:
+        train_waves, val_waves, test_waves = waves2dataset(waves, seed=seed)
+        for i, wave in enumerate(train_waves):
+            train.append(wave)
+        for i, wave in enumerate(val_waves):
+            val.append(wave)
+        for i, wave in enumerate(test_waves):
+            test.append(wave)
+        
     # be sure the classes are not in any certain order
     if seed is not None: 
         random.seed(seed)
