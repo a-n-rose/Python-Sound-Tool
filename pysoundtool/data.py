@@ -309,10 +309,11 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
     Parameters
     ----------
     audiodata : str, pathlib.PosixPath, dict, list, or set
-        path to the dictionary where audio class labels and the 
-        paths of all audio files belonging to each class are or will
+        If data has multiple labels, path to the dictionary where audio class 
+        labels and the paths of all audio files belonging to each class are or will
         be stored. The dictionary with the labels and their encoded values
-        can also directly supplied here.
+        can also directly supplied here. If the data does not have labels, a list or 
+        set of audiofiles can be provided to be placed in train, val, and test datasets.
     perc_train : int, float
         The percentage or decimal representing the amount of training
         data compared to the test and validation data (default 0.8)
