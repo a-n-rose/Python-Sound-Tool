@@ -3,8 +3,6 @@ audio data match in format to creating training, validation, and test datasets.
 '''
 import numpy as np
 import random
-# for converting string lists back into list:
-import ast
 import collections
 import math 
 import pathlib
@@ -367,13 +365,9 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
     if multiple_labels:
         for key, value in waves.items():
             if isinstance(value, str):
-                try:
-                    # turn string list into list
-                    audiolist = ast.literal_eval(value)
-                # ast doesn't handle lists of pathlib.PosixPath objects
-                except ValueError:
-                    audiolist = pyst.utils.string2list(value)
-                    audiolist = pyst.data.ensure_only_audiofiles(audiolist)
+                audiolist = pyst.utils.string2list(value)
+                # check to make sure all audiofiles and none were lost
+                audiolist = pyst.data.ensure_only_audiofiles(audiolist)
                 key = int(key)
             else:
                 audiolist = value
@@ -392,13 +386,9 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
                     raise ValueError('Expected only 1 key, not {}.'.format(len(waves)))
                 audiolist = waves[key]
                 if isinstance(audiolist, str):
-                    try:
-                        # turn string list into list
-                        audiolist = ast.literal_eval(audiolist)
-                    # ast doesn't handle lists of pathlib.PosixPath objects
-                    except ValueError:
-                        audiolist = pyst.utils.string2list(audiolist)
-                        audiolist = pyst.data.ensure_only_audiofiles(audiolist)
+                    # check to make sure all audiofiles and none were lost
+                    audiolist = pyst.utils.string2list(audiolist)
+                    audiolist = pyst.data.ensure_only_audiofiles(audiolist)
         else:
             audiolist = waves
         # sort to ensure a consistent order of audio; otherwise cannot control randomization

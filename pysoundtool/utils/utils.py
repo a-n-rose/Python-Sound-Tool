@@ -1,9 +1,12 @@
 '''Useful functions for PySoundTool but not directly related to sound data.
 ''' 
 import os, sys
+import csv
 import numpy as np
 import datetime
 import pathlib
+# for converting string lists back into list:
+import ast
 
 def str2path(pathstring):
     '''Turns string path into pathlib.PosixPath object
@@ -163,6 +166,59 @@ def check_dir(directory, make=True, write_into=True):
                     'set `write_into` to True.')
     return directory
 
+def string2list(list_paths_string):
+    '''Take a string of wavfiles list and establishes back to list
+
+    This handles lists of strings, lists of pathlib.PosixPath objects, and lists 
+    of pathlib.PurePosixPath objects that were converted into a type string object.
+
+    Parameters
+    ----------
+    list_paths_string : str 
+        The list that was converted into a string object 
+
+    Returns
+    -------
+    list_paths : list 
+        The list converted back to a list of paths as pathlib.PosixPath objects.
+
+    Examples
+    --------
+    >>> input_string = "[PosixPath('data/audio/vacuum/vacuum1.wav')]"
+    >>> type(input_string)
+    <class 'str'>
+    >>> typelist = string2list(input_string)
+    >>> typelist
+    [PosixPath('data/audio/vacuum/vacuum1.wav')]
+    >>> type(typelist)
+    <class 'list'>
+    '''
+    # remove the string brackets and separate by space and comma --> list
+    try:
+        # first use reliable module to turn string list into list
+        list_paths = ast.literal_eval(list_paths_string)
+    except ValueError:
+        # ast doesn't handle lists of pathlib.PosixPath objects
+        # TODO further testing
+        # remove the string brackets and separate by space and comma --> list
+        list_string_red = list_paths_string[1:-1].split(', ')
+        if 'PurePosixPath' in list_paths_string:
+            remove_str = "PurePosixPath('"
+            end_index = -2
+        elif 'PosixPath' in list_paths_string:
+            remove_str = "PosixPath('"
+            end_index = -2
+        else:
+            remove_str = "('"
+            end_index = -2
+        # remove unwanted sections of the string items
+        list_paths = []
+        for path in list_string_red:
+            list_paths.append(pathlib.Path(
+                path.replace(remove_str, '')[:end_index]))
+    return list_paths
+
+
 def adjust_time_units(time_sec):
     if time_sec >= 60 and time_sec < 3600:
         total_time = time_sec / 60
@@ -321,7 +377,7 @@ def make_number(value):
     return value
 
 
-def save_dict(dict2save, filename, replace=False):
+def save_dict(dict2save, filename, overwrite=False):
     '''Saves dictionary as csv file to indicated path and filename
 
     Parameters
@@ -331,7 +387,7 @@ def save_dict(dict2save, filename, replace=False):
     filename : str 
         The path and name to save the dictionary under. If '.csv' 
         extension is not given, it is added.
-    replace : bool, optional
+    overwrite : bool, optional
         Whether or not the saved dictionary should overwrite a 
         preexisting file (default False)
 
@@ -346,7 +402,7 @@ def save_dict(dict2save, filename, replace=False):
         filename_str = filename.resolve()
         filename_csv = filename_str+'.csv'
         filename = pathlib.Path(filename_csv)
-    if not replace:
+    if not overwrite:
         if os.path.exists(filename):
             raise FileExistsError(
                 'The file {} already exists at this path:\
