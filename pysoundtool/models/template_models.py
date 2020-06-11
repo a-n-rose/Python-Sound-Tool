@@ -83,12 +83,26 @@ def cnn_classifier(feature_maps = [40, 20, 10],
     if dropout is not None:
         model.add(Dropout(dropout))
     model.add(Flatten())
-    model.add(Dense(num_labels, activation = activation_output))    
-    return model
+    model.add(Dense(num_labels, activation = activation_output))   
+    settings = dict(feature_maps = feature_maps, 
+                    kernel_size = kernel_size,
+                    strides = strides,
+                    activation_layer = activation_layer,
+                    activation_output = activation_output,
+                    input_shape = input_shape,
+                    num_labels = num_labels,
+                    dense_hidden_units = dense_hidden_units,
+                    dropout = dropout)
+    return model, settings
 
 # TODO: update model based on research
 def autoencoder_denoise(input_shape,
-                        max_norm_value=2.0):
+                        kernel_size = (3,3),
+                        max_norm_value=2.0,
+                        activation_function_layer = 'relu',
+                        activation_function_output = 'sigmoid',
+                        padding = 'same',
+                        kernel_initializer = 'he_uniform'):
     '''Build a simple autoencoder denoiser.
     
     Parameters
@@ -107,24 +121,32 @@ def autoencoder_denoise(input_shape,
     https://www.machinecurve.com/index.php/2019/12/19/creating-a-signal-noise-removal-autoencoder-with-keras/#creating-the-autoencoder
     '''
     autoencoder = Sequential()
-    autoencoder.add(Conv2D(128, kernel_size=(3, 3),
-                            kernel_constraint=max_norm(max_norm_value),
-                            activation='relu',
-                            kernel_initializer='he_uniform',
+    autoencoder.add(Conv2D(128, kernel_size = kernel_size,
+                            kernel_constraint = max_norm(max_norm_value),
+                            activation = activation_function_layer,
+                            kernel_initializer = kernel_initializer,
                             input_shape=input_shape))
-    autoencoder.add(Conv2D(32, kernel_size=(3, 3),
+    autoencoder.add(Conv2D(32, kernel_size = kernel_size,
+                            kernel_constraint = max_norm(max_norm_value),
+                            activation = activation_function_layer,
+                            kernel_initializer = kernel_initializer))
+    autoencoder.add(Conv2DTranspose(32, kernel_size = kernel_size,
                             kernel_constraint=max_norm(max_norm_value),
-                            activation='relu',
-                            kernel_initializer='he_uniform'))
-    autoencoder.add(Conv2DTranspose(32, kernel_size=(3,3),
-                            kernel_constraint=max_norm(max_norm_value),
-                            activation='relu',
-                            kernel_initializer='he_uniform'))
-    autoencoder.add(Conv2DTranspose(128, kernel_size=(3,3),
-                            kernel_constraint=max_norm(max_norm_value),
-                            activation='relu',
-                            kernel_initializer='he_uniform'))
-    autoencoder.add(Conv2D(1, kernel_size=(3, 3),
-                            kernel_constraint=max_norm(max_norm_value),
-                            activation='sigmoid', padding='same'))
-    return autoencoder
+                            activation = activation_function_layer,
+                            kernel_initializer = kernel_initializer))
+    autoencoder.add(Conv2DTranspose(128, kernel_size = kernel_size,
+                            kernel_constraint = max_norm(max_norm_value),
+                            activation = activation_function_layer,
+                            kernel_initializer = kernel_initializer))
+    autoencoder.add(Conv2D(1, kernel_size = kernel_size,
+                            kernel_constraint = max_norm(max_norm_value),
+                            activation = activation_function_output, 
+                            padding = padding))
+    settings = dict(input_shape = input_shape,
+                    kernel_size = kernel_size,
+                    max_norm_value = max_norm_value,
+                    activation_function_layer = activation_function_layer,
+                    activation_function_output = activation_function_output,
+                    padding = padding,
+                    kernel_initializer = kernel_initializer)
+    return autoencoder, settings

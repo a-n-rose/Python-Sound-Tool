@@ -9,14 +9,18 @@ import time
 
 ###############################################################################
 
-# make sure data files exists:
-model_name = 'autoencoder_denoise'
-dataset_path = pyst.utils.check_dir('./audiodata/test_denoiser/', make = False) 
+model_name = 'model_autoencoder_denoise'
+
+dataset_path = pyst.utils.check_dir('./audiodata/denoiser/', make = False) 
 feature_type = 'stft'
-model_name += '_'+feature_type + '_' + pyst.utils.get_date() + '.h5'
+model_name += '_'+feature_type + '_' + pyst.utils.get_date() 
+model_dir = dataset_path.joinpath(model_name)
+model_dir = pyst.utils.check_dir(model_dir)
+model_name += '.h5'
+model_path = model_dir.joinpath(model_name)
 
-model_path = dataset_path.joinpath(model_name)
 
+# make sure data files exists:
 data_train_noisy_path = dataset_path.joinpath('train_data_noisy_{}.npy'.format(feature_type))
 data_val_noisy_path = dataset_path.joinpath('val_data_noisy_{}.npy'.format(
     feature_type))
@@ -44,24 +48,41 @@ data_val_noisy = np.load(data_val_noisy_path)
 use_generator = True
 num_epochs = 5
 normalized = False
-#if use_generator:
 input_shape = data_val_noisy.shape[2:] + (1,)
-#else:
-#    input_shape = data_val_noisy.shape[1:]
-print('input shape: ', input_shape)
+del data_val_noisy
 
-denoiser = soundmodels.autoencoder_denoise(input_shape = input_shape)
+denoiser, settings_dict = soundmodels.autoencoder_denoise(
+    input_shape = input_shape)
 
 callbacks = soundmodels.setup_callbacks(patience=5,
                                         best_modelname=model_path)
 adm = keras.optimizers.Adam(learning_rate=0.0001)
 denoiser.compile(optimizer=adm, loss='binary_crossentropy')
 
+
+local_variables = locals()
+global_variables = globals()
+
+pyst.utils.save_dict(local_variables, 
+                     model_dir.joinpath('local_variables_{}.csv'.format(
+                         model_name)),
+                     overwrite=True)
+pyst.utils.save_dict(global_variables,
+                     model_dir.joinpath('global_variables_{}.csv'.format(
+                         model_name)),
+                     overwrite = True)
+
 data_train_noisy = np.load(data_train_noisy_path)
 data_val_noisy = np.load(data_val_noisy_path)
 
 data_train_clean = np.load(data_train_clean_path)
 data_val_clean = np.load(data_val_clean_path)
+    
+    
+data_train_noisy_shape = data_train_noisy.shape
+data_val_noisy_shape = data_val_noisy.shape
+data_train_clean_shape = data_train_clean.shape
+data_val_clean_shape = data_val_clean.shape
     
     
 start = time.time()
@@ -100,14 +121,20 @@ else:
                                    validation_data = (X_val, y_val))
 end = time.time()
 total_dur_sec = round(end-start,2)
-model_features_dict = dict([('model', model_path),
-                            ('train_noisy', data_train_noisy_path),
-                            ('val_noisy', data_val_noisy_path),
-                            ('train_clean', data_train_clean_path),
-                            ('val_clean', data_val_clean_path),
-                            ('train_duration_seconds', total_dur_sec)])
+model_features_dict = dict(model_path = model_path,
+                           data_train_noisy_path = data_train_noisy_path,
+                           data_val_noisy_path = data_val_noisy_path, 
+                           data_train_clean_path = data_train_clean_path, 
+                           data_val_clean_path = data_val_clean_path,
+                           data_train_noisy_shape = data_train_noisy_shape,
+                           data_val_noisy_shape = data_val_noisy_shape,
+                           data_train_clean_shape = data_train_clean_shape,
+                           data_val_clean_shape = data_val_clean_shape,
+                           total_dur_sec = total_dur_sec,
+                           use_generator = use_generator)
+model_features_dict.update(settings_dict)
 
-model_features_dict_path = dataset_path.joinpath('info_{}.csv'.format(
+model_features_dict_path = model_dir.joinpath('info_{}.csv'.format(
     model_name))
 model_features_dict_path = pyst.utils.save_dict(model_features_dict,
                                                 model_features_dict_path)

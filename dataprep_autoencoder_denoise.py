@@ -4,6 +4,10 @@ import numpy as np
 import math
 
 
+feature_type = 'mfcc'  # 'fbank', 'stft', 'mfcc'
+feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
+
+
 # 1) specify clean and noisy audio directories, and ensure they exist
 audio_clean_path = pyst.utils.check_dir(\
     './audiodata/minidatasets/denoise/cleanspeech_IEEE_small/', 
@@ -14,31 +18,33 @@ audio_noisy_path = pyst.utils.check_dir(\
 
 # 2) create paths for what we need to save:
 denoise_data_path = pyst.utils.check_dir('./audiodata/test_denoiser/', make=True)
+feat_extraction_dir = denoise_data_path.joinpath(feat_extraction_dir)
+feat_extraction_dir = pyst.utils.check_dir(feat_extraction_dir, make=True)
 # train, val, and test data
 # which features will we extract?
 feature_type = 'mfcc'  # 'fbank', 'stft', 'mfcc'
-data_train_noisy_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('train',
+data_train_noisy_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('train',
                                                                         'noisy',
                                                                       feature_type))
-data_val_noisy_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('val',
+data_val_noisy_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('val',
                                                                       'noisy',
                                                                       feature_type))
-data_test_noisy_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('test',
+data_test_noisy_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('test',
                                                                        'noisy',
                                                                       feature_type))
-data_train_clean_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('train',
+data_train_clean_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('train',
                                                                         'clean',
                                                                       feature_type))
-data_val_clean_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('val',
+data_val_clean_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('val',
                                                                       'clean',
                                                                       feature_type))
-data_test_clean_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('test',
+data_test_clean_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('test',
                                                                        'clean',
                                                                       feature_type))
 
 # TODO
 # log feature settings as well!
-feature_settings_path = denoise_data_path.joinpath('feature_settings.csv')
+feature_settings_path = feat_extraction_dir.joinpath('feature_settings.csv')
 
 
 # 3) collect audiofiles and divide them into train, val, and test datasets
@@ -62,11 +68,11 @@ for i, audiofile in enumerate(noisyaudio):
 noisy_audio_dict = dict([('noisy', noisyaudio)])
 clean_audio_dict = dict([('clean', cleanaudio)])
 
-noisy_audio_dict_path = denoise_data_path.joinpath('noisy_audio.csv')
+noisy_audio_dict_path = feat_extraction_dir.joinpath('noisy_audio.csv')
 noisy_audio_dict_path = pyst.utils.save_dict(noisy_audio_dict, noisy_audio_dict_path,
                                              overwrite=True)
 
-clean_audio_dict_path = denoise_data_path.joinpath('clean_audio.csv')
+clean_audio_dict_path = feat_extraction_dir.joinpath('clean_audio.csv')
 clean_audio_dict_path = pyst.utils.save_dict(clean_audio_dict, clean_audio_dict_path,
                                              overwrite=True)
 
@@ -88,8 +94,8 @@ dataset_paths_clean_dict = dict([('train',data_train_clean_path),
                                  ('val', data_val_clean_path),
                                  ('test',data_test_clean_path)])
 
-path2_noisy_dataset_waves = denoise_data_path.joinpath('audiofiles_datasets_noisy.csv')
-path2_clean_dataset_waves = denoise_data_path.joinpath('audiofiles_datasets_clean.csv')
+path2_noisy_dataset_waves = feat_extraction_dir.joinpath('audiofiles_datasets_noisy.csv')
+path2_clean_dataset_waves = feat_extraction_dir.joinpath('audiofiles_datasets_clean.csv')
 
 path2_noisy_dataset_waves = pyst.utils.save_dict(dataset_dict_noisy,
                                                  path2_noisy_dataset_waves,
@@ -97,6 +103,19 @@ path2_noisy_dataset_waves = pyst.utils.save_dict(dataset_dict_noisy,
 path2_clean_dataset_waves = pyst.utils.save_dict(dataset_dict_clean,
                                                  path2_clean_dataset_waves,
                                                  overwrite=True)
+
+
+# clear out variables
+
+variables2remove = [noisyaudio, cleanaudio, noisy_audio_dict, clean_audio_dict,
+                    train_noisy, val_noisy, test_noisy, train_clean, val_clean, 
+                    test_clean]
+
+for var in variables2remove:
+    del var
+
+
+
 
 
 # 5) extract features
@@ -156,6 +175,18 @@ if use_librosa:
     # want smaller windows
     batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
 
+    local_variables = locals()
+    global_variables = globals()
+    
+    pyst.utils.save_dict(local_variables, 
+                        feat_extraction_dir.joinpath('local_variables_{}.csv'.format(
+                            feature_type)),
+                        overwrite=True)
+    pyst.utils.save_dict(global_variables,
+                        feat_extraction_dir.joinpath('global_variables_{}.csv'.format(
+                            feature_type)),
+                        overwrite = True)
+
     for key, value in dataset_dict_clean.items():
         extraction_shape = (len(value),
             batch_size, frames_per_sample,
@@ -208,11 +239,6 @@ if use_librosa:
                         #title='{} {} clean features'.format(key, feature_type.upper()))
         # save data:
         np.save(dataset_paths_clean_dict[key], feats_matrix)
-
-
-
-
-
 
     for key, value in dataset_dict_noisy.items():
         extraction_shape = (len(value),
