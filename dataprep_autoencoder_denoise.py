@@ -17,7 +17,7 @@ audio_noisy_path = pyst.utils.check_dir(\
                                          make=False)
 
 # 2) create paths for what we need to save:
-denoise_data_path = pyst.utils.check_dir('./audiodata/test_denoiser/', make=True)
+denoise_data_path = pyst.utils.check_dir('./audiodata/denoiser/', make=True)
 feat_extraction_dir = denoise_data_path.joinpath(feat_extraction_dir)
 feat_extraction_dir = pyst.utils.check_dir(feat_extraction_dir, make=True)
 # train, val, and test data
@@ -106,6 +106,11 @@ path2_clean_dataset_waves = pyst.utils.save_dict(dataset_dict_clean,
                                                  path2_clean_dataset_waves,
                                                  overwrite=True)
 
+variables2remove = [noisyaudio, cleanaudio, train_noisy, val_noisy, test_noisy,
+                    train_clean, val_clean, test_clean, dataset_dict_noisy, 
+                    dataset_dict_clean]
+
+
 # 5) extract features
 
 '''When extracting features, need to first create empty matrix to fill.
@@ -174,8 +179,12 @@ if use_librosa:
                         feat_extraction_dir.joinpath('global_variables_{}.csv'.format(
                             feature_type)),
                         overwrite = True)
-
+    dataset_dict_clean = pyst.utils.load_dict(path2_clean_dataset_waves)
     for key, value in dataset_dict_clean.items():
+        # when loading a dictionary, the value is a string
+        if isinstance(value, str):
+            dataset_dict_clean[key] = pyst.utils.string2list(value)
+            value = dataset_dict_clean[key]
         extraction_shape = (len(value),
             batch_size, frames_per_sample,
             num_feats)
@@ -183,14 +192,8 @@ if use_librosa:
         feats_matrix = pyst.dsp.create_empty_matrix(
             extraction_shape, 
             complex_vals=complex_vals)
-
+        
         for j, audiofile in enumerate(value):
-            if not pyst.utils.check_noisy_clean_match(dataset_dict_noisy[key][j],
-                                                    audiofile):
-                raise ValueError('There is a mismatch between noisy and clean audio. '+\
-                    '\nThe noisy file:\n{}'.format(dataset_dict_noisy[key][i])+\
-                        '\ndoes not seem to match the clean file:\n{}'.format(audiofile))
-
             feats = pyst.feats.get_feats(audiofile,
                                         sr=sr,
                                         features=feature_type,
@@ -231,8 +234,14 @@ if use_librosa:
                         #title='{} {} clean features'.format(key, feature_type.upper()))
         # save data:
         np.save(dataset_paths_clean_dict[key], feats_matrix)
+        print('\nFeatures saved at {}\n'.format(dataset_paths_clean_dict[key]))
 
+    dataset_dict_noisy = pyst.utils.load_dict(path2_noisy_dataset_waves)
     for key, value in dataset_dict_noisy.items():
+        # when loading a dictionary, the value is a string
+        if isinstance(value, str):
+            dataset_dict_noisy[key] = pyst.utils.string2list(value)
+            value = dataset_dict_noisy[key]
         extraction_shape = (len(value),
             batch_size, frames_per_sample,
             num_feats)
@@ -242,8 +251,8 @@ if use_librosa:
             complex_vals=complex_vals)
 
         for j, audiofile in enumerate(value):
-            if not pyst.utils.check_noisy_clean_match(dataset_dict_noisy[key][j],
-                                                    audiofile):
+            if not pyst.utils.check_noisy_clean_match(audiofile,
+                                                    dataset_dict_clean[key][j]):
                 raise ValueError('There is a mismatch between noisy and clean audio. '+\
                     '\nThe noisy file:\n{}'.format(dataset_dict_noisy[key][i])+\
                         '\ndoes not seem to match the clean file:\n{}'.format(audiofile))
@@ -288,6 +297,6 @@ if use_librosa:
                         #title='{} {} noisy features'.format(key, feature_type.upper()))
         # save data:
         np.save(dataset_paths_noisy_dict[key], feats_matrix)
-
+        print('\nFeatures saved at {}\n'.format(dataset_paths_noisy_dict[key]))
         
 
