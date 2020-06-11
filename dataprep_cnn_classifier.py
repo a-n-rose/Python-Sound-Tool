@@ -81,14 +81,12 @@ except FileExistsError:
 
 # clear out variables
 
-#variables2remove = [noisyaudio, cleanaudio, noisy_audio_dict, clean_audio_dict,
-                    #train_noisy, val_noisy, test_noisy, train_clean, val_clean, 
-                    #test_clean]
+variables2remove = [noisyaudio, cleanaudio, noisy_audio_dict, clean_audio_dict,
+                    train_noisy, val_noisy, test_noisy, train_clean, val_clean, 
+                    test_clean]
 
-#for var in variables2remove:
-    #del var
-
-
+for var in variables2remove:
+    del var
 
 # 5) extract features
 
