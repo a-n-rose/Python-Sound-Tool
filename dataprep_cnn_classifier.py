@@ -177,6 +177,10 @@ if use_librosa:
             feats = np.concatenate([feats,label_col], axis=1)
             # fill in empty matrix with features from each audiofile
             feats_matrix[j] = feats
+            pyst.utils.print_progress(iteration = j, 
+                                      total_iterations = len(dataset),
+                                      task = '{} {} feature extraction'.format(
+                                          dataset, feature_type))
             
             ## visualize features:
             #if 'mfcc' in feature_type:
