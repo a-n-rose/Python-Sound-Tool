@@ -23,17 +23,17 @@ data_train_noisy_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('t
 data_val_noisy_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('val',
                                                                       'noisy',
                                                                       feature_type))
-data_test_noisy_path = denoise_data_path.joinpath('{}_data_{}_{}_.npy'.format('test',
+data_test_noisy_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('test',
                                                                        'noisy',
                                                                       feature_type))
 data_train_clean_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('train',
-                                                                        'noisy',
+                                                                        'clean',
                                                                       feature_type))
 data_val_clean_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('val',
-                                                                      'noisy',
+                                                                      'clean',
                                                                       feature_type))
-data_test_clean_path = denoise_data_path.joinpath('{}_data_{}_{}_.npy'.format('test',
-                                                                       'noisy',
+data_test_clean_path = denoise_data_path.joinpath('{}_data_{}_{}.npy'.format('test',
+                                                                       'clean',
                                                                       feature_type))
 
 # TODO
@@ -188,24 +188,24 @@ if use_librosa:
                                                    extraction_shape[1]*extraction_shape[2],
                                                    extraction_shape[3]),
                                                complex_vals = complex_vals)
-            # visualize features:
-            if 'mfcc' in feature_type:
-                scale = None
-            else:
-                scale = 'power_to_db'
-            #visualize features only every n num frames
-            every_n_frames = 20
-            if j % every_n_frames == 0:
-                pyst.feats.plot(feats, feature_type = feature_type, scale=scale,
-                                title='{} {} clean features'.format(key, feature_type.upper()))
+            ## visualize features:
+            #if 'mfcc' in feature_type:
+                #scale = None
+            #else:
+                #scale = 'power_to_db'
+            ##visualize features only every n num frames
+            #every_n_frames = 20
+            #if j % every_n_frames == 0:
+                #pyst.feats.plot(feats, feature_type = feature_type, scale=scale,
+                                #title='{} {} clean features'.format(key, feature_type.upper()))
             feats = feats.reshape(extraction_shape[1:])
             # fill in empty matrix with features from each audiofile
 
             feats_matrix[j] = feats
-        # must be 2 D to visualize
-        pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3])), feature_type=feature_type,
-                        scale=scale, x_label='number of audio files',
-                        title='{} {} clean features'.format(key, feature_type.upper()))
+        ## must be 2 D to visualize
+        #pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3])), feature_type=feature_type,
+                        #scale=scale, x_label='number of audio files',
+                        #title='{} {} clean features'.format(key, feature_type.upper()))
         # save data:
         np.save(dataset_paths_clean_dict[key], feats_matrix)
 
@@ -246,24 +246,24 @@ if use_librosa:
                                                    extraction_shape[1]*extraction_shape[2],
                                                    extraction_shape[3]),
                                                complex_vals = complex_vals)
-            # visualize features:
-            if 'mfcc' in feature_type:
-                scale = None
-            else:
-                scale = 'power_to_db'
-            #visualize features only every n num frames
-            every_n_frames = 20
-            if j % every_n_frames == 0:
-                pyst.feats.plot(feats, feature_type = feature_type, scale=scale,
-                                title='{} {} noisy features'.format(key, feature_type.upper()))
+            ## visualize features:
+            #if 'mfcc' in feature_type:
+                #scale = None
+            #else:
+                #scale = 'power_to_db'
+            ##visualize features only every n num frames
+            #every_n_frames = 20
+            #if j % every_n_frames == 0:
+                #pyst.feats.plot(feats, feature_type = feature_type, scale=scale,
+                                #title='{} {} noisy features'.format(key, feature_type.upper()))
             feats = feats.reshape(extraction_shape[1:])
             # fill in empty matrix with features from each audiofile
 
             feats_matrix[j] = feats
-        # must be 2 D to visualize
-        pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3])), feature_type=feature_type,
-                        scale=scale, x_label='number of audio files',
-                        title='{} {} noisy features'.format(key, feature_type.upper()))
+        ## must be 2 D to visualize
+        #pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3])), feature_type=feature_type,
+                        #scale=scale, x_label='number of audio files',
+                        #title='{} {} noisy features'.format(key, feature_type.upper()))
         # save data:
         np.save(dataset_paths_noisy_dict[key], feats_matrix)
 
