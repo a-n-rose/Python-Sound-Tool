@@ -3,17 +3,17 @@ import pysoundtool as pyst
 import numpy as np
 import math
 
-
+# which features will we extract?
 feature_type = 'mfcc'  # 'fbank', 'stft', 'mfcc'
 feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
 
 
 # 1) specify clean and noisy audio directories, and ensure they exist
 audio_clean_path = pyst.utils.check_dir(\
-    './audiodata/minidatasets/denoise/cleanspeech_IEEE_small/', 
+    '/home/airos/Projects/Data/denoising_sample_data/clean_speech_IEEE/', 
                                          make=False)
 audio_noisy_path = pyst.utils.check_dir(\
-    './audiodata/minidatasets/denoise/noisyspeech_IEEE_small/',
+    '/home/airos/Projects/Data/denoising_sample_data/noisy_speech_varied_IEEE/',
                                          make=False)
 
 # 2) create paths for what we need to save:
@@ -21,8 +21,6 @@ denoise_data_path = pyst.utils.check_dir('./audiodata/test_denoiser/', make=True
 feat_extraction_dir = denoise_data_path.joinpath(feat_extraction_dir)
 feat_extraction_dir = pyst.utils.check_dir(feat_extraction_dir, make=True)
 # train, val, and test data
-# which features will we extract?
-feature_type = 'mfcc'  # 'fbank', 'stft', 'mfcc'
 data_train_noisy_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('train',
                                                                         'noisy',
                                                                       feature_type))
@@ -50,14 +48,18 @@ feature_settings_path = feat_extraction_dir.joinpath('feature_settings.csv')
 # 3) collect audiofiles and divide them into train, val, and test datasets
 # can do this different ways.. this is simply one way I've done it.
 
-noisyaudio = sorted(pyst.utils.collect_audiofiles(audio_noisy_path, 
+noisyaudio = pyst.utils.collect_audiofiles(audio_noisy_path, 
                                                   hidden_files = False,
                                                   wav_only = False,
-                                                  recursive = False))
-cleanaudio = sorted(pyst.utils.collect_audiofiles(audio_clean_path, 
+                                                  recursive = False)
+# remove non-audio files
+noisyaudio = sorted(pyst.data.ensure_only_audiofiles(noisyaudio))
+
+cleanaudio = pyst.utils.collect_audiofiles(audio_clean_path, 
                                                   hidden_files = False,
                                                   wav_only = False,
-                                                  recursive = False))
+                                                  recursive = False)
+cleanaudio = sorted(pyst.data.ensure_only_audiofiles(cleanaudio))
 
 # check if they match up:
 for i, audiofile in enumerate(noisyaudio):
@@ -104,20 +106,6 @@ path2_clean_dataset_waves = pyst.utils.save_dict(dataset_dict_clean,
                                                  path2_clean_dataset_waves,
                                                  overwrite=True)
 
-
-# clear out variables
-
-variables2remove = [noisyaudio, cleanaudio, noisy_audio_dict, clean_audio_dict,
-                    train_noisy, val_noisy, test_noisy, train_clean, val_clean, 
-                    test_clean]
-
-for var in variables2remove:
-    del var
-
-
-
-
-
 # 5) extract features
 
 '''When extracting features, need to first create empty matrix to fill.
@@ -126,7 +114,7 @@ This means we must know the final shape of all features put together:
 
 # decide settings, which will influence the size of data:
 sr = 22050
-win_size_ms = 25
+win_size_ms = 16
 percent_overlap = 0.5
 dur_sec = 3
 frames_per_sample = 11
@@ -233,6 +221,10 @@ if use_librosa:
             # fill in empty matrix with features from each audiofile
 
             feats_matrix[j] = feats
+            pyst.utils.print_progress(iteration = j, 
+                                      total_iterations = len(value),
+                                      task = '{} clean {} feature extraction'.format(
+                                          key, feature_type))
         ## must be 2 D to visualize
         #pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3])), feature_type=feature_type,
                         #scale=scale, x_label='number of audio files',
@@ -286,6 +278,10 @@ if use_librosa:
             # fill in empty matrix with features from each audiofile
 
             feats_matrix[j] = feats
+            pyst.utils.print_progress(iteration = j, 
+                                      total_iterations = len(value),
+                                      task = '{} noisy {} feature extraction'.format(
+                                          key, feature_type))
         ## must be 2 D to visualize
         #pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3])), feature_type=feature_type,
                         #scale=scale, x_label='number of audio files',
