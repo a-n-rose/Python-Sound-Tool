@@ -1,7 +1,6 @@
 
 import pysoundtool as pyst
-import numpy as np
-import math
+
 
 # which features will we extract?
 feature_type = 'mfcc'  # 'fbank', 'stft', 'mfcc'
@@ -147,159 +146,74 @@ if 'stft' in feature_type:
 else:
     complex_vals = False
     
-# depending on which packages one uses, shape of data changes.
-# for example, Librosa centers/zeropads data automatically
-# TODO see which shapes result from python_speech_features
-total_samples = pyst.dsp.calc_frame_length(dur_sec*1000, sr=sr)
-use_librosa= True
-# if using Librosa:
-if use_librosa:
-    hop_length = int(win_size_ms*percent_overlap*0.001*sr)
-    center=True
-    mode='reflect'
-    # librosa centers samples by default, sligthly adjusting total 
-    # number of samples
-    if center:
-        y_zeros = np.zeros((total_samples,))
-        y_centered = np.pad(y_zeros, int(n_fft // 2), mode=mode)
-        total_samples = len(y_centered)
-    # each audio file 
-    total_rows_per_wav = int(1 + (total_samples - n_fft)//hop_length)
+
+# save settings of features
+local_variables = locals()
+global_variables = globals()
+
+pyst.utils.save_dict(local_variables, 
+                    feat_extraction_dir.joinpath('local_variables_{}.csv'.format(
+                        feature_type)),
+                    overwrite=True)
+pyst.utils.save_dict(global_variables,
+                    feat_extraction_dir.joinpath('global_variables_{}.csv'.format(
+                        feature_type)),
+                    overwrite = True)
+
+# load audiofile dicts and convert value to list instead of string
+dataset_dict_clean = pyst.utils.load_dict(path2_clean_dataset_waves)
+for key, value in dataset_dict_clean.items():
+    if isinstance(value, str):
+        dataset_dict_clean[key] = pyst.utils.string2list(value)
+dataset_dict_noisy = pyst.utils.load_dict(path2_noisy_dataset_waves)
+for key, value in dataset_dict_noisy.items():
+    if isinstance(value, str):
+        dataset_dict_noisy[key] = pyst.utils.string2list(value)
+        
+# ensure the noisy and clean values match up:
+for key, value in dataset_dict_noisy.items():
+    for j, audiofile in enumerate(value):
+        if not pyst.utils.check_noisy_clean_match(audiofile,
+                                                dataset_dict_clean[key][j]):
+            raise ValueError('There is a mismatch between noisy and clean audio. '+\
+                '\nThe noisy file:\n{}'.format(dataset_dict_noisy[key][i])+\
+                    '\ndoes not seem to match the clean file:\n{}'.format(audiofile))
+
+
+pyst.feats.save_features_datasets_dicts(
+    datasets_dict = dataset_dict_clean,
+    datasets_path2save_dict = dataset_paths_clean_dict,
+    feature_type = feature_type,
+    sr = sr,
+    n_fft = n_fft,
+    dur_sec = dur_sec,
+    num_feats = num_feats,
+    use_librosa=True, 
+    win_size_ms = win_size_ms, 
+    percent_overlap = percent_overlap,
+    window='hann', 
+    center=True, 
+    mode='reflect',
+    frames_per_sample=11, 
+    complex_vals=complex_vals,
+    visualize=False, 
+    vis_every_n_frames=50)
     
-    
-    # adjust shape for autoencoder
-    # want smaller windows
-    batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
-
-    local_variables = locals()
-    global_variables = globals()
-    
-    pyst.utils.save_dict(local_variables, 
-                        feat_extraction_dir.joinpath('local_variables_{}.csv'.format(
-                            feature_type)),
-                        overwrite=True)
-    pyst.utils.save_dict(global_variables,
-                        feat_extraction_dir.joinpath('global_variables_{}.csv'.format(
-                            feature_type)),
-                        overwrite = True)
-    dataset_dict_clean = pyst.utils.load_dict(path2_clean_dataset_waves)
-    for key, value in dataset_dict_clean.items():
-        # when loading a dictionary, the value is a string
-        if isinstance(value, str):
-            dataset_dict_clean[key] = pyst.utils.string2list(value)
-            value = dataset_dict_clean[key]
-        extraction_shape = (len(value),
-            batch_size, frames_per_sample,
-            num_feats)
-        
-        feats_matrix = pyst.dsp.create_empty_matrix(
-            extraction_shape, 
-            complex_vals=complex_vals)
-        
-        for j, audiofile in enumerate(value):
-            feats = pyst.feats.get_feats(audiofile,
-                                        sr=sr,
-                                        features=feature_type,
-                                        win_size_ms=win_size_ms,
-                                        percent_overlap=percent_overlap,
-                                        window='hann',
-                                        num_filters=num_feats,
-                                        num_mfcc=num_feats,
-                                        duration=dur_sec)
-  
-            # zeropad feats if too short:
-            feats = pyst.data.zeropad_features(feats, 
-                                               desired_shape = (
-                                                   extraction_shape[1]*extraction_shape[2],
-                                                   extraction_shape[3]),
-                                               complex_vals = complex_vals)
-            ## visualize features:
-            #if 'mfcc' in feature_type:
-                #scale = None
-            #else:
-                #scale = 'power_to_db'
-            ##visualize features only every n num frames
-            #every_n_frames = 20
-            #if j % every_n_frames == 0:
-                #pyst.feats.plot(feats, feature_type = feature_type, scale=scale,
-                                #title='{} {} clean features'.format(key, feature_type.upper()))
-            feats = feats.reshape(extraction_shape[1:])
-            # fill in empty matrix with features from each audiofile
-
-            feats_matrix[j] = feats
-            pyst.utils.print_progress(iteration = j, 
-                                      total_iterations = len(value),
-                                      task = '{} clean {} feature extraction'.format(
-                                          key, feature_type))
-        ## must be 2 D to visualize
-        #pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3])), feature_type=feature_type,
-                        #scale=scale, x_label='number of audio files',
-                        #title='{} {} clean features'.format(key, feature_type.upper()))
-        # save data:
-        np.save(dataset_paths_clean_dict[key], feats_matrix)
-        print('\nFeatures saved at {}\n'.format(dataset_paths_clean_dict[key]))
-
-    dataset_dict_noisy = pyst.utils.load_dict(path2_noisy_dataset_waves)
-    for key, value in dataset_dict_noisy.items():
-        # when loading a dictionary, the value is a string
-        if isinstance(value, str):
-            dataset_dict_noisy[key] = pyst.utils.string2list(value)
-            value = dataset_dict_noisy[key]
-        extraction_shape = (len(value),
-            batch_size, frames_per_sample,
-            num_feats)
-        
-        feats_matrix = pyst.dsp.create_empty_matrix(
-            extraction_shape, 
-            complex_vals=complex_vals)
-
-        for j, audiofile in enumerate(value):
-            if not pyst.utils.check_noisy_clean_match(audiofile,
-                                                    dataset_dict_clean[key][j]):
-                raise ValueError('There is a mismatch between noisy and clean audio. '+\
-                    '\nThe noisy file:\n{}'.format(dataset_dict_noisy[key][i])+\
-                        '\ndoes not seem to match the clean file:\n{}'.format(audiofile))
-
-            feats = pyst.feats.get_feats(audiofile,
-                                        sr=sr,
-                                        features=feature_type,
-                                        win_size_ms=win_size_ms,
-                                        percent_overlap=percent_overlap,
-                                        window='hann',
-                                        num_filters=num_feats,
-                                        num_mfcc=num_feats,
-                                        duration=dur_sec)
-  
-            # zeropad feats if too short:
-            feats = pyst.data.zeropad_features(feats, 
-                                               desired_shape = (
-                                                   extraction_shape[1]*extraction_shape[2],
-                                                   extraction_shape[3]),
-                                               complex_vals = complex_vals)
-            ## visualize features:
-            #if 'mfcc' in feature_type:
-                #scale = None
-            #else:
-                #scale = 'power_to_db'
-            ##visualize features only every n num frames
-            #every_n_frames = 20
-            #if j % every_n_frames == 0:
-                #pyst.feats.plot(feats, feature_type = feature_type, scale=scale,
-                                #title='{} {} noisy features'.format(key, feature_type.upper()))
-            feats = feats.reshape(extraction_shape[1:])
-            # fill in empty matrix with features from each audiofile
-
-            feats_matrix[j] = feats
-            pyst.utils.print_progress(iteration = j, 
-                                      total_iterations = len(value),
-                                      task = '{} noisy {} feature extraction'.format(
-                                          key, feature_type))
-        ## must be 2 D to visualize
-        #pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3])), feature_type=feature_type,
-                        #scale=scale, x_label='number of audio files',
-                        #title='{} {} noisy features'.format(key, feature_type.upper()))
-        # save data:
-        np.save(dataset_paths_noisy_dict[key], feats_matrix)
-        print('\nFeatures saved at {}\n'.format(dataset_paths_noisy_dict[key]))
-        
-
+pyst.feats.save_features_datasets_dicts(
+    datasets_dict = dataset_dict_noisy,
+    datasets_path2save_dict = dataset_paths_noisy_dict,
+    feature_type = feature_type,
+    sr = sr,
+    n_fft = n_fft,
+    dur_sec = dur_sec,
+    num_feats = num_feats,
+    use_librosa=True, 
+    win_size_ms = win_size_ms, 
+    percent_overlap = percent_overlap,
+    window='hann', 
+    center=True, 
+    mode='reflect',
+    frames_per_sample=11, 
+    complex_vals=complex_vals,
+    visualize=False, 
+    vis_every_n_frames=50)

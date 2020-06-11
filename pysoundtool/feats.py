@@ -13,6 +13,7 @@ packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
 import numpy as np
+import math
 import librosa
 import pathlib
 from python_speech_features import logfbank, mfcc
@@ -967,7 +968,7 @@ def add_tensor(matrix):
         raise TypeError('Expected type numpy.ndarray, recieved {}'.format(
             type(matrix)))
     
-# TODO improve / remove
+# TODO improve / remove.. move to data module?
 def scale_X_y(matrix, is_train=True, scalars=None):
     '''Separates and scales data into X and y arrays. Adds dimension for keras.
     
@@ -1019,6 +1020,7 @@ def scale_X_y(matrix, is_train=True, scalars=None):
     y = pyst.feats.add_tensor(y)
     return X, y, scalars
 
+# TODO move to data module??
 def normalize(data):
     # need to take power - complex values in stft
     if data.dtype == np.complex_:
@@ -1027,6 +1029,98 @@ def normalize(data):
     data = (data - np.min(data)) / \
         (np.max(data) - np.min(data))
     return data
+
+
+
+
+def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict,
+                                    feature_type, sr, n_fft, dur_sec, num_feats,
+                                    win_size_ms, percent_overlap,use_librosa=True, 
+                                    window='hann', center=True, mode='reflect',
+                                    frames_per_sample=None, complex_vals=False,
+                                    visualize=False, vis_every_n_frames=50):
+    
+    # depending on which packages one uses, shape of data changes.
+    # for example, Librosa centers/zeropads data automatically
+    # TODO see which shapes result from python_speech_features
+    total_samples = pyst.dsp.calc_frame_length(dur_sec*1000, sr=sr)
+    # if using Librosa:
+    if use_librosa:
+        hop_length = int(win_size_ms*percent_overlap*0.001*sr)
+        # librosa centers samples by default, sligthly adjusting total 
+        # number of samples
+        if center:
+            y_zeros = np.zeros((total_samples,))
+            y_centered = np.pad(y_zeros, int(n_fft // 2), mode=mode)
+            total_samples = len(y_centered)
+        # each audio file 
+        total_rows_per_wav = int(1 + (total_samples - n_fft)//hop_length)
+        
+        # adjust shape for model
+        if frames_per_sample is not None:
+            # want smaller windows, e.g. autoencoder denoiser
+            batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
+            input_shape = (batch_size, frames_per_sample, num_feats)
+        else:
+            input_shape = (int(total_rows_per_wav), num_feats + 1)
+        for key, value in datasets_dict.items():
+            # when loading a dictionary, the value is a string
+            if isinstance(value, str):
+                value = pyst.utils.string2list(value)
+            extraction_shape = (len(value),) + input_shape
+            
+            feats_matrix = pyst.dsp.create_empty_matrix(
+                extraction_shape, 
+                complex_vals=complex_vals)
+            
+            for j, audiofile in enumerate(value):
+                feats = pyst.feats.get_feats(audiofile,
+                                            sr=sr,
+                                            features=feature_type,
+                                            win_size_ms=win_size_ms,
+                                            percent_overlap=percent_overlap,
+                                            window=window,
+                                            num_filters=num_feats,
+                                            num_mfcc=num_feats,
+                                            duration=dur_sec)
+    
+                # zeropad feats if too short:
+                feats = pyst.data.zeropad_features(
+                    feats, 
+                    desired_shape = (extraction_shape[1]*extraction_shape[2],
+                                     extraction_shape[3]),
+                    complex_vals = complex_vals)
+                if visualize:
+                    # visualize features:
+                    if 'mfcc' in feature_type:
+                        scale = None
+                    else:
+                        scale = 'power_to_db'
+                    #visualize features only every n num frames
+                    if j % vis_every_n_frames == 0:
+                        pyst.feats.plot(feats, 
+                                        feature_type = feature_type, 
+                                        scale=scale,
+                                        title='{} {} clean features'.format(
+                                            key, feature_type.upper()))
+                feats = feats.reshape(extraction_shape[1:])
+                # fill in empty matrix with features from each audiofile
+
+                feats_matrix[j] = feats
+                pyst.utils.print_progress(iteration = j, 
+                                        total_iterations = len(value),
+                                        task = '{} clean {} feature extraction'.format(
+                                            key, feature_type))
+            if visualize:
+                # must be 2 D to visualize
+                pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3])), feature_type=feature_type,
+                                scale=scale, x_label='number of audio files',
+                                title='{} {} clean features'.format(key, feature_type.upper()))
+            # save data:
+            np.save(datasets_path2save_dict[key], feats_matrix)
+            print('\nFeatures saved at {}\n'.format(datasets_path2save_dict[key]))
+
+
 
 if __name__ == "__main__":
     import doctest
