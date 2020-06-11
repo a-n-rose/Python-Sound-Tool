@@ -110,6 +110,9 @@ variables2remove = [noisyaudio, cleanaudio, train_noisy, val_noisy, test_noisy,
                     train_clean, val_clean, test_clean, dataset_dict_noisy, 
                     dataset_dict_clean]
 
+for var in variables2remove:
+    del var
+
 
 # 5) extract features
 
