@@ -9,7 +9,6 @@ import os, sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
-#parentdir = os.path.dirname(currentdir)
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
@@ -185,34 +184,6 @@ class FeatPrep_SoundClassifier(AcousticData):
         '''
         max_num_samps = (filter_features.shape[0]//num_sets) * num_sets
         return int(max_num_samps)
-
-    def samps2feats(self, y, augment_data=None):
-        '''Gets features from section of samples, at varying volumes.
-        '''
-        # when applying this to new data, dont't want to augment it.
-        if not augment_data and self.augment_data:
-            samples = pyst.augmentdata.spread_volumes(y)
-        else:
-            samples = (y,)
-        feat_matrix = pyst.dsp.create_empty_matrix(
-            (int(self.num_images_per_audiofile*len(samples)),
-             self.feature_sets,
-             self.num_columns))
-        row = 0
-        for sample_set in samples:
-            feats, frame_length, win_size_ms = pyst.dsp.collect_features(
-                feature_type=self.feature_type,
-                samples=y,
-                sr=self.sr,
-                win_size_ms=self.window_size,
-                window_shift_ms=self.window_shift,
-                num_filters=self.num_filters,
-                num_mfcc=self.num_mfcc,
-                window_function=self.window_type)
-            assert frame_length == self.fft_bins
-            feat_matrix[row:row+len(feats)] = feats[:self.feature_sets]
-            row += len(feats)
-        return feat_matrix
 
     def extractfeats(self, sounddata, dur_sec=None, augment_data=None):
         '''Organizes feat extraction of each audiofile according to class attributes.
@@ -1047,6 +1018,15 @@ def scale_X_y(matrix, is_train=True, scalars=None):
     X = pyst.feats.add_tensor(X)
     y = pyst.feats.add_tensor(y)
     return X, y, scalars
+
+def normalize(data):
+    # need to take power - complex values in stft
+    if data.dtype == np.complex_:
+        # take power of absoulte value of stft
+        data = np.abs(data)**2
+    data = (data - np.min(data)) / \
+        (np.max(data) - np.min(data))
+    return data
 
 if __name__ == "__main__":
     import doctest
