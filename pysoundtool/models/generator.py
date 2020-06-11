@@ -116,18 +116,11 @@ class Generator:
             # TODO: is there a difference between taking log of stft before 
             # or after normalization?
             if not self.normalized or self.datax.dtype == np.complex_:
-                # need to take power - complex values in stft
-                if self.datax.dtype == np.complex_:
-                    # take power of absoulte value of stft
-                    batch_x = np.abs(batch_x)**2
-                    if self.labels is None:
-                        batch_y = np.abs(batch_y)**2
-                batch_x = (batch_x - np.min(batch_x)) / \
-                    (np.max(batch_x) - np.min(batch_x))
-                # don't need to touch labels
-                if self.labels is None: 
-                    batch_y = (batch_y - np.min(batch_y)) / \
-                        (np.max(batch_y) - np.min(batch_y))
+                # if complex data, power spectrum will be extracted
+                # power spectrum = np.abs(complex_data)**2
+                batch_x = pyst.feats.normalize(batch_x)
+                if self.labels is None:
+                    batch_y = pyst.feats.normalize(batch_y)
             # apply log if specified
             if self.apply_log: 
                 batch_x = np.log(np.abs(batch_x))
