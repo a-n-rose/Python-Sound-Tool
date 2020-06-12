@@ -161,7 +161,7 @@ if use_librosa:
             # fill in empty matrix with features from each audiofile
             feats_matrix[j] = feats
             # must be 2 D to visualize
-            pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1], feats_matrix.shape[2]), feature_type=feature_type)
+            pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1], feats_matrix.shape[2])), feature_type=feature_type)
         # save data:
         np.save(dataset_paths[i], feats_matrix)
 
