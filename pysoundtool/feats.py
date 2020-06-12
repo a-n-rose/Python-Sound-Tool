@@ -1045,9 +1045,10 @@ def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict, dur_sec
                                     feature_type='fbank', num_feats=None, sr=22050, 
                                     win_size_ms=20, percent_overlap=0.5, n_fft = None,
                                     window='hann',frames_per_sample=None,labeled_data=False, 
-                                    subsection_data=False, divide_factor=5,visualize=False, 
-                                    vis_every_n_frames=50, save_visuals=True,
-                                    use_librosa=True, center=True, mode='reflect'):
+                                    subsection_data=False, divide_factor=5,
+                                    visualize=False, vis_every_n_frames=50, 
+                                    use_librosa=True, center=True, mode='reflect', 
+                                    log_settings=True):
     '''Extracts and saves audio features, sectioned into datasets, to indicated locations.
     
     If MemoryError, the provided dataset dicts will be adjusted to allow data to be subsectioned.
@@ -1098,12 +1099,9 @@ def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict, dur_sec
         If smaller datasets (i.e. validation and test datasets) are as large or smaller than 
         the new subsectioned larger dataset(s) (i.e. train), they will be left unchanged.
     visualize : bool
-        If True, periodic plots of the features will be made throughout the extraction process.
+        If True, periodic plots of the features will be saved throughout the extraction process. (default False)
     vis_every_n_frames : int 
         How often visuals should be made: every 10 samples, every 100, etc. (default 50)
-    save_visuals : bool 
-        If True, instead of showing the plots, the plots will be saved in the data extraction folder.
-        (default True)
     use_librosa : bool 
         If True, librosa is used to load and extract features. As of now, no other option is 
         available. TODO: add other options. :P I just wanted to be clear that some elements
@@ -1112,6 +1110,9 @@ def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict, dur_sec
         Relevant for librosa and feature extraction. (default True)
     mode : str 
         Relevant for librosa and feature extraction. (default 'reflect')
+    log_settings : bool
+        If True, a .csv file will be saved in the feature extraction directory with 
+        most of the feature settings saved. (default True)
     
     Returns
     -------
@@ -1244,7 +1245,7 @@ def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict, dur_sec
                                             scale=scale,
                                             title='{} {} features'.format(
                                                 key, feature_type.upper()),
-                                            save_pic=save_visuals, 
+                                            save_pic=visualize, 
                                             name4pic=save_pic_path)
                     feats = feats.reshape(extraction_shape[1:])
                     # fill in empty matrix with features from each audiofile
@@ -1257,6 +1258,33 @@ def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict, dur_sec
                 # save data:
                 np.save(datasets_path2save_dict[key], feats_matrix)
                 print('\nFeatures saved at {}\n'.format(datasets_path2save_dict[key]))
+            if log_settings:
+                log_filename = datadir.joinpath('log_extraction_settings.csv')
+                feat_settings = dict(dur_sec=dur_sec,
+                                     feature_type=feature_type,
+                                     feat_type=feat_type,
+                                     complex_vals=complex_vals,
+                                     sr=sr,
+                                     num_feats=num_feats,
+                                     n_fft=n_fft,
+                                     win_size_ms=win_size_ms,
+                                     frame_length=frame_length,
+                                     percent_overlap=percent_overlap,
+                                     window=window,
+                                     frames_per_sample=frames_per_sample,
+                                     labeled_data=labeled_data,
+                                     visualize=visualize,
+                                     total_samples=total_samples,
+                                     input_shape=input_shape,
+                                     use_librosa=use_librosa,
+                                     center=center,
+                                     mode=mode,
+                                     subsection_data=subsection_data,
+                                     divide_factor=divide_factor,
+                                     )
+                feat_settings_path = pyst.utils.save_dict(feat_settings,
+                                                          log_filename,
+                                                          overwrite=True)
         else:
             raise ValueError('Sorry, this functionality is not yet supported. '+\
                 'Set `use_librosa` to True.')
@@ -1273,7 +1301,8 @@ def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict, dur_sec
                                             frames_per_sample=frames_per_sample,
                                             visualize=visualize, 
                                             vis_every_n_frames=vis_every_n_frames, 
-                                            labeled_data=labeled_data)
+                                            labeled_data=labeled_data,
+                                            log_settings=log_settings)
 
 if __name__ == "__main__":
     import doctest
