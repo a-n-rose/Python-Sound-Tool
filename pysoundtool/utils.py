@@ -124,9 +124,8 @@ def get_date():
                                         int(time.microsecond*0.001))
     return(time_str)
 
-    
 def check_dir(directory, make=True, write_into=True):
-    '''Checks if directory exists
+    '''Checks if directory exists and creates it if indicated.
     
     Parameters
     ----------
@@ -155,7 +154,11 @@ def check_dir(directory, make=True, write_into=True):
             +str(directory)+' ~\nas a directory? If so, remove extension.')
     if not os.path.exists(directory):
         if make:
-            os.mkdir(directory)
+            try:
+                os.mkdir(directory)
+            except FileNotFoundError:
+                # parent directories might not exist
+                directory = create_nested_dirs(directory)
         else:
             raise FileNotFoundError('The following directory does not exist: '+\
                 '\n{}'.format(directory))
@@ -164,6 +167,20 @@ def check_dir(directory, make=True, write_into=True):
             raise FileExistsError('The following directory already exists: '+\
                 '\n{}'.format(directory)+'\nTo write into this directory, '+\
                     'set `write_into` to True.')
+    return directory
+
+def create_nested_dirs(directory):
+    '''Creates directory even if several parent directories don't exist.
+    '''
+    if not isinstance(directory, pathlib.PosixPath):
+        directory = pathlib.Path(directory)
+    try:
+        os.mkdir(directory)
+    except FileNotFoundError:
+        path_parent = create_nested_dirs(directory.parent)
+        local_dirname = directory.name 
+        directory = path_parent.joinpath(local_dirname)
+        os.mkdir(directory)
     return directory
 
 def string2list(list_paths_string):
