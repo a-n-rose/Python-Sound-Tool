@@ -3,7 +3,7 @@ import pysoundtool as pyst
 import numpy as np
 
 # classifier:
-feature_type = 'stft'  # 'fbank', 'stft', 'mfcc'
+feature_type = 'stft'  # 'fbank', 'stft', 'mfcc', 'powspec'
 feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
 
 # 1) collect labels 
