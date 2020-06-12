@@ -157,6 +157,5 @@ pyst.feats.save_features_datasets_dicts(
     center=True, 
     mode='reflect',
     frames_per_sample=None, 
-    complex_vals=complex_vals,
     visualize=True, 
     vis_every_n_frames=30)
