@@ -45,7 +45,8 @@ scene_classifier, settings_dict = soundmodels.cnn_classifier(input_shape = input
                                               num_labels = num_labels)
 
 callbacks = soundmodels.setup_callbacks(patience=15,
-                                        best_modelname = model_path)
+                                        best_modelname = model_path,
+                                        log_filename = model_dir.joinpath('log.csv'))
 optimizer = 'adam'
 loss = 'sparse_categorical_crossentropy'
 metrics = ['accuracy']
