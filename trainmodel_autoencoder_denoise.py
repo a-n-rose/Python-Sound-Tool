@@ -55,7 +55,8 @@ denoiser, settings_dict = soundmodels.autoencoder_denoise(
     input_shape = input_shape)
 
 callbacks = soundmodels.setup_callbacks(patience=5,
-                                        best_modelname=model_path)
+                                        best_modelname = model_path, 
+                                        log_filename = model_dir.joinpath('log.csv'))
 adm = keras.optimizers.Adam(learning_rate=0.0001)
 denoiser.compile(optimizer=adm, loss='binary_crossentropy')
 
