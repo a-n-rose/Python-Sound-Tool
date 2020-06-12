@@ -31,10 +31,6 @@ data_val_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('val',
                                                                       feature_type))
 data_test_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('test',
                                                                       feature_type))
-## TODO
-## log feature settings as well!
-#feature_settings_path = feat_extraction_dir.joinpath('feature_settings.csv')
-
 
 # 3) create and save encoding/decoding labels dicts
 dict_encode, dict_decode = pyst.data.create_dicts_labelsencoded(labels)
@@ -84,14 +80,6 @@ try:
 except FileExistsError:
     pass
 
-
-# clear out variables
-variables2remove = [dataset_dict, train, val, test, paths_list,
-                    dict_encdodedlabel2audio_path, dict_encodedlabel2audio]
-
-for var in variables2remove:
-    del var
-
 # 5) extract features
 
 '''When extracting features, need to first create empty matrix to fill.
@@ -124,10 +112,16 @@ if 'stft' in feature_type:
     complex_vals = True
     
    
-# which variables to include?
+# save information that could be relevant 
+#(which audiofiles assigned to which datasets, etc)
+# TODO: which info / variables to include? Fine tune.
+# clear out redundant variables
+variables2remove = [dataset_dict, train, val, test, paths_list,
+                    dict_encdodedlabel2audio_path, dict_encodedlabel2audio]
+for var in variables2remove:
+    del var
 local_variables = locals()
 global_variables = globals()
-
 pyst.utils.save_dict(local_variables, 
                     feat_extraction_dir.joinpath('local_variables_{}.csv'.format(
                         feature_type)),
@@ -136,6 +130,7 @@ pyst.utils.save_dict(global_variables,
                     feat_extraction_dir.joinpath('global_variables_{}.csv'.format(
                         feature_type)),
                     overwrite = True)
+    
     
 # load the dataset_dict:
 dataset_dict = pyst.utils.load_dict(dataset_dict_path)

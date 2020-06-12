@@ -51,11 +51,6 @@ data_test_clean_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('
                                                                        'clean',
                                                                       feature_type))
 
-# TODO
-# log feature settings as well!
-feature_settings_path = feat_extraction_dir.joinpath('feature_settings.csv')
-
-
 # 3) collect audiofiles and divide them into train, val, and test datasets
 # can do this different ways.. this is simply one way I've done it.
 
@@ -117,14 +112,6 @@ path2_clean_dataset_waves = pyst.utils.save_dict(dataset_dict_clean,
                                                  path2_clean_dataset_waves,
                                                  overwrite=True)
 
-variables2remove = [noisyaudio, cleanaudio, train_noisy, val_noisy, test_noisy,
-                    train_clean, val_clean, test_clean, dataset_dict_noisy, 
-                    dataset_dict_clean]
-
-for var in variables2remove:
-    del var
-
-
 # 5) extract features
 
 '''When extracting features, need to first create empty matrix to fill.
@@ -155,10 +142,17 @@ if 'stft' or 'powspec' in feature_type:
     # num features is the number of fft bins divided by 2 + 1
     num_feats = int(1+n_fft/2)
 
-# save settings of features
+
+# save settings of features - simply save local and global variables
+# try to remove irrelevant and large variables first
+# TODO sort through which are definitely useful
+variables2remove = [noisyaudio, cleanaudio, train_noisy, val_noisy, test_noisy,
+                    train_clean, val_clean, test_clean, dataset_dict_noisy, 
+                    dataset_dict_clean]
+for var in variables2remove:
+    del var
 local_variables = locals()
 global_variables = globals()
-
 pyst.utils.save_dict(local_variables, 
                     feat_extraction_dir.joinpath('local_variables_{}.csv'.format(
                         feature_type)),
@@ -167,6 +161,7 @@ pyst.utils.save_dict(global_variables,
                     feat_extraction_dir.joinpath('global_variables_{}.csv'.format(
                         feature_type)),
                     overwrite = True)
+
 
 # load audiofile dicts and convert value to list instead of string
 dataset_dict_clean = pyst.utils.load_dict(path2_clean_dataset_waves)
