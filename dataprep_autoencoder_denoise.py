@@ -3,7 +3,7 @@ import pysoundtool as pyst
 
 
 # which features will we extract?
-feature_type = 'mfcc'  # 'fbank', 'stft', 'mfcc'
+feature_type = 'fbank'  # 'fbank', 'stft', 'mfcc'
 feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
 
 
@@ -123,7 +123,7 @@ This means we must know the final shape of all features put together:
 sr = 22050
 win_size_ms = 16
 percent_overlap = 0.5
-dur_sec = 3
+dur_sec = 3.5
 frames_per_sample = 11
 # decide number of features:
 # for mfcc, this is the number of mel cepstral coefficients (common: 13, 40)
@@ -183,7 +183,7 @@ for key, value in dataset_dict_noisy.items():
 pyst.feats.save_features_datasets_dicts(
     datasets_dict = dataset_dict_clean,
     datasets_path2save_dict = dataset_paths_clean_dict,
-    feature_type = feature_type,
+    feature_type = feature_type + ' clean',
     sr = sr,
     n_fft = n_fft,
     dur_sec = dur_sec,
@@ -196,13 +196,13 @@ pyst.feats.save_features_datasets_dicts(
     mode='reflect',
     frames_per_sample=11, 
     complex_vals=complex_vals,
-    visualize=False, 
+    visualize=True, 
     vis_every_n_frames=50)
     
 pyst.feats.save_features_datasets_dicts(
     datasets_dict = dataset_dict_noisy,
     datasets_path2save_dict = dataset_paths_noisy_dict,
-    feature_type = feature_type,
+    feature_type = feature_type + ' noisy',
     sr = sr,
     n_fft = n_fft,
     dur_sec = dur_sec,
@@ -215,5 +215,5 @@ pyst.feats.save_features_datasets_dicts(
     mode='reflect',
     frames_per_sample=11, 
     complex_vals=complex_vals,
-    visualize=False, 
+    visualize=True, 
     vis_every_n_frames=50)
