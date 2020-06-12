@@ -10,8 +10,8 @@ import pysoundtool as pyst
 
 ###############################################################################
 
-def setup_callbacks(early_stop=True, patience=15, csv_log=True,
-                        csv_filename=None, save_bestmodel=True, 
+def setup_callbacks(early_stop=True, patience=15, log=True,
+                        log_filename=None, save_bestmodel=True, 
                         best_modelname=None,monitor='val_loss', verbose=1, save_best_only=True, mode='min'):
     '''Easy set up of early stopping, model logging, and saving best model.
     
@@ -23,10 +23,10 @@ def setup_callbacks(early_stop=True, patience=15, csv_log=True,
     patience : int 
         The number of epochs the model should complete without improvement
         before stopping training. (default 15)
-    csv_log : bool 
+    log : bool 
         If true, the accuracy, loss, and (if possible) the val_accuracy and 
         val_loss for each epoch will be saved in a .csv file. (default True)
-    csv_filename : str or pathlib.PosixPath, optional
+    log_filename : str or pathlib.PosixPath, optional
         The filename the logging information will be stored. If None, 
         the date will be used as a unique .csv filename in a subfolder 
         'model_logs' in the local directory.
@@ -61,20 +61,20 @@ def setup_callbacks(early_stop=True, patience=15, csv_log=True,
             monitor=monitor,
             patience=patience)
         callbacks.append(early_stopping_callback)
-    if csv_log:
-        if csv_filename is None:
+    if log or log_filename:
+        if log_filename is None:
             # create directory to store log files:
             log_dir = pyst.utils.check_dir('./model_logs/', 
                                            make=True, 
                                            write_into=True)
-            csv_filename = '{}log_'.format(log_dir)+\
+            log_filename = '{}log_'.format(log_dir)+\
                 pyst.utils.get_date()+'.csv'
         # TODO test if pathlib.PosixPath won't work
         # if pathlib object, turn into string
         # TODO do some sort of check to ensure path is valid?
-        if not isinstance(csv_filename, str):
-            csv_filename = str(csv_filename)
-        csv_logging = CSVLogger(filename=csv_filename)
+        if not isinstance(log_filename, str):
+            log_filename = str(log_filename)
+        csv_logging = CSVLogger(filename=log_filename)
         callbacks.append(csv_logging)
     if save_bestmodel:
         if best_modelname is None:
