@@ -1,7 +1,7 @@
 ###############################################################################
 from . import paths
 from .paths import PathSetup
-from .utils import utils
+from . import utils
 from . import feats
 from .feats import FeatPrep_SoundClassifier, prepfeatures, getfeatsettings, \
     plotsound
