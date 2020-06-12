@@ -169,8 +169,10 @@ def check_dir(directory, make=True, write_into=True):
 def string2list(list_paths_string):
     '''Take a string of wavfiles list and establishes back to list
 
-    This handles lists of strings, lists of pathlib.PosixPath objects, and lists 
-    of pathlib.PurePosixPath objects that were converted into a type string object.
+    Warning: this is a very specific function. It has not been tested to handle
+    a variety of string lists. This handles lists of strings, lists of 
+    pathlib.PosixPath objects, and lists of pathlib.PurePosixPath objects that 
+    were converted into a type string object.
 
     Parameters
     ----------
@@ -193,14 +195,55 @@ def string2list(list_paths_string):
     >>> type(typelist)
     <class 'list'>
     '''
-    # remove the string brackets and separate by space and comma --> list
     try:
         # first use reliable module to turn string list into list
         list_paths = ast.literal_eval(list_paths_string)
     except ValueError:
         # ast doesn't handle lists of pathlib.PosixPath objects
         # TODO further testing
-        # remove the string brackets and separate by space and comma --> list
+        # remove the string brackets '[' and ']'
+        list_remove_brackets = list_paths_string[1:-1]
+        if list_remove_brackets[0] == '(' and list_remove_brackets[-1] == ')':
+            # list of tuples
+            tuple_string = list_remove_brackets.split('), ')
+            tuple_list = [tuple(x.split(', ') for x in tuple_string)]
+            list_paths = []
+            for item in tuple_list:
+                item_list = []
+                for t in item:
+                    if t[0][0] == '(':
+                        t[0] = t[0][1:]
+                    if t[-1][-1] == ')':
+                        t[-1] = t[-1][:-1]
+                    item_list.append(t)
+                list_paths.append(tuple(item_list))
+            # turn into pathlib.PosixPath objects
+            list_pathlib = []
+            for item in list_paths:
+                item_list = []
+                for label, path in item:
+                    if label.isdigit():
+                        label = int(label)
+                    if 'PurePosixPath' in path:
+                        remove_str = "PurePosixPath('"
+                        end_index = -1
+                    elif 'PosixPath' in path:
+                        remove_str = "PosixPath('"
+                        end_index = -1
+                    else:
+                        remove_str = "('"
+                        end_index = -1
+                    audiopath = path.replace(remove_str, '')[:end_index]
+                    # end of tuple list, extra "'" character. 
+                    # get rid of it
+                    if audiopath[-1] == "'":
+                        audiopath = audiopath[:-1]
+                    audiopath = pathlib.Path(audiopath)
+                    item_list.append(tuple([label, audiopath]))
+                list_pathlib.append(item_list)
+            list_paths = list_pathlib[0]
+            return list_paths
+        
         list_string_red = list_paths_string[1:-1].split(', ')
         if 'PurePosixPath' in list_paths_string:
             remove_str = "PurePosixPath('"
@@ -217,7 +260,6 @@ def string2list(list_paths_string):
             list_paths.append(pathlib.Path(
                 path.replace(remove_str, '')[:end_index]))
     return list_paths
-
 
 def adjust_time_units(time_sec):
     if time_sec >= 60 and time_sec < 3600:
@@ -240,7 +282,6 @@ def print_progress(iteration, total_iterations, task = None):
         sys.stdout.write("\r%d%% through current task" % progress)
     sys.stdout.flush()
     
-
 def check_extraction_variables(sr, feature_type,
               window_size_ms, window_shift):
     accepted_features = ['fbank', 'stft', 'mfcc', 'signal']
@@ -375,7 +416,6 @@ def make_number(value):
     except ValueError as e:
         print(e)
     return value
-
 
 def save_dict(dict2save, filename, overwrite=False):
     '''Saves dictionary as csv file to indicated path and filename
