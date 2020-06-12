@@ -3,16 +3,28 @@ import pysoundtool as pyst
 
 
 # which features will we extract?
-feature_type = 'fbank'  # 'fbank', 'stft', 'mfcc'
+feature_type = 'powspec'  # 'fbank', 'stft', 'mfcc', 'powspec'
 feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
+visualize = True
 
+
+## datasets:
+## clean
+# clean_speech_uwnu
+# clean_speech_IEEE
+# cleanspeech_IEEE_small
+
+## noisy
+# noisy_speech_car_uwnu
+# noisy_speech_varied_IEEE
+# noisyspeech_IEEE_small
 
 # 1) specify clean and noisy audio directories, and ensure they exist
 audio_clean_path = pyst.utils.check_dir(\
-    '/home/airos/Projects/Data/denoising_sample_data/clean_speech_IEEE/', 
+    '/home/airos/Projects/Data/denoising_sample_data/cleanspeech_IEEE_small/', 
                                          make=False)
 audio_noisy_path = pyst.utils.check_dir(\
-    '/home/airos/Projects/Data/denoising_sample_data/noisy_speech_varied_IEEE/',
+    '/home/airos/Projects/Data/denoising_sample_data/noisyspeech_IEEE_small/',
                                          make=False)
 
 # 2) create paths for what we need to save:
@@ -137,15 +149,11 @@ n_fft = win_size_ms * sr // 1000
 frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
 
 # number of features for stft data may be different if not using Librosa.
-if 'stft' in feature_type:
+if 'stft' or 'powspec' in feature_type:
     # using Librosa for extracing stft features:
     # according to Librosa 
     # num features is the number of fft bins divided by 2 + 1
     num_feats = int(1+n_fft/2)
-    complex_vals = True
-else:
-    complex_vals = False
-    
 
 # save settings of features
 local_variables = locals()
@@ -179,7 +187,6 @@ for key, value in dataset_dict_noisy.items():
                 '\nThe noisy file:\n{}'.format(dataset_dict_noisy[key][i])+\
                     '\ndoes not seem to match the clean file:\n{}'.format(audiofile))
 
-
 pyst.feats.save_features_datasets_dicts(
     datasets_dict = dataset_dict_clean,
     datasets_path2save_dict = dataset_paths_clean_dict,
@@ -188,16 +195,16 @@ pyst.feats.save_features_datasets_dicts(
     n_fft = n_fft,
     dur_sec = dur_sec,
     num_feats = num_feats,
-    use_librosa=True, 
     win_size_ms = win_size_ms, 
     percent_overlap = percent_overlap,
     window='hann', 
     center=True, 
     mode='reflect',
     frames_per_sample=11, 
-    complex_vals=complex_vals,
-    visualize=True, 
-    vis_every_n_frames=50)
+    visualize=visualize, 
+    vis_every_n_frames=100,
+    subsection_data=False,
+    divide_factor=5)
     
 pyst.feats.save_features_datasets_dicts(
     datasets_dict = dataset_dict_noisy,
@@ -207,13 +214,13 @@ pyst.feats.save_features_datasets_dicts(
     n_fft = n_fft,
     dur_sec = dur_sec,
     num_feats = num_feats,
-    use_librosa=True, 
     win_size_ms = win_size_ms, 
     percent_overlap = percent_overlap,
     window='hann', 
     center=True, 
     mode='reflect',
     frames_per_sample=11, 
-    complex_vals=complex_vals,
-    visualize=True, 
-    vis_every_n_frames=50)
+    visualize=visualize, 
+    vis_every_n_frames=100,
+    subsection_data=False,
+    divide_factor=5)
