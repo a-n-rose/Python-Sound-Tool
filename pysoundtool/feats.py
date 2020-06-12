@@ -1297,17 +1297,25 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         print('\nSectioning data and trying again.\n')
         datasets_dict, datasets_path2save_dict = pyst.data.section_data(
             datasets_dict, datasets_path2save_dict, divide_factor=divide_factor)
-        datasets_dict, datasets_path2save_dict = save_features_datasets_dicts(
-            datasets_dict, datasets_path2save_dict,
-            feature_type, sr, n_fft, dur_sec, num_feats,
-            win_size_ms, percent_overlap,
-            use_librosa=use_librosa, 
-            window=window, center=center, mode=mode,
-            frames_per_sample=frames_per_sample,
-            visualize=visualize, 
-            vis_every_n_frames=vis_every_n_frames, 
-            labeled_data=labeled_data,
-            log_settings=log_settings)
+        datasets_dict, datasets_path2save_dict = save_features_datasets(
+            datasets_dict = datasets_dict, 
+            datasets_path2save_dict = datasets_path2save_dict,
+            feature_type = feature_type, 
+            sr = sr, 
+            n_fft = n_fft, 
+            dur_sec = dur_sec,
+            num_feats = num_feats,
+            win_size_ms = win_size_ms,
+            percent_overlap = percent_overlap,
+            use_librosa = use_librosa, 
+            window = window,
+            center = center,
+            mode = mode,
+            frames_per_sample = frames_per_sample,
+            visualize = visualize, 
+            vis_every_n_frames = vis_every_n_frames, 
+            labeled_data = labeled_data,
+            log_settings = log_settings)
     return datasets_dict, datasets_path2save_dict
 
 if __name__ == "__main__":
