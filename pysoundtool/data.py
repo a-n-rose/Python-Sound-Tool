@@ -897,52 +897,65 @@ def adjust_data_shape(data, desired_shape):
                                                  desired_shape = desired_shape)
     return data_prepped
 
-def section_data(dataset_dict, dataset_paths_dict):
+def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     '''Expects keys of these two dictionaries to match
     
     Examples
     --------
     >>> import pathlib
     >>> # train is longer than val and test
-    >>> d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    >>> d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
             'val': [1, 2, 3, 4, 5],
             'test': [1, 2, 3, 4, 5]}
-    
+        d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+            'val': [1, 2, 3],
+            'test': [1, 2, 3, 4, 5]}
+    >>> # dictionary: paths to where extracted data will be saved
     >>> dp = {'train': pathlib.PosixPath('train_data.npy'),
               'val': pathlib.PosixPath('val_data.npy'),
-              'test': pathlib.PosixPath('test__data.npy')}
-    >>> d2, dp2 = section_data(d, dp)
+              'test': pathlib.PosixPath('test_data.npy')}
+    >>> d2, dp2 = section_data(d, dp, divide_factor = 3)
+    >>> # val and train not touched (too small)
     >>> d2
-    {'train': [1, 2, 3, 4, 5],
-    'train__1': [6, 7, 8, 9, 10],
+    {'train__1': [1, 2, 3, 4, 5],
+    'train__2': [6, 7, 8, 9, 10],
+    'train__3': [11, 12, 13, 14, 15],
     'val': [1, 2, 3, 4, 5],
     'test': [1, 2, 3, 4, 5]}
     >>> dp2
-    {'train': PosixPath('train_data.npy'),
-    'train__1': PosixPath('train_data__1.npy'),
-    'val': PosixPath('val_data.npy'),
-    'test': PosixPath('test__data.npy')}
-    >>> # repeat: now val and test as long as train
-    >>> d3, dp3 = section_data(d2, dp2)
-    >>> d3
-    {'train': [1, 2],
-    'train__2': [3, 4, 5],
-    'train__1': [6, 7],
-    'train__3': [8, 9, 10],
-    'val': [1, 2],
-    'val__1': [3, 4, 5],
-    'test': [1, 2],
-    'test__1': [3, 4, 5]}
-    >>> dp3
-    {'train': PosixPath('train_data.npy'),
+    {'train__1': PosixPath('train_data__1.npy'),
     'train__2': PosixPath('train_data__2.npy'),
-    'train__1': PosixPath('train_data__1.npy'),
     'train__3': PosixPath('train_data__3.npy'),
     'val': PosixPath('val_data.npy'),
+    'test': PosixPath('test_data.npy')}
+    >>> # repeat: now val and test as long as train
+    >>> # default divide_factor is 2
+    >>> d3, dp3 = section_data(d2, dp2)
+    >>> d3
+    {'train__1': PosixPath('train_data__1.npy'),
+    'train__2': PosixPath('train_data__2.npy'),
+    'train__3': PosixPath('train_data__3.npy'),
+    'train__4': PosixPath('train_data__4.npy'),
+    'train__5': PosixPath('train_data__5.npy'),
+    'train__6': PosixPath('train_data__6.npy'),
     'val__1': PosixPath('val_data__1.npy'),
-    'test': PosixPath('test__data.npy'),
-    'test__1': PosixPath('test__data__1.npy')}
+    'val__2': PosixPath('val_data__2.npy'),
+    'test__1': PosixPath('test_data__1.npy'),
+    'test__2': PosixPath('test_data__2.npy')}
+    >>> dp3
+    {'train__1': PosixPath('train_data__1.npy'),
+    'train__2': PosixPath('train_data__2.npy'),
+    'train__3': PosixPath('train_data__3.npy'),
+    'train__4': PosixPath('train_data__4.npy'),
+    'train__5': PosixPath('train_data__5.npy'),
+    'train__6': PosixPath('train_data__6.npy'),
+    'val__1': PosixPath('val_data__1.npy'),
+    'val__2': PosixPath('val_data__2.npy'),
+    'test__1': PosixPath('test_data__1.npy'),
+    'test__2': PosixPath('test_data__2.npy')}
     '''
+    if divide_factor is None:
+        divide_factor = 2
     # find max length:
     maxlen = 0
     for key, value in dataset_dict.items():
@@ -950,7 +963,7 @@ def section_data(dataset_dict, dataset_paths_dict):
             maxlen = len(value)
     # the length the maximum list will have
     # if other value lists are shorter, don't need to be sectioned.
-    new_max_len = maxlen/2
+    new_max_len = int(maxlen/divide_factor)
     try:
         new_key_list = []
         updated_dataset_dict = dict()
@@ -960,45 +973,69 @@ def section_data(dataset_dict, dataset_paths_dict):
                 updated_dataset_dict[key] = dataset_dict[key]
                 updated_dataset_paths_dict[key] = dataset_paths_dict[key]
             else:
-                if key[-1].isdigit():
-                    keyorig, integer = key.split('__')
-                    integer = int(integer)
-                    version_num = integer + 1
-                    new_key = keyorig + '__'+ str(version_num)
-                else:
-                    keyorig = key
-                    version_num = 1
-                    new_key = keyorig + '__' + str(version_num)
-                    
-                unique_key = False
-                while unique_key is False:
-                    if new_key not in dataset_dict.keys() and \
-                        new_key not in new_key_list:
-                        unique_key = True
-                        new_key_list.append(new_key)
-                        break
+                # separate value into sections
+                divided_values = {}
+                len_new_values = int(len(value)/divide_factor)
+                if len_new_values < 1:
+                    len_new_values = 1
+                index = 0
+                for i in range(divide_factor):
+                    if i == divide_factor - 1:
+                        # to ensure all values are included
+                        vals = value[index:]
                     else:
-                        version_num += 1
-                        new_key = keyorig + '__'+ str(version_num)
-                updated_dataset_dict[key] = value[:int(len(value)/2)]
-                updated_dataset_dict[new_key] = value[int(len(value)/2):]
+                        vals = value[index:index+len_new_values]
+                    divided_values[i] = vals
+                    index += len_new_values
+                
+                # assign new keys for each divided section of data
+                divided_values_keys = {}
+                # assign new paths to each section of data:
+                divided_values_paths = {}
                 path_orig = dataset_paths_dict[key]
-                if not isinstance(path_orig, pathlib.PosixPath):
-                    path_orig = pathlib.Path(path_orig)
-                    # convert to pathlib.PosixPath
-                    dataset_paths_dict[key] = path_orig
-                stem_orig = path_orig.stem
-                if stem_orig[-1].isdigit():
-                    stem, vers = stem_orig.split('__')
-                else:
-                    stem = stem_orig
-                new_stem = stem + '__' + str(version_num)
-                new_path = path_orig.parent.joinpath(new_stem+path_orig.suffix) 
-                updated_dataset_paths_dict[key] = dataset_paths_dict[key]
-                updated_dataset_paths_dict[new_key] = new_path
+                for i in range(divide_factor):
+                    if not key[-1].isdigit():
+                        key_stem = key
+                        version_num = 1
+                        new_key = key_stem + '__' + str(version_num)
+                    else:
+                        key_stem, version_num = key.split('__')
+                        version_num = int(version_num)
+                        new_key = key
+                    unique_key = False
+                    while unique_key is False:
+                        if new_key not in new_key_list:
+                            unique_key = True
+                            new_key_list.append(new_key)
+                            divided_values_keys[i] = new_key
+                            break
+                        else:
+                            version_num += 1
+                            new_key = key_stem + '__'+ str(version_num)
+                    
+                    if not isinstance(path_orig, pathlib.PosixPath):
+                        path_orig = pathlib.Path(path_orig)
+                        # convert to pathlib.PosixPath
+                        dataset_paths_dict[key] = path_orig
+                    stem_orig = path_orig.stem
+                    if stem_orig[-1].isdigit():
+                        stem, vers = stem_orig.split('__')
+                    else:
+                        stem = stem_orig
+                    new_stem = stem + '__' + str(version_num)
+                    new_path = path_orig.parent.joinpath(new_stem+path_orig.suffix)
+                    divided_values_paths[i] = new_path
+                
+                # apply newly divided data and keys to new dictionaries 
+                for i in range(divide_factor):
+                    # only if the list of divided values has values in it
+                    if len(divided_values[i]) > 0:
+                        new_key = divided_values_keys[i]
+                        updated_dataset_dict[new_key] = divided_values[i]
+                        updated_dataset_paths_dict[new_key] = divided_values_paths[i]
     except ValueError:
         raise ValueError('Expect only one instance of "__" to '+\
-            'be in the dictionary keys and/ or pathways. Multiple found.')
+            'be in the dictionary keys. Multiple found.')
     return updated_dataset_dict, updated_dataset_paths_dict
 
 
