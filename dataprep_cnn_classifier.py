@@ -3,7 +3,7 @@ import pysoundtool as pyst
 import numpy as np
 
 # classifier:
-feature_type = 'mfcc'  # 'fbank', 'stft', 'mfcc'
+feature_type = 'stft'  # 'fbank', 'stft', 'mfcc'
 feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
 
 # 1) collect labels 
@@ -23,18 +23,17 @@ dict_encode_path = feat_extraction_dir.joinpath('dict_encode.csv')
 dict_decode_path = feat_extraction_dir.joinpath('dict_decode.csv')
 # dictionary for which audio paths are assigned to which labels:
 dict_encdodedlabel2audio_path = feat_extraction_dir.joinpath('dict_encdodedlabel2audio.csv')
-# train, val, and test data
-# which features will we extract?
 
+# designate where to save train, val, and test data
 data_train_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('train',
                                                                       feature_type))
 data_val_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('val',
                                                                       feature_type))
 data_test_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('test',
                                                                       feature_type))
-# TODO
-# log feature settings as well!
-feature_settings_path = feat_extraction_dir.joinpath('feature_settings.csv')
+## TODO
+## log feature settings as well!
+#feature_settings_path = feat_extraction_dir.joinpath('feature_settings.csv')
 
 
 # 3) create and save encoding/decoding labels dicts
@@ -54,7 +53,10 @@ except FileExistsError:
     pass
 
 # 4) save audio paths to each label in dict 
+# ensure only audiofiles included
 paths_list = pyst.utils.collect_audiofiles(data_scene_dir, recursive=True)
+paths_list = sorted(pyst.data.ensure_only_audiofiles(paths_list))
+
 dict_encodedlabel2audio = pyst.data.create_encodedlabel2audio_dict(dict_encode,
                                                      paths_list)
 try:
@@ -70,6 +72,10 @@ train, val, test = pyst.data.audio2datasets(dict_encdodedlabel2audio_path,
 
 # save audiofiles for each dataset:
 dataset_dict = dict([('train',train),('val', val),('test',test)])
+datasets_path2save_dict = dict([('train',data_train_path),
+                                ('val', data_val_path),
+                                ('test',data_test_path)])
+
 dataset_dict_path = feat_extraction_dir.joinpath('dataset_audiofiles.csv')
 
 try:
@@ -80,10 +86,8 @@ except FileExistsError:
 
 
 # clear out variables
-
-variables2remove = [noisyaudio, cleanaudio, noisy_audio_dict, clean_audio_dict,
-                    train_noisy, val_noisy, test_noisy, train_clean, val_clean, 
-                    test_clean]
+variables2remove = [dataset_dict, train, val, test, paths_list,
+                    dict_encdodedlabel2audio_path, dict_encodedlabel2audio]
 
 for var in variables2remove:
     del var
@@ -119,78 +123,40 @@ if 'stft' in feature_type:
     num_feats = int(1+n_fft/2)
     complex_vals = True
     
-# depending on which packages one uses, shape of data changes.
-# for example, Librosa centers/zeropads data automatically
-# TODO see which shapes result from python_speech_features
-total_samples = pyst.dsp.calc_frame_length(dur_sec*1000, sr=sr)
-use_librosa= True
-# if using Librosa:
-if use_librosa:
-    hop_length = int(win_size_ms*percent_overlap*0.001*sr)
-    center=True
-    mode='reflect'
-    # librosa centers samples by default, sligthly adjusting total 
-    # number of samples
-    if center:
-        y_zeros = np.zeros((total_samples,))
-        y_centered = np.pad(y_zeros, int(n_fft // 2), mode=mode)
-        total_samples = len(y_centered)
-    # each audio file 
-    total_rows_per_wav = int(1 + (total_samples - n_fft)//hop_length)
-    
-    
-    local_variables = locals()
-    global_variables = globals()
-    
-    pyst.utils.save_dict(local_variables, 
-                        feat_extraction_dir.joinpath('local_variables_{}.csv'.format(
-                            feature_type)),
-                        overwrite=True)
-    pyst.utils.save_dict(global_variables,
-                        feat_extraction_dir.joinpath('global_variables_{}.csv'.format(
-                            feature_type)),
-                        overwrite = True)
-    
-    dataset_paths = [data_train_path, data_val_path, data_test_path]
-    for i, dataset in enumerate([train, val, test]):
-        # +1 for the label column
-        feats_matrix = pyst.dsp.create_empty_matrix(
-            (len(dataset), int(total_rows_per_wav), num_feats + 1), 
-            complex_vals=complex_vals)
+   
+# which variables to include?
+local_variables = locals()
+global_variables = globals()
 
+pyst.utils.save_dict(local_variables, 
+                    feat_extraction_dir.joinpath('local_variables_{}.csv'.format(
+                        feature_type)),
+                    overwrite=True)
+pyst.utils.save_dict(global_variables,
+                    feat_extraction_dir.joinpath('global_variables_{}.csv'.format(
+                        feature_type)),
+                    overwrite = True)
+    
+# load the dataset_dict:
+dataset_dict = pyst.utils.load_dict(dataset_dict_path)
+# ensure only audiofiles in dataset_dict:
 
-        for j, audioset in enumerate(dataset):
-            label, audiofile = int(audioset[0]), audioset[1]
-            feats = pyst.feats.get_feats(audiofile,
-                                        sr=sr,
-                                        features=feature_type,
-                                        win_size_ms=win_size_ms,
-                                        percent_overlap=percent_overlap,
-                                        window='hann',
-                                        num_filters=num_feats,
-                                        num_mfcc=num_feats,
-                                        duration=dur_sec)
-            # add label:
-            label_col = np.zeros((len(feats),1)) + label
-            feats = np.concatenate([feats,label_col], axis=1)
-            # fill in empty matrix with features from each audiofile
-            feats_matrix[j] = feats
-            pyst.utils.print_progress(iteration = j, 
-                                      total_iterations = len(dataset),
-                                      task = '{} {} feature extraction'.format(
-                                          dataset, feature_type))
-            
-            ## visualize features:
-            #if 'mfcc' in feature_type:
-                #scale = None
-            #else:
-                #scale = 'power_to_db'
-            ## visualize features only every n num frames
-            #every_n_frames = 50
-            #if j % every_n_frames == 0:
-                #pyst.feats.plot(feats, feature_type = feature_type, scale=scale)
-        ## must be 2 D to visualize
-        #pyst.feats.plot(feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1], feats_matrix.shape[2])), feature_type=feature_type,
-                        #scale=scale, x_label='number of audio files')
-        # save data:
-        np.save(dataset_paths[i], feats_matrix)
+pyst.feats.save_features_datasets_dicts(
+    datasets_dict = dataset_dict,
+    datasets_path2save_dict = datasets_path2save_dict,
+    labeled_data = True,
+    feature_type = feature_type,
+    sr = sr,
+    n_fft = n_fft,
+    dur_sec = dur_sec,
+    num_feats = num_feats,
+    use_librosa=True, 
+    win_size_ms = win_size_ms, 
+    percent_overlap = percent_overlap,
+    window='hann', 
+    center=True, 
+    mode='reflect',
+    frames_per_sample=None, 
+    complex_vals=complex_vals,
+    visualize=True, 
+    vis_every_n_frames=30)
