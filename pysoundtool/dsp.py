@@ -1499,7 +1499,7 @@ def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
     mid= start + overlap
     stop= start + frame_length
     
-    expected_len = (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
+    expected_len = increments * enhanced_matrix.shape[1] + overlap
     new_signal = create_empty_matrix(
         (expected_len,),
         complex_vals=complex_vals)
