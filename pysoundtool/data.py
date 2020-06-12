@@ -897,7 +897,109 @@ def adjust_data_shape(data, desired_shape):
                                                  desired_shape = desired_shape)
     return data_prepped
 
-
+def section_data(dataset_dict, dataset_paths_dict):
+    '''Expects keys of these two dictionaries to match
+    
+    Examples
+    --------
+    >>> import pathlib
+    >>> # train is longer than val and test
+    >>> d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            'val': [1, 2, 3, 4, 5],
+            'test': [1, 2, 3, 4, 5]}
+    
+    >>> dp = {'train': pathlib.PosixPath('train_data.npy'),
+              'val': pathlib.PosixPath('val_data.npy'),
+              'test': pathlib.PosixPath('test__data.npy')}
+    >>> d2, dp2 = section_data(d, dp)
+    >>> d2
+    {'train': [1, 2, 3, 4, 5],
+    'train__1': [6, 7, 8, 9, 10],
+    'val': [1, 2, 3, 4, 5],
+    'test': [1, 2, 3, 4, 5]}
+    >>> dp2
+    {'train': PosixPath('train_data.npy'),
+    'train__1': PosixPath('train_data__1.npy'),
+    'val': PosixPath('val_data.npy'),
+    'test': PosixPath('test__data.npy')}
+    >>> # repeat: now val and test as long as train
+    >>> d3, dp3 = section_data(d2, dp2)
+    >>> d3
+    {'train': [1, 2],
+    'train__2': [3, 4, 5],
+    'train__1': [6, 7],
+    'train__3': [8, 9, 10],
+    'val': [1, 2],
+    'val__1': [3, 4, 5],
+    'test': [1, 2],
+    'test__1': [3, 4, 5]}
+    >>> dp3
+    {'train': PosixPath('train_data.npy'),
+    'train__2': PosixPath('train_data__2.npy'),
+    'train__1': PosixPath('train_data__1.npy'),
+    'train__3': PosixPath('train_data__3.npy'),
+    'val': PosixPath('val_data.npy'),
+    'val__1': PosixPath('val_data__1.npy'),
+    'test': PosixPath('test__data.npy'),
+    'test__1': PosixPath('test__data__1.npy')}
+    '''
+    # find max length:
+    maxlen = 0
+    for key, value in dataset_dict.items():
+        if len(value) > maxlen:
+            maxlen = len(value)
+    # the length the maximum list will have
+    # if other value lists are shorter, don't need to be sectioned.
+    new_max_len = maxlen/2
+    try:
+        new_key_list = []
+        updated_dataset_dict = dict()
+        updated_dataset_paths_dict = dict()
+        for key, value in dataset_dict.items():
+            if len(value) <= new_max_len: 
+                updated_dataset_dict[key] = dataset_dict[key]
+                updated_dataset_paths_dict[key] = dataset_paths_dict[key]
+            else:
+                if key[-1].isdigit():
+                    keyorig, integer = key.split('__')
+                    integer = int(integer)
+                    version_num = integer + 1
+                    new_key = keyorig + '__'+ str(version_num)
+                else:
+                    keyorig = key
+                    version_num = 1
+                    new_key = keyorig + '__' + str(version_num)
+                    
+                unique_key = False
+                while unique_key is False:
+                    if new_key not in dataset_dict.keys() and \
+                        new_key not in new_key_list:
+                        unique_key = True
+                        new_key_list.append(new_key)
+                        break
+                    else:
+                        version_num += 1
+                        new_key = keyorig + '__'+ str(version_num)
+                updated_dataset_dict[key] = value[:int(len(value)/2)]
+                updated_dataset_dict[new_key] = value[int(len(value)/2):]
+                path_orig = dataset_paths_dict[key]
+                if not isinstance(path_orig, pathlib.PosixPath):
+                    path_orig = pathlib.Path(path_orig)
+                    # convert to pathlib.PosixPath
+                    dataset_paths_dict[key] = path_orig
+                stem_orig = path_orig.stem
+                if stem_orig[-1].isdigit():
+                    stem, vers = stem_orig.split('__')
+                else:
+                    stem = stem_orig
+                new_stem = stem + '__' + str(version_num)
+                new_path = path_orig.parent.joinpath(new_stem+path_orig.suffix) 
+                updated_dataset_paths_dict[key] = dataset_paths_dict[key]
+                updated_dataset_paths_dict[new_key] = new_path
+    except ValueError:
+        raise ValueError('Expect only one instance of "__" to '+\
+            'be in the dictionary keys and/ or pathways. Multiple found.')
+    return updated_dataset_dict, updated_dataset_paths_dict
 
 
 if __name__ == '__main__':
