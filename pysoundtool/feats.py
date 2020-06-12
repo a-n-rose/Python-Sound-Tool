@@ -1045,120 +1045,133 @@ def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict,
                                     frames_per_sample=None, complex_vals=False,
                                     visualize=False, vis_every_n_frames=50, 
                                     labeled_data=False):
-    
-    # depending on which packages one uses, shape of data changes.
-    # for example, Librosa centers/zeropads data automatically
-    # TODO see which shapes result from python_speech_features
-    total_samples = pyst.dsp.calc_frame_length(dur_sec*1000, sr=sr)
-    # if using Librosa:
-    if use_librosa:
-        hop_length = int(win_size_ms*percent_overlap*0.001*sr)
-        # librosa centers samples by default, sligthly adjusting total 
-        # number of samples
-        if center:
-            y_zeros = np.zeros((total_samples,))
-            y_centered = np.pad(y_zeros, int(n_fft // 2), mode=mode)
-            total_samples = len(y_centered)
-        # each audio file 
-        total_rows_per_wav = int(1 + (total_samples - n_fft)//hop_length)
-        
-        # adjust shape for model
-        if frames_per_sample is not None:
-            # want smaller windows, e.g. autoencoder denoiser
-            batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
-            input_shape = (batch_size, frames_per_sample, num_feats)
-            # if extracted data is too short, shape to zeropad:
-            desired_shape = (input_shape[0]*input_shape[1],
-                                     input_shape[2])
-        else:
-            if labeled_data:
-                input_shape = (int(total_rows_per_wav), num_feats + 1)
-                desired_shape = (input_shape[0], input_shape[1]-1)
+    try:
+        # depending on which packages one uses, shape of data changes.
+        # for example, Librosa centers/zeropads data automatically
+        # TODO see which shapes result from python_speech_features
+        total_samples = pyst.dsp.calc_frame_length(dur_sec*1000, sr=sr)
+        # if using Librosa:
+        if use_librosa:
+            hop_length = int(win_size_ms*percent_overlap*0.001*sr)
+            # librosa centers samples by default, sligthly adjusting total 
+            # number of samples
+            if center:
+                y_zeros = np.zeros((total_samples,))
+                y_centered = np.pad(y_zeros, int(n_fft // 2), mode=mode)
+                total_samples = len(y_centered)
+            # each audio file 
+            total_rows_per_wav = int(1 + (total_samples - n_fft)//hop_length)
+            
+            # adjust shape for model
+            if frames_per_sample is not None:
+                # want smaller windows, e.g. autoencoder denoiser
+                batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
+                input_shape = (batch_size, frames_per_sample, num_feats)
+                # if extracted data is too short, shape to zeropad:
+                desired_shape = (input_shape[0]*input_shape[1],
+                                        input_shape[2])
             else:
-                input_shape = (int(total_rows_per_wav), num_feats)
-                desired_shape = input_shape
-        if 'mfcc' in feature_type:
-            feat_type = 'mfcc'
-        elif 'fbank' in feature_type:
-            feat_type = 'fbank'
-        elif 'stft' in feature_type:
-            feat_type = 'stft'
-        else:
-            raise TypeError('Expected `mfcc`, `fbank`, or `stft` '+\
-                'to be in `feature_type`, not {}'.format(feature_type))
-        for key, value in datasets_dict.items():
-            # when loading a dictionary, the value is a string
-            if isinstance(value, str):
-                value = pyst.utils.string2list(value)
-            extraction_shape = (len(value),) + input_shape
-            
-            feats_matrix = pyst.dsp.create_empty_matrix(
-                extraction_shape, 
-                complex_vals=complex_vals)
-            
-            for j, audiofile in enumerate(value):
                 if labeled_data:
-                    label, audiofile = int(audiofile[0]), audiofile[1]
-                feats = pyst.feats.get_feats(audiofile,
-                                            sr=sr,
-                                            features=feat_type,
-                                            win_size_ms=win_size_ms,
-                                            percent_overlap=percent_overlap,
-                                            window=window,
-                                            num_filters=num_feats,
-                                            num_mfcc=num_feats,
-                                            duration=dur_sec)
-
-                # zeropad feats if too short:
-                feats = pyst.data.zeropad_features(
-                    feats, 
-                    desired_shape = desired_shape,
-                    complex_vals = complex_vals)
+                    input_shape = (int(total_rows_per_wav), num_feats + 1)
+                    desired_shape = (input_shape[0], input_shape[1]-1)
+                else:
+                    input_shape = (int(total_rows_per_wav), num_feats)
+                    desired_shape = input_shape
+            if 'mfcc' in feature_type:
+                feat_type = 'mfcc'
+            elif 'fbank' in feature_type:
+                feat_type = 'fbank'
+            elif 'stft' in feature_type:
+                feat_type = 'stft'
+            else:
+                raise TypeError('Expected `mfcc`, `fbank`, or `stft` '+\
+                    'to be in `feature_type`, not {}'.format(feature_type))
+            for key, value in datasets_dict.items():
+                # when loading a dictionary, the value is a string
+                if isinstance(value, str):
+                    value = pyst.utils.string2list(value)
+                extraction_shape = (len(value),) + input_shape
                 
-                if labeled_data:
-                    # create label column
-                    label_col = np.zeros((len(feats),1)) + label
-                    feats = np.concatenate([feats,label_col], axis=1)
-
-                if visualize:
-                    # visualize features:
-                    if 'mfcc' in feature_type:
-                        scale = None
-                    else:
-                        scale = 'power_to_db'
-                    #visualize features only every n num frames
-                    if j % vis_every_n_frames == 0:
-                        pyst.feats.plot(feats, 
-                                        feature_type = feature_type,
-                                        win_size_ms = win_size_ms,
-                                        percent_overlap = percent_overlap,
-                                        scale=scale,
-                                        title='{} {} features'.format(
-                                            key, feature_type.upper()))
-                feats = feats.reshape(extraction_shape[1:])
-                # fill in empty matrix with features from each audiofile
-
-                feats_matrix[j] = feats
-                pyst.utils.print_progress(iteration = j, 
-                                        total_iterations = len(value),
-                                        task = '{} {} feature extraction'.format(
-                                            key, feature_type))
-            if visualize:
-                # must be 2 D to visualize
-                if len(feats_matrix.shape) == 3:
-                    vis_feats = feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1], feats_matrix.shape[2]))
-                if len(feats_matrix.shape) == 4:
-                    vis_feats = feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3]))
+                
+                feats_matrix = pyst.dsp.create_empty_matrix(
+                    extraction_shape, 
+                    complex_vals=complex_vals)
                     
-                pyst.feats.plot(vis_feats, feature_type=feature_type,
-                                win_size_ms = win_size_ms, 
-                                percent_overlap = percent_overlap,
-                                scale=scale, x_label='number of audio files',
-                                title='{} {} features'.format(
-                                    key, feature_type.upper()))
-            # save data:
-            np.save(datasets_path2save_dict[key], feats_matrix)
-            print('\nFeatures saved at {}\n'.format(datasets_path2save_dict[key]))
+                for j, audiofile in enumerate(value):
+                    if labeled_data:
+                        label, audiofile = int(audiofile[0]), audiofile[1]
+                    feats = pyst.feats.get_feats(audiofile,
+                                                sr=sr,
+                                                features=feat_type,
+                                                win_size_ms=win_size_ms,
+                                                percent_overlap=percent_overlap,
+                                                window=window,
+                                                num_filters=num_feats,
+                                                num_mfcc=num_feats,
+                                                duration=dur_sec)
+
+                    # zeropad feats if too short:
+                    feats = pyst.data.zeropad_features(
+                        feats, 
+                        desired_shape = desired_shape,
+                        complex_vals = complex_vals)
+                    
+                    if labeled_data:
+                        # create label column
+                        label_col = np.zeros((len(feats),1)) + label
+                        feats = np.concatenate([feats,label_col], axis=1)
+
+                    if visualize:
+                        # visualize features:
+                        if 'mfcc' in feature_type:
+                            scale = None
+                        else:
+                            scale = 'power_to_db'
+                        #visualize features only every n num frames
+                        if j % vis_every_n_frames == 0:
+                            pyst.feats.plot(feats, 
+                                            feature_type = feature_type,
+                                            win_size_ms = win_size_ms,
+                                            percent_overlap = percent_overlap,
+                                            scale=scale,
+                                            title='{} {} features'.format(
+                                                key, feature_type.upper()))
+                    feats = feats.reshape(extraction_shape[1:])
+                    # fill in empty matrix with features from each audiofile
+
+                    feats_matrix[j] = feats
+                    pyst.utils.print_progress(iteration = j, 
+                                            total_iterations = len(value),
+                                            task = '{} {} feature extraction'.format(
+                                                key, feature_type))
+                if visualize:
+                    # must be 2 D to visualize
+                    if len(feats_matrix.shape) == 3:
+                        vis_feats = feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1], feats_matrix.shape[2]))
+                    if len(feats_matrix.shape) == 4:
+                        vis_feats = feats_matrix.reshape((feats_matrix.shape[0] * feats_matrix.shape[1] * feats_matrix.shape[2], feats_matrix.shape[3]))
+                        
+                    pyst.feats.plot(vis_feats, feature_type=feature_type,
+                                    win_size_ms = win_size_ms, 
+                                    percent_overlap = percent_overlap,
+                                    scale=scale, x_label='number of audio files',
+                                    title='{} {} features'.format(
+                                        key, feature_type.upper()))
+                # save data:
+                np.save(datasets_path2save_dict[key], feats_matrix)
+                print('\nFeatures saved at {}\n'.format(datasets_path2save_dict[key]))
+    except MemoryError as e:
+        print(e)
+        print('\nSectioning data and trying again.')
+        datasets_dict, datasets_path2save_dict = pyst.data.section_data(
+            datasets_dict, datasets_path2save_dict)
+        save_features_datasets_dicts(datasets_dict, datasets_path2save_dict,
+                                            feature_type, sr, n_fft, dur_sec, num_feats,
+                                            win_size_ms, percent_overlap,use_librosa=use_librosa, 
+                                            window=window, center=center, mode=mode,
+                                            frames_per_sample=frames_per_sample, complex_vals=complex_vals,
+                                            visualize=visualize, vis_every_n_frames=vis_every_n_frames, 
+                                            labeled_data=labeled_data)
 
 if __name__ == "__main__":
     import doctest
