@@ -1040,8 +1040,7 @@ def list_available_features():
     return ['stft', 'powspec', 'fbank', 'mfcc', 'signal']
 
 # TODO apply keyword arguments
-# TODO set defaults
-def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict, dur_sec,
+def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                     feature_type='fbank', num_feats=None, sr=22050, 
                                     win_size_ms=20, percent_overlap=0.5, n_fft = None,
                                     window='hann',frames_per_sample=None,labeled_data=False, 
@@ -1116,7 +1115,12 @@ def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict, dur_sec
     
     Returns
     -------
-    None
+    datasets_dict : dict 
+        The final dataset dictionary used in feature extraction. The datasets may 
+        have been subdivided.
+    datasets_path2save_dict : dict
+        The final dataset feature pathway dict. The pathways will have been 
+        adjusted if the datasets have been subdivided.
     '''
     # if dataset is large, may want to divide it into sections
     if subsection_data:
@@ -1293,16 +1297,18 @@ def save_features_datasets_dicts(datasets_dict, datasets_path2save_dict, dur_sec
         print('\nSectioning data and trying again.\n')
         datasets_dict, datasets_path2save_dict = pyst.data.section_data(
             datasets_dict, datasets_path2save_dict, divide_factor=divide_factor)
-        save_features_datasets_dicts(datasets_dict, datasets_path2save_dict,
-                                            feature_type, sr, n_fft, dur_sec, num_feats,
-                                            win_size_ms, percent_overlap,
-                                            use_librosa=use_librosa, 
-                                            window=window, center=center, mode=mode,
-                                            frames_per_sample=frames_per_sample,
-                                            visualize=visualize, 
-                                            vis_every_n_frames=vis_every_n_frames, 
-                                            labeled_data=labeled_data,
-                                            log_settings=log_settings)
+        datasets_dict, datasets_path2save_dict = save_features_datasets_dicts(
+            datasets_dict, datasets_path2save_dict,
+            feature_type, sr, n_fft, dur_sec, num_feats,
+            win_size_ms, percent_overlap,
+            use_librosa=use_librosa, 
+            window=window, center=center, mode=mode,
+            frames_per_sample=frames_per_sample,
+            visualize=visualize, 
+            vis_every_n_frames=vis_every_n_frames, 
+            labeled_data=labeled_data,
+            log_settings=log_settings)
+    return datasets_dict, datasets_path2save_dict
 
 if __name__ == "__main__":
     import doctest
