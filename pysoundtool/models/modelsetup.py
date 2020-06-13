@@ -1,3 +1,8 @@
+'''
+TODO explore using just weights in ModelCheckpoint
+save_weights_only=True, save_freq='epoch', and save_best_only
+'''
+
 import os, sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(
@@ -11,7 +16,7 @@ import pysoundtool as pyst
 ###############################################################################
 
 def setup_callbacks(early_stop=True, patience=15, log=True,
-                        log_filename=None, save_bestmodel=True, 
+                        log_filename=None, append=True, save_bestmodel=True, 
                         best_modelname=None,monitor='val_loss', verbose=1, save_best_only=True, mode='min'):
     '''Easy set up of early stopping, model logging, and saving best model.
     
@@ -74,7 +79,7 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
         # TODO do some sort of check to ensure path is valid?
         if not isinstance(log_filename, str):
             log_filename = str(log_filename)
-        csv_logging = CSVLogger(filename=log_filename)
+        csv_logging = CSVLogger(filename=log_filename, append=append)
         callbacks.append(csv_logging)
     if save_bestmodel:
         if best_modelname is None:
@@ -96,4 +101,5 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
     if callbacks:
         return callbacks
     return None
+
 
