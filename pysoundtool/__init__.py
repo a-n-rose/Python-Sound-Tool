@@ -1,6 +1,4 @@
 ###############################################################################
-from . import paths
-from .paths import PathSetup
 from . import utils
 from . import feats
 from .feats import FeatPrep_SoundClassifier, prepfeatures, getfeatsettings, \
@@ -14,8 +12,7 @@ from . import exceptions as errors
 from .data import loadsound
 from . import data
 
-__all__=['paths', 'PathSetup', 'utils', 'feats',\
-     'FeatPrep_SoundClassifier', 'prepfeatures','getfeatsettings',\
-        'filters','WienerFilter','BandSubtraction','welch2class',\
-            'save_class_noise','filtersignal', \
+__all__=['utils', 'feats','FeatPrep_SoundClassifier', 'prepfeatures',\
+    'getfeatsettings', 'filters','WienerFilter','BandSubtraction',\
+        'welch2class','save_class_noise','filtersignal', \
              'dsp','errors', 'plotsound', 'loadsound', 'data']
