@@ -10,6 +10,7 @@ import time
 ###############################################################################
 
 model_name = 'model_autoencoder_denoise'
+num_training_files = 3
 
 feature_extraction_folder = 'features_stft_6m13d11h15m42s506ms_THREE_SUBSECTIONS'
 dataset_path = pyst.utils.check_dir('./audiodata/denoiser/{}/'.format(
@@ -23,32 +24,99 @@ model_path = model_dir.joinpath(model_name)
 
 # make sure data files exists:
 dataset_base_filename = '{}_data_{}_{}.npy'
-data_train_noisy_path_1 = dataset_path.joinpath(dataset_base_filename.format(
-    'train', 'noisy', feature_type+'__1'))
-data_train_noisy_path_2 = dataset_path.joinpath(dataset_base_filename.format(
-    'train', 'noisy', feature_type+'__2'))
-data_train_noisy_path_3 = dataset_path.joinpath(dataset_base_filename.format(
-    'train', 'noisy', feature_type+'__3'))
-data_val_noisy_path = dataset_path.joinpath(dataset_base_filename.format(
+
+###########################################
+# collect all possible files for noisy data
+train_paths_noisy = []
+try:
+    for i in range(num_training_files):
+        num = i+1
+        data_path = dataset_path.joinpath(dataset_base_filename.format(
+            'train', 'noisy', feature_type+'__{}'.format(num)))
+        if not os.path.exists(data_path):
+            raise FileNotFoundError
+        train_paths_noisy.append(data_path)
+except FileNotFoundError:
+    data_path = dataset_path.joinpath(dataset_base_filename.format(
+    'train', 'noisy', feature_type))
+    train_paths_noisy.append(data_path)
+    
+val_paths_noisy = []
+try:
+    for i in range(num_training_files):
+        num = i+1
+        data_path = dataset_path.joinpath(dataset_base_filename.format(
+            'val', 'noisy', feature_type+'__{}'.format(num)))
+        if not os.path.exists(data_path):
+            raise FileNotFoundError
+        val_paths_noisy.append(data_path)
+except FileNotFoundError:
+    data_path = dataset_path.joinpath(dataset_base_filename.format(
     'val', 'noisy', feature_type))
-data_test_noisy_path = dataset_path.joinpath(dataset_base_filename.format(
-    'test', 'noisy', feature_type))
-
-data_train_clean_path_1 = dataset_path.joinpath(dataset_base_filename.format(
-    'train', 'clean', feature_type+'__1'))
-data_train_clean_path_2 = dataset_path.joinpath(dataset_base_filename.format(
-    'train', 'clean', feature_type+'__2'))
-data_train_clean_path_3 = dataset_path.joinpath(dataset_base_filename.format(
-    'train', 'clean', feature_type+'__3'))
-data_val_clean_path = dataset_path.joinpath(dataset_base_filename.format(
+    val_paths_noisy.append(data_path)
+    
+test_paths_noisy = []
+try:
+    for i in range(num_training_files):
+        num = i+1
+        data_path = dataset_path.joinpath(dataset_base_filename.format(
+            'val', 'noisy', feature_type+'__{}'.format(num)))
+        if not os.path.exists(data_path):
+            raise FileNotFoundError
+        test_paths_noisy.append(data_path)
+except FileNotFoundError:
+    data_path = dataset_path.joinpath(dataset_base_filename.format(
+    'val', 'noisy', feature_type))
+    test_paths_noisy.append(data_path)
+    
+###########################################
+# collect all possible files for clean data
+train_paths_clean = []
+try:
+    for i in range(num_training_files):
+        num = i+1
+        data_path = dataset_path.joinpath(dataset_base_filename.format(
+            'train', 'clean', feature_type+'__{}'.format(num)))
+        if not os.path.exists(data_path):
+            raise FileNotFoundError
+        train_paths_clean.append(data_path)
+except FileNotFoundError:
+    data_path = dataset_path.joinpath(dataset_base_filename.format(
+    'train', 'clean', feature_type))
+    train_paths_clean.append(data_path)
+    
+val_paths_clean = []
+try:
+    for i in range(num_training_files):
+        num = i+1
+        data_path = dataset_path.joinpath(dataset_base_filename.format(
+            'val', 'clean', feature_type+'__{}'.format(num)))
+        if not os.path.exists(data_path):
+            raise FileNotFoundError
+        val_paths_clean.append(data_path)
+except FileNotFoundError:
+    data_path = dataset_path.joinpath(dataset_base_filename.format(
     'val', 'clean', feature_type))
-data_test_clean_path = dataset_path.joinpath(dataset_base_filename.format(
-    'test', 'clean', feature_type))
+    val_paths_clean.append(data_path)
+    
+test_paths_clean = []
+try:
+    for i in range(num_training_files):
+        num = i+1
+        data_path = dataset_path.joinpath(dataset_base_filename.format(
+            'val', 'clean', feature_type+'__{}'.format(num)))
+        if not os.path.exists(data_path):
+            raise FileNotFoundError
+        test_paths_clean.append(data_path)
+except FileNotFoundError:
+    data_path = dataset_path.joinpath(dataset_base_filename.format(
+    'val', 'clean', feature_type))
+    test_paths_clean.append(data_path)
 
-for pathway in [data_train_noisy_path_1, data_train_noisy_path_2, data_train_noisy_path_3,
-                data_val_noisy_path, data_test_noisy_path, 
-                data_train_clean_path_1, data_train_clean_path_2, data_train_clean_path_3, 
-                data_val_clean_path, data_test_clean_path]:
+
+# ensure all files exist:
+for pathway in train_paths_noisy + val_paths_noisy + test_paths_noisy + \
+    train_paths_clean + val_paths_clean + test_paths_clean:
     if not os.path.exists(pathway):
         raise FileNotFoundError('File '+str(pathway) +\
             ' was not found or does not exist.')
@@ -56,7 +124,7 @@ for pathway in [data_train_noisy_path_1, data_train_noisy_path_2, data_train_noi
 
 # figure out input size of data:
 # load smaller dataset
-data_val_noisy = np.load(data_val_noisy_path)
+data_val_noisy = np.load(val_paths_noisy[0])
 # expect shape (num_audiofiles, batch_size, num_frames, num_features)
 use_generator = True
 num_epochs = 5
@@ -88,19 +156,21 @@ pyst.utils.save_dict(global_variables,
     
 start = time.time()
 
-training_paths_noisy = [data_train_noisy_path_1, data_train_noisy_path_2,
-                        data_train_noisy_path_3]
-training_paths_clean = [data_train_clean_path_1, data_train_clean_path_2,
-                        data_train_clean_path_3]
 
-for i, training_path in enumerate(training_paths_noisy):
+for i, train_path in enumerate(train_paths_noisy):
     #if i == 0:
     start_session = time.time()
-    data_train_noisy_path = training_path
-    data_train_clean_path = training_paths_clean[i]
+    data_train_noisy_path = train_path
+    data_train_clean_path = train_paths_clean[i]
+    # just use first validation data file
+    data_val_noisy_path = val_paths_noisy[0]
+    data_val_clean_path = val_paths_clean[0]
+
+    print('\nTRAINING SESSION ',i+1)
     print("Training on: ")
     print(data_train_noisy_path)
     print(data_train_clean_path)
+    print()
     
     data_train_noisy = np.load(data_train_noisy_path)
     data_val_noisy = np.load(data_val_noisy_path)
@@ -158,6 +228,11 @@ for i, training_path in enumerate(training_paths_noisy):
                             total_dur_sec_session = total_dur_sec_session,
                             use_generator = use_generator)
     model_features_dict.update(settings_dict)
+    if i == len(train_paths_noisy)-1:
+        end = time.time()
+        total_duration_seconds = round(end-start,2)
+        time_dict = dict(total_duration_seconds=total_duration_seconds)
+        model_features_dict.update(time_dict)
 
     model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
         model_name, i))
