@@ -1,26 +1,27 @@
 import pysoundtool as pyst
+import time
 
 # which features will we extract?
-feature_type = 'powspec'  # 'fbank', 'stft', 'mfcc', 'powspec'
+feature_type = 'stft'  # 'fbank', 'stft', 'mfcc', 'powspec'
 feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
 
 ## datasets:
 ## clean
-# clean_speech_uwnu       (large)
+# uwnu_clean       (large)
 # clean_speech_IEEE       (medium)
 # cleanspeech_IEEE_small   
 
 ## noisy
-# noisy_speech_car_uwnu       (large)
+# uwnu_noisy_varied       (large)
 # noisy_speech_varied_IEEE    (medium)
 # noisyspeech_IEEE_small
 
 # 1) specify clean and noisy audio directories, and ensure they exist
 audio_clean_path = pyst.utils.check_dir(\
-    '/home/airos/Projects/Data/denoising_sample_data/clean_speech_uwnu/', 
+    '/home/airos/Projects/Data/denoising_sample_data/uwnu_clean/', 
                                          make=False)
 audio_noisy_path = pyst.utils.check_dir(\
-    '/home/airos/Projects/Data/denoising_sample_data/noisy_speech_car_uwnu/',
+    '/home/airos/Projects/Data/denoising_sample_data/uwnu_noisy_varied/',
                                          make=False)
 
 # 2) create paths for what we need to save:
@@ -109,9 +110,10 @@ path2_clean_datasets = pyst.utils.save_dict(dataset_dict_clean,
 sr = 22050
 win_size_ms = 16
 percent_overlap = 0.5
-dur_sec = 3.5
+dur_sec = 3
 frames_per_sample = 11
 num_feats = None # use defaults for each feature_type
+visualize = True
 
 # load audiofile dicts and convert value to list instead of string
 dataset_dict_clean = pyst.utils.load_dict(path2_clean_datasets)
@@ -132,7 +134,8 @@ for key, value in dataset_dict_noisy.items():
                 '\nThe noisy file:\n{}'.format(dataset_dict_noisy[key][i])+\
                     '\ndoes not seem to match the clean file:\n{}'.format(audiofile))
 
-visualize = True
+start = time.time()
+
 dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets(
     datasets_dict = dataset_dict_clean,
     datasets_path2save_dict = dataset_paths_clean_dict,
@@ -145,8 +148,8 @@ dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets
     frames_per_sample=11, 
     visualize=visualize, 
     vis_every_n_frames=100,
-    subsection_data=False,
-    divide_factor=5)
+    subsection_data=True,
+    divide_factor=10)
     
 dataset_dict_noisy, dataset_paths_noisy_dict = pyst.feats.save_features_datasets(
     datasets_dict = dataset_dict_noisy,
@@ -160,15 +163,19 @@ dataset_dict_noisy, dataset_paths_noisy_dict = pyst.feats.save_features_datasets
     frames_per_sample=11, 
     visualize=visualize, 
     vis_every_n_frames=100,
-    subsection_data=False,
-    divide_factor=5)
+    subsection_data=True,
+    divide_factor=10)
 
+end = time.time()
+
+total_duration_seconds = round(end-start,2)
 # save which audiofiles were extracted for each dataset
 # save where extracted data were saved
 dataprep_settings = dict(dataset_dict_noisy = dataset_dict_noisy,
                          dataset_paths_noisy_dict = dataset_paths_noisy_dict,
                          dataset_dict_clean = dataset_dict_clean,
-                         dataset_paths_clean_dict = dataset_paths_clean_dict)
+                         dataset_paths_clean_dict = dataset_paths_clean_dict,
+                         total_duration_seconds = total_duration_seconds)
 dataprep_settings_path = pyst.utils.save_dict(
     dataprep_settings,
     feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
