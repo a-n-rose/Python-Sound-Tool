@@ -11,7 +11,9 @@ import time
 
 model_name = 'model_autoencoder_denoise'
 
-dataset_path = pyst.utils.check_dir('./audiodata/denoiser/', make = False) 
+feature_extraction_folder = 'features_stft_6m13d11h16m3s744ms_ONE_SECTION'
+dataset_path = pyst.utils.check_dir('./audiodata/denoiser/{}/'.format(
+    feature_extraction_folder), make = False) 
 feature_type = 'stft'
 model_name += '_'+feature_type + '_' + pyst.utils.get_date() 
 model_dir = dataset_path.joinpath(model_name)
@@ -19,20 +21,22 @@ model_dir = pyst.utils.check_dir(model_dir)
 model_name += '.h5'
 model_path = model_dir.joinpath(model_name)
 
-
+# TODO allow for multiple files to be loaded
 # make sure data files exists:
-data_train_noisy_path = dataset_path.joinpath('train_data_noisy_{}.npy'.format(feature_type))
-data_val_noisy_path = dataset_path.joinpath('val_data_noisy_{}.npy'.format(
-    feature_type))
-data_test_noisy_path = dataset_path.joinpath('test_data_noisy_{}.npy'.format(
-    feature_type))
+dataset_base_filename = '{}_data_{}_{}.npy'
+data_train_noisy_path = dataset_path.joinpath(dataset_base_filename.format(
+    'train', 'noisy', feature_type))
+data_val_noisy_path = dataset_path.joinpath(dataset_base_filename.format(
+    'val', 'noisy', feature_type))
+data_test_noisy_path = dataset_path.joinpath(dataset_base_filename.format(
+    'test', 'noisy', feature_type))
 
-data_train_clean_path = dataset_path.joinpath('train_data_clean_{}.npy'.format(
-    feature_type))
-data_val_clean_path = dataset_path.joinpath('val_data_clean_{}.npy'.format(
-    feature_type))
-data_test_clean_path = dataset_path.joinpath('test_data_clean_{}.npy'.format(
-    feature_type))
+data_train_clean_path = dataset_path.joinpath(dataset_base_filename.format(
+    'train', 'clean', feature_type))
+data_val_clean_path = dataset_path.joinpath(dataset_base_filename.format(
+    'val', 'clean', feature_type))
+data_test_clean_path = dataset_path.joinpath(dataset_base_filename.format(
+    'test', 'clean', feature_type))
 
 for pathway in [data_train_noisy_path, data_val_noisy_path, data_test_noisy_path, 
                 data_train_clean_path, data_val_clean_path, data_test_clean_path]:
@@ -60,10 +64,9 @@ callbacks = soundmodels.setup_callbacks(patience=5,
 adm = keras.optimizers.Adam(learning_rate=0.0001)
 denoiser.compile(optimizer=adm, loss='binary_crossentropy')
 
-
+# save variables that are not too large:
 local_variables = locals()
 global_variables = globals()
-
 pyst.utils.save_dict(local_variables, 
                      model_dir.joinpath('local_variables_{}.csv'.format(
                          model_name)),
