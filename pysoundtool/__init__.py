@@ -9,10 +9,10 @@ from .filters import calc_audioclass_powerspecs as welch2class
 from .filters import coll_beg_audioclass_samps as save_class_noise
 from . import dsp
 from . import exceptions as errors
-from .data import loadsound
+from .data import loadsound, savesound
 from . import data
 
 __all__=['utils', 'feats','FeatPrep_SoundClassifier', 'prepfeatures',\
     'getfeatsettings', 'filters','WienerFilter','BandSubtraction',\
         'welch2class','save_class_noise','filtersignal', \
-             'dsp','errors', 'plotsound', 'loadsound', 'data']
+             'dsp','errors', 'plotsound', 'loadsound', 'savesound', 'data']
