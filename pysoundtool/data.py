@@ -97,6 +97,31 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=True):
         data = pyst.dsp.set_signal_length(data, numsamps)
     return data, sr
 
+def savesound(audiofile_name, signal_values, sr, overwrite=False):
+    """saves the wave at designated path
+
+    Parameters
+    ----------
+    audiofile_name : str or pathlib.PosixPath
+        path and name the audio is to be saved under. (.wav format)
+    signal_values : ndarray
+        values of real signal to be saved
+    sr : int 
+        sample rate of the audio samples.
+
+    Returns
+    ----------
+    True if successful, otherwise False
+    """
+    audiofile_name = pyst.utils.string2pathlib(audiofile_name)
+    if os.path.exists(audiofile_name) and overwrite is False:
+        raise FileExistsError('Filename {} already exists.'.format(audiofile_name)+\
+            '\nSet `overwrite` to True in function savesound() to overwrite.')
+    directory = audiofile_name.parent
+    directory = pyst.utils.check_dir(directory, make=True)
+    write(audiofile_name, sr, signal_values)
+    return audiofile_name
+
 def list_possibleformats(use_librosa=True):
     if use_librosa:
         return(['.wav', '.aiff', '.flac', '.ogg','.m4a','.mp3'])
@@ -482,10 +507,10 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
     if perc_val > 1:
         raise ValueError('The percentage value of validation data exceeds 100%')
 
-    # change string path to pathlib
-    cleandata_path = pyst.paths.str2path(cleandata_path)
-    noisedata_path = pyst.paths.str2path(noisedata_path)
-    trainingdata_dir = pyst.paths.str2path(trainingdata_dir)
+    # if paths are strings, convert to pathlib ojbects
+    cleandata_path = pyst.utils.string2pathlib(cleandata_path)
+    noisedata_path = pyst.utils.string2pathlib(noisedata_path)
+    trainingdata_dir = pyst.utils.string2pathlib(trainingdata_dir)
     
     cleandata_folder = 'clean'
     noisedata_folder = 'noisy'
@@ -497,8 +522,8 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
     newdata_noisy_dir = trainingdata_dir.joinpath(noisedata_folder)
     
     # create directory to save new data (if not exist)
-    newdata_clean_dir = pyst.paths.prep_path(newdata_clean_dir, create_new = True)
-    newdata_noisy_dir = pyst.paths.prep_path(newdata_noisy_dir, create_new = True)
+    newdata_clean_dir = pyst.utils.check_dir(newdata_clean_dir, make = True)
+    newdata_noisy_dir = pyst.utls.check_dir(newdata_noisy_dir, make = True)
    
     # TODO test for existence of directories/files
     # for example: q.exists() or q.is_dir() (pathlib objects) 
@@ -537,8 +562,8 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
     
     for j, dataset_path in enumerate(clean_datapaths):
         # ensure directory exists:
-        pyst.paths.prep_path(dataset_path, create_new=True)
-        pyst.paths.prep_path(noisy_datapaths[j], create_new=True)
+        pyst.utils.check_dir(dataset_path, make=True)
+        pyst.utils.check_dir(noisy_datapaths[j], make=True)
         
         if 'train' in dataset_path.parts[-1]:
             print('\nProcessing train data...')
@@ -559,14 +584,14 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
             scale = random.choice(noise_scales)
             clean_stem = wavefile.stem
             noise_stem = noise.stem
-            noise_data, sr = pyst.soundprep.loadsound(
+            noise_data, sr = pyst.loadsound(
                 noise, sr=sr)
-            clean_data, sr2 = pyst.soundprep.loadsound(
+            clean_data, sr2 = pyst.loadsound(
                 wavefile, sr=sr)
             clean_seconds = len(clean_data)/sr2
-            noisy_data, sr = pyst.soundprep.add_sound_to_signal(
-                wavefile, noise, scale = scale, delay_target_sec=0, total_len_sec = clean_seconds
-                )
+            noisy_data, sr = pyst.dsp.add_backgroundsound(
+                wavefile, noise, scale_background = scale, 
+                delay_mainsound_sec=0, total_len_sec = clean_seconds)
             noisydata_filename = noisy_datapaths[j].joinpath(clean_stem+'_'+noise_stem\
                 +'_scale'+str(scale)+'.wav')
             cleandata_filename = dataset_path.joinpath(clean_stem+'.wav')     
@@ -582,7 +607,6 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
         units))
 
     return newdata_noisy_dir, newdata_clean_dir
-
 
 def prep4scipywavfile(filename):
     '''Takes soundfile and saves it in a format compatible with scipy.io.wavfile
@@ -616,14 +640,14 @@ def prep4scipywavfile(filename):
         filename = prep4scipywavfile(filename)
     return filename
 
-def convert2wav(filename, sr=None, new_path=False):
+def convert2wav(filename, sr=None, new_dir=False):
     '''Converts and saves soundfile as .wav type in same or new directory.
     
     Parameters
     ----------
     filename : str or pathlib.PosixPath
         The filename of the audiofile to be converted to .wav type
-    new_path : str, pathlib.PosixPath, optional 
+    new_dir : str, pathlib.PosixPath, optional 
         If False, the converted files will be saved in same directory as originals.
         If a path is provided, the converted files will be saved there. If no such directory
         exists, one will be created.
@@ -634,31 +658,59 @@ def convert2wav(filename, sr=None, new_path=False):
     Returns 
     -------
     f_wavfile : str or pathlib.PosixPath
-        The filename and path where the .wav file is saved.
+        The filename / path where the .wav file is saved.
     '''
     import pathlib
-    f = pathlib.Path(filename)
-    extension_orig = f.suffix
-    stem_orig = f.stem
-    if not extension_orig:
-        f = str(f)
+    import os
+    try:
+        f = pathlib.Path(filename)
+    except TypeError:
+        raise TypeError('Function convert2wav expected input of type string '+\
+            'or a pathlib object, not type {}.'.format(type(filename)))
+    if not f.suffix:
+        raise TypeError('Function convert2wav expected a path with an '+\
+            'audio extension, not input: \n', filename)
+    if not f.suffix in pyst.data.list_possibleformats(use_librosa=True):
+        raise TypeError('This software cannot process audio in {}'.format(f.suffix)+\
+            ' format. We apologize for the inconvenience.')
+    # ensure filename exists:
+    if not os.path.exists(filename):
+        raise FileNotFoundError('Could not find audio file at the following '+\
+            'location\n{}'.format(filename))
+    # establish the path to save updated file.
+    if new_dir:
+        # check if new_dir is a directory or filename
+        new_dir = pathlib.Path(new_dir)
+        if new_dir.suffix:
+            new_filename = new_dir.stem
+            new_extension = new_dir.suffix
+            if new_extension != '.wav':
+                import warnings
+                warnings.warn('\n\nWARNING: Function convert2wav only converts to '+\
+                    '.wav files, not to {} files. '.format(new_extension)+\
+                        'Converting to .wav instead.\n\n')
+                new_extension = '.wav'
+            new_dir = new_dir.parent
+        else:
+            new_filename = f.stem
+            new_extension = '.wav'
+        # check to make sure new_dir exists
+        new_dir = pyst.utils.check_dir(new_dir, make=True)
+        
     else:
-        f = str(f)[:len(str(f))-len(extension_orig)]
-    if new_path:
-        f_dir = pyst.paths.prep_path(new_path)
-        f_wavfile = new_path + stem_orig + '.wav'        
-    else:
-        f_wavfile = f+'.wav'
-    # soundfile can load several datatypes
+        new_filename = f.stem
+        new_extension = '.wav'
+        new_dir = f.parent
+    new_filename = new_dir.joinpath(new_filename+new_extension)
+        
+    # load audio samples with soundfile, then save them as wav file.
     try:
         data, sr = sf.read(filename, samplerate=sr)
     except RuntimeError as e:
-        print(e)
-        raise RuntimeError('Audioformat `{}` is not compatible with soundfile.'.format(
-            os.path.splitext(filename)[1]))
-    # save the data at wavfile
-    sf.write(f_wavfile, data, sr)
-    return f_wavfile
+        data, sr = librosa.load(filename, sr=sr)
+    # save the data as .wav file
+    sf.write(new_filename, data, sr)
+    return new_filename
 
 def replace_ext(filename, extension):
     '''Adds or replaces an extension in the filename
