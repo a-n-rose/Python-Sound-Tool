@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Installation &#8212; PySoundTool 0.1.0b documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<p>This repository serves as a place to explore sound. Therefore, small
+sound datasets are included in this repo. The size is appx. 30-40MB. If
+you clone this repo, this sound data will be cloned as well.</p>
+<p>If you are fine with this, clone this repository. Set the working
+directory where you clone this repository.</p>
+<p>Start a virtual environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3 -m venv env
+$ source env/bin/activate
+(env)..$
+</pre></div>
+</div>
+<p>Then install necessary installations via pip:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>(env)..$ pip install -r requirements.txt
+</pre></div>
+</div>
+<p>Feel free to use this tool in your own scripts (I show examples below).
+You can also explore <em>some</em> of its functionality via jupyter notebook:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>(env)..$ cd jupyternotebooks/
+(env)..$ jupyter notebook
+</pre></div>
+</div>
+<p>There you will find example scripts using PySoundTool.</p>
+</div>
+<div class="section" id="import">
+<h1>Import<a class="headerlink" href="#import" title="Permalink to this headline">¶</a></h1>
+<p>You can run the examples below using ipython or other python console, or
+python script.</p>
+<p>Install and run ipython:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>(env)..$ pip install ipython
+(env)..$ ipython
+&gt;&gt;&gt; # import what we need for the examples:
+&gt;&gt;&gt; import pysoundtool as pyst
+&gt;&gt;&gt; # for saving wavfiles:
+&gt;&gt;&gt; from scipy.io.wavfile import write
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Aislyn Rose.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/setup.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

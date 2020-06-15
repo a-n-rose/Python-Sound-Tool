@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualization &#8212; PySoundTool 0.1.0b documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="visualization">
+<h1>Visualization<a class="headerlink" href="#visualization" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="python-time-domain">
+<h2>“Python”: Time Domain<a class="headerlink" href="#python-time-domain" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">exsound</span><span class="o">.</span><span class="n">visualize_audio</span><span class="p">(</span><span class="s1">&#39;./audiodata/python.wav&#39;</span><span class="p">,</span> <span class="n">feature_type</span><span class="o">=</span><span class="s1">&#39;signal&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="figure align-default" id="id3">
+<img alt="Imgur" src="https://i.imgur.com/pz0MHui.png" />
+<p class="caption"><span class="caption-text">Imgur</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+<div class="section" id="python-frequency-domain">
+<h2>“Python”: Frequency Domain<a class="headerlink" href="#python-frequency-domain" title="Permalink to this headline">¶</a></h2>
+<p>The mel frequecy cepstral coefficients (MFCCs) and log-mel filterbank
+energies (FBANK) are two very common acoustic features used in machine
+and deep learning.</p>
+<p>Let’s take a look and see how the word “python” looks when these
+features are extracted and also how window settings influence the
+features.</p>
+<div class="section" id="mfcc">
+<h3>MFCC:<a class="headerlink" href="#mfcc" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="window-20-ms-window-overlap-10-ms-default">
+<h4>window 20 ms, window overlap 10 ms (default)<a class="headerlink" href="#window-20-ms-window-overlap-10-ms-default" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">exsound</span><span class="o">.</span><span class="n">visualize_audio</span><span class="p">(</span><span class="s1">&#39;./audiodata/python.wav&#39;</span><span class="p">,</span> <span class="n">feature_type</span><span class="o">=</span><span class="s1">&#39;mfcc&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="figure align-default" id="id4">
+<img alt="Imgur" src="https://i.imgur.com/hx94jeQ.png" />
+<p class="caption"><span class="caption-text">Imgur</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+<div class="section" id="window-100-ms-window-overlap-50-ms">
+<h4>window 100 ms, window overlap 50 ms<a class="headerlink" href="#window-100-ms-window-overlap-50-ms" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">exsound</span><span class="o">.</span><span class="n">visualize_audio</span><span class="p">(</span><span class="s1">&#39;./audiodata/python.wav&#39;</span><span class="p">,</span> <span class="n">feature_type</span><span class="o">=</span><span class="s1">&#39;mfcc&#39;</span><span class="p">,</span>
+<span class="go">                            win_size_ms = 100, win_shift_ms = 50)</span>
+</pre></div>
+</div>
+<div class="figure align-default" id="id5">
+<img alt="Imgur" src="https://i.imgur.com/XY2rGQj.png" />
+<p class="caption"><span class="caption-text">Imgur</span><a class="headerlink" href="#id5" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+</div>
+<div class="section" id="fbank">
+<h3>FBANK:<a class="headerlink" href="#fbank" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id1">
+<h4>window 20 ms, window overlap 10 ms (default)<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">exsound</span><span class="o">.</span><span class="n">visualize_audio</span><span class="p">(</span><span class="s1">&#39;./audiodata/python.wav&#39;</span><span class="p">,</span> <span class="n">feature_type</span><span class="o">=</span><span class="s1">&#39;fbank&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="figure align-default" id="id6">
+<img alt="Imgur" src="https://i.imgur.com/7CroE1i.png" />
+<p class="caption"><span class="caption-text">Imgur</span><a class="headerlink" href="#id6" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+<div class="section" id="id2">
+<h4>window 100 ms, window overlap 50 ms<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">exsound</span><span class="o">.</span><span class="n">visualize_audio</span><span class="p">(</span><span class="s1">&#39;./audiodata/python.wav&#39;</span><span class="p">,</span> <span class="n">feature_type</span><span class="o">=</span><span class="s1">&#39;fbank&#39;</span><span class="p">,</span>
+<span class="go">                            win_size_ms = 100, win_shift_ms = 50)</span>
+</pre></div>
+</div>
+<div class="figure align-default" id="id7">
+<img alt="Imgur" src="https://i.imgur.com/r3jVPdB.png" />
+<p class="caption"><span class="caption-text">Imgur</span><a class="headerlink" href="#id7" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Aislyn Rose.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/visualize.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
