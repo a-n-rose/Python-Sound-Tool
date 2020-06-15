@@ -9,8 +9,6 @@ import numpy as np
 from numpy.fft import fft, rfft, ifft, irfft
 from scipy.signal import hamming, hann, resample
 import librosa
-import librosa.display as display
-import matplotlib.pyplot as plt
 
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
@@ -686,8 +684,8 @@ def combine_sounds(file1, file2, match2shortest=True, time_delay_sec=1,total_dur
     sr1 : int 
         The sample rate of the original signals and added sound
     '''
-    data1, sr1 = pyst.dsp.loadsound(file1)
-    data2, sr2 = pyst.dsp.loadsound(file2)
+    data1, sr1 = pyst.loadsound(file1)
+    data2, sr2 = pyst.loadsound(file2)
     if sr1 != sr2:
         data2, sr2 = resample_audio(data2, sr2, sr1)
     if time_delay_sec:

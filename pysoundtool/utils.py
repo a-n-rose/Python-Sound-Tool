@@ -8,22 +8,6 @@ import pathlib
 # for converting string lists back into list:
 import ast
 
-def str2path(pathstring):
-    '''Turns string path into pathlib.PosixPath object
-    
-    Parameters
-    ----------
-    pathstring : str
-        The pathway to be turned into a pathlib object
-        
-    Returns
-    -------
-    pathlibpath : pathlib.PosixPath
-        The pathway as a pathlib object.
-    '''
-    pathlibpath = pathlib.Path(pathstring)
-    return pathlibpath
-
 # TODO make str path into Pathlib.PosixPath
 def path_or_samples(input_value):
     '''Checks whether `input_value` is a path or sample data. Does not check path validity.
@@ -182,6 +166,27 @@ def create_nested_dirs(directory):
         directory = path_parent.joinpath(local_dirname)
         os.mkdir(directory)
     return directory
+
+def string2pathlib(pathway_string):
+    '''Turns string path into pathlib.PosixPath object
+    
+    Parameters
+    ----------
+    pathway_string : str or pathlib.PosixPath
+        The pathway to be turned into a pathlib object, if need be.
+        
+    Returns
+    -------
+    pathway_string : pathlib.PosixPath
+        The pathway as a pathlib object.
+    '''
+    if not isinstance(pathway_string, pathlib.PosixPath):
+        try:
+            pathway_string = pathlib.Path(pathway_string)
+        except TypeError:
+            raise TypeError('Function string2pathlib expects a string or '+\
+                'pathlib object, not input of type {}'.format(type(pathway_string)))
+    return pathway_string
 
 def string2list(list_paths_string):
     '''Take a string of wavfiles list and establishes back to list
@@ -363,8 +368,8 @@ def check_noisy_clean_match(noisyfilename, cleanfilename):
         return False
     
 def check_length_match(cleanfilename, noisyfilename):   
-    clean, sr1 = pyst.dsp.loadsound(cleanfilename)
-    noisy, sr2 = pyst.dsp.loadsound(noisyfilename)
+    clean, sr1 = pyst.loadsound(cleanfilename)
+    noisy, sr2 = pyst.loadsound(noisyfilename)
     assert sr1 == sr2
     if len(clean) != len(noisy):
         print('length of clean speech: ', len(clean))

@@ -790,9 +790,8 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
         which results in mono channel loading.)
     '''
     percent_overlap = check_percent_overlap(percent_overlap)
-    win_shift_ms = win_size_ms * percent_overlap
     feats = pyst.feats.get_feats(audiodata, features=feature_type, 
-                      win_size_ms = win_size_ms, win_shift_ms = win_shift_ms,
+                      win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                       num_filters=num_filters, num_mfcc = num_mfcc, sr=sr,
                       mono=mono)
     if 'signal' in feature_type:
