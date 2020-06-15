@@ -38,8 +38,8 @@ def test_setup_bands_8():
     assert np.array_equal(expected1, band_start_freq)
     assert np.array_equal(expected2, band_end_freq)
 
-def test_setup_bands_frameduration16ms():
-    fil = pyst.BandSubtraction(frame_duration_ms = 16)
+def test_setup_bands_winsize16ms():
+    fil = pyst.BandSubtraction(win_size_ms = 16)
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
@@ -48,8 +48,8 @@ def test_setup_bands_frameduration16ms():
     assert np.array_equal(expected1, band_start_freq)
     assert np.array_equal(expected2, band_end_freq)
     
-def test_setup_bands_frameduration500ms():
-    fil = pyst.BandSubtraction(frame_duration_ms = 500)
+def test_setup_bands_winsize500ms():
+    fil = pyst.BandSubtraction(win_size_ms = 500)
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
