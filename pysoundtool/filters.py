@@ -47,13 +47,13 @@ class FilterSettings:
         If True, the last partial frame will be zeropadded. (default False)
     """
     def __init__(self,
-                 frame_duration_ms=None,
+                 win_size_ms=None,
                  percent_overlap=None,
                  sr=None,
                  window_type=None,
                  zeropad = None):
         # set defaults if no values given
-        self.frame_dur = frame_duration_ms if frame_duration_ms else 20
+        self.frame_dur = win_size_ms if win_size_ms else 20
         self.percent_overlap = percent_overlap if percent_overlap else 0.5
         self.sr = sr if sr else 48000
         self.window_type = window_type if window_type else 'hamming'
@@ -108,14 +108,14 @@ class Filter(FilterSettings):
     """
 
     def __init__(self,
-                 frame_duration_ms=None,
+                 win_size_ms=None,
                  percent_overlap=None,
                  sr=None,
                  window_type=None,
                  max_vol = None,
                  zeropad = None):
         FilterSettings.__init__(self, 
-                                frame_duration_ms=frame_duration_ms,
+                                win_size_ms=win_size_ms,
                                 percent_overlap=percent_overlap,
                                 sr=sr,
                                 window_type=window_type,
@@ -259,7 +259,7 @@ class Filter(FilterSettings):
         
 class WienerFilter(Filter):
     def __init__(self,
-                 frame_duration_ms=None,
+                 win_size_ms=None,
                  percent_overlap=None,
                  sr=None,
                  window_type=None,
@@ -268,7 +268,7 @@ class WienerFilter(Filter):
                  first_iter=None,
                  zeropad = None):
         Filter.__init__(self, 
-                        frame_duration_ms=frame_duration_ms,
+                        win_size_ms=win_size_ms,
                         sr=sr,
                         window_type=window_type,
                         max_vol=max_vol,
@@ -309,7 +309,7 @@ class WienerFilter(Filter):
     def apply_postfilter(self, enhanced_fft, target_fft, 
                          target_power_frame):
         target_noisereduced_power = pyst.dsp.calc_power(enhanced_fft)
-        self.gain = pyst.dsp.postfilter(target_power_frame,
+        self.gain = pyst.filters.postfilter(target_power_frame,
                                 target_noisereduced_power,
                                 gain=self.gain,
                                 threshold=0.9,
@@ -320,7 +320,7 @@ class WienerFilter(Filter):
 
 class BandSubtraction(Filter):
     def __init__(self,
-                 frame_duration_ms=None,
+                 win_size_ms=None,
                  percent_overlap=None,
                  sr=None,
                  window_type=None,
@@ -329,7 +329,7 @@ class BandSubtraction(Filter):
                  band_spacing = 'linear',
                  zeropad = None):
         Filter.__init__(self, 
-                        frame_duration_ms=frame_duration_ms,
+                        win_size_ms=win_size_ms,
                         sr=sr,
                         window_type=window_type,
                         max_vol=max_vol,
@@ -618,35 +618,44 @@ class BandSubtraction(Filter):
 def filtersignal(audiofile, 
                  sr = None,
                  noise_file=None,
-                 visualize=False,
-                 visualize_every_n_frames=50,
-                 filter_scale=1,
-                 duration_noise_ms=120,
                  filter_type='wiener', # 'band_specsub'
+                 filter_scale=1,
                  apply_postfilter=False,
-                 phase_radians=True,
-                 num_bands=None,
-                 frame_duration_ms = None,
+                 duration_noise_ms=120,
+                 win_size_ms = None,
                  percent_overlap = None,
                  real_signal=False,
                  zeropad = False,
+                 phase_radians=True,
+                 num_bands=None,
+                 visualize=False,
+                 visualize_every_n_windows=50,
+                 max_vol = 0.4,
+                 min_vol = 0.15,
                  save2wav=False,
                  output_filename=None,
+                 overwrite=False,
                  use_librosa=True):
     """Apply Wiener or band spectral subtraction filter to signal using noise. 
 
     Parameters 
     ----------
-    audiofile : str 
-        the filename to the signal for filtering; if None, a signal will be 
-        generated (default None)
-    noise_file : str optional
-        path to either noise audiofile or .npy file containing average power 
-        spectrum values or noise samples. If None, the beginning of the
-        `audiofile` will be used for noise data. (default None)
+    audiofile : str, np.ndarray [size=(num_samples,) or (num_samples, num_channels)] 
+        Filename or the audio data of the signal to be filtered.
+    sr : int
+        The sample rate of the audio. If `audiofile` is type np.ndarray, sr is 
+        required. (default None)
+    noise_file : str, tuple, optional
+        Path to either noise audiofile or .npy file containing average power 
+        spectrum values. If tuple, must include samples and sr.
+        If None, the beginning of the `audiofile` will be used for noise data. 
+        (default None)
+    filter_type : str
+        Type of filter to apply. Options 'wiener' or 'band_specsub'.
     filter_scale : int or float
-        The scale at which the filter should be applied. (default 1) 
-        Note: `scale` cannot be set to 0.
+        The scale at which the filter should be applied. This value will be multiplied 
+        to the noise levels thereby increasing or decreasing the filter strength. 
+        (default 1) 
     apply_postfilter : bool
         Whether or not the post filter should be applied. The post filter 
         reduces musical noise (i.e. distortion) in the signal as a byproduct
@@ -655,57 +664,105 @@ def filtersignal(audiofile,
         The amount of time in milliseconds to use from noise to apply the 
         Welch's method to. In other words, how much of the noise to use 
         when approximating the average noise power spectrum.
-    max_vol : int or float 
-        The maximum volume level of the filtered signal.
-    filter_type : str
-        Type of filter to apply. Options 'wiener' or 'band_specsub'.
+    win_size_ms : int or float 
+        The length of window or frame for processing the audio in milliseconds.
+        (default None)
+    percent_overlap : int or float 
+        The amount each window or frame should overlap. Typical is 0.5 or half the window.
+        (default None)
+    real_signal : bool 
+        If True, only half of the (mirrored) fast Fourier transform will be used 
+        during filtering. For audio, there is no difference. This is visible in the 
+        plots, however, if you are interested. (default False)
     zeropad : bool, optional
         If False, only full frames of audio data are processed. 
-        If True, last partial frame is zeropadded.
+        If True, last partial frame is zeropadded. (default False)
+    phase_radians : bool 
+        Relevant for band spectral subtraction: whether phase should be calculated in 
+        radians or complex values/ power spectrum. (default True)
+    num_bands : int
+        Relevant for band spectral subtraction: the number of bands to section frequencies
+        into. By grouping sections of frequencies during spectral subtraction filtering, 
+        musical noise or distortion should be reduced. (defaults to 6)
+    visualize : bool 
+        If True, plots of the windows and filtered signal will be made. (default False)
+    visualize_every_n_windows : int 
+        If `visualize` is set to True, this controls how often plots are made: every 50
+        windows, for example. (default 50)
+    max_vol : int or float 
+        The maximum volume level of the filtered signal. This is useful if you know you
+        do not want the signal to be louder than a certain value. Ears are important
+        (default 0.4) TODO improve on matching volume to original signal? At least use 
+        objective measures.
+    min_vol : int or float 
+        The minimum volume level of the filtered signal. (default 0.15) 
+        TODO improve on matching volume to original signal.
     save2wav : bool 
         If True, will save the filtered signal as a .wav file
     output_filename : str, pathlib.PosixPath, optional
         path and name the filtered signal is to be saved. (default None) If no filename
         provided, will save under date.
+    overwrite : bool 
+        If True and an audiofile by the same name exists, that file will be overwritten.
+    use_librosa : bool 
+        If True, audiofiles will be loaded using librosa. Otherwise, scipy.io.wavfile.
+        (default True)
     
     Returns
     -------
     enhanced_signal : np.ndarray [size = (num_samples, )]
-        The enhanced signal in raw sample form
+        The enhanced signal in raw sample form. Stereo audio has not yet been tested.
     sr : int 
-        The sample rate of the signal
-    '''
-    %  References for band spectral subtraction (from MATLAB code):
-    %   [1] Kamath, S. and Loizou, P. (2002). A multi-band spectral subtraction 
-    %       method for enhancing speech corrupted by colored noise. Proc. IEEE Int.
-    %       Conf. Acoust.,Speech, Signal Processing
-    %   
-    % Authors: Sunil Kamath and Philipos C. Loizou
-    %
-    % Copyright (c) 2006 by Philipos C. Loizou
-    % $Revision: 0.0 $  $Date: 10/09/2006 $
-    '''
+        The sample rate of the enhanced/ filtered signal.
+        
+    References
+    ----------
+    Kamath, S. and Loizou, P. (2002). A multi-band spectral subtraction 
+    method for enhancing speech corrupted by colored noise. Proc. IEEE Int.
+    Conf. Acoust.,Speech, Signal Processing
+    
+    Kamath, S. and Loizou, P. (2006). mband.m MATLAB code from the book:
+    
+    C Loizou, P. (2013). Speech Enhancement: Theory and Practice. 
     """
     if 'wiener' in filter_type:
-        fil = pyst.WienerFilter(frame_duration_ms=frame_duration_ms, 
+        if sr == 22050:
+            import warnings
+            warnings.warn('\n\nWARNING: sample rate 22050 may have some '+\
+                'missing frames within the filtered signal. \nIf possible, '+\
+                    'perhaps use 8000, 16000, 41000, or 48000 sample rate instead.\n')
+        fil = pyst.WienerFilter(win_size_ms=win_size_ms, 
                                 percent_overlap=percent_overlap,
                                 sr=sr,
                                 zeropad = zeropad)
     elif 'band' in filter_type:
-        fil = pyst.BandSubtraction(frame_duration_ms=frame_duration_ms,
+        # at this point, band spectral subtraction only works with 
+        if sr != 48000:
+            import warnings
+            warnings.warn('\n\nWARNING: Band spectral subtraciton requires a sample rate'+\
+                ' of 48 kHz. Sample rate adjusted from {} to 48000.\n'.format(sr))
+            sr = 48000
+        fil = pyst.BandSubtraction(win_size_ms=win_size_ms,
                                    percent_overlap=percent_overlap,
                                    num_bands=num_bands,
-                                   sr=sr,
+                                   sr=48000,
                                    zeropad = zeropad)
     if visualize:
         frame_subtitle = 'frame size {}ms, window shift {}ms'.format(fil.frame_dur, int(fil.percent_overlap*fil.frame_dur))
 
     # load signal (to be filtered)
-    samples_orig, sr = pyst.loadsound(audiofile, fil.sr, dur_sec=None, use_librosa=use_librosa)
+    if not isinstance(audiofile, np.ndarray):
+        samples_orig, sr = pyst.loadsound(audiofile, fil.sr, dur_sec=None, use_librosa=use_librosa)
+    else:
+        samples_orig, sr = audiofile, sr
+    if sr != fil.sr:
+        samples_orig, sr = pyst.dsp.resample_audio(samples_orig, 
+                                                   sr_original = sr, 
+                                                   sr_desired = fil.sr)
     assert fil.sr == sr
     # TODO improve on volume control, improve SNR 
     # set volume max and min, or based on original sample data
-    fil.set_volume(samples_orig, max_vol = 0.4, min_vol = 0.15)
+    fil.set_volume(samples_orig, max_vol = max_vol, min_vol = min_vol)
     # set how many subframes are needed to process entire target signal
     fil.set_num_subframes(len(samples_orig), is_noise=False, zeropad=fil.zeropad)
     # prepare noise
@@ -800,7 +857,8 @@ def filtersignal(audiofile,
     section = 0
     row = 0
     target_power_baseline = 0
-    if filter_scale is not None:
+    # increase/decrease noise values to increase strength of filter
+    if not filter_scale:
         noise_power *= filter_scale
     else:
         filter_scale = 1
@@ -810,14 +868,14 @@ def filtersignal(audiofile,
             target_w_window = pyst.dsp.apply_window(target_section,
                                                     fil.get_window(), 
                                                     zeropad=fil.zeropad)
-            if visualize and frame % visualize_every_n_frames == 0:
+            if visualize and frame % visualize_every_n_windows == 0:
                 pyst.feats.plot(target_section,'signal', title='Signal'.upper()+' \nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
                 pyst.feats.plot(target_w_window,'signal', title='Signal with {} window'.format(fil.window_type).upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
             target_fft = pyst.dsp.calc_fft(target_w_window, real_signal=real_signal)
             target_power = pyst.dsp.calc_power(target_fft)
             # now start filtering!!
             # initialize SNR matrix
-            if visualize and frame % visualize_every_n_frames == 0:
+            if visualize and frame % visualize_every_n_windows == 0:
                 pyst.feats.plot(target_power,'stft', title='Signal power spectrum'.upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle), scale='power_to_db', sr = fil.sr)
             if 'wiener' in filter_type:
                 enhanced_fft = fil.apply_wienerfilter(frame, 
@@ -837,8 +895,18 @@ def filtersignal(audiofile,
             
             enhanced_ifft = pyst.dsp.calc_ifft(enhanced_fft, 
                                                real_signal=real_signal)
-            filtered_sig[row:row+fil.frame_length] += enhanced_ifft
-            if visualize and frame % visualize_every_n_frames == 0:
+            try:
+                filtered_sig[row:row+fil.frame_length] += enhanced_ifft
+            except ValueError:
+                # with sample rate 22050, had some problems... zeropad missing frames
+                if len(filtered_sig[row:row+fil.frame_length]) < fil.frame_length:
+                    diff = fil.frame_length - len(filtered_sig[row:row+fil.frame_length])
+                    filtered_sig[row:row+fil.frame_length] += \
+                        enhanced_ifft[:fil.frame_length-diff]
+                elif len(enhanced_ifft) < fil.frame_length:
+                    diff = fil.frame_length - len(enhanced_ifft)
+                    filtered_sig[row:row+fil.frame_length-diff] += enhanced_ifft
+            if visualize and frame % visualize_every_n_windows == 0:
                 pyst.feats.plot(filtered_sig,'signal', title='Filtered signal'.upper()+'\nup to frame {}: {}'.format(frame+1,frame_subtitle), sr = fil.sr)
             # prepare for next iteration
             if 'wiener' in filter_type:
@@ -866,9 +934,10 @@ def filtersignal(audiofile,
     if output_filename is not None or save2wav:
         if output_filename is None:
             output_filename = pyst.utils.get_date()+'.wav'
-        fil.save_filtered_signal(str(output_filename), 
-                                enhanced_signal,
-                                overwrite=True)
+        saved_filename = pyst.savesound(str(output_filename), 
+                                        enhanced_signal,
+                                        sr=fil.sr,
+                                        overwrite=overwrite)
     return enhanced_signal, fil.sr
 
 
@@ -1191,7 +1260,7 @@ def postfilter(original_powerspec, noisereduced_powerspec, gain,
     system," Proceedings of IEEE International Conference on Acoustics, Speech and 
     Signal Processing, Taipei, 2009.
     '''
-    power_ratio_current_frame = dsp.calc_power_ratio(
+    power_ratio_current_frame = pyst.dsp.calc_power_ratio(
         original_powerspec,
         noisereduced_powerspec)
     # is there speech? If so, SNR decision = 1
@@ -1199,11 +1268,11 @@ def postfilter(original_powerspec, noisereduced_powerspec, gain,
         SNR_decision = power_ratio_current_frame
     else:
         SNR_decision = 1
-    noise_frame_len = dsp.calc_noise_frame_len(SNR_decision, threshold, scale)
+    noise_frame_len = pyst.dsp.calc_noise_frame_len(SNR_decision, threshold, scale)
     # apply window
-    postfilter_coeffs = dsp.calc_linear_impulse(
+    postfilter_coeffs = pyst.dsp.calc_linear_impulse(
         noise_frame_len,
-        num_freq_bins=original_powerspec.shape[0])
+        num_freq_bins = original_powerspec.shape[0])
     gain_postfilter = np.convolve(gain, postfilter_coeffs, mode='valid')
     return gain_postfilter
 
