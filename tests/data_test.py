@@ -87,11 +87,13 @@ def test_loadsound_flac2wav_sr22050_uselibrosa_False():
     assert samples is not None
     assert sr == 22050
     
-def test_loadsound_m4a2wav_sr22050_error_uselibrosa_False():
+def test_loadsound_m4a2wav_sr22050_uselibrosa_False():
+    print('IF TEST FAILS: Now loads with librosa if RunTimeError.. is this good?')
     with pytest.raises(RuntimeError):
         samples, sr = pyst.loadsound(test_m4a, sr=22050, use_librosa=False)
     
 def test_loadsound_mp32wav_sr22050_error_uselibrosa_False():
+    print('IF TEST FAILS: Now loads with librosa if RunTimeError.. is this good?')
     with pytest.raises(RuntimeError):
         samples, sr = pyst.loadsound(test_mp3, sr=22050,use_librosa=False)
     
