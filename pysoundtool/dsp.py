@@ -310,7 +310,7 @@ def stereo2mono(data):
     return data_mono
 
 # TODO add snr instead of scale
-def add_backgroundsound(audio_main, audio_background, snr=None, scale_background=1, 
+def add_backgroundsound(audio_main, audio_background, snr=None, 
                         delay_mainsound_sec = None, total_len_sec=None):
     '''Adds a sound (i.e. background noise) to a target signal.
     
@@ -329,8 +329,6 @@ def add_backgroundsound(audio_main, audio_background, snr=None, scale_background
         or extend the length indicated). If not of type pathlib.PosixPath or
         string, should be a tuple containing the audio samples and corresponding 
         sample rate.
-    scale_background : int, float
-        By how much to multiply the noise samples.
     snr : int, float
         The sound-to-noise-ratio of the target and background signals. Note: this
         is an approximation and needs further testing and development to be 
@@ -1299,6 +1297,10 @@ def snr_adjustnoiselevel(target_samples, noise_samples,
     ##scale_background = np.sqrt(snr1 / ((snr_desired/10)**10))
     ##scale1 = sum(scale_background)/len(scale_background)
     ##print(scale1)
+    if local_size_ms is None:
+        local_size_ms = 25
+    if min_power_percent is None:
+        min_power_percent = .25
     
     local_size_samps = int(local_size_ms/1000 * sr)
     speech_samps = pyst.dsp.create_empty_matrix((local_size_samps,))
@@ -1311,12 +1313,19 @@ def snr_adjustnoiselevel(target_samples, noise_samples,
         if np.abs(sample) >= min_speech_limit:
             speech_samps[index] = sample
             index += 1
-    
-    target_px = pyst.dsp.asl_P56(target_samples, sr)
+    #% Px is the active speech level ms energy, asl is the active factor, and c0
+    #% is the active speech level threshold. 
+    target_px, asl, c0 = pyst.dsp.asl_P56(target_samples, sr)
+    x = target_samples
+    x_len = len(x)
+     # apply IRS? to noise segment?
+    # TODO: randomize section of noise
     noise_samples = noise_samples[:len(speech_samps)]
     noise_px = noise_samples.T @ noise_samples / len(speech_samps)
-
-    return scale1
+    #% we need to scale the noise segment samples to obtain the desired snr= 10*
+    #% log10( Px/ (sf^2 * Pn))
+    scale_factor = (np.sqrt(target_px/noise_px / (10**(snr_desired/10))))
+    return scale_factor
 
 def asl_P56(samples, sr, bitdepth=16, smooth_factor=0.03, hangover=0.2, margin_db=15.9):
     '''assumes bitdepth 16... I don't understand this function yet. Sorry.
@@ -1357,6 +1366,7 @@ def asl_P56(samples, sr, bitdepth=16, smooth_factor=0.03, hangover=0.2, margin_d
     thresholds = np.zeros((len(np.arange(-15,thresh_nu-16),)))
     for i, item in enumerate(np.arange(-15,thresh_nu-16)):
         thresholds[i] = 2.**item
+    thresh_nu = len(thresholds)
     #% activity counter for each level threshold
     activity_counter = np.zeros((len(thresholds),))
     # % hangover counter for each level threshold
