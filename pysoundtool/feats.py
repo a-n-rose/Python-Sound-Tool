@@ -598,9 +598,11 @@ def get_feats(sound,
         The sample rate of the sound data or the desired sample rate of
         the wavfile to be loaded. (default None)
     features : str
-        Options include 'signal', 'stft', 'fbank', or 'mfcc' data (default 'fbank').
+        Options include 'signal', 'stft', 'powspec', 'fbank',  or 'mfcc' data 
+        (default 'fbank').
         signal: energy/amplitude measurements along time
         STFT: short-time fourier transform
+        powspec : power spectrum (absolute value of stft, squared)
         FBANK: mel-log filterbank energies 
         MFCC: mel frequency cepstral coefficients 
     win_size_ms : int or float
@@ -684,12 +686,14 @@ def get_feats(sound,
                 n_mels = num_filters,
                 window=window).T
             #feats -= (np.mean(feats, axis=0) + 1e-8)
-        elif 'stft' in features:
+        elif 'stft' in features or 'powspec' in features:
             feats = librosa.stft(
                 data,
                 n_fft = int(win_size_ms * sr // 1000),
                 hop_length = int(win_shift_ms*0.001*sr),
                 window=window).T
+            if 'powspec' in features:
+                feats = np.abs(feats)**2
             #feats -= (np.mean(feats, axis=0) + 1e-8)
         elif 'signal' in features:
             feats = (data, sr)
