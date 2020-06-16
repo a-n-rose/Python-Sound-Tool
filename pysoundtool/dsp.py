@@ -7,8 +7,9 @@ import sys, os
 import inspect
 import numpy as np
 from numpy.fft import fft, rfft, ifft, irfft
-from scipy.signal import hamming, hann, resample
+from scipy.signal import hamming, hann, resample, iirfilter, lfilter
 import librosa
+import math
 
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
@@ -429,10 +430,12 @@ def add_backgroundsound(audio_main, audio_background, snr=None, scale_background
     original_snr = pyst.dsp.get_local_snr(
         target, sound2add, sr=sr, local_size_ms=25, min_power_percent=0.25)
     
-    if scale_background is not None:
-        if scale_background == 0:
-            scale_background == 1e-16
-        sound2add *= scale_background
+    if snr is not None:
+        adjust_sound = pyst.dsp.snr_adjustnoiselevel(target, 
+                                                     sound2add,
+                                                     sr=sr,
+                                                     snr_desired = snr)
+        sound2add *= adjust_sound
         
     new_snr = pyst.dsp.get_local_snr(
         target, sound2add, sr=sr)
@@ -1171,16 +1174,49 @@ def calc_posteri_snr(target_power_spec, noise_power_spec):
     return posteri_snr
 
 def get_max_index(matrix):
+    '''If not np.ndarray, expects real sample data.
+    '''
     max_val = 0
     for i, value in enumerate(matrix):
-        if sum(value) > max_val:
-            max_val = sum(value)
-            max_index = i
+        if isinstance(value, np.ndarray):
+            if sum(value) > max_val:
+                max_val = sum(value)
+                max_index = i
+        else:
+            if np.abs(value) > max_val:
+                max_val = np.abs(value)
+                max_index = i
             
     return max_index
 
+def get_local_target_high_power(target_samples, sr, local_size_ms=25, min_power_percent=0.25):
+    # get the size of power spectrum of length local_size_ms 
+    if local_size_ms is None:
+        local_size_ms = 25
+    if min_power_percent is None:
+        min_power_percent = 0.25
+    target_power_size = pyst.feats.get_feats(target_samples, sr=sr, 
+                                        features='powspec', 
+                                        duration = local_size_ms/1000)
+    target_power = pyst.feats.get_feats(target_samples, sr=sr, 
+                                        features='powspec')
+    target_high_power = pyst.dsp.create_empty_matrix(target_power_size.shape, 
+                                                     complex_vals=False)
+    max_index = pyst.dsp.get_max_index(target_power)
+    max_power = sum(target_power[max_index])
+    min_power = max_power * min_power_percent
+    index=0
+    for row in target_power:
+        # only get power values for `local_size_ms`
+        if index == len(target_high_power):
+            break
+        if sum(row) >= min_power:
+            target_high_power[index] = row 
+            index += 1
+    return target_high_power
+
 def get_local_snr(target_samples, noise_samples, sr,
-                  local_size_ms=25, min_power_percent=0.25):
+                  local_size_ms=None, min_power_percent=None):
     '''Approximates the signal to noise ratio of two sets of power spectrums
     
     Note: this is a simple implementation and should not be used for 
@@ -1209,42 +1245,223 @@ def get_local_snr(target_samples, noise_samples, sr,
     ----------
     http://www1.icsi.berkeley.edu/Speech/faq/speechSNR.html
     '''
-    # get the size of power spectrum of length local_size_ms 
-    target_power_size = pyst.feats.get_feats(target_samples, sr=sr, 
-                                        features='powspec', 
-                                        duration = local_size_ms/1000)
-    target_power = pyst.feats.get_feats(target_samples, sr=sr, 
-                                        features='powspec')
-    
-    target_high_power = pyst.dsp.create_empty_matrix(target_power_size.shape, 
-                                                     complex_vals=False)
-    max_index = pyst.dsp.get_max_index(target_power)
-    max_power = sum(target_power[max_index])
-    min_power = max_power * min_power_percent
-    index=0
-    for row in target_power:
-        # only get power values for `local_size_ms`
-        if index == len(target_high_power):
-            break
-        if sum(row) >= min_power:
-            target_high_power[index] = row 
-            index += 1
+    # get target power with only high energy values
+    target_power = pyst.dsp.get_local_target_high_power(target_samples, 
+                                                        sr=sr,
+                                                        local_size_ms=local_size_ms,
+                                                        min_power_percent=min_power_percent)
             
     noise_power = pyst.feats.get_feats(noise_samples, sr=sr, 
                                      features='powspec')
-    if len(noise_power) > len(target_high_power):
-        noise_power = noise_power[:len(target_high_power)]
+    if len(noise_power) > len(target_power):
+        noise_power = noise_power[:len(target_power)]
     else:
         raise ValueError('Not enough noise values present '+\
             'to fully calculate local SNR. Need at least 25 ms.')
     noise_db = librosa.power_to_db(noise_power)
-    target_db = librosa.power_to_db(target_high_power)
+    target_db = librosa.power_to_db(target_power)
     
     # get average values to get one value for SNR
     snr = target_db - noise_db
     snr = sum(snr)/len(snr)
     snr = round(sum(snr)/len(snr),2)
     return snr
+
+def snr_adjustnoiselevel(target_samples, noise_samples,
+                         sr, snr_desired,local_size_ms=None, min_power_percent=None):
+    ##snr = pyst.dsp.get_local_snr(target_samples, 
+                                 ##noise_samples, 
+                                 ##sr=sr)
+    ##snr_power = librosa.db_to_power(snr)
+    ##if snr_desired == 0:
+        ##snr_desired = 0.0001
+    ##desired_snr_power = librosa.db_to_power(snr_desired)
+    ##scale_background = snr_desired / snr
+    ##print('background scale: ', scale_background)
+    # get target power with only high energy values
+    
+    
+    ##target_power = pyst.dsp.get_local_target_high_power(target_samples, 
+                                                        ##sr=sr,
+                                                        ##local_size_ms=local_size_ms,
+                                                        ##min_power_percent=min_power_percent)
+    ##noise_power = pyst.feats.get_feats(noise_samples, sr=sr, 
+                                     ##features='powspec')
+    ##if len(noise_power) > len(target_power):
+        ##noise_power = noise_power[:len(target_power)]
+    ##else:
+        ##raise ValueError('Not enough noise values present '+\
+            ##'to fully calculate local SNR. Need at least 25 ms.')
+    ##snr1 = (sum(target_power)/len(target_power)) / (sum(noise_power)/len(noise_power))
+    ##print(snr1)
+    ##if snr_desired == 0:
+        ##snr_desired = 1e-16
+    ##scale_background = np.sqrt(snr1 / ((snr_desired/10)**10))
+    ##scale1 = sum(scale_background)/len(scale_background)
+    ##print(scale1)
+    
+    local_size_samps = int(local_size_ms/1000 * sr)
+    speech_samps = pyst.dsp.create_empty_matrix((local_size_samps,))
+    max_speech_index = pyst.dsp.get_max_index(target_samples)
+    min_speech_limit = max_speech_index * min_power_percent
+    index = 0
+    for sample in target_samples:
+        if index == len(speech_samps):
+            break
+        if np.abs(sample) >= min_speech_limit:
+            speech_samps[index] = sample
+            index += 1
+    
+    target_px = pyst.dsp.asl_P56(target_samples, sr)
+    noise_samples = noise_samples[:len(speech_samps)]
+    noise_px = noise_samples.T @ noise_samples / len(speech_samps)
+
+    return scale1
+
+def asl_P56(samples, sr, bitdepth=16, smooth_factor=0.03, hangover=0.2, margin_db=15.9):
+    '''assumes bitdepth 16... I don't understand this function yet. Sorry.
+    
+    References
+    ----------
+    ITU-T (1993). Objective measurement of active speech level. ITU-T 
+    Recommendation P. 56
+    
+    %   Author: Yi Hu and Philipos C. Loizou 
+    %
+    % Copyright (c) 2006 by Philipos C. Loizou
+    % $Revision: 0.0 $  $Date: 10/09/2006 $
+    
+    Copyright (c) 2019 Signal and Image Processing Lab
+    
+    MIT License
+    
+    https://github.com/SIP-Lab/CNN-VAD/blob/master/Training%20Code/Functions/addnoise_asl_nseg.m
+    
+    % 'speechfile' is the speech file to calculate active speech level for,
+    % 'asl' is the active speech level (between 0 and 1),
+    % 'asl_rms' is the active speech level mean square energy.
+    '''
+    thresh_nu = bitdepth -1 #number of thresholds
+    I = math.ceil(sr*hangover) # hangover in samples.. is this percent_overlap?
+    # 8820
+    g = np.exp( -1 /( sr * smooth_factor)) # smoothing factor in envelop detection
+    #  0.99924
+    
+    ###c( 1: thres_no)= 2.^ (-15: thres_no- 16); 
+    ###% vector with thresholds from one quantizing level up to half the maximum
+    ###% code, at a step of 2, in the case of 16bit samples, from 2^-15 to 0.5; 
+    ###a( 1: thres_no)= 0; % activity counter for each level threshold
+    ###hang( 1: thres_no)= I; % hangover counter for each level threshold
+    
+    #% vector with thresholds from one quantizing level up to half the maximum
+    thresholds = np.zeros((len(np.arange(-15,thresh_nu-16),)))
+    for i, item in enumerate(np.arange(-15,thresh_nu-16)):
+        thresholds[i] = 2.**item
+    #% activity counter for each level threshold
+    activity_counter = np.zeros((len(thresholds),))
+    # % hangover counter for each level threshold
+    hangover_matrix = np.zeros((len(thresholds,)))
+    hangover_matrix[:] = I
+    
+    #% long-term level square energy of x
+    square_energy = samples.T @ samples
+    # 154.55
+    x_len = len(samples)
+    
+    # use a 2nd order IIR filter to detect the envelope q
+    x_abs = np.abs(samples)
+    p, q = iirfilter(2,Wn=[1-g, g])
+    iir_2ndorder = lfilter(p, q, x_abs)
+    for index in range(x_len):
+        for j in range(thresh_nu):
+            if iir_2ndorder[index] < thresholds[j]:
+                activity_counter[j] += 1
+                hangover_matrix[j] += 1
+            else:
+                break
+            
+    asl = 0
+    asl_rsm = 0
+    eps = 2**-52
+    if activity_counter[0]==0:
+        return None #??
+        #pass #
+        #AdB1 = None #?
+    # https://www.researchgate.net/post/What_does_eps_in_MATLAB_mean_What_is_the_value_of_it
+    #else:
+    AdB1 = 10 * np.log10(square_energy/activity_counter[0] + eps)
+    # if activity_counter[0] = 1 --> 21.89073220006766
+    CdB1 = 20 * np.log10( thresholds[0] + eps)
+    if AdB1 - CdB1 < margin_db:
+        return None#????
+    AdB = np.zeros((thresh_nu,))
+    CdB = np.zeros((thresh_nu,))
+    Delta = np.zeros((thresh_nu,))
+    AdB[0] = AdB1
+    CdB[0] = CdB1
+    Delta[0] = AdB1 - CdB1
+    
+    for j in np.arange(0, thresh_nu, 2):
+        AdB[j] = 10 * np.log10( square_energy / (activity_counter[j] + eps) + eps)
+        CdB[j] = 20 * np.log10( thresholds[j] + eps)
+        
+    for j in np.arange(0, thresh_nu, 2):
+        if activity_counter[j] != 0:
+            Delta[j] = AdB[j] - CdB[j]
+            if Delta[j] <= margin_db:
+                # % interpolate to find the asl
+                asl_ms_log, cl0 = bin_interp(
+                    AdB[j], AdB[j-1], CdB[j], CdB[j-1], margin_db, 0.5)
+                asl_ms = 10**(asl_ms_log/10)
+                asl = (square_energy/x_len)/asl_ms
+                c0 = 10**( cl0/20)
+            
+    return asl_ms, asl, c0
+    
+def bin_interp(upcount, lwcount, upthr, lwthr, Margin, tol):
+    if tol < 0:
+        tol = -tol
+    # % Check if extreme counts are not already the true active value
+    iteration = 0
+    if np.abs(upcount - upthr - Margin) < tol:
+        asl_ms_log = upcount
+        cc = upthr
+        return asl_ms_log, cc
+    if np.abs(lwcount - lwthr - Margin) < tol:
+        asl_ms_log = lwcount
+        cc = lwthr
+        return asl_ms_log, cc
+    # % Initialize first middle for given (initial) bounds 
+    midcount = (upcount + lwcount) / 2.0
+    midthr = (upthr + lwthr) / 2.0
+    
+    # % Repeats loop until `diff' falls inside the tolerance (-tol<=diff<=tol)
+    while True:
+        diff = midcount - midthr - Margin
+        if np.abs(diff) <= tol:
+            break
+        #% if tolerance is not met up to 20 iteractions, then relax the
+        #% tolerance by 10%
+        iteration += 1
+        
+        if iteration > 20:
+            tol = tol * 1.1
+        
+        if diff > tol: # then the new bounds are:
+            # upper and middle activities
+            midcount = (upcount + midcount) / 2.0
+            # and thresholds
+            midthr = (upthr + midthr) / 2.0
+        elif (diff < -tol): # then the new bounds are:
+            # middle and lower activities
+            midcount = (midcount + lwcount) / 2.0
+            # and thresholds
+            midthr = (midthr + lwthr) / 2.0
+    #%   Since the tolerance has been satisfied, midcount is selected 
+    #%   as the interpolated value with a tol [dB] tolerance.
+    asl_ms_log = midcount
+    cc = midthr
+    return asl_ms_log, cc
 
 def calc_posteri_prime(posteri_snr):
     """Calculates the posteri prime 
