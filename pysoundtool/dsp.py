@@ -309,7 +309,6 @@ def stereo2mono(data):
         data_mono = np.take(data,0,axis=-1) 
     return data_mono
 
-# TODO add snr instead of scale
 def add_backgroundsound(audio_main, audio_background, snr=None, 
                         delay_mainsound_sec = None, total_len_sec=None):
     '''Adds a sound (i.e. background noise) to a target signal.
@@ -348,59 +347,9 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
         The samples of the sounds added together
     sr : int 
         The sample rate of the samples
-        
-    Examples
-    --------
-    >>> import numpy as np
-    >>> sound_samples = np.array([1,2,3,4,5])
-    >>> background_samples = np.array([1,1,1,1,1])
-    >>> sr = 5 # doesn't mean anything in this example
-    >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr))
-    >>> combined
-    array([2, 3, 4, 5, 6])
-    >>> sr
-    5
-    >>> # increase the scale of the sound
-    >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), scale_background=1.5)
-    >>> combined
-    array([2.5, 3.5, 4.5, 5.5, 6.5])
-    >>> # decrese the scale of the sound
-    >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), scale_background = 0.5)
-    >>> combined
-    array([1.5, 2.5, 3.5, 4.5, 5.5])
-    >>> # delay `main_sound`
-    >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), delay_mainsound_sec=1)
-    >>> combined 
-    array([1, 1, 1, 1, 1, 2, 3, 4, 5, 6])
-    >>> # set total length without delay
-    >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), total_len_sec = 3)
-    >>> combined
-    array([2, 3, 4, 5, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-    >>> # set total length with delay
-    >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), total_len_sec = 3, delay_mainsound_sec=1)
-    >>> combined
-    array([1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 1, 1, 1, 1, 1])
-    >>> # set total length with delay: target sound will get cut off
-    >>> combined, sr = add_backgroundsound((sound_samples, sr), (background_samples, sr), total_len_sec = 1.5, delay_mainsound_sec=1)
-    >>> combined
-    array([1, 1, 1, 1, 1, 2, 3])
-    >>> # also works with stereo sound
-    >>> sound = np.zeros((3,2))
-    >>> sound[:,0] = np.array([1,2,3])
-    >>> sound[:,1] = np.array([0,1,2])
-    >>> sound
-    array([[1., 0.],
-           [2., 1.],
-           [3., 2.]])
-    >>> noise = np.array([1,1,1,])
-    >>> sr = 3
-    >>> input1 = sound, sr
-    >>> input2 = noise, sr
-    >>> combined, sr2 = pyst.dsp.add_backgroundsound(input1, input2)
-    >>> combined
-    array([[2., 1.],
-           [3., 2.],
-           [4., 3.]])
+    snr : int, float 
+        The updated signal-to-noise ratio. Due to the non-stationary state of speech and sound in general, 
+        this value is only an approximation.
     '''
     input_type_main = pyst.utils.path_or_samples(audio_main)
     input_type_background = pyst.utils.path_or_samples(audio_background)
@@ -427,8 +376,6 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
         sound2add = apply_num_channels(sound2add, num_channels)
     original_snr = pyst.dsp.get_local_snr(
         target, sound2add, sr=sr, local_size_ms=25, min_power_percent=0.25)
-    
-    #local_speech_segment = 
     
     if snr is not None:
         adjust_sound = pyst.dsp.snr_adjustnoiselevel(target, 
@@ -675,7 +622,8 @@ def get_num_channels(data):
 
 # TODO clarify how length of output array is established
 # TODO change time_delay_sec=1 to None default, as well as total_dur_sec
-def combine_sounds(file1, file2, match2shortest=True, time_delay_sec=1,total_dur_sec=5):
+# TODO add snr parameter?
+def combine_sounds(file1, file2, match2shortest=True, time_delay_sec=None,total_dur_sec=None):
     '''Combines sounds
     
     Parameters
@@ -1269,52 +1217,13 @@ def get_local_snr(target_samples, noise_samples, sr,
 
 def snr_adjustnoiselevel(target_samples, noise_samples,
                          sr, snr_desired,local_size_ms=None, min_power_percent=None):
-    ##snr = pyst.dsp.get_local_snr(target_samples, 
-                                 ##noise_samples, 
-                                 ##sr=sr)
-    ##snr_power = librosa.db_to_power(snr)
-    ##if snr_desired == 0:
-        ##snr_desired = 0.0001
-    ##desired_snr_power = librosa.db_to_power(snr_desired)
-    ##scale_background = snr_desired / snr
-    ##print('background scale: ', scale_background)
-    # get target power with only high energy values
+    '''
+    MIT License
     
+    Copyright (c) 2019 Signal and Image Processing Lab
     
-    ##target_power = pyst.dsp.get_local_target_high_power(target_samples, 
-                                                        ##sr=sr,
-                                                        ##local_size_ms=local_size_ms,
-                                                        ##min_power_percent=min_power_percent)
-    ##noise_power = pyst.feats.get_feats(noise_samples, sr=sr, 
-                                     ##features='powspec')
-    ##if len(noise_power) > len(target_power):
-        ##noise_power = noise_power[:len(target_power)]
-    ##else:
-        ##raise ValueError('Not enough noise values present '+\
-            ##'to fully calculate local SNR. Need at least 25 ms.')
-    ##snr1 = (sum(target_power)/len(target_power)) / (sum(noise_power)/len(noise_power))
-    ##print(snr1)
-    ##if snr_desired == 0:
-        ##snr_desired = 1e-16
-    ##scale_background = np.sqrt(snr1 / ((snr_desired/10)**10))
-    ##scale1 = sum(scale_background)/len(scale_background)
-    ##print(scale1)
-    if local_size_ms is None:
-        local_size_ms = 25
-    if min_power_percent is None:
-        min_power_percent = .25
-    
-    local_size_samps = int(local_size_ms/1000 * sr)
-    speech_samps = pyst.dsp.create_empty_matrix((local_size_samps,))
-    max_speech_index = pyst.dsp.get_max_index(target_samples)
-    min_speech_limit = max_speech_index * min_power_percent
-    index = 0
-    for sample in target_samples:
-        if index == len(speech_samps):
-            break
-        if np.abs(sample) >= min_speech_limit:
-            speech_samps[index] = sample
-            index += 1
+    https://github.com/SIP-Lab/CNN-VAD/blob/master/Training%20Code/Functions/addnoise_asl_nseg.m
+    '''
     #% Px is the active speech level ms energy, asl is the active factor, and c0
     #% is the active speech level threshold. 
     target_px, asl, c0 = pyst.dsp.asl_P56(target_samples, sr)
@@ -1323,7 +1232,7 @@ def snr_adjustnoiselevel(target_samples, noise_samples,
      # apply IRS? to noise segment?
     # TODO: randomize section of noise
     #noise_samples = noise_samples[:len(speech_samps)]
-    noise_px = noise_samples.T @ noise_samples / len(speech_samps)
+    noise_px = noise_samples.T @ noise_samples / len(target_samples)
     #% we need to scale the noise segment samples to obtain the desired snr= 10*
     #% log10( Px/ (sf^2 * Pn))
     scale_factor = (np.sqrt(target_px/noise_px / (10**(snr_desired/10))))
@@ -1351,6 +1260,8 @@ def asl_P56(samples, sr, bitdepth=16, smooth_factor=0.03, hangover=0.2, margin_d
     % 'speechfile' is the speech file to calculate active speech level for,
     % 'asl' is the active speech level (between 0 and 1),
     % 'asl_rms' is the active speech level mean square energy.
+    
+    TODO handle bitdepth variation - what if not 16?
     '''
     thresh_nu = bitdepth -1 #number of thresholds
     I = math.ceil(sr*hangover) # hangover in samples.. is this percent_overlap?
