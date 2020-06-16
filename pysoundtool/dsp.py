@@ -309,7 +309,7 @@ def stereo2mono(data):
     return data_mono
 
 # TODO add snr instead of scale
-def add_backgroundsound(audio_main, audio_background, scale_background=1,
+def add_backgroundsound(audio_main, audio_background, snr=None, scale_background=1, 
                         delay_mainsound_sec = None, total_len_sec=None):
     '''Adds a sound (i.e. background noise) to a target signal.
     
@@ -329,8 +329,11 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
         string, should be a tuple containing the audio samples and corresponding 
         sample rate.
     scale_background : int, float
-        The loudness of the sound to be added (default 1). The audio samples
-        will be multiplied by this number.
+        By how much to multiply the noise samples.
+    snr : int, float
+        The sound-to-noise-ratio of the target and background signals. Note: this
+        is an approximation and needs further testing and development to be 
+        used as an official measurement of snr.
     delay_mainsound_sec : int or float, optional
         Length of time in seconds the main sound will be delayed. For example, 
         if `delay_mainsound_sec` is set to 1, one second of the
@@ -413,7 +416,7 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
     if sr != sr2:
         sound2add, sr2 = pyst.dsp.resample_audio(sound2add, sr2, sr)
         assert sr2 == sr
-        
+    
     # make background same shape as signal
     if len(target.shape) != len(sound2add.shape):
         # ensure in shape (num_samples,) or (num_samples, num_channels)
@@ -423,9 +426,20 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
         else:
             num_channels = 1
         sound2add = apply_num_channels(sound2add, num_channels)
-            
-    # TODO add snr calculation instead of scale
-    sound2add = sound2add * scale_background
+    original_snr = pyst.dsp.get_local_snr(
+        target, sound2add, sr=sr, local_size_ms=25, min_power_percent=0.25)
+    
+    if scale_background is not None:
+        if scale_background == 0:
+            scale_background == 1e-16
+        sound2add *= scale_background
+        
+    new_snr = pyst.dsp.get_local_snr(
+        target, sound2add, sr=sr)
+    
+    print('original snr: ', original_snr)
+    print('new snr: ', new_snr)
+
     if delay_mainsound_sec is None:
         delay_mainsound_sec = 0
     if total_len_sec is not None:
@@ -453,7 +467,7 @@ def add_backgroundsound(audio_main, audio_background, scale_background=1,
         # set aside ending samples for ending (if sound is extended)
         ending_sound = sound2add[len(target)+int(sr*delay_mainsound_sec):total_samps]
         combined = np.concatenate((combined, ending_sound))
-    return combined, sr
+    return combined, sr, new_snr
 
 def apply_num_channels(sound_data, num_channels):
     '''Ensures `data` has indicated `num_channels`. 
@@ -1128,7 +1142,7 @@ def apply_original_phase(spectrum, phase):
     return spectrum_complex
 
 def calc_posteri_snr(target_power_spec, noise_power_spec):
-    """Calculates and updates signal to noise ratio of current frame
+    """Calculates and signal to noise ratio of current frame
 
     Parameters
     ----------
@@ -1155,6 +1169,82 @@ def calc_posteri_snr(target_power_spec, noise_power_spec):
     for i in range(len(target_power_spec)):
         posteri_snr[i] += target_power_spec[i] / noise_power_spec[i]
     return posteri_snr
+
+def get_max_index(matrix):
+    max_val = 0
+    for i, value in enumerate(matrix):
+        if sum(value) > max_val:
+            max_val = sum(value)
+            max_index = i
+            
+    return max_index
+
+def get_local_snr(target_samples, noise_samples, sr,
+                  local_size_ms=25, min_power_percent=0.25):
+    '''Approximates the signal to noise ratio of two sets of power spectrums
+    
+    Note: this is a simple implementation and should not be used for 
+    official/exact measurement of snr.
+    
+    Parameters
+    ----------
+    target_samples : np.ndarray [size = (num_samples, )]
+        The samples of the main / speech signal. Only frames with
+        higher levels of energy will be used to calculate SNR.
+    noise_samples : np.ndarray [size = (num_samples, )]
+        The samples of background noise. Expects only noise, no speech.
+        Must be the same sample rate as the target_samples 
+    sr : int 
+        The sample rate for the audio samples.
+    local_size_ms : int or float
+        The length in milliseconds to calculate level of SNR. 
+        (default 25)
+    min_power_percent : float 
+        The minimum percentage of energy / power the target samples 
+        should have. This is to look at only sections with speech or 
+        other signal of interest and not periods of silence. 
+        Value should be between 0 and 1. (default 0.25)
+    
+    References
+    ----------
+    http://www1.icsi.berkeley.edu/Speech/faq/speechSNR.html
+    '''
+    # get the size of power spectrum of length local_size_ms 
+    target_power_size = pyst.feats.get_feats(target_samples, sr=sr, 
+                                        features='powspec', 
+                                        duration = local_size_ms/1000)
+    target_power = pyst.feats.get_feats(target_samples, sr=sr, 
+                                        features='powspec')
+    
+    target_high_power = pyst.dsp.create_empty_matrix(target_power_size.shape, 
+                                                     complex_vals=False)
+    max_index = pyst.dsp.get_max_index(target_power)
+    max_power = sum(target_power[max_index])
+    min_power = max_power * min_power_percent
+    index=0
+    for row in target_power:
+        # only get power values for `local_size_ms`
+        if index == len(target_high_power):
+            break
+        if sum(row) >= min_power:
+            target_high_power[index] = row 
+            index += 1
+            
+    noise_power = pyst.feats.get_feats(noise_samples, sr=sr, 
+                                     features='powspec')
+    if len(noise_power) > len(target_high_power):
+        noise_power = noise_power[:len(target_high_power)]
+    else:
+        raise ValueError('Not enough noise values present '+\
+            'to fully calculate local SNR. Need at least 25 ms.')
+    noise_db = librosa.power_to_db(noise_power)
+    target_db = librosa.power_to_db(target_high_power)
+    
+    # get average values to get one value for SNR
+    snr = target_db - noise_db
+    snr = sum(snr)/len(snr)
+    snr = round(sum(snr)/len(snr),2)
+    return snr
 
 def calc_posteri_prime(posteri_snr):
     """Calculates the posteri prime 
