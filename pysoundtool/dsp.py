@@ -428,6 +428,8 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
     original_snr = pyst.dsp.get_local_snr(
         target, sound2add, sr=sr, local_size_ms=25, min_power_percent=0.25)
     
+    #local_speech_segment = 
+    
     if snr is not None:
         adjust_sound = pyst.dsp.snr_adjustnoiselevel(target, 
                                                      sound2add,
@@ -1320,7 +1322,7 @@ def snr_adjustnoiselevel(target_samples, noise_samples,
     x_len = len(x)
      # apply IRS? to noise segment?
     # TODO: randomize section of noise
-    noise_samples = noise_samples[:len(speech_samps)]
+    #noise_samples = noise_samples[:len(speech_samps)]
     noise_px = noise_samples.T @ noise_samples / len(speech_samps)
     #% we need to scale the noise segment samples to obtain the desired snr= 10*
     #% log10( Px/ (sf^2 * Pn))
