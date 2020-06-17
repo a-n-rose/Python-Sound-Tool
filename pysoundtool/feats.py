@@ -25,10 +25,6 @@ import pysoundtool as pyst
 
 
 
-def extract_autoencoder_data():
-    pass
-
-
 class AcousticData:
     '''Base class for handling acoustic data and machine learning.
     
@@ -185,273 +181,6 @@ class FeatPrep_SoundClassifier(AcousticData):
         '''
         max_num_samps = (filter_features.shape[0]//num_sets) * num_sets
         return int(max_num_samps)
-
-    def extractfeats(self, sounddata, dur_sec=None, augment_data=None):
-        '''Organizes feat extraction of each audiofile according to class attributes.
-        '''
-        sounddata = pyst.paths.str2path(sounddata)
-        if pyst.paths.is_audio_ext_allowed(sounddata):
-            y, sr = pyst.loadsound(sounddata,
-                                    sr=self.sr,
-                                    dur_sec=dur_sec)
-        else:
-            print('The following datatype for sounddata is not understood:')
-            print(type(sounddata))
-            print('Data presented: ', sounddata)
-            sys.exit()
-        if augment_data is not None and augment_data != self.augment_data:
-            feats = self.samps2feats(y, augment_data=augment_data)
-        else:
-            feats = self.samps2feats(y)
-        assert feats.shape[1] == self.feature_sets
-        assert feats.shape[2] == self.num_columns
-        feats = feats[:self.feature_sets]
-        return feats
-
-    def get_feats(self, list_waves, dur_sec=None, seed=None):
-        '''collects fbank or mfcc features of entire wavfile list
-        '''
-        tot_waves = len(list_waves)
-        num_images = 1
-        if self.augment_data:
-            num_versions_samples = 3  # three different volume augmentaions
-        else:
-            num_versions_samples = 1
-        # for training scene classifier, just want 1 'image' per scen
-        tot_len_matrix = int(tot_waves * num_images * num_versions_samples)
-        # create empty matrix to fill features into
-        # +1 is for the label column
-        shape = (tot_len_matrix, self.feature_sets, self.num_columns+1)
-        feats_matrix = pyst.dsp.create_empty_matrix(shape, complex_vals=False)
-        row = 0  # keep track of where we are in filling the empty matrix
-        for i, label_wave in enumerate(list_waves):
-            # collect label information
-            # list_waves contains tuples with (soundclass_int, wavfile)
-            label = int(label_wave[0])
-            wave = label_wave[1]
-            if not os.path.exists(wave):
-                print('Not Found: ', wave)
-            else:
-                feats = self.extractfeats(wave, dur_sec=dur_sec)
-                # add label column - need label to stay with the features!
-                label_col = np.full(
-                    (feats.shape[0], self.feature_sets, 1), label)
-                feats = np.concatenate((feats, label_col), axis=2)
-                # fill the matrix with the features and labels
-                feats_matrix[row:row+feats.shape[0]] = feats
-                # actualize the row for the next set of features to fill it with
-                row += feats.shape[0]
-                # print on screen the progress
-                progress = row / tot_len_matrix * 100
-                sys.stdout.write("\r%d%% through current dataset" % progress)
-                sys.stdout.flush()
-                if not progress < 100:
-                    print("\nCompleted feature extraction.")
-        if row < tot_len_matrix:
-            diff = tot_len_matrix - row
-            print('A total of {} wavfiles were not found. \
-                  \nExpected amount: {} total waves.'.format(
-                      diff, tot_len_matrix))
-            feats_matrix = feats_matrix[:row]
-        # randomize rows
-        if seed is not None:
-            np.random.seed(seed)
-        np.random.shuffle(feats_matrix)
-        return feats_matrix
-
-    def get_save_feats(self, wave_list, directory4features, filename):
-        if self.num_waves is None:
-            self.num_waves = len(wave_list)
-        else:
-            self.num_waves += len(wave_list)
-        feats = self.get_feats(
-            wave_list, dur_sec=self.training_segment_ms/1000.0)
-        save2file = directory4features.joinpath(filename)
-        pyst.paths.save_feature_data(save2file, feats)
-        return None
-
-    def save_class_settings(self, path, replace=False):
-        '''saves class settings to dictionary
-        '''
-        class_settings = self.__dict__
-        filename = 'settings_{}.csv'.format(self.__class__.__name__)
-        featuresettings_path = path.joinpath(filename)
-        pyst.paths.save_dict(
-            class_settings, featuresettings_path, replace=replace)
-        return None
-
-
-def prepfeatures(filter_class, feature_type='mfcc', num_filters=40,
-                 segment_dur_ms=1000, limit=None, augment_data=False,
-                 sr=48000):
-    '''Pulls info from 'filter_class' instance to then extract, save features
-
-    Parameters
-    ----------
-    filter_class : class
-        The class instance holding attributes relating to path structure
-        and filenames necessary for feature extraction
-    feature_type : str, optional
-        Acceptable inputs: 'mfcc' and 'fbank'. These are the features that
-        will be extracted from the audio and saved (default 'mfcc')
-    num_filters : int, optional
-        The number of mel filters used during feature extraction. This number 
-        ranges for 'mfcc' extraction between 13 and 40 and for 'fbank'
-        extraction between 20 and 128. The higher the number, the greater the 
-        computational load and memory requirement. (default 40)
-    segment_dur_ms : int, optional
-        The length in milliseconds of the acoustic data to extract features
-        from. If 1000 ms, 1 second of acoustic data will be processed; 1 sec 
-        of feature data will be extracted. If not enough audio data is present,
-        the feature data will be zero padded. (default 1000)
-
-    Returns
-    ----------
-    feats_class : class
-        The class instance holding attributes relating to the current 
-        feature extraction session
-    filter_class : class
-        The updated class instance holding attributes relating to path
-        structure
-    '''
-    # extract features
-    # create namedtuple with train, val, and test wavfiles and labels
-    datasetwaves = pyst.feats.audio2datasets(filter_class.audiodata_dir,
-                                          filter_class.labels_encoded_path,
-                                          filter_class.labels_waves_path,
-                                          limit=limit)
-
-    # TODO make baseclass PrepFeatures for ClassifierFeats, AutoencoderFeats
-    feats_class = FeatPrep_SoundClassifier(feature_type=feature_type,
-                               num_filters=num_filters,
-                               training_segment_ms=segment_dur_ms,
-                               augment_data=augment_data)
-    # incase an error occurs; save this before extraction starts
-    feats_class.save_class_settings(filter_class.features_dir)
-    for i, dataset in enumerate(datasetwaves._fields):
-        feats_class.get_save_feats(datasetwaves[i],
-                                   filter_class.features_dir,
-                                   '{}.npy'.format(dataset))
-    # save again with added information, ie the total number of wavfiles
-    feats_class.save_class_settings(filter_class.features_dir, replace=True)
-    filter_class.features = filter_class.features_dir
-    return feats_class, filter_class
-
-
-def prepfeatures_autoencoder(filter_class, feature_type='mfcc', num_filters=40,
-                 segment_dur_ms=1000, limit=None, augment_data=False,
-                 sr=48000):
-    '''Pulls info from 'filter_class' instance to then extract, save features
-
-    Parameters
-    ----------
-    filter_class : class
-        The class instance holding attributes relating to path structure
-        and filenames necessary for feature extraction
-    feature_type : str, optional
-        Acceptable inputs: 'mfcc' and 'fbank'. These are the features that
-        will be extracted from the audio and saved (default 'mfcc')
-    num_filters : int, optional
-        The number of mel filters used during feature extraction. This number 
-        ranges for 'mfcc' extraction between 13 and 40 and for 'fbank'
-        extraction between 20 and 128. The higher the number, the greater the 
-        computational load and memory requirement. (default 40)
-    segment_dur_ms : int, optional
-        The length in milliseconds of the acoustic data to extract features
-        from. If 1000 ms, 1 second of acoustic data will be processed; 1 sec 
-        of feature data will be extracted. If not enough audio data is present,
-        the feature data will be zero padded. (default 1000)
-
-    Returns
-    ----------
-    feats_class : class
-        The class instance holding attributes relating to the current 
-        feature extraction session
-    filter_class : class
-        The updated class instance holding attributes relating to path
-        structure
-    '''
-    # extract features
-    # create namedtuple with train, val, and test wavfiles and labels
-    # TODO update filter_class with new autoencoder attributes
-    datasetwaves = pyst.feats.audio2datasets(filter_class.audiodata_dir,
-                                          filter_class.inputdata_folder,
-                                          filter_class.outputdata_folder,
-                                          filter_class.features_dir,
-                                          limit=limit)
-
-    # TODO make baseclass PrepFeatures for ClassifierFeats, AutoencoderFeats
-    feats_class = PrepFeatures(feature_type=feature_type,
-                               num_filters=num_filters,
-                               training_segment_ms=segment_dur_ms,
-                               augment_data=augment_data)
-    # incase an error occurs; save this before extraction starts
-    feats_class.save_class_settings(filter_class.features_dir)
-    for i, dataset in enumerate(datasetwaves._fields):
-        feats_class.get_save_feats(datasetwaves[i],
-                                   filter_class.features_dir,
-                                   '{}.npy'.format(dataset))
-    # save again with added information, ie the total number of wavfiles
-    feats_class.save_class_settings(filter_class.features_dir, replace=True)
-    filter_class.features = filter_class.features_dir
-    return feats_class, filter_class
-
-def getfeatsettings(feature_info):
-    '''Loads prev extracted feature settings into new feature class instance
-
-    This is useful if one wants to extract new features that match the
-    dimensions and settings of previously extracted features.
-
-    Parameters
-    ----------
-    feature_info : dict, class
-        Either a dictionary or a class instance that holds the path
-        attribute to a dictionary. 
-
-    Returns
-    -------
-    feats_class : class 
-        Feature extraction class instance with the same settings as the 
-        settings dictionary
-    '''
-    if isinstance(feature_info, dict):
-        feature_settings = feature_info
-    else:
-        featuresettings_path = pyst.paths.load_settings_file(
-            feature_info.features_dir)
-        feature_settings = pyst.paths.load_dict(featuresettings_path)
-    sr = pyst.utils.make_number(feature_settings['sr'])
-    window_size = pyst.utils.make_number(feature_settings['window_size'])
-    window_shift = pyst.utils.make_number(feature_settings['window_shift'])
-    feature_sets = pyst.utils.make_number(feature_settings['feature_sets'])
-    feature_type = feature_settings['feature_type']
-    num_columns = pyst.utils.make_number(feature_settings['num_columns'])
-    num_images_per_audiofile = pyst.utils.make_number(
-        feature_settings['num_images_per_audiofile'])
-    training_segment_ms = pyst.utils.make_number(
-        feature_settings['training_segment_ms'])
-    if 'fbank' in feature_type.lower():
-        feature_type = 'fbank'
-        num_filters = num_columns
-        num_mfcc = None
-    elif 'mfcc' in feature_type.lower():
-        feature_type = 'mfcc'
-        if num_columns != 40:
-            num_filters = 40
-        else:
-            num_filters = num_columns
-        num_mfcc = num_columns
-    feats_class = PrepFeatures(feature_type=feature_type,
-                               sr=sr,
-                               num_filters=num_filters,
-                               num_mfcc=num_mfcc,
-                               window_size=window_size,
-                               window_shift=window_shift,
-                               training_segment_ms=training_segment_ms,
-                               num_images_per_audiofile=num_images_per_audiofile)
-    assert feature_sets == feats_class.feature_sets
-    return feats_class
-
 
 ################################### TODO Consolidate with other functions ################
 # TODO Clean up   
@@ -710,7 +439,8 @@ def get_feats(sound,
                           mono = mono)
     return feats
 
-# TODO possibly remove?
+# TODO possibly remove? Doesn't use Librsoa, insetad
+# python_speech_features
 def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
                      percent_overlap=0.5, num_filters=40, num_mfcc=40,
                      window_function=None):
@@ -806,13 +536,14 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
                     save_pic = save_pic, name4pic=name4pic, scale=power_scale)
 
 def check_percent_overlap(percent_overlap):
+    '''Ensures percent_overlap is between 0 and 1.
+    '''
     if percent_overlap > 1:
         percent_overlap *= 0.01
         if percent_overlap > 1:
             raise ValueError('The percent overlap value '+str(percent_overlap)+\
                 ' is too large. Please use a value between 0 and 1 or 0 and 100.')
     return percent_overlap
-
 
 def separate_dependent_var(matrix):
     '''Separates matrix into features and labels. Expects 3D array.
