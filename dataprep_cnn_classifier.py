@@ -6,7 +6,7 @@ feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
 
 # 1) collect labels 
 labels = []
-data_scene_dir = pyst.utils.str2path('./audiodata/minidatasets/background_noise/')
+data_scene_dir = pyst.utils.string2pathlib('./audiodata/minidatasets/background_noise/')
 for label in data_scene_dir.glob('*/'):
     labels.append(label.stem)
 labels = set(labels)
