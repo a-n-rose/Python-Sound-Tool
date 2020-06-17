@@ -13,7 +13,7 @@ import pysoundtool as pyst
 
 
 
-test_audiofile = './audio2channels.wav'
+test_audiofile = './audiodata/audio2channels.wav'
 
 samples_48000, sr_48000 = librosa.load(test_audiofile, sr=48000)
 samples_44100, sr_44100 = librosa.load(test_audiofile, sr=44100)
@@ -256,128 +256,6 @@ def test_stereo2mono_mono_input():
     data = np.expand_dims(np.linspace(0,20),axis=1)
     data_mono = pyst.dsp.stereo2mono(data)
     assert np.array_equal(data, data_mono)
-    
-def test_add_backgroundsound():
-    sound_samples = np.array([1,2,3,4,5])
-    background_samples = np.array([1,1,1,1,1])
-    sr = 5
-    sound = sound_samples, sr
-    background = background_samples, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(sound, background)
-    expected = sound_samples + background_samples
-    assert np.array_equal(expected, combined)
-    assert sr == sr2
-    
-def test_add_backgroundsound_scale():
-    sound_samples = np.array([1,2,3,4,5])
-    background_samples = np.array([1,1,1,1,1])
-    sr = 5
-    sound = sound_samples, sr
-    background = background_samples, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
-                                                 background, 
-                                                 scale_background=0.5)
-    expected = np.array([1.5, 2.5, 3.5, 4.5, 5.5])
-    assert np.array_equal(expected, combined)
-    assert sr == sr2
-    
-def test_add_backgroundsound_delay_1sec():
-    sound_samples = np.array([1,2,3,4,5])
-    background_samples = np.array([1,1,1,1,1])
-    sr = 5
-    sound = sound_samples, sr
-    background = background_samples, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
-                                                 background, 
-                                                 delay_mainsound_sec=1)
-    expected = np.array([1, 1, 1, 1, 1, 2, 3, 4, 5, 6])
-
-def test_add_backgroundsound_delay_halfsec():
-    sound_samples = np.array([1,2,3,4,5])
-    background_samples = np.array([1,1,1,1,1])
-    sr = 5
-    sound = sound_samples, sr
-    background = background_samples, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
-                                                 background, 
-                                                 delay_mainsound_sec=0.5)
-    expected = np.array([1, 1, 2, 3, 4, 5, 6])
-
-def test_add_backgroundsound_totallen_long():
-    sound_samples = np.array([1,2,3,4,5])
-    background_samples = np.array([1,1,1,1,1])
-    sr = 5
-    sound = sound_samples, sr
-    background = background_samples, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
-                                                 background, 
-                                                 total_len_sec=3)
-    expected = np.array([2, 3, 4, 5, 6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-    assert np.array_equal(expected, combined)
-    assert sr == sr2
-    
-def test_add_backgroundsound_totallen_delay_short():
-    sound_samples = np.array([1,2,3,4,5])
-    background_samples = np.array([1,1,1,1,1])
-    sr = 5
-    sound = sound_samples, sr
-    background = background_samples, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
-                                                 background,
-                                                 delay_mainsound_sec=1,
-                                                 total_len_sec=1.5)
-    expected = np.array([1, 1, 1, 1, 1, 2, 3])
-    assert np.array_equal(expected, combined)
-    assert sr == sr2
-
-def test_add_backgroundsound_totallen_delay_long():
-    sound_samples = np.array([1,2,3,4,5])
-    background_samples = np.array([1,1,1,1,1])
-    sr = 5
-    sound = sound_samples, sr
-    background = background_samples, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(sound, 
-                                                 background,
-                                                 delay_mainsound_sec=1,
-                                                 total_len_sec=3)
-    expected = np.array([1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 1, 1, 1, 1, 1])
-    assert np.array_equal(expected, combined)
-    assert sr == sr2
-    
-def test_add_backgroundsound_stereo():
-    sound = np.zeros((3,2))
-    sound[:,0] = np.array([1,2,3])
-    sound[:,1] = np.array([0,1,2])
-    noise = np.array([1,1,1,])
-    sr = 3
-    input1 = sound, sr
-    input2 = noise, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(input1, input2)
-    assert combined is not None
-    
-def test_add_backgroundsound_stereo():
-    sound = np.zeros((3,2))
-    sound[:,0] = np.array([1,2,3])
-    sound[:,1] = np.array([0,1,2])
-    noise = np.array([1,1,1,])
-    sr = 3
-    input1 = sound, sr
-    input2 = noise, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(input1, input2)
-    expected = np.array([[2., 1.],[3., 2.],[4., 3.]])
-    assert np.array_equal(combined, expected)
-    
-def test_add_backgroundsound_stereo_delay():
-    sound = np.zeros((3,2))
-    sound[:,0] = np.array([1,2,3])
-    sound[:,1] = np.array([0,1,2])
-    noise = np.array([1,1,1,])
-    sr = 3
-    input1 = sound, sr
-    input2 = noise, sr
-    combined, sr2 = pyst.dsp.add_backgroundsound(input1, input2, delay_mainsound_sec=1)
-    expected = np.array([[1., 1.],[1., 1.],[1., 1.],[2., 1.],[3., 2.],[4., 3.]])
-    assert np.array_equal(combined, expected)
 
 def test_apply_length():
     data = np.array([1,2,3,4,5])
