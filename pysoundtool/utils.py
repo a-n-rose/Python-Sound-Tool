@@ -8,6 +8,7 @@ import datetime
 import pathlib
 # for converting string lists back into list:
 import ast
+import pysoundtool as pyst
 
 # TODO make str path into Pathlib.PosixPath
 def path_or_samples(input_value):
@@ -517,7 +518,7 @@ def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursiv
 def check_noisy_clean_match(noisyfilename, cleanfilename):
     '''Checks if the clean filename is inside of the noisy filename.
     
-    This may be helpful to check that two audiofile data sets (a noisy and 
+    This may be helpful to check that two audiofile datasets (a noisy and 
     clean dataset) are aligned. 
     '''
     clean = os.path.splitext(os.path.basename(cleanfilename))[0]

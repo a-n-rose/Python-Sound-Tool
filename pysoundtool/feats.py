@@ -777,7 +777,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                     feature_type='fbank', num_feats=None, sr=22050, 
                                     win_size_ms=20, percent_overlap=0.5, n_fft = None,
                                     window='hann',frames_per_sample=None,labeled_data=False, 
-                                    subsection_data=False, divide_factor=5,
+                                    subsection_data=False, divide_factor=None,
                                     visualize=False, vis_every_n_frames=50, 
                                     use_librosa=True, center=True, mode='reflect', 
                                     log_settings=True):
@@ -826,10 +826,11 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         If you have a large dataset, you may want to divide it into subsections. See 
         pysoundtool.data.subsection_data. If datasets are large enough to raise a MemoryError, 
         this will be applied automatically.
-    divide_factor : int 
+    divide_factor : int, optional
         The number of subsections to divide data into. Only large enough sections will be divided.
         If smaller datasets (i.e. validation and test datasets) are as large or smaller than 
         the new subsectioned larger dataset(s) (i.e. train), they will be left unchanged.
+        (defaults to 5)
     visualize : bool
         If True, periodic plots of the features will be saved throughout the extraction process. (default False)
     vis_every_n_frames : int 
@@ -856,6 +857,8 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         adjusted if the datasets have been subdivided.
     '''
     # if dataset is large, may want to divide it into sections
+    if divide_factor is None:
+        divide_factor = 5
     if subsection_data:
         datasets_dict, datasets_path2save_dict = pyst.data.section_data(
             datasets_dict,

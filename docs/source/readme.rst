@@ -1,4 +1,6 @@
 
+.. include:: dataprep_sceneclassifier.rst
+
 .. include:: modules.rst
 
 

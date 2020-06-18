@@ -1,5 +1,5 @@
 '''Data module contains functions related to handling audio data files, 
-setting up data sets, and loading audio data. 
+setting up datasets, and loading audio data. 
 '''
 import numpy as np
 import random
