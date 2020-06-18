@@ -1,7 +1,7 @@
 '''Example code for preparing audio data for training a convolutional neural network 
 as a scene or noise environment classifier.
 '''
-
+import time
 import pysoundtool as pyst
 
 
@@ -84,6 +84,8 @@ def dataprep_sceneclassifier(
     feat_extraction_dir : pathlib.PosixPath
         The pathway to where all feature extraction files can be found, including datasets.
     '''
+    if 'signal' in feature_type:
+        raise ValueError('Feature type "signal" is not yet supported for CNN training.')
 
     feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
 
@@ -155,6 +157,8 @@ def dataprep_sceneclassifier(
     dataset_dict = pyst.utils.load_dict(dataset_dict_path)
     # ensure only audiofiles in dataset_dict:
 
+    start = time.time()
+
     dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
         datasets_dict = dataset_dict,
         datasets_path2save_dict = datasets_path2save_dict,
@@ -170,10 +174,17 @@ def dataprep_sceneclassifier(
         subsection_data = subsection_data,
         divide_factor = divide_factor)
 
+    end = time.time()
+    
+    total_dur_sec = end-start
+    total_dur, units = pyst.utils.adjust_time_units(total_dur_sec)
+    print('\nFinished! Total duration: {} {}.'.format(total_dur, units))
+
     # save which audiofiles were extracted for each dataset
     # save where extracted data were saved
     dataprep_settings = dict(dataset_dict=dataset_dict,
-                            datasets_path2save_dict=datasets_path2save_dict)
+                            datasets_path2save_dict=datasets_path2save_dict,
+                            total_dur_sec = total_dur_sec)
     dataprep_settings_path = pyst.utils.save_dict(
         dataprep_settings,
         feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
@@ -181,5 +192,6 @@ def dataprep_sceneclassifier(
     return feat_extraction_dir
 
 if __name__ == '__main__':
-    dataprep_sceneclassifier()
+    feature_type = 'signal'
+    dataprep_sceneclassifier(feature_type = feature_type)
  
