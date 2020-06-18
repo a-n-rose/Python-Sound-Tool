@@ -1,5 +1,5 @@
 
-.. include:: dataprep_sceneclassifier.rst
+.. include:: features_and_models.rst
 
 .. include:: modules.rst
 
