@@ -1,11 +1,18 @@
 
+import os, sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(
+    inspect.getfile(inspect.currentframe())))
+packagedir = os.path.dirname(currentdir)
+sys.path.insert(0, packagedir)
+
 import time
 import pysoundtool as pyst
 
 
-def dataprep_sceneclassifier(
-    data_dir = './audiodata/minidatasets/background_noise/',
-    data_features_dir = './audiodata/features_scene_classifier/',
+def envclassifier_feats(
+    data_dir = '../audiodata/minidatasets/background_noise/',
+    data_features_dir = '../audiodata/features_scene_classifier/',
     feature_type = 'fbank',
     **kwargs):
     '''Extract features from scene dataset into train, val, and test datasets.
@@ -148,7 +155,7 @@ def dataprep_sceneclassifier(
     return feat_extraction_dir
 
 if __name__ == '__main__':
-    feature_file_directory = dataprep_sceneclassifier(feature_type = 'mfcc', 
+    feature_file_directory = envclassifier_feats(feature_type = 'mfcc', 
                                                       sr=16000,
                                                       win_size_ms=20,
                                                       percent_overlap=0.5,

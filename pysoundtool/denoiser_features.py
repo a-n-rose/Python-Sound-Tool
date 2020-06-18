@@ -1,11 +1,19 @@
-import pysoundtool as pyst
+
+import os, sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(
+    inspect.getfile(inspect.currentframe())))
+packagedir = os.path.dirname(currentdir)
+sys.path.insert(0, packagedir)
+
 import time
+import pysoundtool as pyst
 
 
-def dataprep_denoiser(
-    data_clean_dir = './audiodata/minidatasets/denoise/cleanspeech_IEEE_small/',
-    data_noisy_dir = './audiodata/minidatasets/denoise/noisyspeech_IEEE_small/',
-    data_features_dir = './audiodata/features_denoiser/',
+def denoiser_feats(
+    data_clean_dir = '../audiodata/minidatasets/denoise/cleanspeech_IEEE_small/',
+    data_noisy_dir = '../audiodata/minidatasets/denoise/noisyspeech_IEEE_small/',
+    data_features_dir = '../audiodata/features_denoiser/',
     feature_type = 'fbank',
     **kwargs):
     '''Extract features from clean and noisy datasets into train, val, and test datasets.
@@ -194,7 +202,7 @@ def dataprep_denoiser(
 
 if __name__=='__main__':
     
-    feature_file_directory = dataprep_denoiser(feature_type = 'fbank',
+    feature_file_directory = denoiser_feats(feature_type = 'fbank',
                                                sr=16000,
                                                win_size_ms=16,
                                                percent_overlap=0.5,
