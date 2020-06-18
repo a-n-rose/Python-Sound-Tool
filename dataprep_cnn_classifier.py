@@ -178,7 +178,7 @@ def dataprep_sceneclassifier(
     
     total_dur_sec = end-start
     total_dur, units = pyst.utils.adjust_time_units(total_dur_sec)
-    print('\nFinished! Total duration: {} {}.'.format(total_dur, units))
+    print('\nFinished! Total duration: {} {}.'.format(round(total_dur,2), units))
 
     # save which audiofiles were extracted for each dataset
     # save where extracted data were saved
@@ -192,6 +192,8 @@ def dataprep_sceneclassifier(
     return feat_extraction_dir
 
 if __name__ == '__main__':
-    feature_type = 'signal'
-    dataprep_sceneclassifier(feature_type = feature_type)
+    feature_type = 'fbank'
+    feature_file_directory = dataprep_sceneclassifier(feature_type = feature_type)
+    print('\nFeature datasets and related information can be found here: '+\
+        '\n{}'.format(feature_file_directory))
  
