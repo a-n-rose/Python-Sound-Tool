@@ -8,8 +8,7 @@ from . import dsp
 from . import exceptions as errors
 from .data import loadsound, savesound
 from . import data
-from .envclassifier_features import envclassifier_feats
-from .denoiser_features import denoiser_feats
+from .get_model_features import envclassifier_feats, denoiser_feats
 
 __all__=['utils', 'feats','FeatPrep_SoundClassifier', 'filters', 
          'WienerFilter', 'BandSubtraction','filtersignal','dsp','errors',

@@ -1,24 +1,13 @@
-Feature Extraction
-------------------
+Feature Extraction Examples
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-ConvNet Scene Classifier
+.. automodule:: pysoundtool.get_model_features
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
+Training Models Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: dataprep_cnn_classifier
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   
-Autoencoder Denoiser
-~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: dataprep_autoencoder_denoise
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   
-Training Models
----------------
 
 ConvNet Scene Classifier
 ~~~~~~~~~~~~~~~~~~~~~~~~
