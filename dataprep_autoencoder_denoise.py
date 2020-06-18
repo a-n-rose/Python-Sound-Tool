@@ -54,14 +54,18 @@ noisyaudio = pyst.utils.collect_audiofiles(audio_noisy_path,
                                                   hidden_files = False,
                                                   wav_only = False,
                                                   recursive = False)
-# remove non-audio files
-noisyaudio = sorted(pyst.data.ensure_only_audiofiles(noisyaudio))
+# sort audio
+#noisyaudio = sorted(pyst.data.ensure_only_audiofiles(noisyaudio))
+noisyaudio = sorted(noisyaudio)
+
 # clean data
 cleanaudio = pyst.utils.collect_audiofiles(audio_clean_path, 
                                                   hidden_files = False,
                                                   wav_only = False,
                                                   recursive = False)
-cleanaudio = sorted(pyst.data.ensure_only_audiofiles(cleanaudio))
+#cleanaudio = sorted(pyst.data.ensure_only_audiofiles(cleanaudio))
+cleanaudio = sorted(cleanaudio)
+
 
 # check if they match up: (expects clean file name to be in noisy file name)
 for i, audiofile in enumerate(noisyaudio):

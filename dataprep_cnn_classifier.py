@@ -42,7 +42,9 @@ dict_decode_path = pyst.utils.save_dict(dict_encode,
 # 4) save audio paths to each label in dict 
 # ensure only audiofiles included
 paths_list = pyst.utils.collect_audiofiles(data_scene_dir, recursive=True)
-paths_list = sorted(pyst.data.ensure_only_audiofiles(paths_list))
+#paths_list = sorted(pyst.data.ensure_only_audiofiles(paths_list))
+paths_list = sorted(paths_list)
+
 dict_encodedlabel2audio = pyst.data.create_encodedlabel2audio_dict(dict_encode,
                                                      paths_list)
 dict_encdodedlabel2audio_path = pyst.utils.save_dict(dict_encodedlabel2audio, 
