@@ -1,4 +1,5 @@
-'''Useful functions for PySoundTool but not directly related to sound data.
+'''Utils module covers functions that are useful for PySoundTool but are not 
+directly related to sound data.
 ''' 
 import os, sys
 import csv
@@ -99,6 +100,25 @@ def shape_samps_channels(data):
     return data
     
 def get_date():
+    '''Get a string containing month, day, hour, minute, second and millisecond.
+    
+    This is useful for creating a unique filename.
+    
+    Parameters
+    ----------
+    None
+    
+    Returns
+    -------
+    time_str : str 
+        A string containing the date and time.
+        
+    Examples
+    --------
+    >>> date = get_date()
+    >>> date
+    '6m18d1h16m32s295ms'
+    '''
     time = datetime.datetime.now()
     time_str = "{}m{}d{}h{}m{}s{}ms".format(time.month,
                                         time.day,
@@ -155,6 +175,28 @@ def check_dir(directory, make=True, write_into=True):
 
 def create_nested_dirs(directory):
     '''Creates directory even if several parent directories don't exist.
+    
+    Parameters
+    ----------
+    directory : str, pathlib.PosixPath
+        The directory to be created.
+    
+    Returns
+    -------
+    directory : pathlib.PosixPath
+        If successful, the directory path that has been created.
+        
+    Examples
+    --------
+    >>> # First an unsucessful creation of nested directory
+    >>> import os
+    >>> new_dir = './testdir/testdir/testdir/'
+    >>> os.mkdir(new_dir)
+    FileNotFoundError: [Errno 2] No such file or directory: './testdir/testdir/testdir/'
+    >>> # try again with create_nested_dirs()
+    >>> directory = create_nested_dirs(new_dir)
+    >>> directory
+    PosixPath('testdir/testdir/testdir')
     '''
     if not isinstance(directory, pathlib.PosixPath):
         directory = pathlib.Path(directory)
@@ -168,7 +210,13 @@ def create_nested_dirs(directory):
     return directory
 
 def string2pathlib(pathway_string):
-    '''Turns string path into pathlib.PosixPath object
+    '''Turns string path into pathlib.PosixPath object.
+    
+    This is useful when working with pathways from varying operating 
+    systems. Windows, Linux, and Mac have different ways of organizing
+    pathways and pathlib turns strings from these different versions 
+    into a pathlib object that can be understood by the software 
+    regardless of the system. (At least I hope so..)
     
     Parameters
     ----------
@@ -179,6 +227,13 @@ def string2pathlib(pathway_string):
     -------
     pathway_string : pathlib.PosixPath
         The pathway as a pathlib object.
+        
+    Examples
+    --------
+    >>> pathway = 'folder/way2go.txt'
+    >>> pathlib_pathway = string2pathlib(pathway)
+    >>> pathlib_pathway
+    PosixPath('folder/way2go.txt')
     '''
     if not isinstance(pathway_string, pathlib.PosixPath):
         try:
@@ -216,6 +271,24 @@ def string2list(list_paths_string):
     [PosixPath('data/audio/vacuum/vacuum1.wav')]
     >>> type(typelist)
     <class 'list'>
+    >>> # Get type of the object
+    >>> type(typelist[0])
+    pathlib.PosixPath
+    >>> # Example with a list of tuples, i.e. label and audio file pairs:
+    >>> input_string = "[(2, PosixPath('data/audio/vacuum/vacuum1.wav')), '+\
+        '(1, PosixPath('data/audio/vacuum/vacuum2.wav'))]"
+    >>> labelaudio_pairs = string2list(input_string)
+    >>> labelaudio_pairs
+    [(2, PosixPath('data/audio/vacuum/vacuum1.wav')),
+    (1, PosixPath('data/audio/vacuum/vacuum2.wav'))]
+    >>> type(labelaudio_pairs)
+    list
+    >>> type(labelaudio_pairs[0])
+    tuple
+    >>> type(labelaudio_pairs[0][0])
+    int
+    >>> type(labelaudio_pairs[0][1])
+    pathlib.PosixPath
     '''
     try:
         # first use reliable module to turn string list into list
@@ -284,6 +357,32 @@ def string2list(list_paths_string):
     return list_paths
 
 def adjust_time_units(time_sec):
+    '''Turns seconds into relevant time units.
+    
+    This is useful if measuring time of a process and that process 
+    takes longer than a couple minutes.
+    
+    Parameters
+    ----------
+    time_sec : int, float 
+        The amount of time measured in seconds.
+    
+    Returns
+    -------
+    total_time : int, float 
+        The total amount of time 
+    units : str 
+        The unites of `total_time`: 'seconds', 'minutes', or 'hours'.
+        
+    Examples
+    --------
+    >>> adjust_time_units(5)
+    (5, 'seconds')
+    >>> adjust_time_units(500)
+    (8.333333333333334, 'minutes')
+    >>> adjust_time_units(5000)
+    (1.3888888888888888, 'hours')
+    '''
     if time_sec >= 60 and time_sec < 3600:
         total_time = time_sec / 60
         units = 'minutes'
@@ -296,7 +395,30 @@ def adjust_time_units(time_sec):
     return total_time, units
 
 def print_progress(iteration, total_iterations, task = None):
-    #print on screen the progress
+    '''Prints the status of a process based on iteration number.
+    
+    Assumes the iteration starts at 0 rather than 1.
+    
+    Parameters
+    ----------
+    iteration : int 
+        The iteration of the current process.
+    total_iterations : int 
+        The total iterations to be completed.
+    task : str, optional
+        The relevant task of the process.
+        
+    Returns
+    -------
+    sys.stdout.flush()
+    
+    Examples
+    --------
+    >>> print_progress(4, 10)
+    50% through current task
+    >>> print_progress(4, 10, task = 'testing')
+    50% through testing
+    '''
     progress = (iteration+1) / total_iterations * 100 
     if task:
         sys.stdout.write("\r%d%% through {}".format(task) % progress)
@@ -304,9 +426,38 @@ def print_progress(iteration, total_iterations, task = None):
         sys.stdout.write("\r%d%% through current task" % progress)
     sys.stdout.flush()
     
-def check_extraction_variables(sr, feature_type,
-              window_size_ms, window_shift):
-    accepted_features = ['fbank', 'stft', 'mfcc', 'signal']
+def check_extraction_variables(sr=None, feature_type=None,
+              win_size_ms=None, percent_overlap=None):
+    '''Checks to ensure extraction variables are compatible.
+    
+    Parameters
+    ----------
+    sr : int 
+        The sample rate of audio.
+    feature_type : str 
+        The type of feature to be extracted: 'fbank', 'stft', 'powspec',
+        'mfcc', 'signal'.
+    win_size_ms : int, float
+        The window size to process audio samples.
+    percent_overlap : int, float 
+        The percent windows should overlap.
+        
+    Returns
+    -------
+    None
+    
+    Raises
+    ------
+    ValueError
+        If any of the Parameters aren't compatible.
+        
+    Examples
+    --------
+    >>> check_extraction_variables(sr=48000, feature_type='signal', win_size_ms=25,percent_overlap=0.5)
+    >>> check_extraction_variables(sr='48000', feature_type='sig',win_size_ms='25',percent_overlap='0.5')
+    ValueError: Sampling rate (sr) must be of type int, not 48000 of type <class 'str'>.
+    '''
+    accepted_features = ['fbank', 'stft', 'powspec', 'mfcc', 'signal']
 
     if not isinstance(sr, int):
         raise ValueError('Sampling rate (sr) must be of type int, not '+\
@@ -318,12 +469,15 @@ def check_extraction_variables(sr, feature_type,
     if not isinstance(window_size_ms, int) and not isinstance(window_size_ms, float):
         raise ValueError('window_size_ms must be an integer or float, '+\
             'not {} of type {}.'.format(window_size_ms, type(window_size_ms)))
-    if not isinstance(window_shift, int) and not isinstance(window_shift, float):
+    if not isinstance(percent_overlap, int) and not isinstance(percent_overlap, float):
         raise ValueError('window_shift must be an integer or float, '+\
-            'not {} of type {}.'.format(window_shift, type(window_shift)))
-    
+            'not {} of type {}.'.format(percent_overlap, type(percent_overlap)))
+
+# TODO: add ensure_only_audio
 def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursive=False):
     '''Collects all files within a given directory.
+    
+    This includes the option to include hidden_files in the collection.
     
     Parameters
     ----------
@@ -356,9 +510,16 @@ def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursiv
     # pathlib.glob collects hidden files as well - remove them if they are there:
     if not hidden_files:
         paths_list = [x for x in paths_list if x.stem[0] != '.']
+    # ensure only audiofiles:
+    paths_list = pyst.data.ensure_only_audiofiles(paths_list)
     return paths_list
     
 def check_noisy_clean_match(noisyfilename, cleanfilename):
+    '''Checks if the clean filename is inside of the noisy filename.
+    
+    This may be helpful to check that two audiofile data sets (a noisy and 
+    clean dataset) are aligned. 
+    '''
     clean = os.path.splitext(os.path.basename(cleanfilename))[0]
     noisy = os.path.splitext(os.path.basename(noisyfilename))[0]
     if clean in noisy:
@@ -367,16 +528,48 @@ def check_noisy_clean_match(noisyfilename, cleanfilename):
         print('{} is not in {}.'.format(clean, noisy))
         return False
     
-def check_length_match(cleanfilename, noisyfilename):   
-    clean, sr1 = pyst.loadsound(cleanfilename)
-    noisy, sr2 = pyst.loadsound(noisyfilename)
+def check_length_match(filename1, filename2):   
+    '''Checks that two audiofiles have the same length.
+    
+    This may be useful if you have clean and noisy audiofiles that 
+    should be the same length.
+    
+    Parameters
+    ----------
+    filename1 : str or pathlib.PosixPath
+        The path to first audio file.
+    filename2 : str or pathlib.PosixPath
+        The path to second audio file.
+    
+    Returns
+    -------
+    bool : True if they match, False if not.
+    
+    Warning
+    -------
+    UserWarning 
+        If the sample rate of the audio files don't match.
+    UserWarning
+        If the length of the files don't match.
+    '''
+    y1, sr1 = pyst.loadsound(filename1)
+    y2, sr2 = pyst.loadsound(filename2)
+    if sr1 != sr2:
+        import Warnings
+        message = '\nWARNING: Sample rates do not match: '+\
+            '\n{} has sr {}'.format(filename1, sr1)+\
+            '\n{} has sr {}.'.format(filename2, sr2)
+        warnings.warn(message)
+        y2, sr2 = pyst.dsp.resample_audio(y2, sr_original = sr2, sr_desired = sr1)
     assert sr1 == sr2
-    if len(clean) != len(noisy):
-        print('length of clean speech: ', len(clean))
-        print('length of noisy speech: ', len(noisy))
+    if len(y1) != len(y2):
+        import warnings
+        message = '\nWARNING: audiofile length mismatch. Length '+\
+            ' {}: \n{}'.format(filename1, len(y1))+\
+                'Length {}: \n{}'.format(filename2, len(y2))
+        return False
     else:
-        print('length matches!')
-    return None
+        return True
 
 def make_number(value):
     '''If possibe, turns a string into an int, float, or None value.
@@ -476,6 +669,9 @@ def save_dict(dict2save, filename, overwrite=False):
 
 def load_dict(csv_path):
     '''Loads a dictionary from csv file. Expands csv limit if too large.
+    
+    Increasing the csv limit helps if loading dicitonaries with very long audio 
+    file path lists. For example, see pysoundtool.data.audio2datasets function.
     '''
     try:
         with open(csv_path, mode='r') as infile:
