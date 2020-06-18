@@ -1,10 +1,6 @@
 
-'''
-The filters module covers functions related to the filtering out of noise of
-a target signal, whether that be the collection of power spectrum values to
-calculate the average power spectrum of each audio class or to measure 
-signal-to-noise ratio of a signal and ultimately the the actual filtering 
-process.
+'''Filters module covers functions related to the filtering out of noise of
+a target signal.
 '''
 ###############################################################################
 import os, sys

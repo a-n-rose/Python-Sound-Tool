@@ -1,4 +1,4 @@
-'''dsp module contains functions pertaining to the actual generation,
+'''Dsp module contains functions pertaining to the actual generation,
 manipulation, and analysis of sound. This ranges from generating sounds to
 calculating sound to noise ratio.
 '''

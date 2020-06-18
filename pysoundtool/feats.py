@@ -1,6 +1,5 @@
-'''feats module includes functions related to handling, extracting, and 
-prepping features for working with audio in the digital domain (machine 
-learning, filtering)
+'''Feats module includes functions related to converting audio sample data 
+to features for analysis, filtering, machine learning, or visualization.  
 ''' 
 
 

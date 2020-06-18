@@ -1,5 +1,5 @@
-'''Functions related to handling audio data files. This ranges from making 
-audio data match in format to creating training, validation, and test datasets.
+'''Data module contains functions related to handling audio data files, 
+setting up data sets, and loading audio data. 
 '''
 import numpy as np
 import random
@@ -958,9 +958,6 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     >>> # train is longer than val and test
     >>> d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
             'val': [1, 2, 3, 4, 5],
-            'test': [1, 2, 3, 4, 5]}
-        d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-            'val': [1, 2, 3],
             'test': [1, 2, 3, 4, 5]}
     >>> # dictionary: paths to where extracted data will be saved
     >>> dp = {'train': pathlib.PosixPath('train_data.npy'),
