@@ -312,7 +312,7 @@ def get_feats(sound,
               window = 'hann',
               num_filters=40,
               num_mfcc=None, 
-              duration=None,
+              dur_sec=None,
               mono=None):
     '''Collects raw signal data, stft, fbank, or mfcc features via librosa.
     
@@ -353,7 +353,7 @@ def get_feats(sound,
         Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
         is set to 40, all 40 coefficients will be included.
         (default None). 
-    duration : float, optional
+    dur_sec : float, optional
         Time in seconds to limit in loading a signal. (default None)
     mono: bool, optional
         For loading an audiofile, True will result in only one channel of 
@@ -369,7 +369,7 @@ def get_feats(sound,
     if isinstance(sound, str) or isinstance(sound, pathlib.PosixPath):
         if mono is None:
             mono = True
-        data, sr = librosa.load(sound, sr=sr, duration=duration, mono=mono)
+        data, sr = librosa.load(sound, sr=sr, duration=dur_sec, mono=mono)
         if mono is False and len(data.shape) > 1:
             index_samples = np.argmax(data.shape)
             index_channels = np.argmin(data.shape)
@@ -386,8 +386,8 @@ def get_feats(sound,
             raise ValueError('No samplerate given. Either provide '+\
                 'filename or appropriate samplerate.')
         data, sr = sound, sr
-        if duration:
-            data = data[:int(sr*duration)]
+        if dur_sec:
+            data = data[:int(sr*dur_sec)]
     # ensure percent overlap is between 0 and 1
     percent_overlap = check_percent_overlap(percent_overlap)
     win_shift_ms = win_size_ms * percent_overlap
@@ -434,7 +434,7 @@ def get_feats(sound,
                           num_filters = num_filters,
                           num_mfcc = num_mfcc,
                           sr = sr,
-                          duration = duration,
+                          dur_sec = dur_sec,
                           mono = mono)
     return feats
 
@@ -772,15 +772,14 @@ def normalize(data):
 def list_available_features():
     return ['stft', 'powspec', 'fbank', 'mfcc', 'signal']
 
-# TODO apply keyword arguments
 def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                     feature_type='fbank', num_feats=None, sr=22050, 
                                     win_size_ms=20, percent_overlap=0.5, n_fft = None,
-                                    window='hann',frames_per_sample=None,labeled_data=False, 
+                                    frames_per_sample=None,labeled_data=False, 
                                     subsection_data=False, divide_factor=None,
                                     visualize=False, vis_every_n_frames=50, 
                                     use_librosa=True, center=True, mode='reflect', 
-                                    log_settings=True):
+                                    log_settings=True, **kwargs):
     '''Extracts and saves audio features, sectioned into datasets, to indicated locations.
     
     If MemoryError, the provided dataset dicts will be adjusted to allow data to be subsectioned.
@@ -814,8 +813,6 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         The desired window size in milliseconds to process audio samples.
     percent_overlap : float
         The amount audio samples should overlap as each window is processed.
-    window : str 
-        The window applied to processing audio data, e.g. 'hann' or 'hamming' (default 'hann')
     frames_per_sample : int, optional 
         If you want to section each audio file feature data into smaller frames. This might be 
         useful for speech related contexts. (Can avoid this by simply reshaping data later)
@@ -846,6 +843,8 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
     log_settings : bool
         If True, a .csv file will be saved in the feature extraction directory with 
         most of the feature settings saved. (default True)
+    kwargs : additional keyword arguments
+        Keyword arguments for `pysoundtool.feats.get_feats`.
     
     Returns
     -------
@@ -855,6 +854,11 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
     datasets_path2save_dict : dict
         The final dataset feature pathway dict. The pathways will have been 
         adjusted if the datasets have been subdivided.
+        
+    See Also
+    --------
+    pysoundtool.feats.get_feats
+        Extract features from audio file or audio data.
     '''
     # if dataset is large, may want to divide it into sections
     if divide_factor is None:
@@ -947,10 +951,10 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                                 features=feat_type,
                                                 win_size_ms=win_size_ms,
                                                 percent_overlap=percent_overlap,
-                                                window=window,
                                                 num_filters=num_feats,
                                                 num_mfcc=num_feats,
-                                                duration=dur_sec)
+                                                dur_sec=dur_sec,
+                                                **kwargs)
                     # if power spectrum (remove complex values and squaring features)
                     if 'powspec' in feature_type:
                         feats = np.abs(feats)**2
@@ -1010,7 +1014,6 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                      win_size_ms=win_size_ms,
                                      frame_length=frame_length,
                                      percent_overlap=percent_overlap,
-                                     window=window,
                                      frames_per_sample=frames_per_sample,
                                      labeled_data=labeled_data,
                                      visualize=visualize,
@@ -1022,6 +1025,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                      mode=mode,
                                      subsection_data=subsection_data,
                                      divide_factor=divide_factor,
+                                     kwargs = kwargs
                                      )
                 feat_settings_path = pyst.utils.save_dict(feat_settings,
                                                           log_filename,
