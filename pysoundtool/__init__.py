@@ -9,8 +9,9 @@ from . import exceptions as errors
 from .data import loadsound, savesound
 from . import data
 from .get_model_features import envclassifier_feats, denoiser_feats
+from .train_models import denoiser_train
 
 __all__=['utils', 'feats','FeatPrep_SoundClassifier', 'filters', 
          'WienerFilter', 'BandSubtraction','filtersignal','dsp','errors',
          'plotsound', 'loadsound', 'savesound', 'data', 'envclassifier_feats',
-         'denoiser_feats']
+         'denoiser_feats', 'denoiser_train']
