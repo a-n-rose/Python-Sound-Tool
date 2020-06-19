@@ -18,7 +18,7 @@ import pysoundtool.models as pystmodels
 def denoiser_train(model_name = 'model_autoencoder_denoise',
                    feature_type = None,
                    feature_extraction_dir = './audiodata/denoiser/'+\
-                       'features_stft_6m13d13h21m19s553ms_uwnu_10_subsections',
+                       'features_stft_6m13d11h15m42s506ms_THREE_SUBSECTIONS',
                    use_generator = True,
                    normalized = False,
                    **kwargs):
@@ -203,7 +203,7 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
             X_train = data_train_noisy.reshape(train_shape)
             y_train = data_train_clean.reshape(train_shape)
             X_val = data_val_noisy.reshape(val_shape)
-            y_val = data_val_clean.resahpe(val_shape)
+            y_val = data_val_clean.reshape(val_shape)
             
             denoiser.fit(X_train, y_train,
                          batch_size = data_train_noisy.shape[1],
