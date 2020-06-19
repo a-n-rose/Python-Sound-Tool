@@ -15,10 +15,10 @@ import pysoundtool.models as pystmodels
     
 ###############################################################################
 
+# TODO include example extraction data in feature_extraction_dir?
 def denoiser_train(model_name = 'model_autoencoder_denoise',
                    feature_type = None,
-                   feature_extraction_dir = './audiodata/denoiser/'+\
-                       'features_stft_6m13d11h15m42s506ms_THREE_SUBSECTIONS',
+                   feature_extraction_dir = None,
                    use_generator = True,
                    normalized = False,
                    **kwargs):
