@@ -9,18 +9,8 @@ Feature Extraction Examples
 Training Models Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-ConvNet Scene Classifier
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: trainmodel_cnn_classifier
+.. automodule:: pysoundtool.train_models
    :members:
    :undoc-members:
    :show-inheritance:
    
-Autoencoder Denoiser
-~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: trainmodel_autoencoder_denoise
-   :members:
-   :undoc-members:
-   :show-inheritance:

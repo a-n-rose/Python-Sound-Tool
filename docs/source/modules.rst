@@ -17,6 +17,8 @@ PySoundTool Modules
 
 .. include:: generator.rst
 
+.. include:: modelsetup.rst
+
 .. include:: utils.rst
 
 
