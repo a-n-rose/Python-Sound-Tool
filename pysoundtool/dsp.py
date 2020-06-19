@@ -310,7 +310,8 @@ def stereo2mono(data):
     return data_mono
 
 def add_backgroundsound(audio_main, audio_background, snr=None, 
-                        delay_mainsound_sec = None, total_len_sec=None):
+                        delay_mainsound_sec = None, total_len_sec=None,
+                        **kwargs):
     '''Adds a sound (i.e. background noise) to a target signal.
     
     If the sample rates of the two audio samples do not match, the sample
@@ -340,6 +341,8 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
     total_len_sec : int or float, optional
         Total length of combined sound in seconds. If none, the sound will end
         after target sound ends (default None).
+    **kwargs : additional keyword arguments
+        The keyword arguments for pysoundtool.data.loadsound
     
     Returns
     -------
@@ -350,15 +353,23 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
     snr : int, float 
         The updated signal-to-noise ratio. Due to the non-stationary state of speech and sound in general, 
         this value is only an approximation.
+        
+    See Also
+    --------
+    pysoundtool.data.loadsound
+        Loads audiofiles.
+        
+    pysoundtool.dsp.snr_adjustnoiselevel
+        Calculates how much to adjust noise signal to achieve SNR.
     '''
     input_type_main = pyst.utils.path_or_samples(audio_main)
     input_type_background = pyst.utils.path_or_samples(audio_background)
     if 'path' in input_type_main:
-        target, sr = pyst.loadsound(audio_main)
+        target, sr = pyst.loadsound(audio_main, **kwargs)
     elif 'samples' in input_type_main:
         target, sr = audio_main
     if 'path' in input_type_background:
-        sound2add, sr2 = pyst.loadsound(audio_background)
+        sound2add, sr2 = pyst.loadsound(audio_background, **kwargs)
     elif 'samples' in input_type_background:
         sound2add, sr2 = audio_background
     if sr != sr2:
@@ -381,15 +392,12 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
         adjust_sound = pyst.dsp.snr_adjustnoiselevel(target, 
                                                      sound2add,
                                                      sr=sr,
-                                                     snr_desired = snr)
+                                                     snr = snr)
         sound2add *= adjust_sound
         
     new_snr = pyst.dsp.get_local_snr(
         target, sound2add, sr=sr)
     
-    print('original snr: ', original_snr)
-    print('new snr: ', new_snr)
-
     if delay_mainsound_sec is None:
         delay_mainsound_sec = 0
     if total_len_sec is not None:
@@ -397,9 +405,11 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
     else:
         total_samps = len(target) + int(sr*delay_mainsound_sec)
     if total_samps < len(target) + delay_mainsound_sec:
+        diff = len(target) + delay_mainsound_sec - total_samps
         import warnings
         warnings.warn('The length of `audio_main` and `delay_mainsound_sec `'+\
-            'exceeds `total_len_sec`. Some of `audio_main` will be cut off in '+\
+            'exceeds `total_len_sec`. {} samples from '.format(diff)+\
+                '`audio_main` will be cut off in '+\
                 'the `combined` audio signal.')
     # make the background sound match the length of total samples
     sound2add = pyst.dsp.apply_length(sound2add, total_samps)
@@ -1053,13 +1063,6 @@ def vad():
     '''
     pass
 
-# TODO
-def snr():
-    '''measures the sound to noise ratio in signal
-    '''
-    pass
-
-
 def apply_original_phase(spectrum, phase):
     '''Multiplies phase to power spectrum
     
@@ -1145,7 +1148,7 @@ def get_local_target_high_power(target_samples, sr, local_size_ms=25, min_power_
         min_power_percent = 0.25
     target_power_size = pyst.feats.get_feats(target_samples, sr=sr, 
                                         features='powspec', 
-                                        duration = local_size_ms/1000)
+                                        dur_sec = local_size_ms/1000)
     target_power = pyst.feats.get_feats(target_samples, sr=sr, 
                                         features='powspec')
     target_high_power = pyst.dsp.create_empty_matrix(target_power_size.shape, 
@@ -1215,14 +1218,55 @@ def get_local_snr(target_samples, noise_samples, sr,
     snr = round(sum(snr)/len(snr),2)
     return snr
 
-def snr_adjustnoiselevel(target_samples, noise_samples,
-                         sr, snr_desired,local_size_ms=None, min_power_percent=None):
-    '''
-    MIT License
+def snr_adjustnoiselevel(target_samples, noise_samples, sr, snr):
+    '''Computes scale factor to adjust noise samples to achieve snr.
     
-    Copyright (c) 2019 Signal and Image Processing Lab
+    From script addnoise_asl_nseg.m:
+    This function adds noise to a file at a specified SNR level. It uses
+    the active speech level to compute the speech energy. The
+    active speech level is computed as per ITU-T P.56 standard.
     
+    PySoundTool Note: this functionality was pulled from the MATLAB script: addnoise_asl_nseg.m at this GitHub repo:
     https://github.com/SIP-Lab/CNN-VAD/blob/master/Training%20Code/Functions/addnoise_asl_nseg.m
+    
+    I do not understand all that went on to calculate the scale 
+    factor and therefore do not explain anything futher than
+    the original script. Hopefully I will in the future!
+    
+    Parameters
+    ----------
+    target_samples : np.ndarray [size = (num_samples,)]
+        The audio samples of the target / clean signal.
+    noise_samples : np.ndarray [size = (num_samples,)]
+        The audio samples of the noise signal.
+    sr : int 
+        The sample rate of both `target_samples` and `noise_samples`
+    snr : int 
+        The desired signal-to-noise ratio of the target and noise
+        audio signals.
+        
+    Returns
+    -------
+    scale_factor : int, float 
+        The factor to which noise samples should be multiplied 
+        before being added to target samples to achieve SNR.
+        
+    References
+    ----------
+    Yi Hu and Philipos C. Loizou : original authors
+        Copyright (c) 2006 by Philipos C. Loizou
+    
+    SIP-Lab/CNN-VAD/ : GitHub Repo
+        Copyright (c) 2019 Signal and Image Processing Lab
+        MIT License
+        
+    ITU-T (1993). Objective measurement of active speech level. ITU-T 
+    Recommendation P. 56
+        
+    See Also
+    --------
+    pysoundtool.dsp.asl_P56
+        
     '''
     #% Px is the active speech level ms energy, asl is the active factor, and c0
     #% is the active speech level threshold. 
@@ -1239,29 +1283,49 @@ def snr_adjustnoiselevel(target_samples, noise_samples,
     return scale_factor
 
 def asl_P56(samples, sr, bitdepth=16, smooth_factor=0.03, hangover=0.2, margin_db=15.9):
-    '''assumes bitdepth 16... I don't understand this function yet. Sorry.
+    '''Computes the active speech level according to ITU-T P.56 standard.
+    
+    Note: I don't personally understand the functionality behind 
+    this function and therefore do not offer the best documentation as 
+    of yet.
+    
+    Parameters
+    ----------
+    samples : np.ndarray [size = (num_samples, )]
+        The audio samples, for example speech samples.
+    
+    sr : int 
+        The sample rate of `samples`. 
+    
+    bitdepth : int 
+        The bitdepth of audio. Expects 16. (default 16)
+        
+    smooth_factor : float 
+        Time smoothing factor. (default 0.03)
+    
+    hangover : float 
+        Hangover. Thank goodness not the kind I'm familiar with.
+        (default 0.2)
+        
+    margin_db : int, float 
+        Margin decibels... (default 15.9)
+        
+    Returns
+    -------
+    asl_ms : float 
+        The active speech level ms energy
+    asl : float
+        The active factor
+    c0 : float
+        Active speech level threshold
     
     References
     ----------
     ITU-T (1993). Objective measurement of active speech level. ITU-T 
     Recommendation P. 56
     
-    %   Author: Yi Hu and Philipos C. Loizou 
-    %
-    % Copyright (c) 2006 by Philipos C. Loizou
-    % $Revision: 0.0 $  $Date: 10/09/2006 $
-    
-    Copyright (c) 2019 Signal and Image Processing Lab
-    
-    MIT License
-    
-    https://github.com/SIP-Lab/CNN-VAD/blob/master/Training%20Code/Functions/addnoise_asl_nseg.m
-    
-    % 'speechfile' is the speech file to calculate active speech level for,
-    % 'asl' is the active speech level (between 0 and 1),
-    % 'asl_rms' is the active speech level mean square energy.
-    
     TODO handle bitdepth variation - what if not 16?
+    TODO improve documentation
     '''
     thresh_nu = bitdepth -1 #number of thresholds
     I = math.ceil(sr*hangover) # hangover in samples.. is this percent_overlap?
