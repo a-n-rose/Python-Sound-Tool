@@ -1,0 +1,20 @@
+dur_sec,3
+feature_type,fbank noisy
+feat_type,fbank
+complex_vals,False
+sr,16000
+num_feats,40
+n_fft,320
+win_size_ms,20
+frame_length,320
+percent_overlap,0.5
+frames_per_sample,11
+labeled_data,False
+visualize,False
+input_shape,"(28, 11, 40)"
+use_librosa,True
+center,True
+mode,reflect
+subsection_data,False
+divide_factor,5
+kwargs,{}

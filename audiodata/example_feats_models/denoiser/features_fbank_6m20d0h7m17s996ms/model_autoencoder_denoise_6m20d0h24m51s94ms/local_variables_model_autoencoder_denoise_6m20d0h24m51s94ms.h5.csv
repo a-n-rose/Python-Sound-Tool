@@ -1,0 +1,21 @@
+adm,<keras.optimizers.Adam object at 0x7f0964860c88>
+callbacks,"[<keras.callbacks.callbacks.EarlyStopping object at 0x7f0964860ef0>, <keras.callbacks.callbacks.CSVLogger object at 0x7f0964860f60>, <keras.callbacks.callbacks.ModelCheckpoint object at 0x7f0964860eb8>]"
+settings_dict,"{'input_shape': (11, 40, 1), 'kernel_size': (3, 3), 'max_norm_value': 2.0, 'activation_function_layer': 'relu', 'activation_function_output': 'sigmoid', 'padding': 'same', 'kernel_initializer': 'he_uniform'}"
+denoiser,<keras.engine.sequential.Sequential object at 0x7f0987693278>
+input_shape,"(11, 40, 1)"
+val_paths_clean,[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/val_data_clean_fbank.npy')]
+val_paths_noisy,[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/val_data_noisy_fbank.npy')]
+train_paths_clean,[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/train_data_clean_fbank.npy')]
+train_paths_noisy,[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/train_data_noisy_fbank.npy')]
+datasets,"TrainingData(train=NoisyCleanData(noisy=[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/train_data_noisy_fbank.npy')], clean=[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/train_data_clean_fbank.npy')]), val=NoisyCleanData(noisy=[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/val_data_noisy_fbank.npy')], clean=[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/val_data_clean_fbank.npy')]), test=NoisyCleanData(noisy=[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/test_data_noisy_fbank.npy')], clean=[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/test_data_clean_fbank.npy')]))"
+features_files,"[PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/test_data_clean_fbank.npy'), PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/train_data_noisy_fbank.npy'), PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/test_data_noisy_fbank.npy'), PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/val_data_noisy_fbank.npy'), PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/train_data_clean_fbank.npy'), PosixPath('audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/val_data_clean_fbank.npy')]"
+model_path,audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/model_autoencoder_denoise_6m20d0h24m51s94ms/model_autoencoder_denoise_6m20d0h24m51s94ms.h5
+model_dir,audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/model_autoencoder_denoise_6m20d0h24m51s94ms
+dataset_path,audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms
+kwargs,{'epochs': 5}
+patience,10
+normalized,False
+use_generator,False
+feature_extraction_dir,./audiodata/example_feats_models/denoiser/features_fbank_6m20d0h7m17s996ms/
+feature_type,
+model_name,model_autoencoder_denoise_6m20d0h24m51s94ms.h5
