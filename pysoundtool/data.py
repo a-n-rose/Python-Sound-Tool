@@ -449,6 +449,115 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
     return dataset_audio
 
 
+def separate_train_val_test_files(list_of_files):
+    '''Checks that file(s) exist, then sorts file(s) into train, val, test lists.
+    
+    If 'nois' or 'clean' are in the filenames, two paths lists per dataset 
+    will be generated. Otherwise just one. This paths list is useful if there are multiple
+    training files available for training a model (e.g. for large datasets).
+    
+    Parameters
+    ----------
+    list_of_files : list, str, or pathlib.PosixPath
+        The feature files (format: .npy) for training a model. 
+        
+    Returns
+    -------
+    (train_paths_list, val_paths_list, test_paths_list) : tuple
+        Tuple comprised of paths lists to train, validation, and test data files.
+        If noisy and clean data files found, each tuple item will be a tuple comprised of two lists: a noisy file paths list and a clean file paths list.
+        
+    Examples
+    --------
+    >>> features_files = ['train1.npy', 'train2.npy', 'val.npy', 'test.npy']
+    >>> datasets = separate_train_val_test_files(features_files)
+    >>> datasets.train
+    [PosixPath('train1.npy'), PosixPath('train2.npy')]
+    >>> datasets.val
+    [PosixPath('val.npy')]
+    >>> datasets.test
+    [PosixPath('test.npy')]
+    >>> # try with noisy and clean data
+    >>> features_files = ['train_noisy.npy', 'train_clean.npy', 'val_noisy.npy',
+        'val_clean.npy', 'test_noisy.npy', 'test_clean.npy']
+    >>> datasets = separate_train_val_test_files(features_files)
+    >>> datasets.train.noisy
+    [PosixPath('train_noisy.npy')]
+    >>> datasets.train.clean
+    [PosixPath('train_clean.npy')]
+    >>> datasets.val.noisy
+    [PosixPath('val_noisy.npy')]
+    >>> datasets.val.clean
+    [PosixPath('val_clean.npy')]
+    >>> datasets.test.noisy
+    [PosixPath('test_noisy.npy')]
+    >>> datasets.test.clean
+    [PosixPath('test_clean.npy')]
+    '''
+    train_data_input = []
+    train_data_output = []
+    val_data_input = []
+    val_data_output = []
+    test_data_input = []
+    test_data_output = []
+    if isinstance(list_of_files, str) or isinstance(list_of_files, pathlib.PosixPath):
+        list_of_files = list(list_of_files)
+    for f in list_of_files:
+        if isinstance(f, str):
+            f = pathlib.Path(f)
+        print(f)
+        # make sure data files exists:
+        if not os.path.exists(f):
+            raise FileNotFoundError('Feature file {} not found.'.format(f))
+        
+        if 'train' in f.stem:
+            if 'nois' in f.stem:
+                train_data_input.append(f)
+            elif 'clean' in f.stem:
+                train_data_output.append(f)
+            else:
+                # non noisy vs clean data
+                train_data_input.append(f)
+        elif 'val' in f.stem:
+            if 'nois' in f.stem:
+                val_data_input.append(f)
+            elif 'clean' in f.stem:
+                val_data_output.append(f)
+            else:
+                # non noisy vs clean data
+                val_data_input.append(f)
+        elif 'test' in f.stem:
+            if 'nois' in f.stem:
+                test_data_input.append(f)
+            elif 'clean' in f.stem:
+                test_data_output.append(f)
+            else:
+                # non noisy vs clean data
+                test_data_input.append(f)
+    TrainingData = collections.namedtuple('TrainingData',
+                                          ['train', 'val', 'test'])
+    NoisyCleanData = collections.namedtuple('NoisyCleanData',
+                                            ['noisy', 'clean'])
+    
+    if train_data_output:
+        train_paths_list = NoisyCleanData(noisy = train_data_input, 
+                                        clean = train_data_output)
+    else:
+        train_paths_list = train_data_input
+    if val_data_output:
+        val_paths_list = NoisyCleanData(noisy = val_data_input, 
+                                        clean = val_data_output)
+    else:
+        val_paths_list = val_data_input
+    if test_data_output:
+        test_paths_list = NoisyCleanData(noisy = test_data_input, 
+                                        clean = test_data_output)
+    else:
+        test_paths_list = test_data_input
+    return TrainingData(train = train_paths_list, 
+                        val = val_paths_list, 
+                        test = test_paths_list)
+
 # TODO speed this up, e.g. preload noise data?
 def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
                                perc_train=0.8, perc_val=0.2,  limit=None,
