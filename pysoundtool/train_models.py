@@ -68,7 +68,7 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
     pysoundtool.models.generator
         The generator function that feeds data to the model.
         
-    pysoundtool.models.setup_callbacks
+    pysoundtool.models.modelsetup.setup_callbacks
         The function that sets up callbacks (e.g. logging, save best model, early
         stopping, etc.)
     '''
