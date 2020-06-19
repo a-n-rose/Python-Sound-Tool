@@ -25,11 +25,7 @@ import pysoundtool as pyst
 
 
 def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=True):
-    '''Loads sound file with scipy.io.wavfile.read or librosa.load (default scipy)
-    
-    If the sound file is not compatible with scipy's read module
-    this functions converts the file to .wav format and/or
-    changes the bit depth to be compatible. 
+    '''Loads sound file with scipy.io.wavfile.read or librosa.load (default librosa)
     
     Parameters
     ----------
@@ -45,7 +41,10 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=True):
         The length in seconds of the audio signal.
     use_librosa : bool 
         If True, librosa will be used to load the audiofile. If False, 
-        scipy.io.wavfile and/or soundfile will be used. (default True)
+        scipy.io.wavfile and/or soundfile will be used. If the sound file 
+        is not compatible with scipy.io.wavfile.read, this functions converts 
+        the file to .wav format and/or changes the bit depth to be compatible. 
+        (default True)
         
     Returns
     -------
@@ -54,6 +53,17 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_librosa=True):
         according to the specified settings.
     sr : int 
         The sample rate of the loaded samples.
+        
+    See Also
+    --------
+    pysoundtool.data.prep4scipywavfile
+        Prepares audio file for scipy.io.wavfile.read.
+        
+    pysoundtool.data.convert2wav
+        Converts audio file to .wav format.
+    
+    pysoundtool.data.newbitdepth
+        Converts audio file to specified bitdepth.
     '''
     if use_librosa:
         # the sample data will be a litle different from scipy.io.wavfile
@@ -558,66 +568,58 @@ def separate_train_val_test_files(list_of_files):
                         test = test_paths_list)
 
 # TODO speed this up, e.g. preload noise data?
-def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
-                               perc_train=0.8, perc_val=0.2,  limit=None,
-                               noise_scales=[0.3,0.2,0.1], sr = 22050,
-                               seed = None):
-    '''Organizes all audio in audio class directories into datasets.
-    
-    Expects the name/id of files/data in the output_folder to be included 
-    in those in the input_folder. For example, take the output file 'wav1.wav' 
-    and the input file 'wav1_noisy.wav'. 'wav1' is in 'wav1_noisy' but 'wav1_noisy' 
-    is not in 'wav1'. (Autencoders tend to take in noisy data to produce cleaner
-    versions of that data.)
+# TODO randomize sections of noise applied
+def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=None,
+                            snr_levels=None, delay_mainsound_sec = None, seed = None, **kwargs):
+    '''Applies noise to clean audio; saves clean and noisy audio to `traingingdata_dir`.
 
     Parameters
     ----------
-    cleandata_path : str, pathlib.PosixPath
+    cleandata_dir : str, pathlib.PosixPath
         Name of folder containing clean audio data for autoencoder. E.g. 'clean_speech'
-    noisedata_path : str, pathlib.PosixPath
+    noisedata_dir : str, pathlib.PosixPath
         Name of folder containing noise to add to clean data. E.g. 'noise'
     trainingdata_dir : str, pathlib.PosixPath
         Directory to save newly created train, validation, and test data
-    perc_train : int, float
-        The percentage or decimal representing the amount of training
-        data compared to the test data (default 0.8)
-    perc_val : int, float
-        The percentage or decimal representing the amount of training data to 
-        reserve for validation (default 0.2)
     limit : int, optional
         Limit in number of audiofiles used for training data
-    noise_scales : list of floats
-        List of varying scales to apply to noise levels, for example, to 
-        allow for varying amounts of noise. (default [0.3,0.2,0.1]) The noise
-        sample will be multiplied by the scales.
+    snr_levels : list of ints, optional
+        List of varying signal-to-noise ratios to apply to noise levels.
+        (default None)
+    delay_mainsound_sec : int, float, optional
+        Amount in seconds the main sound should be delayed. In other words, in seconds how
+        long the background sound should play before the clean / main / target audio starts.
+        (default None)
     seed : int 
         A value to allow random order of audiofiles to be predictable. 
         (default None). If None, the order of audiofiles will not be predictable.
+    **kwargs : additional keyword arguments
+        The keyword arguments for pysoundtool.data.loadsound
         
 
     Returns
     -------
     saveinput_path : pathlib.PosixPath
-        Path to where noisy train, validation, and test audio data are located
+        Path to where noisy audio files are located
     saveoutput_path : pathlib.PosixPath   
-        Path to where clean train, validation, and test audio data are located
+        Path to where clean audio files are located
+        
+    See Also
+    --------
+    pysoundtool.data.loadsound
+        Loads audiofiles.
+    
+    pysoundtool.dsp.add_backgroundsound
+        Add background sound / noise to signal at a determined signal-to-noise ratio.
     '''
     import math
     import time
     
     start = time.time()
-    if perc_train > 1:
-        perc_train /= 100.
-    if perc_val > 1:
-        perc_val /= 100.
-    if perc_train > 1:
-        raise ValueError('The percentage value of train data exceeds 100%')
-    if perc_val > 1:
-        raise ValueError('The percentage value of validation data exceeds 100%')
 
     # if paths are strings, convert to pathlib ojbects
-    cleandata_path = pyst.utils.string2pathlib(cleandata_path)
-    noisedata_path = pyst.utils.string2pathlib(noisedata_path)
+    cleandata_dir = pyst.utils.string2pathlib(cleandata_dir)
+    noisedata_dir = pyst.utils.string2pathlib(noisedata_dir)
     trainingdata_dir = pyst.utils.string2pathlib(trainingdata_dir)
     
     cleandata_folder = 'clean'
@@ -631,28 +633,17 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
     
     # create directory to save new data (if not exist)
     newdata_clean_dir = pyst.utils.check_dir(newdata_clean_dir, make = True)
-    newdata_noisy_dir = pyst.utls.check_dir(newdata_noisy_dir, make = True)
+    newdata_noisy_dir = pyst.utils.check_dir(newdata_noisy_dir, make = True)
    
-    # TODO test for existence of directories/files
-    # for example: q.exists() or q.is_dir() (pathlib objects) 
-    clean_datapaths = []
-    noisy_datapaths = []
-    
-    for dataset in ['train', 'val', 'test']:
-        saveinput_dataset = newdata_noisy_dir.joinpath(dataset)
-        noisy_datapaths.append(saveinput_dataset)
-        
-        saveoutput_dataset = newdata_clean_dir.joinpath(dataset)
-        clean_datapaths.append(saveoutput_dataset)
-    
-    # TODO expand available file types
-    # pathlib includes hidden files... :(
-    cleanaudio = sorted(cleandata_path.glob('*.wav'))
-    noiseaudio = sorted(noisedata_path.glob('*.wav'))
-    
-    # remove hidden files
-    cleanaudio = [x for x in cleanaudio if x.parts[-1][0] != '.']
-    noiseaudio = [x for x in noiseaudio if x.parts[-1][0] != '.']
+    # collect audiofiles (not limited to .wav files)
+    cleanaudio = sorted(pyst.utils.collect_audiofiles(cleandata_dir,
+                                                      hidden_files = False,
+                                                      wav_only = False,
+                                                      recursive = False))
+    noiseaudio = sorted(pyst.utils.collect_audiofiles(noisedata_dir,
+                                                      hidden_files = False,
+                                                      wav_only = False,
+                                                      recursive = False))
     
     if seed is not None:
         random.seed(seed)
@@ -661,56 +652,43 @@ def create_autoencoder_data(cleandata_path, noisedata_path, trainingdata_dir,
     if limit is not None:
         cleanaudio = cleanaudio[:limit]
     
-    percentage_training = math.floor(perc_train * len(cleanaudio))
-    train_audio, test_audio = cleanaudio[:percentage_training], \
-        cleanaudio[percentage_training:]
-
-    percentage_val = math.floor((1 - perc_val) * len(train_audio))
-    train_audio, val_audio = train_audio[:percentage_val], train_audio[percentage_val:]
+    # ensure snr_levels is array-like 
+    if snr_levels is not None:
+        if not isinstance(snr_levels, list) and not isinstance(snr_levels, np.ndarray):
+            snr_levels = list(snr_levels)
     
-    for j, dataset_path in enumerate(clean_datapaths):
-        # ensure directory exists:
-        pyst.utils.check_dir(dataset_path, make=True)
-        pyst.utils.check_dir(noisy_datapaths[j], make=True)
-        
-        if 'train' in dataset_path.parts[-1]:
-            print('\nProcessing train data...')
-            audiopaths = train_audio
-        elif 'val' in dataset_path.parts[-1]:
-            print('\nProcessing val data...')
-            audiopaths = val_audio
-        elif 'test' in dataset_path.parts[-1]:
-            print('\nProcessing test data...')
-            audiopaths = test_audio
-        for i, wavefile in enumerate(audiopaths):
-            pyst.utils.print_progress(iteration=i, 
-                        total_iterations=len(audiopaths),
-                        task='clean and noisy audio data generation')
-            # no random seed applied here:
-            # each choice would be the same for each iteration
-            noise = random.choice(noiseaudio)
-            scale = random.choice(noise_scales)
-            clean_stem = wavefile.stem
-            noise_stem = noise.stem
-            noise_data, sr = pyst.loadsound(
-                noise, sr=sr)
-            clean_data, sr2 = pyst.loadsound(
-                wavefile, sr=sr)
-            clean_seconds = len(clean_data)/sr2
-            noisy_data, sr = pyst.dsp.add_backgroundsound(
-                wavefile, noise, scale_background = scale, 
-                delay_mainsound_sec=0, total_len_sec = clean_seconds)
-            noisydata_filename = noisy_datapaths[j].joinpath(clean_stem+'_'+noise_stem\
-                +'_scale'+str(scale)+'.wav')
-            cleandata_filename = dataset_path.joinpath(clean_stem+'.wav')     
-            write(noisydata_filename, sr, noisy_data)
-            write(cleandata_filename, sr, clean_data)
+    for i, wavefile in enumerate(cleanaudio):
+        pyst.utils.print_progress(iteration=i, 
+                    total_iterations=len(cleanaudio),
+                    task='clean and noisy audio data generation')
+        # no random seed applied here:
+        # each choice would be the same for each iteration
+        noise = random.choice(noiseaudio)
+        if snr_levels is not None:
+            snr = random.choice(snr_levels)
+        else:
+            snr = None
+        clean_stem = wavefile.stem
+        noise_stem = noise.stem
+        # load clean data to get duration
+        clean_data, sr = pyst.loadsound(wavefile, **kwargs)
+        clean_seconds = len(clean_data)/sr
+        noisy_data, sr, snr_appx = pyst.dsp.add_backgroundsound(audio_main = wavefile, 
+                                                      audio_background = noise, 
+                                                      snr = snr, 
+                                                      delay_mainsound_sec=delay_mainsound_sec, 
+                                                      total_len_sec = clean_seconds,
+                                                      **kwargs)
+        # ensure both noisy and clean files have same beginning to filename (i.e. clean filename)
+        noisydata_filename = newdata_noisy_dir.joinpath(clean_stem+'_'+noise_stem\
+            +'_snr'+str(snr)+'.wav')
+        cleandata_filename = newdata_clean_dir.joinpath(clean_stem+'.wav')     
+        write(noisydata_filename, sr, noisy_data)
+        write(cleandata_filename, sr, clean_data)
 
-        print('Finished processing {}'.format(dataset_path))
-        print('Finished processing {}'.format(noiseaudio[j]))
     end = time.time()
     total_time, units = pyst.utils.adjust_time_units(end-start)
-    print('Dataset creation took a total of {} {}.'.format(
+    print('Data creation took a total of {} {}.'.format(
         round(total_time,2), 
         units))
 
