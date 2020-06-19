@@ -505,7 +505,6 @@ def separate_train_val_test_files(list_of_files):
     for f in list_of_files:
         if isinstance(f, str):
             f = pathlib.Path(f)
-        print(f)
         # make sure data files exists:
         if not os.path.exists(f):
             raise FileNotFoundError('Feature file {} not found.'.format(f))
