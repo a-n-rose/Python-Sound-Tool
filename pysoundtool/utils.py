@@ -8,6 +8,12 @@ import datetime
 import pathlib
 # for converting string lists back into list:
 import ast
+import os, sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(
+    inspect.getfile(inspect.currentframe())))
+packagedir = os.path.dirname(currentdir)
+sys.path.insert(0, packagedir)
 import pysoundtool as pyst
 
 # TODO make str path into Pathlib.PosixPath
@@ -150,28 +156,32 @@ def check_dir(directory, make=True, write_into=True):
         If a directory could be created or confirmed to exist, the directory
         path will be returned. Otherwise Errors will be raised.
     '''
-    import os 
-    if not isinstance(directory, pathlib.PosixPath):
-        directory = pathlib.Path(directory)
-    # check to ensure the pathway does not have an extension
-    if directory.suffix:
-        raise TypeError('Expected pathway without extension. Did you mean to set \n~ '#\
-            +str(directory)+' ~\nas a directory? If so, remove extension.')
-    if not os.path.exists(directory):
-        if make:
-            try:
-                os.mkdir(directory)
-            except FileNotFoundError:
-                # parent directories might not exist
-                directory = create_nested_dirs(directory)
+    import os
+    try:
+        if not isinstance(directory, pathlib.PosixPath):
+            directory = pathlib.Path(directory)
+        # check to ensure the pathway does not have an extension
+        if directory.suffix:
+            raise TypeError('Expected pathway without extension. Did you mean to set \n~ '#\
+                +str(directory)+' ~\nas a directory? If so, remove extension.')
+        if not os.path.exists(directory):
+            if make:
+                try:
+                    os.mkdir(directory)
+                except FileNotFoundError:
+                    # parent directories might not exist
+                    directory = create_nested_dirs(directory)
+            else:
+                raise FileNotFoundError('The following directory does not exist: '+\
+                    '\n{}'.format(directory))
         else:
-            raise FileNotFoundError('The following directory does not exist: '+\
-                '\n{}'.format(directory))
-    else:
-        if not write_into:
-            raise FileExistsError('The following directory already exists: '+\
-                '\n{}'.format(directory)+'\nTo write into this directory, '+\
-                    'set `write_into` to True.')
+            if not write_into:
+                raise FileExistsError('The following directory already exists: '+\
+                    '\n{}'.format(directory)+'\nTo write into this directory, '+\
+                        'set `write_into` to True.')
+    except PermissionError:
+        raise PermissionError('Problem reading file. Check to ensure the path '+\
+            'does not start with a slash: {}'.format(directory))
     return directory
 
 def create_nested_dirs(directory):
