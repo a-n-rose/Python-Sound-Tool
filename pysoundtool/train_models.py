@@ -38,7 +38,8 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
         not be included in the model name.
         
     feature_extraction_dir : str or pathlib.PosixPath
-        Directory where extracted feature files are located (format .npy).
+        Directory where extracted feature files are located (format .npy). If None,
+        sample extracted files will be loaded.
         
     use_generator : bool 
         If True, a generator will be used to feed training data to the model. Otherwise
@@ -75,8 +76,14 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
     pysoundtool.models.modelsetup.setup_callbacks
         The function that sets up callbacks (e.g. logging, save best model, early
         stopping, etc.)
+        
+    pysoundtool.models.template_models.autoencoder_denoise
+        Template model architecture for basic autoencoder denoiser.
     '''
     # ensure feature_extraction_folder exists:
+    if feature_extraction_dir is None:
+        feature_extraction_dir = './audiodata/example_feats_models/denoiser/'+\
+            'features_fbank_6m20d0h7m17s996ms/'
     dataset_path = pyst.utils.check_dir(feature_extraction_dir, make=False)
     
     # designate where to save model and related files
@@ -90,24 +97,26 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
     model_path = model_dir.joinpath(model_name)
     
     # prepare features files to load for training
-    features_files = dataset_path.glob('*.npy')
-    train_paths, val_paths, test_paths = pyst.data.separate_train_val_test_files(
+    features_files = list(dataset_path.glob('*.npy'))
+    # NamedTuple: 'datasets.train.noisy', 'datasets.train.clean', etc.
+    datasets = pyst.data.separate_train_val_test_files(
         features_files)
     
-    if not train_paths:
+    # TODO test this:
+    if not datasets.train:
         # perhaps data files located in subdirectories 
-        features_files = dataset_path.glob('**/*.npy')
-        train_paths, val_paths, test_paths = pyst.data.separate_train_val_test_files(
+        features_files = list(dataset_path.glob('**/*.npy'))
+        datasets = pyst.data.separate_train_val_test_files(
             features_files)
-        if not train_paths:
+        if not datasets.train:
             raise FileNotFoundError('Could not locate train, validation, or test '+\
                 '.npy files in the provided directory: \n{}'.format(dataset_path) +\
                     '\nThis program expects "train", "val", or "test" to be '+\
                         'included in each filename (not parent directory/ies) names.')
     
     # only need train and val feature data for autoencoder 
-    train_paths_noisy, train_paths_clean = train_paths
-    val_paths_noisy, val_paths_clean = val_paths
+    train_paths_noisy, train_paths_clean = datasets.train.noisy, datasets.train.clean
+    val_paths_noisy, val_paths_clean = datasets.val.noisy, datasets.val.clean
     
     # make sure both dataset pathways match in length and order:
     try:
@@ -308,8 +317,14 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
     pysoundtool.models.modelsetup.setup_callbacks
         The function that sets up callbacks (e.g. logging, save best model, early
         stopping, etc.)
+        
+    pysoundtool.models.template_models.cnn_classifier
+        Template model architecture for a low-computational CNN sound classifier.
     '''
     # ensure feature_extraction_folder exists:
+    if feature_extraction_dir is None:
+        feature_extraction_dir = './audiodata/example_feats_models/envclassifier/'+\
+            'features_fbank_6m20d0h18m11s123ms/'
     dataset_path = pyst.utils.check_dir(feature_extraction_dir, make=False)
     
     # designate where to save model and related files
@@ -323,20 +338,26 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
     model_path = model_dir.joinpath(model_name)
     
     # prepare features files to load for training
-    features_files = dataset_path.glob('*.npy')
-    train_paths, val_paths, test_paths = pyst.data.separate_train_val_test_files(
+    features_files = list(dataset_path.glob('*.npy'))
+    # NamedTuple: 'datasets.train', 'datasets.val', 'datasets.test'
+    datasets = pyst.data.separate_train_val_test_files(
         features_files)
     
-    if not train_paths:
+    # TODO test
+    if not datasets.train:
         # perhaps data files located in subdirectories 
-        features_files = dataset_path.glob('**/*.npy')
-        train_paths, val_paths, test_paths = pyst.data.separate_train_val_test_files(
+        features_files = list(dataset_path.glob('**/*.npy'))
+        datasets = pyst.data.separate_train_val_test_files(
             features_files)
-        if not train_paths:
+        if not datasets.train:
             raise FileNotFoundError('Could not locate train, validation, or test '+\
                 '.npy files in the provided directory: \n{}'.format(dataset_path) +\
                     '\nThis program expects "train", "val", or "test" to be '+\
                         'included in each filename (not parent directory/ies) names.')
+    
+    train_paths = datasets.train
+    val_paths = datasets.val 
+    test_paths = datasets.test
     
     # need dictionary for decoding labels:
     dict_decode_path = dataset_path.joinpath('dict_decode.csv')
