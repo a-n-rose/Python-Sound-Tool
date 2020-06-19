@@ -10,9 +10,10 @@ import pysoundtool as pyst
 
 
 def envclassifier_feats(
-    data_dir = '../audiodata/minidatasets/background_noise/',
-    data_features_dir = '../audiodata/features_scene_classifier/',
-    feature_type = 'fbank',
+    data_dir = None,
+    data_features_dir = None,
+    feature_type = None,
+    dur_sec = 1,
     **kwargs):
     '''Environment Classifier: feature extraction of scene audio into train, val, & test datasets.
     
@@ -24,18 +25,20 @@ def envclassifier_feats(
     data_dir : str or pathlib.PosixPath
         The directory with scene subfolders (e.g. 'air_conditioner', 'traffic') that 
         contain audio files belonging to that scene (e.g. 'air_conditioner/ac1.wav',
-        'air_conditioner/ac2.wav', 'traffic/t1.wav')
-        (default './audiodata/minidatasets/background_noise/')
+        'air_conditioner/ac2.wav', 'traffic/t1.wav'). If None, example audio data will 
+        be used.
     
     data_features_dir : str or pathlib.PosixPath
         The directory where feature extraction related to the dataset will be stored. 
         Within this directory, a unique subfolder will be created each time features are
         extracted. This allows several versions of extracted features on the same dataset
         without overwriting files.
-        (default './audiodata/features_scene_classifier/')
     
     feature_type : str 
         The type of features to be extracted. Options: 'stft', 'powspec', 'mfcc', 'fbank'. (default 'fbank')
+        
+    dur_sec : int, float
+        The duration of each audio sample to be extracted. (default 1)
     
     kwargs : additional keyword arguments
         Keyword arguments for `pysoundtool.feats.save_features_datasets` and 
@@ -57,7 +60,7 @@ def envclassifier_feats(
     if data_dir is None:
         data_dir = './audiodata/minidatasets/background_noise/'
     if data_features_dir is None:
-        data_features_dir = './audiodata/features_scene_classifier/'
+        data_features_dir = './audiodata/example_feats_models/envclassifier/'
     if feature_type is None:
         feature_type = 'fbank'
     if 'signal' in feature_type:
@@ -133,6 +136,7 @@ def envclassifier_feats(
         datasets_path2save_dict = datasets_path2save_dict,
         labeled_data = True,
         feature_type = feature_type,
+        dur_sec = dur_sec,
         **kwargs)
 
     end = time.time()
@@ -155,10 +159,12 @@ def envclassifier_feats(
 
 
 def denoiser_feats(
-    data_clean_dir = '../audiodata/minidatasets/denoise/cleanspeech_IEEE_small/',
-    data_noisy_dir = '../audiodata/minidatasets/denoise/noisyspeech_IEEE_small/',
-    data_features_dir = '../audiodata/features_denoiser/',
-    feature_type = 'fbank',
+    data_clean_dir = None,
+    data_noisy_dir = None,
+    data_features_dir = None,
+    feature_type = None,
+    dur_sec = 3,
+    frames_per_sample = 11,
     **kwargs):
     '''Autoencoder Denoiser: feature extraction of clean & noisy audio into train, val, & test datasets.
     
@@ -167,27 +173,32 @@ def denoiser_feats(
     
     Parameters
     ----------
-    data_clean_dir : str or pathlib.PosixPath
+    data_clean_dir : str or pathlib.PosixPath, optional
         The directory with clean audio files. If no directory is given, the sample data
         available with PySoundTool will be used.
-        (default './audiodata/minidatasets/denoise/cleanspeech_IEEE_small/')
     
-    data_noisy_dir : str or pathlib.PosixPath
+    data_noisy_dir : str or pathlib.PosixPath, optional
         The directory with noisy audio files. These should be the same as the clean audio,
         except noise has been added. If no directory is given, the sample data available 
         with PySoundTool will be used.
-        (default './audiodata/minidatasets/denoise/noisyspeech_IEEE_small/')
     
-    data_features_dir : str or pathlib.PosixPath
+    data_features_dir : str or pathlib.PosixPath, optional
         The directory where feature extraction related to the dataset will be stored. 
         Within this directory, a unique subfolder will be created each time features are
         extracted. This allows several versions of extracted features on the same dataset
         without overwriting files.
-        (default './audiodata/features_denoiser/')
     
-    feature_type : str 
+    feature_type : str, optional
         The type of features to be extracted. Options: 'stft', 'powspec', 'mfcc', 'fbank' or
         'signal'. (default 'fbank')
+        
+    dur_sec : int, float
+        The duration of each audio sample to be extracted. (default 1)
+        
+    frames_per_sample : int 
+        If you want to section each audio file feature data into smaller frames. This might be 
+        useful for speech related contexts. (Can avoid this by simply reshaping data later)
+        (default 11)
     
     kwargs : additional keyword arguments
         Keyword arguments for `pysoundtool.feats.save_features_datasets` and 
@@ -200,12 +211,25 @@ def denoiser_feats(
         
     See Also
     --------
+    pysoundtool.data.create_denoise_data
+        Applies noise at specified SNR levels to clean audio files.
+    
     pysoundtool.feats.get_feats
         Extract features from audio file or audio data.
         
     pysoundtool.feats.save_features_datasets
         Preparation of acoustic features in train, validation and test datasets.
     '''
+    # ensure these are not None, and if so, fill with sample data
+    if data_clean_dir is None:
+        data_clean_dir = './audiodata/minidatasets/denoise/clean/'
+    if data_noisy_dir is None:
+        data_noisy_dir = './audiodata/minidatasets/denoise/noisy/'
+    if data_features_dir is None:
+        data_features_dir = './audiodata/example_feats_models/denoiser/'
+    if feature_type is None:
+        feature_type = 'fbank'
+    
     # create unique directory for feature extraction session:
     feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
 
@@ -316,6 +340,8 @@ def denoiser_feats(
         datasets_dict = dataset_dict_clean,
         datasets_path2save_dict = dataset_paths_clean_dict,
         feature_type = feature_type + ' clean',
+        dur_sec = dur_sec,
+        frames_per_sample = frames_per_sample,
         **kwargs)
         
     # then noisy data
@@ -323,6 +349,8 @@ def denoiser_feats(
         datasets_dict = dataset_dict_noisy,
         datasets_path2save_dict = dataset_paths_noisy_dict,
         feature_type = feature_type + ' noisy',
+        dur_sec = dur_sec,
+        frames_per_sample = frames_per_sample,
         **kwargs)
 
     end = time.time()
