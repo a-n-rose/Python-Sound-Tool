@@ -1320,6 +1320,84 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
             'be in the dictionary keys. Multiple found.')
     return updated_dataset_dict, updated_dataset_paths_dict
 
+def dataset_formatter(audiodirectory, sr=None, dur_sec=None, format='WAV',
+                        bitdepth=None, zeropad=False, new_dir=None, overwrite=False, recursive=False, wav_only=False):
+    '''Loads audio files and saves them according to set parameters.
+    
+    See Also
+    --------
+    pysoundtool.utils.collect_audiofiles
+        Collects audiofiles from a given directory.
+    '''
+    if new_dir is None and not overwrite:
+        new_dir = './audiofile_reformat_'+pyst.utils.get_date()
+        import warnings
+        message = '\n\nATTENTION: Due to the risk of corrupting existing datasets, '+\
+            'reformated audio will be saved in the following directory: '+\
+                '\n{}\n'.format(new_dir)
+        warnings.warn(message)
+
+    if new_dir:
+        new_dir = pyst.utils.check_dir(new_dir, make=True)
+        
+    audiofiles = pyst.utils.collect_audiofiles(audiodirectory,
+                                               recursive=recursive, 
+                                               wav_only=wav_only)
+    
+    # set bitdepth for soundfile
+    if bitdepth is None:
+        # get default bitdepth from soundfile
+        bd = sf.default_subtype(format)
+    elif bitdepth == 16:
+        bd = 'PCM_16'
+    elif bitdepth == 32:
+        bd = 'PCM_32'
+    else:
+        bd = bitdepth 
+        
+    # ensure format and bitdepth are valid for soundfile
+    valid = sf.check_format(format, bd)
+    if not valid:
+        if not format in sf.available_formats():
+            raise ValueError('Format {} is not available. Here is a list '+\
+                'of available formats: \n{}'.format(format, 
+                                                    sf.available_formats()))
+        raise ValueError('Format {} cannot be assigned '.format(format)+\
+            ' bitdepth {}.\nAvailable bitdepths include:'.format(bitdepth)+\
+            '\n{}'.format(sf.available_subtypes(format)))
+    
+    for i, audio in enumerate(audiofiles):
+        y, sr2 = pyst.loadsound(audio,
+                               sr=sr, 
+                               use_scipy=False,
+                               dur_sec = dur_sec)
+        # ensure the sr matches what was set
+        if sr is not None:
+            assert sr2 == sr
+        
+        if zeropad and dur_sec:
+            goal_num_samples = int(dur_sec*sr2)
+            y = pyst.dsp.set_signal_length(y, goal_num_samples)
+            
+        if not overwrite:
+            # maintains structure of old directory
+            new_filename = new_dir.joinpath(audio)
+            
+        else:
+            new_filename = audio
+            
+        # change the audio file name to match desired file format:
+        if format:
+            new_filename = pyst.data.replace_ext(new_filename, format.lower())
+            
+        try:
+            new_filename = pyst.savesound(new_filename, y, sr2, 
+                                      overwrite=overwrite,
+                                      format=format,subtype=bd)
+        except FileExistsError:
+            print('File {} already exists.'.format(new_filename))
+        pyst.utils.print_progress(i, len(audiofiles), 
+                                  task = 'reformatting dataset')
 
 if __name__ == '__main__':
     import doctest
