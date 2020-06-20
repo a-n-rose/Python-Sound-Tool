@@ -1320,14 +1320,67 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
             'be in the dictionary keys. Multiple found.')
     return updated_dataset_dict, updated_dataset_paths_dict
 
-def dataset_formatter(audiodirectory, sr=None, dur_sec=None, format='WAV',
-                        bitdepth=None, zeropad=False, new_dir=None, overwrite=False, recursive=False, wav_only=False, mono=True, use_scipy=False):
-    '''Loads audio files and saves them according to set parameters.
+def dataset_formatter(audiodirectory, recursive=False, new_dir=None, sr=None, dur_sec=None,
+                      zeropad=False, format='WAV', bitdepth=None, overwrite=False, 
+                      mono=True):
+    '''Formats all audio files in a directory to set parameters.
+    
+    The audiofiles formatted can be limited to the specific directory or be 
+    extended to the subfolders of that directory. 
+    
+    audiodirectory : str or pathlib.PosixPath
+        The directory where audio files live.
+        
+    recursive : bool 
+        If False, only audiofiles limited to the specific directory will be 
+        formatted. If True, audio files in nested directories will also be
+        formatted. (default False)
+    
+    new_dir : str or pathlib.PosixPath
+        The audiofiles will be saved with the same structure in this directory. 
+        If None, a default directory name with time stamp will be generated.
+    
+    sr : int 
+        The desired sample rate to assign to the audio files. If None, the orignal
+        sample rate will be maintained.
+        
+    dur_sec : int 
+        The desired length in seconds the audio files should be limited to. If
+        `zeropad` is set to True, the samples will be zeropadded to match this length
+        if they are too short. If None, no limitation will be applied.
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to match `dur_sec`. (default False)
+        
+    format : str 
+        The format to save the audio data in. (default 'WAV')
+        
+    bitdepth : int, str 
+        The desired bitdepth. If int, 16 or 32 are possible. Defaults to 'PCM_16'.
+        
+    overwrite : bool 
+        If True and `new_dir` is None, the audio data will be reformatted in the original
+        directory and saved over any existing filenames. (default False)
+        
+    mono : bool 
+        If True, the audio will be limited to a single channel. Note: not much has been 
+        tested for stereo sound and PySoundTool. (default True)
+        
+    Returns
+    -------
+    directory : pathlib.PosixPath
+        The directory where the formatted audio files are located.
     
     See Also
     --------
     pysoundtool.utils.collect_audiofiles
         Collects audiofiles from a given directory.
+        
+    pysoundtool.utils.conversion_formats
+        The available formats for converting audio data.
+        
+    soundfile.available_subtypes
+        The subtypes or bitdepth possible for soundfile
     '''
     if new_dir is None and not overwrite:
         new_dir = './audiofile_reformat_'+pyst.utils.get_date()
@@ -1341,8 +1394,7 @@ def dataset_formatter(audiodirectory, sr=None, dur_sec=None, format='WAV',
         new_dir = pyst.utils.check_dir(new_dir, make=True)
         
     audiofiles = pyst.utils.collect_audiofiles(audiodirectory,
-                                               recursive=recursive, 
-                                               wav_only=wav_only)
+                                               recursive=recursive)
     
     # set bitdepth for soundfile
     if bitdepth is None:
@@ -1369,7 +1421,6 @@ def dataset_formatter(audiodirectory, sr=None, dur_sec=None, format='WAV',
     for i, audio in enumerate(audiofiles):
         y, sr2 = pyst.loadsound(audio,
                                sr=sr, 
-                               use_scipy = use_scipy,
                                dur_sec = dur_sec,
                                mono = mono)
         # ensure the sr matches what was set
@@ -1399,6 +1450,11 @@ def dataset_formatter(audiodirectory, sr=None, dur_sec=None, format='WAV',
             print('File {} already exists.'.format(new_filename))
         pyst.utils.print_progress(i, len(audiofiles), 
                                   task = 'reformatting dataset')
+        
+    if new_dir:
+        return new_dir
+    else:
+        return audiodirectory
 
 if __name__ == '__main__':
     import doctest
