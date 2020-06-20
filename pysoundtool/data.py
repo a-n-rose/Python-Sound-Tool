@@ -1328,6 +1328,8 @@ def dataset_formatter(audiodirectory, recursive=False, new_dir=None, sr=None, du
     The audiofiles formatted can be limited to the specific directory or be 
     extended to the subfolders of that directory. 
     
+    Parameters
+    ----------
     audiodirectory : str or pathlib.PosixPath
         The directory where audio files live.
         
