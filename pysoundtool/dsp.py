@@ -26,19 +26,24 @@ def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
     freq : int, float
         The frequency in Hz the signal should have (default 200 Hz). This pertains
         to the number of ossicliations per second.
+        
     amplitude : int, float
         The parameter controling how much energy the signal should have. 
         (default 0.4)
+        
     sr : int 
         The sampling rate of the signal, or how many samples make up the signal 
         per second. (default 8000)
+        
         
     Returns
     -------
     sound_samples : np.ndarray [size = ()]
         The samples of the generated sound 
+        
     sr : int 
         The sample rate of the generated signal
+        
         
     Examples
     --------
@@ -66,12 +71,15 @@ def get_time_points(dur_sec,sr):
     ----------
     dur_sec : int, float
         The amount of time in seconds 
+        
     sr : int
         The sample rate relevant for the signal
+    
     
     Returns
     -------
     time : np.ndarray [size = (num_time_points,)]
+    
     
     Examples
     --------
@@ -94,11 +102,14 @@ def generate_noise(num_samples, amplitude=0.025, random_seed=None):
     ----------
     num_samples : int
         The number of total samples making up the noise signal.
+    
     amplitude : float 
         Allows the noise signal to be louder or quieter. (default 0.025)
+    
     random_seed : int, optional
         Useful for repeating 'random' noise samples.
-        
+    
+    
     Examples
     --------
     >>> noise = generate_noise(5, random_seed = 0)
@@ -120,14 +131,17 @@ def set_signal_length(samples, numsamps):
     ----------
     samples : np.ndarray [size = (num_samples, num_channels), or (num_samples,)]
         The array of sample data to be zero padded.
+    
     numsamps : int 
         The desired number of samples. 
-        
+    
+    
     Returns
     -------
     data : np.ndarray [size = (numsamps, num_channels), or (numsamps,)]
         Copy of samples zeropadded or limited to `numsamps`.
-        
+    
+    
     Examples
     --------
     >>> import numpy as np
@@ -167,16 +181,20 @@ def scalesound(data,min_val=-1,max_val=1):
     ----------
     data : np.ndarray [size = (num_samples,)]
         Original samples
+    
     min_val : int, float
         The minimum value the dataset is to range from (default -1)
+    
     max_val : int, float
         The maximum value the dataset is to range from (default 1)
+    
     
     Returns
     -------
     samples : np.ndarray [size = (num_samples,)]
         Copy of original data, scaled to the min and max values.
-        
+    
+    
     Examples
     --------
     >>> import numpy as np
@@ -207,16 +225,20 @@ def normalize(data, max_val=None, min_val=None):
     ----------
     data : np.ndarray
         Data to be normalized
+    
     max_val : int or float, optional
         Predetermined maximum value. If None, will use max value
         from `data`.
+    
     min_val : int or float, optional
         Predetermined minimum value. If None, will use min value
         from `data`.
-        
+    
+    
     Returns
     -------
     normed_data : np.ndarray [size = (num_samples,)]
+    
     
     Examples
     --------
@@ -249,18 +271,23 @@ def resample_audio(samples, sr_original, sr_desired):
     ----------
     samples : np.ndarray [size = (num_samples,)]
         The samples to be resampled.
+    
     sr_original : int 
         The orignal sample rate of the samples.
+    
     sr_desired : int 
         The desired sample rate of the samples.
-        
+    
+    
     Returns
     -------
     resampled : np.ndarray [size = (num_samples_resampled,)]
         The resampled samples.
+    
     sr_desired : int 
         The newly applied sample rate
-        
+    
+    
     Examples
     --------
     >>> import numpy as np
@@ -284,11 +311,13 @@ def stereo2mono(data):
     data : numpy.ndarray
         The series of sound samples, with 1+ columns/channels
     
+    
     Returns
     -------
     data_mono : numpy.ndarray
         The series of sound samples, with first column
-        
+    
+    
     Examples
     --------
     >>> import numpy as np
@@ -324,36 +353,45 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
         Sound file of the main sound (will not be modified; only delayed if 
         specified). If not path or string, should be a tuple containing the 
         audio samples and corresponding sample rate.
+    
     audio_background : str, pathlib.PosixPath, or tuple [size=((num_samples,), sr)]
         Sound file of the background sound (will be modified /repeated to match
         or extend the length indicated). If not of type pathlib.PosixPath or
         string, should be a tuple containing the audio samples and corresponding 
         sample rate.
+    
     snr : int, float
         The sound-to-noise-ratio of the target and background signals. Note: this
         is an approximation and needs further testing and development to be 
         used as an official measurement of snr.
+    
     delay_mainsound_sec : int or float, optional
         Length of time in seconds the main sound will be delayed. For example, 
         if `delay_mainsound_sec` is set to 1, one second of the
         `audio_background` will be played before `audio_main` starts. 
         (default None)
+    
     total_len_sec : int or float, optional
         Total length of combined sound in seconds. If none, the sound will end
         after target sound ends (default None).
+    
     **kwargs : additional keyword arguments
         The keyword arguments for pysoundtool.data.loadsound
+    
     
     Returns
     -------
     combined : numpy.ndarray
         The samples of the sounds added together
+    
     sr : int 
         The sample rate of the samples
+    
     snr : int, float 
         The updated signal-to-noise ratio. Due to the non-stationary state of speech and sound in general, 
         this value is only an approximation.
-        
+    
+    
     See Also
     --------
     pysoundtool.data.loadsound
@@ -439,12 +477,15 @@ def apply_num_channels(sound_data, num_channels):
     ----------
     sound_data : np.ndarray [size= (num_samples,) or (num_samples, num_channels)]
         The data to adjust the number of channels
+    
     num_channels : int 
         The number of channels desired
-        
+    
+    
     Returns
     -------
     data : np.ndarray [size = (num_samples, num_channels)]
+    
     
     Examples 
     --------
@@ -494,12 +535,15 @@ def apply_length(data, target_len):
     data : np.ndarray [size = (num_samples,) or (num_samples, num_channels)] 
         The data to be checked or extended in length. If shape (num_channels, num_samples),
         the data will be reshaped to (num_samples, num_channels).
+    
     target_len : int 
         The length of samples the input `data` should be.
+    
     
     Returns
     -------
     new_data : np.ndarray [size=(target_len, ) or (target_len, num_channels)]
+
 
     Examples
     --------
@@ -557,19 +601,24 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
     ----------
     data : numpy.ndarray [size = (num_samples,) or (num_samples, num_channels)]
         The sound data that needs zero padding. Shape (len(data),). 
+    
     target_len : int 
         The number of samples the `data` should have
+    
     sr : int
         The samplerate of the `data`
+    
     delay_sec : int, float, optional
         If the data should be zero padded also at the beginning.
         (default None)
+    
     
     Returns
     -------
     signal_zeropadded : numpy.ndarray [size = (target_len,) or (target_len, num_channels)]
         The data zero padded.
-        
+    
+    
     Examples
     --------
     >>> import numpy as np
@@ -631,8 +680,6 @@ def get_num_channels(data):
     return num_channels
 
 # TODO clarify how length of output array is established
-# TODO change time_delay_sec=1 to None default, as well as total_dur_sec
-# TODO add snr parameter?
 def combine_sounds(file1, file2, match2shortest=True, time_delay_sec=None,total_dur_sec=None):
     '''Combines sounds
     
@@ -640,22 +687,28 @@ def combine_sounds(file1, file2, match2shortest=True, time_delay_sec=None,total_
     ----------
     file1 : str 
         One of two files to be added together
+    
     file2 : str 
         Second of two files to be added together
+    
     match2shortest : bool
         If the lengths of the addition should be limited by the shorter sound. 
         (defaul True)
+    
     time_delay_sec : int, float, optional
         The amount of time in seconds before the sounds are added together. 
         The longer sound will play for this period of time before the shorter
         sound is added to it. (default 1)
+    
     total_dur_sec : int, float, optional
         The total duration in seconds of the combined sounds. (default 5)
-        
+    
+    
     Returns
     -------
     added_sound : numpy.ndarray
         The sound samples of the two soundfiles added together
+    
     sr1 : int 
         The sample rate of the original signals and added sound
     '''
@@ -695,13 +748,16 @@ def calc_frame_length(dur_frame_millisec, sr):
     ----------
     dur_frame_millisec : int or float
         time in milliseconds each frame should be
+    
     sr : int
         sampling rate of the samples to be framed
+
 
     Returns
     -------
     frame_length : int
         the number of samples necessary to fill a frame
+
 
     Examples
     --------
@@ -722,14 +778,17 @@ def calc_num_overlap_samples(samples_per_frame, percent_overlap):
     ----------
     samples_per_frame : int 
         the number of samples in each window / frame
+    
     percent_overlap : int, float
         either an integer between 0 and 100 or a decimal between 0.0 and 1.0
         indicating the amount of overlap of windows / frames
+
 
     Returns
     -------
     num_overlap_samples : int 
         the number of samples in the overlap
+
 
     Examples
     --------
@@ -758,18 +817,25 @@ def calc_num_subframes(tot_samples, frame_length, overlap_samples, zeropad=False
     ----------
     tot_samples : int 
         total number of samples in the entire series
+    
     frame_length : int 
         total number of samples in each frame / processing window
+    
     overlap_samples : int
         number of samples in overlap between frames
+    
     zeropad : bool, optional
         If False, number of subframes limited to full frames. If True, 
         number of subframes extended to zeropad the last partial frame.
         (default False)
 
+
     Returns
     -------
-    None
+    subframes : int 
+        The number of subframes necessary to fully process the audio samples
+        at given `frame_length`, `overlap_samples`, and `zeropad`.
+
 
     Examples
     --------
@@ -798,10 +864,12 @@ def create_window(window_type, frame_length):
     window_type : str
         type of window to be applied (default 'hamming')
 
+
     Returns
     -------
     window : ndarray
         a window fitted to the class attribute 'frame_length'
+
 
     Examples
     --------
@@ -829,13 +897,16 @@ def apply_window(samples, window, zeropad=False):
     ----------
     samples : ndarray
         series of samples with the length of input window
+    
     window : ndarray
         window to be applied to the signal
+
 
     Returns
     -------
     samples_win : ndarray
         series with tapered sides according to the window provided
+
 
     Examples
     --------
@@ -876,6 +947,7 @@ def calc_fft(signal_section, real_signal=None, norm=False):
     ----------
     signal_section : ndarray
         the series that the fft will be applied to
+    
     norm : bool
         whether or not normalization should be applied (default False)
 
@@ -906,10 +978,12 @@ def calc_power(fft_vals):
     fft_vals : ndarray (complex or floats)
         the fft values of a windowed section of a series
 
+
     Returns
     -------
     power_spec : ndarray
         the squared absolute value of the input fft values
+
 
     Example
     -------
@@ -936,14 +1010,17 @@ def calc_average_power(matrix, num_iters):
     matrix : ndarray
         a collection of floats or ints representing the sum of power 
         values across several series sets
+    
     num_iters : int 
         an integer denoting the number of times power values were added to
         the input matrix
+
 
     Returns
     -------
     matrix : ndarray
         the averaged input matrix
+
 
     Examples
     --------
@@ -967,16 +1044,19 @@ def calc_phase(fft_matrix, radians=False):
     ----------
     fft_vals : np.ndarray [shape=(d, t), dtype=complex]
         matrix with fft values
+    
     radians : boolean
         False and complex values are returned. True and radians are returned.
         (Default False)
-        
+    
+    
     Returns
     -------
     phase : np.ndarray [shape=(d, t)]
         Phase values for fft_vals. If radians is set to False, dtype = complex.
         If radians is set to True, dtype = float. 
-        
+    
+    
     Examples
     --------
     >>> import numpy as np 
@@ -1010,15 +1090,18 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
         Matrix with either power or fft values of the left part of the fft. The whole
         fft can be provided; however the right values will be overwritten by a mirrored
         left side.
+    
     n_fft : int, optional
         If None, `n_fft` set to length of `band_reduced_noise_matrix`. `n_fft` defines
         the size of the mirrored vector.
-        
+    
+    
     Returns
     -------
     output_matrix : np.ndarray [size = (n_fft,), dtype=np.float or np.complex_]
         Mirrored vector of input data.
-        
+    
+    
     Examples
     --------
     >>> x = np.array([3.,2.,1.,0.])
@@ -1070,8 +1153,13 @@ def apply_original_phase(spectrum, phase):
     ----------
     spectrum : np.ndarray [shape=(n,), dtype=np.float or np.complex]
         Magnitude or power spectrum
+    
     phase : np.ndarray [shape=(n,), dtype=np.float or np.complex]
         Phase to be applied to spectrum
+        
+    Returns 
+    -------
+    spectrum_complex : np.ndarray [shape=(n,), dtype = np.complex]
     '''
     # ensure 1d dimensions
     if len(spectrum.shape) > 1:
@@ -1103,14 +1191,17 @@ def calc_posteri_snr(target_power_spec, noise_power_spec):
     target_power_spec : ndarray
         matrix of shape with power values of target 
         signal
+    
     noise_power_spec : ndarray
         matrix of shape with power values of noise
         signal
+
 
     Returns 
     -------
     posteri_snr : ndarray
         matrix containing the signal to noise ratio 
+
 
     Examples
     --------
@@ -1178,19 +1269,24 @@ def get_local_snr(target_samples, noise_samples, sr,
     target_samples : np.ndarray [size = (num_samples, )]
         The samples of the main / speech signal. Only frames with
         higher levels of energy will be used to calculate SNR.
+    
     noise_samples : np.ndarray [size = (num_samples, )]
         The samples of background noise. Expects only noise, no speech.
         Must be the same sample rate as the target_samples 
+    
     sr : int 
         The sample rate for the audio samples.
+    
     local_size_ms : int or float
         The length in milliseconds to calculate level of SNR. 
         (default 25)
+    
     min_power_percent : float 
         The minimum percentage of energy / power the target samples 
         should have. This is to look at only sections with speech or 
         other signal of interest and not periods of silence. 
         Value should be between 0 and 1. (default 0.25)
+    
     
     References
     ----------
@@ -1237,20 +1333,25 @@ def snr_adjustnoiselevel(target_samples, noise_samples, sr, snr):
     ----------
     target_samples : np.ndarray [size = (num_samples,)]
         The audio samples of the target / clean signal.
+    
     noise_samples : np.ndarray [size = (num_samples,)]
         The audio samples of the noise signal.
+    
     sr : int 
         The sample rate of both `target_samples` and `noise_samples`
+    
     snr : int 
         The desired signal-to-noise ratio of the target and noise
         audio signals.
-        
+    
+    
     Returns
     -------
     scale_factor : int, float 
         The factor to which noise samples should be multiplied 
         before being added to target samples to achieve SNR.
-        
+    
+    
     References
     ----------
     Yi Hu and Philipos C. Loizou : original authors
@@ -1262,7 +1363,8 @@ def snr_adjustnoiselevel(target_samples, noise_samples, sr, snr):
         
     ITU-T (1993). Objective measurement of active speech level. ITU-T 
     Recommendation P. 56
-        
+     
+     
     See Also
     --------
     pysoundtool.dsp.asl_P56
@@ -1310,6 +1412,7 @@ def asl_P56(samples, sr, bitdepth=16, smooth_factor=0.03, hangover=0.2, margin_d
     margin_db : int, float 
         Margin decibels... (default 15.9)
         
+        
     Returns
     -------
     asl_ms : float 
@@ -1318,6 +1421,7 @@ def asl_P56(samples, sr, bitdepth=16, smooth_factor=0.03, hangover=0.2, margin_d
         The active factor
     c0 : float
         Active speech level threshold
+    
     
     References
     ----------
@@ -1458,10 +1562,12 @@ def calc_posteri_prime(posteri_snr):
     posteri_snr : ndarray
         The signal-to-noise ratio of the noisey signal, frame by frame.
 
+
     Returns 
     -------
     posteri_prime : ndarray
         The primed posteri_snr, calculated according to the reference paper.
+
 
     References
     ----------
@@ -1485,24 +1591,30 @@ def calc_prior_snr(snr, snr_prime, smooth_factor=0.98, first_iter=None, gain=Non
     ----------
     snr : ndarray
         The sound-to-noise ratio of target vs noise power/energy levels.
+    
     snr_prime : ndarray
         The prime of the snr (see Scalart & Filho (1996))
+    
     smooth_factor : float
         The value applied to smooth the signal. (default 0.98)
+    
     first_iter : None, True, False
         If None, snr prior values are estimated the same, no matter if it is
         the first iteration or not (Scalart & Filho (1996))
         If True, snr prior values are estimated without gain (Loizou 2013)
         If False, snr prior values are enstimed with gain (Loizou 2013) 
         (default None)
+    
     gain : None, ndarray
         If None, gain will not be used. If gain, it is a previously calculated
         value from the previous frame. (default None)
+
 
     Returns
     -------
     prior_snr : ndarray
         Estimation of signal-to-noise ratio of the previous frame of target signal.
+
 
     References
     ----------
@@ -1539,11 +1651,13 @@ def calc_gain(prior_snr):
     prior_snr : ndarray
         The prior signal-to-noise ratio estimation
 
+
     Returns
     -------
     gain : ndarray
         An array of attenuation values to be applied to the signal (stft) array
         at the current frame.
+
         
     References
     ----------
@@ -1564,8 +1678,10 @@ def apply_gain_fft(fft_vals, gain):
     ----------
     fft_vals : ndarray(complex)
         Matrix containing complex values (i.e. stft values) of target signal
+    
     gain : ndarray(real)
         Matrix containing calculated attenuation values to apply to 'fft_vals'
+
 
     Returns
     -------
@@ -1585,12 +1701,15 @@ def calc_ifft(signal_section, real_signal=None, norm=False):
     ----------
     signal_section : ndarray [shape=(num_freq_bins,) 
         The frame of fft values to apply the inverse fft to
+    
     num_fft : int, optional
         The number of total fft values applied when calculating the original fft. 
         If not given, length of `signal_section` is used. 
+    
     norm : bool
         Whether or not the ifft should apply 'ortho' normalization
         (default False)
+
 
     Returns 
     -------
@@ -1614,12 +1733,16 @@ def control_volume(samples, max_limit):
     ----------
     samples : ndarray
         series of audio samples
+    
     max_limit: float
         maximum boundary of the maximum value of the audio samples
 
+
     Returns
     -------
+    samples : np.ndarray
         samples with volume adjusted (if need be).
+
 
     Examples
     --------
@@ -1690,10 +1813,12 @@ def spread_volumes(samples, vol_list = [0.1,0.3,0.5]):
     ----------
     samples : ndarray
         Series belonging to acoustic signal.
+    
     vol_list : list 
         List of floats or ints representing the volumes the samples
         are to be oriented towards. (default [0.1,0.3,0.5])
-        
+    
+    
     Returns
     -------
     volrange_dict : tuple 
@@ -1721,14 +1846,17 @@ def create_empty_matrix(shape, complex_vals=False):
     shape : tuple or int
         tuple or int indicating the shape or length of desired matrix or
         vector, respectively
+    
     complex_vals : bool
         indicator of whether or not the matrix will receive real or complex
         values (default False)
+
 
     Returns
     ----------
     matrix : ndarray
         a matrix filled with real or complex zeros
+
 
     Examples
     ----------
@@ -1760,16 +1888,20 @@ def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
     ----------
     enhanced_matrix : np.ndarray [shape=(frame_length, num_frames), dtype=float]
         Matrix with enhance values
+    
     frame_length : int 
         Number of samples per frame 
+    
     overlap : int 
         Number of samples that overlap
         
+    
     Returns
     -------
     new_signal : np.ndarray [shape=(frame_length,), dtype=float]
         Length equals (frame_length - overlap) * enhanced_matrix.shape[1] + overlap
-        
+    
+    
     Examples
     --------
     >>> import numpy as np
