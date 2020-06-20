@@ -3,10 +3,10 @@
 a target signal.
 '''
 ###############################################################################
-import os, sys
-import inspect
 import numpy as np
 
+import os, sys
+import inspect
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 packagedir = os.path.dirname(currentdir)
@@ -596,7 +596,7 @@ def filtersignal(audiofile,
                  save2wav=False,
                  output_filename=None,
                  overwrite=False,
-                 use_librosa=True):
+                 use_scipy=False):
     """Apply Wiener or band spectral subtraction filter to signal using noise. 
 
     Parameters 
@@ -665,9 +665,9 @@ def filtersignal(audiofile,
         provided, will save under date.
     overwrite : bool 
         If True and an audiofile by the same name exists, that file will be overwritten.
-    use_librosa : bool 
-        If True, audiofiles will be loaded using librosa. Otherwise, scipy.io.wavfile.
-        (default True)
+    use_scipy : bool 
+        If False, audiofiles will be loaded using librosa. Otherwise, scipy.io.wavfile.
+        (default False)
     
     Returns
     -------
@@ -713,7 +713,7 @@ def filtersignal(audiofile,
 
     # load signal (to be filtered)
     if not isinstance(audiofile, np.ndarray):
-        samples_orig, sr = pyst.loadsound(audiofile, fil.sr, dur_sec=None, use_librosa=use_librosa)
+        samples_orig, sr = pyst.loadsound(audiofile, fil.sr, dur_sec=None, use_scipy=use_scipy)
     else:
         samples_orig, sr = audiofile, sr
     if sr != fil.sr:
@@ -762,7 +762,7 @@ def filtersignal(audiofile,
                 samples_noise, sr_noise = pyst.loadsound(noise_file, 
                                                          fil.sr, 
                                                          dur_sec=dur_sec,
-                                                         use_librosa=use_librosa)
+                                                         use_scipy=use_scipy)
                 assert sr_noise == fil.sr
         if samples_noise is None and noise_power is None:
             raise TypeError('Expected one of the following: '+\

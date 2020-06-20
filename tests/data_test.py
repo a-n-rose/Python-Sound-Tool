@@ -5,14 +5,18 @@ currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
-
-import pysoundtool as pyst
 import numpy as np
 import pytest
+import soundfile as sf
+import pysoundtool as pyst
+
 
 ###############################################################################
 
-test_wav = './audio2channels.wav'
+example_dir = './audiodata/examps/'
+example_dir = pyst.utils.check_dir(example_dir, make=True)
+test_wav_stereo = './audiodata/audio2channels.wav'
+test_wav_mono = './audiodata/traffic.wav'
 test_aiff = './audiodata/traffic.aiff'
 test_flac = './audiodata/259672__nooc__this-is-not-right.flac'
 test_m4a = './audiodata/505803__skennison__new-recording.m4a'
@@ -20,7 +24,7 @@ test_mp3 = './audiodata/244287__kleinhirn2000__toast-glas-langsam.mp3'
 test_ogg = './audiodata/240674__zajo__you-have-been-denied.ogg'
 
 def test_loadsound_mono_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav,use_librosa=False)
+    samples, sr = pyst.loadsound(test_wav_stereo,use_scipy=True)
     expected = np.array([0.06140351, 0.06140351, 0.06140351, 0.06140351,
                          0.06140351])
     expected_shape = (len(expected),)
@@ -30,7 +34,7 @@ def test_loadsound_mono_uselibrosa_False():
     assert expected_sr == sr
     
 def test_loadsound_mono_dur1_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav, dur_sec=1,use_librosa=False)
+    samples, sr = pyst.loadsound(test_wav_stereo, dur_sec=1,use_scipy=True)
     expected = np.array([0.06140351, 0.06140351, 0.06140351, 0.06140351,
                          0.06140351])
     expected_shape = (len(expected),)
@@ -40,7 +44,7 @@ def test_loadsound_mono_dur1_uselibrosa_False():
     assert len(samples) == expected_sr
     
 def test_loadsound_stereo_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav, mono=False,use_librosa=False)
+    samples, sr = pyst.loadsound(test_wav_stereo, mono=False,use_scipy=True)
     expected = np.array([[0.06140351, 0.06140351],[0.06140351, 0.06140351],
                          [0.06140351, 0.06140351]])
     expected_shape = expected.shape
@@ -50,7 +54,7 @@ def test_loadsound_stereo_uselibrosa_False():
     assert expected_sr == sr
     
 def test_loadsound_stereo_dur1_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav, mono=False, dur_sec=1,use_librosa=False)
+    samples, sr = pyst.loadsound(test_wav_stereo, mono=False, dur_sec=1,use_scipy=True)
     expected = np.array([[0.06140351, 0.06140351],[0.06140351, 0.06140351],
                          [0.06140351, 0.06140351]])
     expected_shape = expected.shape
@@ -61,7 +65,7 @@ def test_loadsound_stereo_dur1_uselibrosa_False():
     assert len(samples) == expected_sr
     
 def test_loadsound_mono_sr48000_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav, mono=True, sr=48000,use_librosa=False)
+    samples, sr = pyst.loadsound(test_wav_stereo, mono=True, sr=48000,use_scipy=True)
     expected = np.array([0.07632732, 0.07633357, 0.07633357, 0.07632732,
                          0.07632107])
     expected_sr = 48000
@@ -69,7 +73,7 @@ def test_loadsound_mono_sr48000_uselibrosa_False():
     assert sr == expected_sr
     
 def test_loadsound_stereo_sr48000_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav, sr=48000, mono=False,use_librosa=False)
+    samples, sr = pyst.loadsound(test_wav_stereo, sr=48000, mono=False,use_scipy=True)
     expected = np.array([[0.07632732, 0.07632732],[0.07633357, 0.07628564],
                          [0.07633357, 0.07628563]])
     expected_shape = expected.shape
@@ -83,30 +87,30 @@ def test_loadsound_aiff2wav_sr22050():
     assert samples is not None
     
 def test_loadsound_flac2wav_sr22050_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_flac, sr=22050,use_librosa=False)
+    samples, sr = pyst.loadsound(test_flac, sr=22050,use_scipy=True)
     assert samples is not None
     assert sr == 22050
     
 def test_loadsound_m4a2wav_sr22050_uselibrosa_False():
     print('IF TEST FAILS: Now loads with librosa if RunTimeError.. is this good?')
     with pytest.raises(RuntimeError):
-        samples, sr = pyst.loadsound(test_m4a, sr=22050, use_librosa=False)
+        samples, sr = pyst.loadsound(test_m4a, sr=22050, use_scipy=True)
     
 def test_loadsound_mp32wav_sr22050_error_uselibrosa_False():
     print('IF TEST FAILS: Now loads with librosa if RunTimeError.. is this good?')
     with pytest.raises(RuntimeError):
-        samples, sr = pyst.loadsound(test_mp3, sr=22050,use_librosa=False)
+        samples, sr = pyst.loadsound(test_mp3, sr=22050,use_scipy=True)
     
 def test_loadsound_ogg2wav_sr22050_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_ogg, sr=22050,use_librosa=False)
+    samples, sr = pyst.loadsound(test_ogg, sr=22050,use_scipy=True)
     assert samples is not None
     assert sr == 22050
     
 def test_loadsound_librosa_wav():
     # use librosa to load file
-    samples, sr = pyst.loadsound(test_wav, use_librosa=True)
+    samples, sr = pyst.loadsound(test_wav_stereo, use_scipy=False)
     # use scipy.io.wavfile to load the file
-    samples2, sr2 = pyst.loadsound(test_wav)
+    samples2, sr2 = pyst.loadsound(test_wav_stereo)
     assert np.allclose(samples[:5], np.array([0., 0., 0., 0., 0.]))
     assert sr==16000
     print('IF ERROR: Librosa and Scipy.io.wavfile load data a little differently.')
@@ -115,7 +119,7 @@ def test_loadsound_librosa_wav():
     
 def test_loadsound_librosa_wav_dur1_sr22050():
     # use librosa to load file
-    samples, sr = pyst.loadsound(test_wav, dur_sec=1, sr=22050, use_librosa=True)
+    samples, sr = pyst.loadsound(test_wav_stereo, dur_sec=1, sr=22050, use_scipy=False)
 
     assert np.allclose(samples[:5], np.array([0., 0., 0., 0., 0.]))
     assert sr==22050
@@ -123,54 +127,87 @@ def test_loadsound_librosa_wav_dur1_sr22050():
     
 def test_loadsound_librosa_wav_dur1_sr22050_stereo():
     # use librosa to load file
-    samples, sr = pyst.loadsound(test_wav, mono=False, dur_sec=1, 
-                                 sr=22050, use_librosa=True)
+    samples, sr = pyst.loadsound(test_wav_stereo, mono=False, dur_sec=1, 
+                                 sr=22050, use_scipy=False)
     expected = np.array([[0.,0.],[0.,0.],[0.,0.]])
     assert np.allclose(samples[:3], expected)
     assert sr==22050
     assert samples.shape == (22050,2)
     
 def test_loadsound_librosa_aiff():
-    samples, sr = pyst.loadsound(test_aiff, use_librosa=True)
+    samples, sr = pyst.loadsound(test_aiff, use_scipy=False)
     expected = np.array([0.09291077, 0.06417847, 0.04179382, 0.02642822, 
                          0.01808167])
     assert np.allclose(samples[:5], expected)
     assert sr==48000
     
 def test_loadsound_librosa_aiff_sr16000():
-    samples, sr = pyst.loadsound(test_aiff, sr=16000, use_librosa=True)
+    samples, sr = pyst.loadsound(test_aiff, sr=16000, use_scipy=False)
     expected = np.array([ 0.05152914,0.03653815, -0.0083929,
                          -0.0207656,-0.03038501])
     assert np.allclose(samples[:5], expected)
     assert sr==16000
     
 def test_loadsound_librosa_flac():
-    samples, sr = pyst.loadsound(test_flac, use_librosa=True)
+    samples, sr = pyst.loadsound(test_flac, use_scipy=False)
     expected = np.array([ 0.0000000e+00,0.0000000e+00, 0.0000000e+00,
                          0.0000000e+00,-3.0517578e-05])
     assert np.allclose(samples[:5], expected)
     assert sr==44100
     
 def test_loadsound_librosa_ogg():
-    samples, sr = pyst.loadsound(test_ogg, use_librosa=True)
+    samples, sr = pyst.loadsound(test_ogg, use_scipy=False)
     expected = np.array([-0.00639889, -0.00722905, -0.00864992, 
                          -0.00878596, -0.00894831])
     assert np.allclose(samples[:5], expected)
     assert sr==44100
     
 def test_loadsound_librosa_m4a():
-    samples, sr = pyst.loadsound(test_m4a, use_librosa=True)
+    samples, sr = pyst.loadsound(test_m4a, use_scipy=False)
     expected = np.array([0. ,0. ,0. ,0. ,0.])
     assert np.allclose(samples[:5], expected)
     assert sr==48000
     
 def test_loadsound_librosa_mp3():
-    samples, sr = pyst.loadsound(test_mp3, use_librosa=True)
+    samples, sr = pyst.loadsound(test_mp3, use_scipy=False)
     expected = np.array([ 0.000e+00, -1.5258789e-05,  0.000e+00, 
                          0.00e+00,0.0000000e+00])
     assert np.allclose(samples[:5], expected)
     assert sr==44100
-
+    
+def test_savesound_mismatch_format_flac_filename_wav():
+    y, sr = pyst.loadsound(test_wav_mono)
+    f = pyst.utils.string2pathlib(test_wav_mono)
+    format_type = 'FLAC'
+    audiofile_new = example_dir.joinpath(f.name)
+    audiofile_corrected = pyst.savesound(audiofile_new, y, sr, format=format_type)
+    soundobject = sf.SoundFile(audiofile_corrected)
+    assert audiofile_corrected.suffix[1:].lower() == format_type.lower() 
+    assert soundobject.format == format_type
+    os.remove(audiofile_corrected)
+    
+def test_savesound_filename_wav2flac():
+    y, sr = pyst.loadsound(test_wav_mono)
+    f = pyst.utils.string2pathlib(test_wav_mono)
+    format_type = 'FLAC'
+    audiofile_new = example_dir.joinpath(f.stem+'.'+format_type.lower())
+    audiofile_corrected = pyst.savesound(audiofile_new, y, sr)
+    soundobject = sf.SoundFile(audiofile_corrected)
+    assert audiofile_corrected.suffix[1:].lower() == format_type.lower() 
+    assert soundobject.format == format_type
+    os.remove(audiofile_corrected)
+    
+def test_savesound_default_FileExistsError():
+    y, sr = pyst.loadsound(test_wav_mono)
+    with pytest.raises(FileExistsError):
+        filename = pyst.savesound(test_wav_mono, y, sr)
+        
+def test_savesound_default_overwrite():
+    y, sr = pyst.loadsound(test_wav_mono)
+    soundobject1 = sf.SoundFile(test_wav_mono)
+    filename = pyst.savesound(test_wav_mono, y, sr, overwrite=True)
+    soundobject2 = sf.SoundFile(filename)
+    assert soundobject1.format == soundobject2.format
 
 def test_adjust_data_shape_last_column():
     desired_shape = (3,3,5)
@@ -562,3 +599,4 @@ def test_audio2datasets_noisy_clean_datasets_match():
     assert expected_val_noisy == dataset_tuple_noisy[1]
     assert expected_test_noisy == dataset_tuple_noisy[2]
     
+
