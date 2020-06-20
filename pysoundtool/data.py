@@ -1321,7 +1321,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     return updated_dataset_dict, updated_dataset_paths_dict
 
 def dataset_formatter(audiodirectory, sr=None, dur_sec=None, format='WAV',
-                        bitdepth=None, zeropad=False, new_dir=None, overwrite=False, recursive=False, wav_only=False):
+                        bitdepth=None, zeropad=False, new_dir=None, overwrite=False, recursive=False, wav_only=False, mono=True, use_scipy=False):
     '''Loads audio files and saves them according to set parameters.
     
     See Also
@@ -1369,8 +1369,9 @@ def dataset_formatter(audiodirectory, sr=None, dur_sec=None, format='WAV',
     for i, audio in enumerate(audiofiles):
         y, sr2 = pyst.loadsound(audio,
                                sr=sr, 
-                               use_scipy=False,
-                               dur_sec = dur_sec)
+                               use_scipy = use_scipy,
+                               dur_sec = dur_sec,
+                               mono = mono)
         # ensure the sr matches what was set
         if sr is not None:
             assert sr2 == sr
