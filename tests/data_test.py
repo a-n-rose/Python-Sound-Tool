@@ -117,6 +117,14 @@ def test_loadsound_librosa_wav():
     print('Therefore, slight differences between the data values are expected.')
     assert np.allclose(samples, samples2)
     
+def test_loadsound_librosa_sr_None():
+    samples, sr = pyst.loadsound(test_wav_stereo, sr=None)
+    assert sr == 16000
+    
+def test_loadsound_scipy_sr_None():
+    samples, sr = pyst.loadsound(test_wav_stereo, sr=None, use_scipy=True)
+    assert sr == 16000
+    
 def test_loadsound_librosa_wav_dur1_sr22050():
     # use librosa to load file
     samples, sr = pyst.loadsound(test_wav_stereo, dur_sec=1, sr=22050, use_scipy=False)
