@@ -65,18 +65,24 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
     pysoundtool.data.newbitdepth
         Converts audio file to specified bitdepth.
         
-    pysoundtool.dps.resample_audio
+    pysoundtool.dsp.resample_audio
         Resampe audio data to a specified sample rate.
+        
+    pysoundtool.data.list_possibleformats
+        Lists the possible formats to load with pysoundtool.loadsound
+        
+    librosa.load
+        The package used to load sound data by default. See `librosa`.
+        
+    scipy.io.wavfile.read
+        The package used to load sound if `use_scipy` is set to True.
+        See `scipy`.
+        
         
     Todo
     ----
     Make librosa data and scipy.io.wavfile data more similar
         https://stackoverflow.com/questions/54482346/reading-a-wav-file-with-scipy-and-librosa-in-python
-        
-    See Also
-    --------
-    pysoundtool.data.list_possibleformats
-        Lists the possible formats to load with pysoundtool.loadsound
     '''
     if not use_scipy:
         # the sample data will be a litle different from scipy.io.wavfile
@@ -111,6 +117,8 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
             filename = pyst.data.newbitdepth(filename, overwrite=False)
             data, sr = loadsound(filename, sr=sr, mono=mono, dur_sec=dur_sec)
     
+    # scipy loads data in shape (num_samples, num_channels)
+    # don't need to transpose as for librosa
     if mono and len(data.shape) > 1:
         if data.shape[1] > 1:
             data = pyst.dsp.stereo2mono(data)
@@ -1457,6 +1465,119 @@ def dataset_formatter(audiodirectory, recursive=False, new_dir=None, sr=None, du
         return new_dir
     else:
         return audiodirectory
+    
+def dataset_logger(audiofile_dir = None, recursive=True):
+    '''Logs name, format, bitdepth, sr, duration of audiofiles, num_channels
+    
+    Parameters
+    ----------
+    audiofile_dir : str or pathlib.PosixPath
+        The directory where audiofiles of interest are. If no directory 
+        provided, the example data directory that comes with PySoundTool will be 
+        used.
+        
+    recursive : bool 
+        If True, all audiofiles will be analyzed, also in nested directories.
+        Otherwise, only the audio files in the immediate directory will be
+        analyzed. (default True)
+    
+    
+    Returns
+    -------
+    audiofile_dict : dict 
+        Dictionary within a dictionary, holding the formats of the audiofiles in the 
+        directory/ies.
+        
+    
+    Examples
+    --------
+    >>> audio_info = dataset_logger()
+    >>> # look at three audio files:
+    >>> count = 0
+    >>> for key, value in audio_info.items(): 
+    ...:     for k, v in value.items(): 
+    ...:         print(k, ' : ', v) 
+    ...:     count += 1 
+    ...:     print() 
+    ...:     if count > 2: 
+    ...:         break 
+    audio  :  audiodata/dogbark_2channels.wav
+    sr  :  48000
+    num_channels  :  2
+    dur_sec  :  0.389
+    format_type  :  WAV
+    bitdepth  :  PCM_16
+
+    audio  :  audiodata/python_traffic_pf.wav
+    sr  :  48000
+    num_channels  :  1
+    dur_sec  :  1.86
+    format_type  :  WAV
+    bitdepth  :  DOUBLE
+
+    audio  :  audiodata/259672__nooc__this-is-not-right.wav
+    sr  :  44100
+    num_channels  :  1
+    dur_sec  :  2.48453514739229
+    format_type  :  WAV
+    bitdepth  :  PCM_16
+    
+    
+    See Also
+    --------
+    soundfile.available_subtypes
+        The subtypes available with the package SoundFile
+        
+    soundfile.available_formats
+        The formats available with the package SoundFile
+    '''
+    # ensure audio directory exists:
+    if audiofile_dir is None:
+        audiofile_dir = './audiodata/'
+    audiofile_dir = pyst.utils.check_dir(audiofile_dir)
+    
+    audiofiles = pyst.utils.collect_audiofiles(audiofile_dir,
+                                               recursive = recursive)
+    
+    audiofile_dict = dict()
+    
+    for i, audio in enumerate(audiofiles):
+        # set sr to None to get audio file's sr
+        # set mono to False to see if mono or stereo sound 
+        y, sr = pyst.loadsound(audio, sr=None, mono=False)
+        # see number of channels
+        if len(y.shape) > 1:
+            num_channels = y.shape[1]
+        else:
+            num_channels = 1
+        
+        dur_sec = len(y)/sr
+        
+        try:
+            so = sf.SoundFile(audio)
+            bitdepth = so.subtype
+            format_type = so.format
+        except RuntimeError:
+            if isinstance(audio, str):
+                audio = pathlib.Path(audio)
+            format_type = audio.suffix.upper()[1:] # remove starting dot
+            bitdepth = 'unknown'
+        # ensure audio is string: if pathlib.PosixPath, it saves
+        # the PurePath in the string and makes it difficult to deal 
+        # with later.
+        audio = str(audio)
+        curr_audio_dict = dict(audio = audio,
+                          sr = sr,
+                          num_channels = num_channels,
+                          dur_sec = dur_sec, 
+                          format_type = format_type, 
+                          bitdepth = bitdepth)
+        
+        
+        audiofile_dict[audio] = curr_audio_dict
+        pyst.utils.print_progress(i, len(audiofiles), task='logging audio file details')
+        
+    return audiofile_dict
 
 if __name__ == '__main__':
     import doctest
