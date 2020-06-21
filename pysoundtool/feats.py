@@ -483,7 +483,7 @@ def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
 
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     percent_overlap = 0.5, num_filters=40, num_mfcc=40, sr=None,\
-        save_pic=False, name4pic=None, power_scale=None, mono=None):
+        save_pic=False, name4pic=None, power_scale=None, mono=None, **kwargs):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
     Parameters
@@ -521,6 +521,8 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
         When loading an audiofile, True will limit number of channels to
         one; False will allow more channels to be loaded. (default None, 
         which results in mono channel loading.)
+    **kwargs : additional keyword arguments
+        Keyword arguments for pysoundtool.feats.plot
     '''
     percent_overlap = check_percent_overlap(percent_overlap)
     feats = pyst.feats.get_feats(audiodata, features=feature_type, 
@@ -532,7 +534,8 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     else:
         sr = None
     pyst.feats.plot(feats, feature_type=feature_type, sr=sr,
-                    save_pic = save_pic, name4pic=name4pic, scale=power_scale)
+                    save_pic = save_pic, name4pic=name4pic, scale=power_scale,
+                    **kwargs)
 
 def check_percent_overlap(percent_overlap):
     '''Ensures percent_overlap is between 0 and 1.
