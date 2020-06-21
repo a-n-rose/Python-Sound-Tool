@@ -1,6 +1,6 @@
 
-pysoundtool.models.generator
-----------------------------
+Feeding large datasets to models
+--------------------------------
 
 .. automodule:: pysoundtool.models.generator
    :members:

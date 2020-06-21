@@ -1,6 +1,6 @@
 
-pysoundtool.exceptions
-----------------------
+Customized Errors
+-----------------
 
 .. automodule:: pysoundtool.exceptions
    :members:

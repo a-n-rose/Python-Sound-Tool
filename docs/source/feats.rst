@@ -1,6 +1,6 @@
 
-pysoundtool.feats
------------------
+Extract and manipulate audio features
+-------------------------------------
 
 .. automodule:: pysoundtool.feats
    :members:

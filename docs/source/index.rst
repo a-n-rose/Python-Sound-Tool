@@ -16,6 +16,8 @@ There is always room for improvement. If you would like to contribute towards th
    :maxdepth: 2
    
    readme.rst
+   example_cases.rst
+   features_and_models.rst
 
 * :ref:`genindex`
 * :ref:`modindex`

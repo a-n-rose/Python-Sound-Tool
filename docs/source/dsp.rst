@@ -1,6 +1,6 @@
 
-pysoundtool.dsp
----------------
+Working with signals
+--------------------
 
 .. automodule:: pysoundtool.dsp
    :members:

@@ -1,6 +1,6 @@
 
-pysoundtool.utils
------------------
+Other useful non-specific functionality
+---------------------------------------
 
 .. automodule:: pysoundtool.utils
    :members:

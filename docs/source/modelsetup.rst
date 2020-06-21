@@ -1,6 +1,6 @@
 
-pysoundtool.models.modelsetup
------------------------------
+Additional model setup (e.g. Early Stopping)
+--------------------------------------------
 
 .. automodule:: pysoundtool.models.modelsetup
    :members:

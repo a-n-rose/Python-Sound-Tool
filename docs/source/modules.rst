@@ -1,25 +1,58 @@
-
-PySoundTool Modules
-===================
-
+=========================
+PySoundTool Functionality
+=========================
 
 .. include:: data.rst
 
-.. include:: exceptions.rst
-
 .. include:: feats.rst
-
-.. include:: filters.rst
 
 .. include:: dsp.rst
 
-.. include:: template_models.rst
+.. include:: filters.rst
 
-.. include:: generator.rst
+.. include:: template_models.rst
 
 .. include:: modelsetup.rst
 
+.. include:: generator.rst
+
 .. include:: utils.rst
+
+.. include:: exceptions.rst
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
