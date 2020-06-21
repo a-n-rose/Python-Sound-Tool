@@ -30,19 +30,28 @@ release = '0.1.0b'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+
+
 extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
+    'sphinx.ext.mathjax',
     'sphinx.ext.coverage',
     'sphinx.ext.imgmath',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
-    'sphinx.ext.napoleon']
+    'sphinx.ext.napoleon',
+    'sphinx_gallery.gen_gallery',
+    'numpydoc',
+    'sphinx.ext.autosummary']
 
 sphinx_gallery_conf = {
-        'backreferences_dir': False,
+    'examples_dirs': 'examples/',
+    'gallery_dirs': 'auto_examples',
+    'filename_pattern': '/plot_',
+    'ignore_pattern': r'__init__\.py',
         'reference_url': {
             'sphinx_gallery': None,
             'numpy': 'http://docs.scipy.org/doc/numpy/',
@@ -55,6 +64,11 @@ sphinx_gallery_conf = {
             'librosa' : 'https://librosa.org/librosa/'
         }
     }
+        
+autosummary_generate = True 
+
+# Generate plots for example sections
+numpydoc_use_plots = True
         
 # The reST default role (used for this markup: `text`) to use for all documents.
 default_role = 'autolink'
