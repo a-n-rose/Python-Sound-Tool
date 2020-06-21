@@ -394,8 +394,9 @@ def ensure_only_audiofiles(audiolist):
     audiolist_checked = [x for x in audiolist if pathlib.Path(x).suffix in possible_extensions]
     if len(audiolist_checked) < len(audiolist):
         import warnings
-        message = 'Some files did not match those acceptible by this program. '+\
-            'The number of files removed: {}'.format(len(audiolist)-len(audiolist_checked))
+        message = 'Some files did not match those acceptable by this program. '+\
+            '(i.e. non-audio files) The number of files removed: '+\
+                '{}'.format(len(audiolist)-len(audiolist_checked))
         warnings.warn(message)
     return audiolist_checked
 
@@ -1393,16 +1394,19 @@ def dataset_formatter(audiodirectory, recursive=False, new_dir=None, sr=None, du
         The subtypes or bitdepth possible for soundfile
     '''
     if new_dir is None and not overwrite:
-        new_dir = './audiofile_reformat_'+pyst.utils.get_date()
+        new_dir = 'audiofile_reformat_'+pyst.utils.get_date()
         import warnings
         message = '\n\nATTENTION: Due to the risk of corrupting existing datasets, '+\
             'reformated audio will be saved in the following directory: '+\
                 '\n{}\n'.format(new_dir)
         warnings.warn(message)
-
-    if new_dir:
+        
+    # ensure new dir exists, and if not make it
+    if new_dir is not None:
         new_dir = pyst.utils.check_dir(new_dir, make=True)
         
+    # ensure audiodirectory exists
+    audiodirectory = pyst.utils.check_dir(audiodirectory, make=False)
     audiofiles = pyst.utils.collect_audiofiles(audiodirectory,
                                                recursive=recursive)
     
@@ -1442,7 +1446,13 @@ def dataset_formatter(audiodirectory, recursive=False, new_dir=None, sr=None, du
             y = pyst.dsp.set_signal_length(y, goal_num_samples)
             
         if not overwrite:
-            # maintains structure of old directory
+            # ensure no '..' or '.' are in the current audio file's path
+            fparts = list(audio.parts)
+            # TODO does this work with windows and mac?
+            fparts = [x for x in fparts if x != '..' and x != '.']
+            audio = pathlib.Path('/'.join(fparts))
+            # maintains structure of old directory in new directory
+            # but avoids saving the files in a directory some place higher up
             new_filename = new_dir.joinpath(audio)
             
         else:
@@ -1458,6 +1468,7 @@ def dataset_formatter(audiodirectory, recursive=False, new_dir=None, sr=None, du
                                       format=format,subtype=bd)
         except FileExistsError:
             print('File {} already exists.'.format(new_filename))
+            
         pyst.utils.print_progress(i, len(audiofiles), 
                                   task = 'reformatting dataset')
         
