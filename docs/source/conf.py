@@ -41,6 +41,27 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon']
 
+sphinx_gallery_conf = {
+        'backreferences_dir': False,
+        'reference_url': {
+            'sphinx_gallery': None,
+            'numpy': 'http://docs.scipy.org/doc/numpy/',
+            'np': 'http://docs.scipy.org/doc/numpy/',
+            'scipy': 'http://docs.scipy.org/doc/scipy/reference',
+            'matplotlib': 'https://matplotlib.org/',
+            'sklearn': 'https://scikit-learn.org/stable',
+            'soundfile': 'https://pysoundfile.readthedocs.io/en/latest/',
+            'sf': 'https://pysoundfile.readthedocs.io/en/latest/',
+            'librosa' : 'https://librosa.org/librosa/'
+        }
+    }
+        
+# The reST default role (used for this markup: `text`) to use for all documents.
+default_role = 'autolink'
+
+# If true, '()' will be appended to :func: etc. cross-reference text.
+add_function_parentheses = False
+
 #Napoleon settings
 napoleon_numpy_docstring = True
 
@@ -66,15 +87,32 @@ todo_include_todos = True
 
 # -- Options for HTML output -------------------------------------------------
 
+
+# -- Options for HTML output -------------------------------------------------
+import sphinx_rtd_theme
+html_theme = 'sphinx_rtd_theme'
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+
+# If false, no module index is generated.
+html_domain_indices = True
+
+# If false, no index is generated.
+html_use_index = True
+
+html_use_modindex = True
+
+
+
+
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+#html_theme = 'alabaster'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
