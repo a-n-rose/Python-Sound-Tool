@@ -402,6 +402,10 @@ def ensure_only_audiofiles(audiolist):
 
 def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
     '''Organizes all audio in audio class directories into datasets (randomized).
+    
+    The validation and test datasets are halved between what isn't train data. For 
+    example, if `perc_train` is 0.8, validation data will be 0.1 and test data
+    will be 0.1.
 
     Parameters
     ----------
