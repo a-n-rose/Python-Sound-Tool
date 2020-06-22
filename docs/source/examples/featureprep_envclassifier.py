@@ -198,7 +198,7 @@ import time
 start = time.time()
 
 ##########################################################
-# exctract features:
+# extract features:
 dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
     datasets_dict = dataset_dict,
     datasets_path2save_dict = datasets_path2save_dict,

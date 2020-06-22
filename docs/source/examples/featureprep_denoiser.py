@@ -236,7 +236,7 @@ import time
 start = time.time()
 
 ##########################################################
-# exctract clean data first (again, order doesn't matter)
+# extract clean data first (again, order doesn't matter)
 dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets(
     datasets_dict = dataset_dict_clean,
     datasets_path2save_dict = dataset_paths_clean_dict,
