@@ -1,3 +1,8 @@
+'''The get_model_features module automatically extracts and saves features
+for a type of model. The feature settings and audio file dataset assignments 
+are also saved automatically.
+'''
+
 import os, sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(
