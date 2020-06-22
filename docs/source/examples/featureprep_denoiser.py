@@ -48,8 +48,42 @@ feature_type = 'fbank'
 dur_sec = 3
 
 ######################################################
-# How many sections should each sample be broken into?
+# How many sections should each sample be broken into? (optional)
 frames_per_sample = 11
+
+
+############################################################
+# Built-In Functionality: PySoundTool does everything for you
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+############################################################
+# Define which data to use and which features to extract
+
+# Everything else is based on defaults. A feature folder with
+# the feature data will be created in the current working directory.
+
+# (Although, you can set this under the parameter `data_features_dir`)
+extraction_dir = pyst.denoiser_feats(data_clean_dir = data_clean_dir, 
+                                     data_noisy_dir = data_noisy_dir,
+                                     feature_type = feature_type, 
+                                     dur_sec = dur_sec,
+                                     frames_per_sample = frames_per_sample,
+                                     visualize=True)
+
+################################################################
+# The extracted features, extraction settings applied, and 
+# which audio files were assigned to which datasets
+# will be saved in the following directory:
+print(extraction_dir)
+
+############################################################
+# And that's it!
+
+
+############################################################
+# A bit more hands-on (PySoundTool does a bit for you)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ######################################################
 # create unique directory for feature extraction session:

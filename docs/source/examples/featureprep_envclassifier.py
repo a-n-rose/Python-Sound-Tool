@@ -4,8 +4,8 @@
 Feature Extraction for Classification
 =====================================
 
-This notebook offers an example for how you can use PySoundTool to extract
-acoustic features from clean and noisy datasets, and save them to .npy files.
+Use PySoundTool to extract acoustic features from labeled data for 
+training an environment or speech classifier.
 """
 
 
@@ -39,10 +39,6 @@ data_dir = './audiodata/minidatasets/background_noise/'
 # data_dir = './audiodata/minidatasets/speech_commands/'
 
 ######################################################
-# Where to save extracted features:
-data_features_dir = './audiodata/example_feats_models/classifier/'
-
-######################################################
 # Which type of feature:
 
 # We can also extract 'fbank', 'powspec', and 'stft'
@@ -56,6 +52,41 @@ feature_type = 'mfcc'
 
 # The example noise and speech files are only 1 second long
 dur_sec = 1
+
+
+############################################################
+# Built-In Functionality: PySoundTool does everything for you
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+############################################################
+# Define which data to use and which features to extract
+
+# Everything else is based on defaults. A feature folder with
+# the feature data will be created in the current working directory.
+
+# (Although, you can set this under the parameter `data_features_dir`)
+extraction_dir = pyst.envclassifier_feats(data_dir, 
+                                          feature_type=feature_type, 
+                                          dur_sec=dur_sec,
+                                          visualize=True)
+
+################################################################
+# The extracted features, extraction settings applied, and 
+# which audio files were assigned to which datasets
+# will be saved in the following directory:
+print(extraction_dir)
+
+############################################################
+# And that's it!
+
+
+############################################################
+# A bit more hands-on (PySoundTool does a bit for you)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+######################################################
+# Where to save extracted features:
+data_features_dir = './audiodata/example_feats_models/classifier/'
 
 ######################################################
 # create unique directory for feature extraction session:
