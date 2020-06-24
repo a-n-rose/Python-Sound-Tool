@@ -4,8 +4,7 @@
 Audio Dataset Exploration and Formatting
 ========================================
 
-This notebook offers an example for how you can use PySoundTool to examine 
-audio files within a dataset, and to reformat them if desired.
+Use PySoundTool to examine audio files within a dataset, and to reformat them if desired.
 """
 
 

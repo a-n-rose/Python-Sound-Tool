@@ -142,6 +142,24 @@ dict_decode_path = pyst.utils.save_dict(dict_decode,
 
 
 ##########################################################
+# Let's look at the encode and decod dicts:
+print('Encode Dict:')
+count = 0
+for key, value in dict_encode.items():
+    print(key, '\n\t', value)
+    count +=1
+    if count > 5:
+        break
+    
+print('Decode Dict:')
+count = 0
+for key, value in dict_decode.items():
+    print(key, '\n\t', value)
+    count +=1
+    if count > 5:
+        break
+
+##########################################################
 # save audio paths to each label in dict 
 paths_list = pyst.utils.collect_audiofiles(data_dir, recursive=True)
 paths_list = sorted(paths_list)
@@ -150,6 +168,16 @@ dict_encodedlabel2audio = pyst.data.create_encodedlabel2audio_dict(dict_encode,
                                                     paths_list)
 dict_encdodedlabel2audio_path = pyst.utils.save_dict(dict_encodedlabel2audio, 
                                         filename = dict_encdodedlabel2audio_path, overwrite=True)
+
+##########################################################
+# See what this dictionary looks like:
+count = 0
+for key, value in dict_encodedlabel2audio.items():
+    print(key, '\n\t', value)
+    count +=1
+    if count > 5:
+        break
+
 
 ##########################################################
 # assign audiofiles into train, validation, and test datasets
@@ -221,6 +249,26 @@ print(feat_extraction_dir)
 ########################################################################
 # Have a look in `feat_extraction_dir` and there will be your features.
 
+###########################################################################
+# Examining what info is logged
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+count = 0
+for key, value in dataset_dict.items():
+    print(key, '\n\t', value)
+    count +=1
+    if count > 5:
+        break
+
+
+###################################################################
+count = 0
+for key, value in datasets_path2save_dict.items():
+    print(key, '\n\t', value)
+    count +=1
+    if count > 5:
+        break
+
 ######################################################
 # Large Datasets
 # ^^^^^^^^^^^^^^
@@ -235,4 +283,25 @@ dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
     dur_sec = dur_sec,
     win_size_ms = 20,
     subsection_data = True, # if you want to subsection at least largest dataset
-    divide_factor = 10) # how many times you want the data to be sectioned.
+    divide_factor = 3) # how many times you want the data to be sectioned.
+
+###########################################################################
+# Examining what info is logged: Subdividing datasets
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# If you subdivide your data, this will be updated in the datset_dict
+
+count = 0
+for key, value in dataset_dict.items():
+    print(key, '\n\t', value)
+    count +=1
+    if count > 5:
+        break
+
+
+###################################################################
+count = 0
+for key, value in datasets_path2save_dict.items():
+    print(key, '\n\t', value)
+    count +=1
+    if count > 5:
+        break
