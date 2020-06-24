@@ -218,11 +218,11 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
             X_val = data_val_noisy.reshape(val_shape)
             y_val = data_val_clean.reshape(val_shape)
             
-            denoiser.fit(X_train, y_train,
-                         batch_size = data_train_noisy.shape[1],
-                         callbacks = callbacks, 
-                         validation_data = (X_val, y_val),
-                         **kwargs)
+            history = denoiser.fit(X_train, y_train,
+                            batch_size = data_train_noisy.shape[1],
+                            callbacks = callbacks, 
+                            validation_data = (X_val, y_val),
+                            **kwargs)
         end_session = time.time()
         total_dur_sec_session = round(end_session-start_session,2)
         model_features_dict = dict(model_path = model_path,
@@ -247,7 +247,7 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
     print('\nFinished training the model. The model and associated files can be '+\
         'found here: \n{}'.format(model_dir))
     
-    return model_dir
+    return model_dir, history
 
 
     
@@ -517,5 +517,5 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
     print('\nFinished training the model. The model and associated files can be '+\
         'found here: \n{}'.format(model_dir))
     
-    return model_dir 
+    return model_dir, history
 
