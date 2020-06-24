@@ -15,8 +15,8 @@ There is always room for improvement. If you would like to contribute towards th
 .. toctree:: 
    :maxdepth: 2
    
-   readme.rst
    example_cases.rst
+   readme.rst
    features_and_models.rst
 
 * :ref:`genindex`
