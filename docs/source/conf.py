@@ -65,7 +65,7 @@ sphinx_gallery_conf = {
         }
     }
         
-autosummary_generate = True 
+autosummary_generate = False 
 
 # Generate plots for example sections
 numpydoc_use_plots = True
