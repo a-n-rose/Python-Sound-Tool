@@ -263,6 +263,10 @@ def plot(feature_matrix, feature_type,
             for channel in range(feature_matrix.shape[1]):
                 data = feature_matrix[:,channel]
                 # overlay the channel data
+                if len(time_sec) > len(data):
+                    time_sec = time_sec[:len(data)]
+                elif len(time_sec) < len(data):
+                    data = data[:len(time_sec)]
                 plt.plot(time_sec, data)
         else:
             for channel in range(feature_matrix.shape[1]):
@@ -949,6 +953,8 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                 for j, audiofile in enumerate(value):
                     if labeled_data:
                         label, audiofile = int(audiofile[0]), audiofile[1]
+                    if isinstance(audiofile, str):
+                        audiofile = pathlib.PosixPath(audiofile)
                     feats = pyst.feats.get_feats(audiofile,
                                                 sr=sr,
                                                 features=feat_type,
@@ -990,8 +996,9 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                             win_size_ms = win_size_ms,
                                             percent_overlap = percent_overlap,
                                             scale=scale,
-                                            title='{} {} features'.format(
-                                                key, feature_type.upper()),
+                                            title='{} {} features: {} label'.format(
+                                                key, feature_type.upper(),
+                                                audiofile.parent.stem.upper()),
                                             save_pic=visualize, 
                                             name4pic=save_pic_path)
                     feats = feats.reshape(extraction_shape[1:])
