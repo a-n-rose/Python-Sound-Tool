@@ -4,8 +4,8 @@
 Feature Extraction for Denoising: Clean and Noisy Audio
 =======================================================
 
-This notebook offers an example for how you can use PySoundTool to extract
-acoustic features from clean and noisy datasets, and save them to .npy files.
+Use PySoundTool to extract acoustic features from clean and noisy datasets for 
+training a denoising model, e.g. a denoising autoencoder.
 """
 
 
@@ -41,17 +41,20 @@ data_features_dir = './audiodata/example_feats_models/denoiser/'
 ######################################################
 # Which type of feature:
 
-# We can also extract 'mfcc', 'powspec', and 'stft'
+# We can extract 'mfcc', 'fbank', 'powspec', and 'stft'
+# These are in order of simplest to most complex. 
 feature_type = 'fbank'
 
 ######################################################
 # how much audio in seconds used from each audio file:
+# the speech samples are about 3 seconds long.
 dur_sec = 3
 
 ######################################################
 # How many sections should each sample be broken into? (optional)
+# Some research papers include a 'context window' or the like, 
+# which this refers to.
 frames_per_sample = 11
-
 
 #############################################################
 # Built-In Functionality: PySoundTool does everything for you
@@ -136,6 +139,7 @@ noisyaudio = pyst.utils.collect_audiofiles(audio_noisy_path,
                                                 recursive = False)
 # sort audio (can compare if noisy and clean datasets are compatible)
 noisyaudio = sorted(noisyaudio)
+print(noisyaudio[:5])
 
 ##########################################################
 # clean data
@@ -144,55 +148,56 @@ cleanaudio = pyst.utils.collect_audiofiles(audio_clean_path,
                                                 wav_only = False,
                                                 recursive = False)
 cleanaudio = sorted(cleanaudio)
+print(cleanaudio[:5])
 
 ############################################################################
-# check if they match up: (expects clean file name to be in noisy file name)
+# Check if they match up: (expects clean file name to be in noisy file name)
 for i, audiofile in enumerate(noisyaudio):
     if not pyst.utils.check_noisy_clean_match(audiofile, cleanaudio[i]):
         raise ValueError('The noisy and clean audio datasets do not appear to match.')
 
 ######################################################################
-# save collected audiofiles for noisy and clean datasets to dictionary
+# Save collected audiofiles for noisy and clean datasets to dictionary
 noisy_audio_dict = dict([('noisy', noisyaudio)])
 clean_audio_dict = dict([('clean', cleanaudio)])
 
 ############################################################################
-# separate into datasets, with random seed set so noisy and clean data match
+# Separate into datasets, with random seed set so noisy and clean data match
 
 ##########################################################
-# first noisy data
+# Noisy data
 train_noisy, val_noisy, test_noisy = pyst.data.audio2datasets(noisy_audio_dict,
                                                               perc_train=0.8,
                                                               seed=40)
 
 ##########################################################
-# then clean data (order doesn't matter)
+# Clean data 
 train_clean, val_clean, test_clean = pyst.data.audio2datasets(clean_audio_dict,
                                                               perc_train=0.8,
                                                               seed=40)
 
 ##########################################################
-# save train, val, test dataset assignments to dict
+# Save train, val, test dataset assignments to dict
 dataset_dict_noisy = dict([('train', train_noisy),('val', val_noisy),('test', test_noisy)])
 dataset_dict_clean = dict([('train', train_clean),('val', val_clean),('test', test_clean)])
 
 #####################################################################
-# keep track of paths to save data, once features have been extracted
+# Keep track of paths to save data, once features have been extracted
 
 ##########################################################
-# noisy data paths
+# Noisy data paths
 dataset_paths_noisy_dict = dict([('train',data_train_noisy_path),
                                 ('val', data_val_noisy_path),
                                 ('test',data_test_noisy_path)])
 
 ##########################################################
-# clean data paths
+# Clean data paths
 dataset_paths_clean_dict = dict([('train',data_train_clean_path),
                                 ('val', data_val_clean_path),
                                 ('test',data_test_clean_path)])
 
 ##########################################################
-# ensure the noisy and clean audio match up:
+# Ensure the noisy and clean audio match up:
 for key, value in dataset_dict_noisy.items():
     for j, audiofile in enumerate(value):
         if not pyst.utils.check_noisy_clean_match(audiofile,
@@ -208,26 +213,26 @@ for key, value in dataset_dict_noisy.items():
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
-# for fun, let's visualize the audio:
+# For fun, let's visualize the first audio samples:
 
 ######################################################################
-# first noisy audio sample in its raw signal
+# Noisy speech sample in its raw signal
 pyst.plotsound(noisyaudio[0], feature_type='signal')
 
 ######################################################################
-# first clean audio sample in its raw signal
+# Clean speech sample in its raw signal
 pyst.plotsound(cleanaudio[0], feature_type='signal')
 
-######################################################################
+#####################################################################
 # visualize the features that will be extracted
 
 ######################################################
-# first noisy audio sample
-pyst.plotsound(noisyaudio[0], feature_type='fbank', power_scale='power_to_db')
+# Noisy speech sample
+pyst.plotsound(noisyaudio[0], feature_type=feature_type, power_scale='power_to_db')
 
 ######################################################################
-# first clean audio sample
-pyst.plotsound(cleanaudio[0], feature_type='fbank', power_scale='power_to_db')
+# Clean speech sample
+pyst.plotsound(cleanaudio[0], feature_type=feature_type, power_scale='power_to_db')
 
 ######################################################
 # Extract and Save Features
@@ -236,7 +241,7 @@ import time
 start = time.time()
 
 ##########################################################
-# extract clean data first (again, order doesn't matter)
+# Extract and save clean data features
 dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets(
     datasets_dict = dataset_dict_clean,
     datasets_path2save_dict = dataset_paths_clean_dict,
@@ -248,7 +253,7 @@ dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets
     vis_every_n_frames=200) # limits how often plots are generated
     
 ##########################################################
-# then noisy data
+# Extract and save noisy data data features
 dataset_dict_noisy, dataset_paths_noisy_dict = pyst.feats.save_features_datasets(
     datasets_dict = dataset_dict_noisy,
     datasets_path2save_dict = dataset_paths_noisy_dict,
@@ -289,18 +294,23 @@ clean_datasets_dict_paths = pyst.utils.save_dict(dataset_dict_clean,
 # Examining what info is logged
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+################################################################
+# Dataset assigned to audio files and their labels (0, 1, or 2):
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 count = 0
 for key, value in dataset_dict_noisy.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
 
 
 ###################################################################
+# Dataset assigned to a pathway where .npy file will be saved:
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 count = 0
 for key, value in dataset_dict_clean.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
@@ -328,11 +338,11 @@ dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets
 ###########################################################################
 # Examining what info is logged: Subdividing datasets
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# If you subdivide your data, this will be updated in the datset_dict
+# If you subdivide your data, this will be updated in the dataset_dict
 
 count = 0
 for key, value in dataset_dict_clean.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
@@ -341,7 +351,7 @@ for key, value in dataset_dict_clean.items():
 ###################################################################
 count = 0
 for key, value in dataset_paths_clean_dict.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break

@@ -32,21 +32,21 @@ import pysoundtool as pyst
 # PySoundTool offers example datasets. Let's use one.
 
 # Example data:
-data_dir = '{}audiodata/minidatasets/background_noise/'.format(package_dir)
+# data_dir = '{}audiodata/minidatasets/background_noise/'.format(package_dir)
 
 ###########################################################
 # There is also a small speech dataset you can try instead:
 
-# data_dir = '{}audiodata/minidatasets/speech_commands/'.format(pacakge_dir)
+data_dir = '{}audiodata/minidatasets/speech_commands/'.format(package_dir)
 
 ######################################################
 # Which type of feature:
 
-# We can also extract 'fbank', 'powspec', and 'stft'
+# We can extract 'mfcc', 'fbank', 'powspec', and 'stft'
 
 # if you are working with speech, I suggest 'fbank', 'powspec', or 'stft'.
 
-feature_type = 'mfcc'
+feature_type = 'stft'
 
 ######################################################
 # how much audio in seconds used from each audio file:
@@ -146,15 +146,15 @@ dict_decode_path = pyst.utils.save_dict(dict_decode,
 print('Encode Dict:')
 count = 0
 for key, value in dict_encode.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
     
-print('Decode Dict:')
+print('\nDecode Dict:')
 count = 0
 for key, value in dict_decode.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
@@ -173,7 +173,7 @@ dict_encdodedlabel2audio_path = pyst.utils.save_dict(dict_encodedlabel2audio,
 # See what this dictionary looks like:
 count = 0
 for key, value in dict_encodedlabel2audio.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
@@ -217,8 +217,8 @@ pyst.plotsound(paths_list[0], feature_type='signal',
 
 ######################################################
 # first audio sample
-pyst.plotsound(paths_list[0], feature_type='mfcc', power_scale='power_to_db',
-               title = paths_list[0].parent.stem+': mfcc')
+pyst.plotsound(paths_list[0], feature_type=feature_type, power_scale='power_to_db',
+               title = paths_list[0].parent.stem+': '+feature_type)
 
 ######################################################
 # Extract and Save Features
@@ -253,18 +253,23 @@ print(feat_extraction_dir)
 # Examining what info is logged
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+################################################################
+# Dataset assigned to audio files and their labels (0, 1, or 2):
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 count = 0
 for key, value in dataset_dict.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
 
 
 ###################################################################
+# Dataset assigned to a pathway where .npy file will be saved:
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 count = 0
 for key, value in datasets_path2save_dict.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
@@ -288,11 +293,11 @@ dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
 ###########################################################################
 # Examining what info is logged: Subdividing datasets
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# If you subdivide your data, this will be updated in the datset_dict
+# If you subdivide your data, this will be updated in the dataset_dict
 
 count = 0
 for key, value in dataset_dict.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
@@ -301,7 +306,7 @@ for key, value in dataset_dict.items():
 ###################################################################
 count = 0
 for key, value in datasets_path2save_dict.items():
-    print(key, '\n\t', value)
+    print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
