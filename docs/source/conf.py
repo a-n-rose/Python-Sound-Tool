@@ -50,8 +50,8 @@ extensions = ['sphinx.ext.autodoc',
 sphinx_gallery_conf = {
     'examples_dirs': 'examples/',
     'gallery_dirs': 'auto_examples',
-    'filename_pattern': '/plot_',
-    'ignore_pattern': r'__init__\.py',
+    'filename_pattern' : '\\/plot',
+    'ignore_pattern'   : '__init__\\.py',
         'reference_url': {
             'sphinx_gallery': None,
             'numpy': 'http://docs.scipy.org/doc/numpy/',

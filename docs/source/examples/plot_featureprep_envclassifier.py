@@ -16,7 +16,8 @@ training an environment or speech classifier.
 ##########################################################
 # Ignore this snippet of code: it is only for this example
 import os
-os.chdir('../../../')
+package_dir = '../../../'
+os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
@@ -31,12 +32,12 @@ import pysoundtool as pyst
 # PySoundTool offers example datasets. Let's use one.
 
 # Example data:
-data_dir = './audiodata/minidatasets/background_noise/'
+data_dir = '{}audiodata/minidatasets/background_noise/'.format(package_dir)
 
 ###########################################################
 # There is also a small speech dataset you can try instead:
 
-# data_dir = './audiodata/minidatasets/speech_commands/'
+# data_dir = '{}audiodata/minidatasets/speech_commands/'.format(pacakge_dir)
 
 ######################################################
 # Which type of feature:
@@ -54,9 +55,9 @@ feature_type = 'mfcc'
 dur_sec = 1
 
 
-############################################################
+#############################################################
 # Built-In Functionality: PySoundTool does everything for you
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ############################################################
 # Define which data to use and which features to extract
@@ -134,10 +135,10 @@ data_test_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('test',
 dict_encode, dict_decode = pyst.data.create_dicts_labelsencoded(labels)
 dict_encode_path = pyst.utils.save_dict(dict_encode, 
                                     filename = dict_encode_path,
-                                    overwrite=False)
-dict_decode_path = pyst.utils.save_dict(dict_encode, 
+                                    overwrite=True)
+dict_decode_path = pyst.utils.save_dict(dict_decode, 
                                     filename = dict_decode_path,
-                                    overwrite=False)
+                                    overwrite=True)
 
 
 ##########################################################
@@ -148,7 +149,7 @@ paths_list = sorted(paths_list)
 dict_encodedlabel2audio = pyst.data.create_encodedlabel2audio_dict(dict_encode,
                                                     paths_list)
 dict_encdodedlabel2audio_path = pyst.utils.save_dict(dict_encodedlabel2audio, 
-                                        filename = dict_encdodedlabel2audio_path, overwrite=False)
+                                        filename = dict_encdodedlabel2audio_path, overwrite=True)
 
 ##########################################################
 # assign audiofiles into train, validation, and test datasets

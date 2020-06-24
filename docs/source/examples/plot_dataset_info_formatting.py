@@ -18,7 +18,8 @@ audio files within a dataset, and to reformat them if desired.
 ##########################################################
 # Ignore this snippet of code: it is only for this example
 import os
-os.chdir('../../../')
+package_dir = '../../../'
+os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
@@ -27,8 +28,8 @@ import pysoundtool as pyst
 
 ##########################################################
 # PySoundTool offers example datasets. Let's explore them.
-dataset_path = './audiodata/'
-dataset_info_dict = pyst.data.dataset_logger('./audiodata/')
+dataset_path = '{}audiodata/'.format(package_dir)
+dataset_info_dict = pyst.data.dataset_logger('{}audiodata/'.format(package_dir))
 
 #########################################################################
 # This returns our data in a dictionary, perfect for exploring via Pandas
@@ -87,4 +88,5 @@ print('number of channels: ', formatted_data.num_channels.unique())
 # There we go! 
 # You can reformat only parts of the audio files, e.g. format or bitdepth.
 # If you leave parameters in pyst.data.dataset_formatter as None, the original
-# settings of the audio file will be maintained.
+# settings of the audio file will be maintained (except for bitdepth. A default
+# bitdepth will be applied according to the format of the file).
