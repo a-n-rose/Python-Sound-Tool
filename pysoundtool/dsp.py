@@ -1381,7 +1381,7 @@ def snr_adjustnoiselevel(target_samples, noise_samples, sr, snr):
     noise_px = noise_samples.T @ noise_samples / len(target_samples)
     #% we need to scale the noise segment samples to obtain the desired snr= 10*
     #% log10( Px/ (sf^2 * Pn))
-    scale_factor = (np.sqrt(target_px/noise_px / (10**(snr_desired/10))))
+    scale_factor = (np.sqrt(target_px/noise_px / (10**(snr/10))))
     return scale_factor
 
 def asl_P56(samples, sr, bitdepth=16, smooth_factor=0.03, hangover=0.2, margin_db=15.9):
