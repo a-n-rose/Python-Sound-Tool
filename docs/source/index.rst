@@ -17,7 +17,6 @@ There is always room for improvement. If you would like to contribute towards th
    
    example_cases.rst
    readme.rst
-   features_and_models.rst
 
 * :ref:`genindex`
 * :ref:`modindex`

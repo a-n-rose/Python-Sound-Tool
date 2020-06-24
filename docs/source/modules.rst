@@ -10,6 +10,8 @@ PySoundTool Functionality
 
 .. include:: filters.rst
 
+.. include:: features_and_models.rst
+
 .. include:: template_models.rst
 
 .. include:: modelsetup.rst
@@ -19,41 +21,3 @@ PySoundTool Functionality
 .. include:: utils.rst
 
 .. include:: exceptions.rst
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
