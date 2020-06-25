@@ -1,0 +1,25 @@
+metrics,['accuracy']
+loss,sparse_categorical_crossentropy
+optimizer,adam
+callbacks,"[<keras.callbacks.callbacks.EarlyStopping object at 0x7f56f47536a0>, <keras.callbacks.callbacks.CSVLogger object at 0x7f56f4753048>, <keras.callbacks.callbacks.ModelCheckpoint object at 0x7f56f47531d0>]"
+settings_dict,"{'feature_maps': [40, 20, 10], 'kernel_size': [(3, 3), (3, 3), (3, 3)], 'strides': 2, 'activation_layer': 'relu', 'activation_output': 'softmax', 'input_shape': (101, 40, 1), 'num_labels': 3, 'dense_hidden_units': 100, 'dropout': 0.25}"
+envclassifier,<keras.engine.sequential.Sequential object at 0x7f56f4728cc0>
+input_shape,"(101, 40, 1)"
+num_labels,3
+dict_decode,"{'cafe': '0', 'street': '1', 'train': '2'}"
+dict_decode_path,../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/dict_decode.csv
+test_paths,[PosixPath('../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/test_data_fbank.npy')]
+val_paths,[PosixPath('../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/val_data_fbank.npy')]
+train_paths,[PosixPath('../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/train_data_fbank.npy')]
+datasets,"TrainingData(train=[PosixPath('../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/train_data_fbank.npy')], val=[PosixPath('../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/val_data_fbank.npy')], test=[PosixPath('../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/test_data_fbank.npy')])"
+features_files,"[PosixPath('../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/test_data_fbank.npy'), PosixPath('../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/train_data_fbank.npy'), PosixPath('../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/val_data_fbank.npy')]"
+model_path,../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/model_cnn_classifier_6m25d22h29m58s304ms/model_cnn_classifier_6m25d22h29m58s304ms.h5
+model_dir,../../../audiodata/example_feats_models/envclassifier/example_feats_fbank/model_cnn_classifier_6m25d22h29m58s304ms
+dataset_path,../../../audiodata/example_feats_models/envclassifier/example_feats_fbank
+kwargs,{'epochs': 10}
+patience,10
+normalized,False
+use_generator,True
+feature_extraction_dir,../../../audiodata/example_feats_models/envclassifier/example_feats_fbank
+feature_type,
+model_name,model_cnn_classifier_6m25d22h29m58s304ms.h5
