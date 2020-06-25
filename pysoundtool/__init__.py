@@ -1,7 +1,7 @@
 ###############################################################################
 from . import utils
 from . import feats
-from .feats import FeatPrep_SoundClassifier, plotsound
+from .feats import plotsound #FeatPrep_SoundClassifier
 from . import filters
 from .filters import WienerFilter, BandSubtraction, filtersignal
 from . import dsp
@@ -12,7 +12,7 @@ from . import data
 from .get_model_features import envclassifier_feats, denoiser_feats
 from .train_models import denoiser_train, envclassifier_train
 
-__all__=['utils', 'feats','FeatPrep_SoundClassifier', 'filters', 
+__all__=['utils', 'feats', 'filters', 
          'WienerFilter', 'BandSubtraction','filtersignal','dsp','errors',
          'plotsound', 'loadsound', 'savesound', 'data', 'envclassifier_feats',
          'denoiser_feats', 'denoiser_train', 'envclassifier_train',
