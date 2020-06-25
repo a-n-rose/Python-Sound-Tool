@@ -19,7 +19,8 @@ os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyst
+import pysoundtool as pyst;
+
 
 
 ######################################################
@@ -29,7 +30,7 @@ import pysoundtool as pyst
 ######################################################
 # PySoundTool offers pre-extracted features. Let's use them.
 feature_extraction_dir = '{}audiodata/example_feats_models/'.format(package_dir)+\
-    'denoiser/features_fbank_6m20d0h7m17s996ms/'
+    'denoiser/example_feats_fbank/'
 
 #########################################################
 # What is in this folder?
@@ -59,7 +60,7 @@ for key, value in feat_settings.items():
     print(key, ' --> ', value)
     
 #########################################################
-# For more about these settings, see `pysoundtool.feats.get_feats`.
+# For more about these settings, see `pysoundtool.feats.save_features_datasets`.
     
 #########################################################
 # We'll have a look at the audio files that were assigned 

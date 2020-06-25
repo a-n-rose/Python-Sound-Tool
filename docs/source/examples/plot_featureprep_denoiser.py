@@ -21,7 +21,7 @@ os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyst
+import pysoundtool as pyst;
 import IPython.display as ipd
 
 
@@ -72,13 +72,14 @@ extraction_dir = pyst.denoiser_feats(data_clean_dir = data_clean_dir,
                                      feature_type = feature_type, 
                                      dur_sec = dur_sec,
                                      frames_per_sample = frames_per_sample,
-                                     visualize=True)
+                                     visualize=True);
+print(extraction_dir)
 
 ################################################################
 # The extracted features, extraction settings applied, and 
 # which audio files were assigned to which datasets
-# will be saved in the following directory:
-print(extraction_dir)
+# will be saved in the `extraction_dir` directory
+
 
 ############################################################
 # And that's it!
@@ -261,7 +262,7 @@ dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets
     frames_per_sample = frames_per_sample,
     win_size_ms = 16,
     visualize=True, # saves plots of features
-    vis_every_n_frames=200) # limits how often plots are generated
+    vis_every_n_frames=200); # limits how often plots are generated
     
 ##########################################################
 # Extract and save noisy data data features
@@ -273,7 +274,7 @@ dataset_dict_noisy, dataset_paths_noisy_dict = pyst.feats.save_features_datasets
     frames_per_sample = frames_per_sample,
     win_size_ms = 16,
     visualize=True, # saves plots of features 
-    vis_every_n_frames=200) # limits how often plots are generated
+    vis_every_n_frames=200); # limits how often plots are generated
 end = time.time()
 
 total_dur_sec = round(end-start,2)
@@ -344,7 +345,7 @@ dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets
     frames_per_sample = frames_per_sample,
     win_size_ms = 16,
     subsection_data = True, # if you want to subsection at least largest dataset
-    divide_factor = 3) # how many times you want the data to be sectioned.
+    divide_factor = 3); # how many times you want the data to be sectioned.
 
 ###########################################################################
 # Examining what info is logged: Subdividing datasets

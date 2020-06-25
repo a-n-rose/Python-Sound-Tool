@@ -22,13 +22,13 @@ os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyst
+import pysoundtool as pyst;
 
 
 ##########################################################
 # PySoundTool offers example datasets. Let's explore them.
 dataset_path = '{}audiodata/'.format(package_dir)
-dataset_info_dict = pyst.data.dataset_logger('{}audiodata/'.format(package_dir))
+dataset_info_dict = pyst.data.dataset_logger('{}audiodata/'.format(package_dir));
 
 #########################################################################
 # This returns our data in a dictionary, perfect for exploring via Pandas
@@ -63,11 +63,11 @@ new_dataset_dir = pyst.data.dataset_formatter(dataset_path,
                                               zeropad = True, # audio shorter than 3 seconds will be zeropadded
                                               new_dir = './example_dir/', # if None, a time-stamped directory will be created for you
                                               overwrite = False # can set to True if you want to overwrite files
-                                             )
+                                             );
         
 ###############################################
 # Let's see what the audio data looks like now:
-dataset_formatted_dict = pyst.data.dataset_logger(new_dataset_dir, recursive=True)
+dataset_formatted_dict = pyst.data.dataset_logger(new_dataset_dir, recursive=True);
 formatted_data = pd.DataFrame(dataset_formatted_dict).T
 
 #####################

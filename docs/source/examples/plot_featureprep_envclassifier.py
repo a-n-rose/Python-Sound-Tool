@@ -21,7 +21,7 @@ os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyst
+import pysoundtool as pyst;
 
 
 ######################################################
@@ -69,7 +69,7 @@ dur_sec = 1
 extraction_dir = pyst.envclassifier_feats(data_dir, 
                                           feature_type=feature_type, 
                                           dur_sec=dur_sec,
-                                          visualize=True)
+                                          visualize=True);
 
 ################################################################
 # The extracted features, extraction settings applied, and 
@@ -236,7 +236,7 @@ dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
     dur_sec = dur_sec,
     win_size_ms = 20,
     visualize=True, # saves plots of features
-    vis_every_n_frames=200) # limits how often plots are generated
+    vis_every_n_frames=200); # limits how often plots are generated
 
 end = time.time()
 
@@ -288,7 +288,7 @@ dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
     dur_sec = dur_sec,
     win_size_ms = 20,
     subsection_data = True, # if you want to subsection at least largest dataset
-    divide_factor = 3) # how many times you want the data to be sectioned.
+    divide_factor = 3); # how many times you want the data to be sectioned.
 
 ###########################################################################
 # Examining what info is logged: Subdividing datasets
