@@ -22,6 +22,7 @@ os.chdir(package_dir)
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
 import pysoundtool as pyst
+import IPython.display as ipd
 
 
 ######################################################
@@ -50,16 +51,18 @@ noise = noise_sample.stem
 noise
 
 ##########################################################
-# See what the speech looks like with SNR level of 20
+# Hear and see what the speech looks like with SNR level of 20
 noisyspeech_20snr, sr20, snr20 = pyst.dsp.add_backgroundsound(speech_sample,
                                            noise_sample,
                                            snr = 20)
+ipd.Audio(noisyspeech_20snr,rate=sr20)
 
 ##########################################################
-# See what the speech looks like with SNR level of 5
+# Hear and see what the speech looks like with SNR level of 5
 noisyspeech_5snr, sr5, snr5 = pyst.dsp.add_backgroundsound(speech_sample,
                                            noise_sample,
                                            snr = 5)
+ipd.Audio(noisyspeech_5snr,rate=sr5)
 
 ######################################################################
 # Visualize the Audio Samples
@@ -104,3 +107,44 @@ pyst.plotsound(noisyspeech_20snr, sr = sr20, feature_type = 'powspec',
 pyst.plotsound(noisyspeech_5snr,sr = sr5, feature_type = 'powspec',
                title = '"{}" with {} noise at SNR 5'.format(word.upper(), noise.upper()),
                power_scale = 'power_to_db')
+
+######################################################################
+# More Functionality
+# ^^^^^^^^^^^^^^^^^^
+
+######################################################################
+# Make longer and shorter
+# ~~~~~~~~~~~~~~~~~~~~~~~
+
+##########################################################
+# Hear and see what the speech looks like:
+
+##########################################################
+# Delay the speech and lengthen the total signal
+noisyspeech_20snr, sr20, snr20 = pyst.dsp.add_backgroundsound(speech_sample,
+                                           noise_sample,
+                                           snr = 20,
+                                           delay_mainsound_sec = 1,
+                                           total_len_sec = 4)
+
+##########################################################
+ipd.Audio(noisyspeech_20snr,rate=sr20)
+
+##########################################################
+pyst.plotsound(noisyspeech_20snr, sr = sr20, feature_type = 'signal',
+               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
+
+
+##########################################################
+# Shorten the total signal
+noisyspeech_20snr, sr20, snr20 = pyst.dsp.add_backgroundsound(speech_sample,
+                                           noise_sample,
+                                           snr = 20,
+                                           total_len_sec = 0.5)
+
+##########################################################
+ipd.Audio(noisyspeech_20snr,rate=sr20)
+
+##########################################################
+pyst.plotsound(noisyspeech_20snr, sr = sr20, feature_type = 'signal',
+               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))

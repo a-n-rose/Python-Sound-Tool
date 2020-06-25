@@ -22,6 +22,7 @@ os.chdir(package_dir)
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
 import pysoundtool as pyst
+import IPython.display as ipd
 
 
 ######################################################
@@ -209,8 +210,8 @@ for key, value in dataset_dict_noisy.items():
 
 
 ######################################################################
-# Visualize Audio Samples and Features
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Visualize and Hear Audio Samples
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
 # For fun, let's visualize the first audio samples:
@@ -220,8 +221,18 @@ for key, value in dataset_dict_noisy.items():
 pyst.plotsound(noisyaudio[0], feature_type='signal')
 
 ######################################################################
+# What does this sound like?
+samps, sr = pyst.loadsound(noisyaudio[0])
+ipd.Audio(samps,rate=sr)
+
+######################################################################
 # Clean speech sample in its raw signal
 pyst.plotsound(cleanaudio[0], feature_type='signal')
+
+######################################################################
+# What does this sound like?
+samps, sr = pyst.loadsound(cleanaudio[0])
+ipd.Audio(samps,rate=sr)
 
 #####################################################################
 # visualize the features that will be extracted
@@ -295,7 +306,7 @@ clean_datasets_dict_paths = pyst.utils.save_dict(dataset_dict_clean,
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ################################################################
-# Dataset assigned to audio files and their labels (0, 1, or 2):
+# Dataset assigned to noisy audio files and their labels (0, 1, or 2):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 count = 0
 for key, value in dataset_dict_noisy.items():
@@ -306,7 +317,7 @@ for key, value in dataset_dict_noisy.items():
 
 
 ###################################################################
-# Dataset assigned to a pathway where .npy file will be saved:
+# Dataset assigned to clean audio files and their labels (0, 1, or 2):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 count = 0
 for key, value in dataset_dict_clean.items():
@@ -355,4 +366,3 @@ for key, value in dataset_paths_clean_dict.items():
     count +=1
     if count > 5:
         break
-
