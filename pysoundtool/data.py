@@ -1335,7 +1335,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
 
 def dataset_formatter(audiodirectory, recursive=False, new_dir=None, sr=None, dur_sec=None,
                       zeropad=False, format='WAV', bitdepth=None, overwrite=False, 
-                      mono=True):
+                      mono=False):
     '''Formats all audio files in a directory to set parameters.
     
     The audiofiles formatted can be limited to the specific directory or be 
@@ -1379,7 +1379,7 @@ def dataset_formatter(audiodirectory, recursive=False, new_dir=None, sr=None, du
         
     mono : bool 
         If True, the audio will be limited to a single channel. Note: not much has been 
-        tested for stereo sound and PySoundTool. (default True)
+        tested for stereo sound and PySoundTool. (default False)
         
     Returns
     -------
