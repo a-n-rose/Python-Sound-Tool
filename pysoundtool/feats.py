@@ -870,6 +870,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                      # different for each dataset
                                      #total_samples=total_samples, 
                                      input_shape=input_shape,
+                                     desired_shape=desired_shape,
                                      use_librosa=use_librosa,
                                      center=center,
                                      mode=mode,
@@ -908,6 +909,82 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
             labeled_data = labeled_data,
             log_settings = log_settings)
     return datasets_dict, datasets_path2save_dict
+
+def feats2audio(feats, feature_type, sr, win_size_ms,
+                percent_overlap, phase=None):
+    '''Prepares features into audio playable format.
+    
+    Parameters
+    ----------
+    feats : np.ndarray [shape = (num_frames, num_feats)]
+        If the features are a signal, 
+        [size = (batch_size * num_frames * num_features, 1)]. 
+        Otherwise [size = (batch_size * num_frames, num_features)].
+    feature_type : str
+        Either 'stft', 'fbank', 'signal', or 'mfcc'
+    sr : int 
+        Sampling rate that the features were extracted with
+    win_size_ms : int 
+        The window size in milliseconds the features were extracted with
+    percent_overlap : float
+        The percent overlap between windows.
+    phase : np.ndarray [shape = (num_frames, num_feats)], optional
+        The original phase information of the reconstructed signal.
+        
+    Returns
+    -------
+    y : np.ndarray [shape = (num_samples, )]
+        The reconstructed signal in samples.
+    '''
+    # (default) librosa handles data in shape (num_feats, num_frames)
+    # while pysoundtool works with data in shape (num_frames, num_feats)
+    if phase is not None:
+        try:
+            assert feats.shape == phase.shape
+        except AssertionError:
+            raise ValueError('Expected `feats` (shape {})'.format(feats.shape)+\
+                ' and `phase` (shape {}) '.format(phase.shape) +\
+                    'to have the same shape: (num_frames, num_features)')
+    window_shift = win_size_ms * percent_overlap
+    if feature_type != 'signal':
+        # Will apply Librosa package to feats. Librosa expects data to have
+        # shape (num_features, num_frames) not (num_frames, num_features)
+        feats = feats.T 
+        if phase is not None:
+            phase = phase.T
+    if 'fbank' in feature_type:
+        y = librosa.feature.inverse.mel_to_audio(
+            feats, 
+            sr=sr, 
+            n_fft = int(win_size_ms*0.001*sr), 
+            hop_length=int(window_shift*0.001*sr))
+    elif 'mfcc' in feature_type:
+        feats = feats[:14,:]
+        y = librosa.feature.inverse.mfcc_to_audio(
+            feats, 
+            sr=sr, 
+            n_fft = int(win_size_ms*0.001*sr), 
+            hop_length=int(window_shift*0.001*sr),
+            n_mels=13)
+    elif 'stft' in feature_type or 'powspec' in feature_type:
+        # can use istft with phase information applied
+        if phase is not None:
+            feats = feats * phase
+            y = librosa.istft(
+                feats,
+                hop_length=int(window_shift*0.001*sr),
+                win_length = int(win_size_ms*0.001*sr))
+        # if no phase information available:
+        else:
+            y = librosa.griffinlim(
+                feats,
+                hop_length=int(window_shift*0.001*sr),
+                win_length = int(win_size_ms*0.001*sr))
+    elif feature_type == 'signal':
+        # just need to put in 1D again
+        y = feats.reshape((feats.shape[0],))
+    return y
+    
 
 if __name__ == "__main__":
     import doctest
