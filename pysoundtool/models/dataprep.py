@@ -108,6 +108,8 @@ class Generator:
                         '. Some data will therefore be removed, NOT ZEROPADDED.'
 
     def generator(self):
+        '''Shapes, norms, and feeds data depending on labeled or non-labeled data.
+        '''
         while 1:
 
             # will be size (batch_size, num_frames, num_features)
@@ -137,13 +139,6 @@ class Generator:
                 if self.labels is None:
                     batch_y = pyst.data.adjust_data_shape(batch_y, self.desired_shape)
             
-            ## TODO remove the first reshape step?
-            ## why is this necessary?
-            #X_batch = batch_x.reshape((batch_x.shape[0], batch_x.shape[1],
-                                     #batch_x.shape[2])) 
-            #if self.labels is None:
-                #y_batch = batch_y.reshape((batch_y.shape[0], batch_y.shape[1],
-                                        #batch_y.shape[2])) 
             # add tensor dimension
             X_batch = batch_x.reshape(batch_x.shape+(1,))
             y_batch = batch_y.reshape(batch_y.shape+(1,))
@@ -160,3 +155,29 @@ class Generator:
             #restart counter to yeild data in the next epoch as well
             if self.counter >= self.number_of_batches:
                 self.counter = 0
+
+def prep_new_audiofeats(feats, desired_shape, input_shape):
+    '''Prepares new audio data to feed to a pre-trained model.
+    
+    Parameters
+    ----------
+    feats : np.ndarray [shape = (num_frames, num_features)]
+        The features to prepare for feeding to a model.
+    
+    desired_shape : tuple 
+        The expected number of samples necessary to fulfill the expected
+        `input_shape` for the model. The `feats` will be zeropadded or
+        limited to match this `desired_shape`.
+    
+    input_shape : tuple 
+        The `input_shape` the model expects a single sample of data to be.
+        
+    Returns
+    -------
+    feats_reshaped : np.ndarray [shape = (`input_shape`)]
+        The features reshaped to what the model expects.
+    '''
+    feats_reshaped = pyst.data.adjust_data_shape(feats, desired_shape)
+    # reshape to input shape with a necessary "tensor" dimension
+    feats_reshaped = feats_reshaped.reshape(input_shape+(1,))
+    return feats_reshaped
