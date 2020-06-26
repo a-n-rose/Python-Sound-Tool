@@ -16,7 +16,7 @@ PySoundTool Functionality
 
 .. include:: modelsetup.rst
 
-.. include:: generator.rst
+.. include:: model_dataprep.rst
 
 .. include:: utils.rst
 
