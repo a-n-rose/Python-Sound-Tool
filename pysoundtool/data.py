@@ -1089,10 +1089,14 @@ def soundfile_limitduration(newfilename, soundfile, sr=None,
 def zeropad_features(feats, desired_shape, complex_vals = False):
     '''Applies zeropadding to a copy of feats. 
     '''
+    # to avoid UFuncTypeError:
+    if feats.dtype == np.complex or feats.dtype == np.complex64 or \
+        feats.dtype == np.complex128:
+            complex_vals = True
     fts = feats.copy()
     if feats.shape != desired_shape:
         if complex_vals:
-            dtype = np.complex_
+            dtype = np.complex
         else:
             dtype = np.float
         empty_matrix = np.zeros(desired_shape, dtype = dtype)
