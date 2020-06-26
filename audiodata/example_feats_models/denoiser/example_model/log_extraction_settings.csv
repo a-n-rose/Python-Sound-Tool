@@ -13,6 +13,7 @@ frames_per_sample,11
 labeled_data,False
 visualize,True
 input_shape,"(35, 11, 177)"
+desired_shape,"(385, 177)"
 use_librosa,True
 center,True
 mode,reflect
