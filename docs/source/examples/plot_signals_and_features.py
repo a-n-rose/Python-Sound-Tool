@@ -19,7 +19,7 @@ os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyst
+import pysoundtool as pyst;
 
 ###########################################################################
 # Create a Signal
