@@ -12,7 +12,7 @@ This is a project in development that can improve with contributions from people
 
 # Installation
 
-This repository serves as a place to explore sound. Therefore, small sound datasets are included in this repo. The size is appx. 50MB. If you clone this repo, this sound data will be cloned as well.
+This repository serves as a place to explore sound. Therefore, small sound datasets are included in this repo. The size is appx. 30MB. If you clone this repo, this sound data will be cloned as well.
 
 If you are fine with this, clone this repository. Set the working directory where you clone this repository.
 
