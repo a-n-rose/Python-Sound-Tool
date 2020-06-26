@@ -11,9 +11,10 @@ from .data import loadsound, savesound
 from . import data
 from .get_model_features import envclassifier_feats, denoiser_feats
 from .train_models import denoiser_train, envclassifier_train
+from .implement_models import denoiser_run
 
 __all__=['utils', 'feats', 'filters', 
          'WienerFilter', 'BandSubtraction','filtersignal','dsp','errors',
          'plotsound', 'loadsound', 'savesound', 'data', 'envclassifier_feats',
          'denoiser_feats', 'denoiser_train', 'envclassifier_train',
-         'generate_sound', 'generate_noise']
+         'generate_sound', 'generate_noise', 'denoiser_run']
