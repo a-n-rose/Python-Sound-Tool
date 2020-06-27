@@ -727,10 +727,6 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
 
     return newdata_noisy_dir, newdata_clean_dir
 
-
-
-
-
 def envclassifier_feats(
     data_dir = None,
     data_features_dir = None,
@@ -878,7 +874,6 @@ def envclassifier_feats(
         feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
     
     return feat_extraction_dir
-
 
 def denoiser_feats(
     data_clean_dir = None,
@@ -1638,11 +1633,15 @@ def denoiser_run(model, new_audiofile, feat_settings_dict):
     pysoundtool.feats.feats2audio
         How features are transformed back tino audio samples.
     '''
+    
     feature_type = feat_settings_dict['feature_type']
     win_size_ms = feat_settings_dict['win_size_ms']
     sr = feat_settings_dict['sr']
     percent_overlap = feat_settings_dict['percent_overlap']
-    window = feat_settings_dict['window']
+    try:
+        window = feat_settings_dict['window']
+    except KeyError:
+        window = None
     frames_per_sample = feat_settings_dict['frames_per_sample']
     input_shape = feat_settings_dict['input_shape']
     dur_sec = feat_settings_dict['dur_sec']
@@ -1674,6 +1673,18 @@ def denoiser_run(model, new_audiofile, feat_settings_dict):
     else:
         original_phase = None
     
+    if 'signal' in feature_type:
+        feats_zeropadded = np.zeros(desired_shape)
+        feats_zeropadded = feats_zeropadded.flatten()
+        if len(feats.shape) > 1:
+            feats_zeropadded = feats_zeropadded.reshape(feats_zeropadded.shape[0],
+                                                        feats.shape[1])
+        if len(feats) > len(feats_zeropadded):
+            feats = feats[:len(feats_zeropadded)]
+        feats_zeropadded[:len(feats)] += feats
+        # reshape here to avoid memory issues if total # samples is large
+        feats = feats_zeropadded.reshape(desired_shape)
+    
     feats = pystmodels.dataprep.prep_new_audiofeats(feats,
                                                     desired_shape,
                                                     input_shape)
@@ -1691,18 +1702,13 @@ def denoiser_run(model, new_audiofile, feat_settings_dict):
     # need to change shape back to 2D
     # current shape is (batch_size, num_frames, num_features, 1)
     # need (num_frames, num_features)
-    
-    if 'signal' in feature_type:
-        feats_flattened = np.flatten(feats_normed)
-        audio_shape = (feats_flattened.shape + (1,))
-    
-    else: 
-        # remove last tensor dimension
-        if feats_normed.shape[-1] == 1:
-            feats_normed = feats_normed.reshape(feats_normed.shape[:-1])
-        feats_flattened = feats_normed.reshape(-1, 
-                                               feats_normed.shape[-1])
-        audio_shape = (feats_flattened.shape)
+
+    # remove last tensor dimension
+    if feats_normed.shape[-1] == 1:
+        feats_normed = feats_normed.reshape(feats_normed.shape[:-1])
+    feats_flattened = feats_normed.reshape(-1, 
+                                            feats_normed.shape[-1])
+    audio_shape = (feats_flattened.shape)
     
     cleaned_feats = cleaned_feats.reshape(audio_shape)
     if original_phase is not None:
