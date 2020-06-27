@@ -281,6 +281,9 @@ def string2list(list_paths_string):
     try:
         # first use reliable module to turn string list into list
         list_paths = ast.literal_eval(list_paths_string)
+    except SyntaxError:
+        # can stay string
+        list_paths = str(list_paths_string)
     except ValueError:
         # ast doesn't handle lists of pathlib.PosixPath objects
         # TODO further testing
