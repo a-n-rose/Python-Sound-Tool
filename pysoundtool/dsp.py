@@ -174,7 +174,7 @@ def set_signal_length(samples, numsamps):
     data = pyst.utils.match_dtype(data, samples)
     return data
 
-def scalesound(data,min_val=-1,max_val=1):
+def scalesound(data, max_val = 1, min_val=None):
     '''Scales the input array to range between `min_val` and `max_val`. 
     
     Parameters
@@ -182,11 +182,13 @@ def scalesound(data,min_val=-1,max_val=1):
     data : np.ndarray [size = (num_samples,)]
         Original samples
     
-    min_val : int, float
-        The minimum value the dataset is to range from (default -1)
-    
     max_val : int, float
         The maximum value the dataset is to range from (default 1)
+    
+    min_val : int, float, optional
+        The minimum value the dataset is to range from. If set to None,
+        will be set to the opposiite of `max_val`. E.g. if `max_val` is set to
+        0.8, `min_val` will be set to -0.8. (default None)
     
     
     Returns
@@ -207,13 +209,40 @@ def scalesound(data,min_val=-1,max_val=1):
     >>> output_samples 
     array([-0.14138 ,1., 0.22872961, -0.16834299, -1.])
     >>> # range between -100 and 100
-    >>> output_samples = scalesound(input_samples, min_val = -100, max_val = 100)
+    >>> output_samples = scalesound(input_samples, max_val = 100, min_val = -100)
     >>> output_samples
     array([ -14.13800026,100., 22.87296052,-16.83429866,-100.])
     '''
+    if min_val is None:
+        min_val = -max_val
     samples = data.copy()
-    samples = np.interp(samples,(samples.min(), samples.max()),(min_val, max_val))
+    samples = np.interp(samples,
+                        (samples.min(), samples.max()),
+                        (min_val, max_val))
     return samples
+
+def shape_samps_channels(data):
+    '''Returns data in shape (num_samps, num_channels)
+    
+    Parameters
+    ----------
+    data : np.ndarray [size= (num_samples,) or (num_samples, num_channels), or (num_channels, num_samples)]
+        The data that needs to be checked for correct format 
+    
+    Returns
+    -------
+    data : np.ndarray [size = (num_samples,) or (num_samples, num_channels)]
+    '''
+    if len(data.shape) == 1:
+        return data
+    if len(data.shape) > 2:
+        raise ValueError('Expected 2 dimensional data: (num_samples, num_channels,) not '+\
+            'shape {}'.format(data.shape))
+    if data.shape[0] < data.shape[1]:
+        # assumes number of samples will be greater than number of channels
+        data = data.T
+    assert data.shape[0] > data.shape[1] 
+    return data
 
 def normalize(data, max_val=None, min_val=None):
     '''Normalizes data.
@@ -417,7 +446,7 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
     # make background same shape as signal
     if len(target.shape) != len(sound2add.shape):
         # ensure in shape (num_samples,) or (num_samples, num_channels)
-        target = pyst.utils.shape_samps_channels(target)
+        target = pyst.dsp.shape_samps_channels(target)
         if len(target.shape) > 1:
             num_channels = target.shape[1]
         else:
@@ -450,7 +479,7 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
                 '`audio_main` will be cut off in '+\
                 'the `combined` audio signal.')
     # make the background sound match the length of total samples
-    sound2add = pyst.dsp.apply_length(sound2add, total_samps)
+    sound2add = pyst.dsp.apply_sample_length(sound2add, total_samps)
     # separate samples to add to the target signal
     target_sound = sound2add[int(sr*delay_mainsound_sec):len(target)+int(sr*delay_mainsound_sec)]
     # If target is longer than indicated length, shorten it
@@ -522,7 +551,7 @@ def apply_num_channels(sound_data, num_channels):
         data = np.append(data, duplicated_data, axis=1)
     return data
 
-def apply_length(data, target_len):
+def apply_sample_length(data, target_len):
     '''Extends a sound by repeating it until its `target_len`.
     If the `target_len` is shorter than the length of `data`, `data`
     will be shortened to the specificed `target_len`
@@ -549,7 +578,7 @@ def apply_length(data, target_len):
     --------
     >>> import numpy as np
     >>> data = np.array([1,2,3,4])
-    >>> pyst.dsp.apply_length(data, 12)
+    >>> pyst.dsp.apply_sample_length(data, 12)
     array([1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4])
     >>> # two channels
     >>> data = np.zeros((3,2))
@@ -559,7 +588,7 @@ def apply_length(data, target_len):
     array([[0., 1.],
            [1., 2.],
            [2., 3.]])
-    >>> pyst.dsp.apply_length(data,5)
+    >>> pyst.dsp.apply_sample_length(data,5)
     array([[0., 1.],
            [1., 2.],
            [2., 3.],
@@ -574,7 +603,7 @@ def apply_length(data, target_len):
         return new_data
     if len(data.shape) > 1:
         # ensure stereo in correct format (num_samples, num_channels)
-        data = pyst.utils.shape_samps_channels(data)
+        data = pyst.dsp.shape_samps_channels(data)
         num_channels = data.shape[1]
     else:
         num_channels = 0
@@ -639,7 +668,7 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
     array([1, 2, 3])
     '''
     # ensure data follows shape of (num_samples,) or (num_samples, num_channels)
-    data = pyst.utils.shape_samps_channels(data)
+    data = pyst.dsp.shape_samps_channels(data)
     num_channels = get_num_channels(data)
     if delay_sec is None:
         delay_sec = 0
@@ -1152,7 +1181,7 @@ def vad():
     Determines whether speech exists or not in the signal
     '''
     pass
-
+# TODO: test with 2d+ dimensions
 def apply_original_phase(spectrum, phase):
     '''Multiplies phase to power spectrum
     
@@ -1698,6 +1727,36 @@ def apply_gain_fft(fft_vals, gain):
     enhanced_fft = fft_vals * gain
     assert enhanced_fft.shape == fft_vals.shape
     return enhanced_fft
+
+def postfilter(original_powerspec, noisereduced_powerspec, gain,
+               threshold=0.4, scale=10):
+    '''Apply filter that reduces musical noise resulting from other filter.
+    
+    If it is estimated that speech (or target signal) is present, reduced
+    filtering is applied.
+
+    References 
+    ----------
+    
+    T. Esch and P. Vary, "Efficient musical noise suppression for speech enhancement 
+    system," Proceedings of IEEE International Conference on Acoustics, Speech and 
+    Signal Processing, Taipei, 2009.
+    '''
+    power_ratio_current_frame = pyst.dsp.calc_power_ratio(
+        original_powerspec,
+        noisereduced_powerspec)
+    # is there speech? If so, SNR decision = 1
+    if power_ratio_current_frame < threshold:
+        SNR_decision = power_ratio_current_frame
+    else:
+        SNR_decision = 1
+    noise_frame_len = pyst.dsp.calc_noise_frame_len(SNR_decision, threshold, scale)
+    # apply window
+    postfilter_coeffs = pyst.dsp.calc_linear_impulse(
+        noise_frame_len,
+        num_freq_bins = original_powerspec.shape[0])
+    gain_postfilter = np.convolve(gain, postfilter_coeffs, mode='valid')
+    return gain_postfilter
 
 def calc_ifft(signal_section, real_signal=None, norm=False):
     """Calculates the inverse fft of a series of fft values

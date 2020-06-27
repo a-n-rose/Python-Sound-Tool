@@ -123,7 +123,7 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
         if data.shape[1] > 1:
             data = pyst.dsp.stereo2mono(data)
     # scale samples to be between -1 and 1
-    data = pyst.dsp.scalesound(data, -1, 1)
+    data = pyst.dsp.scalesound(data, max_val= 1, min_val=-1)
     if dur_sec:
         numsamps = int(dur_sec * sr)
         data = pyst.dsp.set_signal_length(data, numsamps)
@@ -389,6 +389,25 @@ def waves2dataset(audiolist, train_perc=0.8, seed=40):
     assert len(train_waves)+len(val_waves)+len(test_waves) == len(audiolist)
     return train_waves, val_waves, test_waves
 
+def audiofiles_present(directory, recursive=False):
+    '''Checks to see if audio files are present. 
+    
+    Parameters
+    ----------
+    directory : str or pathlib.PosixPath
+        The directory to look for audio.
+        
+    recursive : bool
+        If True, all nested directories will be checked as well. (default False)
+        
+    Returns
+    -------
+    bool 
+        True if audio is present; otherwise False.
+    '''
+    directory = pyst.utils.string2pathlib(directory)
+    
+
 def ensure_only_audiofiles(audiolist):
     possible_extensions = pyst.data.list_possibleformats(use_scipy=False)
     audiolist_checked = [x for x in audiolist if pathlib.Path(x).suffix in possible_extensions]
@@ -628,132 +647,6 @@ def separate_train_val_test_files(list_of_files):
                         val = val_paths_list, 
                         test = test_paths_list)
 
-# TODO speed this up, e.g. preload noise data?
-# TODO randomize sections of noise applied
-def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=None,
-                            snr_levels=None, delay_mainsound_sec = None, seed = None, **kwargs):
-    '''Applies noise to clean audio; saves clean and noisy audio to `traingingdata_dir`.
-
-    Parameters
-    ----------
-    cleandata_dir : str, pathlib.PosixPath
-        Name of folder containing clean audio data for autoencoder. E.g. 'clean_speech'
-    noisedata_dir : str, pathlib.PosixPath
-        Name of folder containing noise to add to clean data. E.g. 'noise'
-    trainingdata_dir : str, pathlib.PosixPath
-        Directory to save newly created train, validation, and test data
-    limit : int, optional
-        Limit in number of audiofiles used for training data
-    snr_levels : list of ints, optional
-        List of varying signal-to-noise ratios to apply to noise levels.
-        (default None)
-    delay_mainsound_sec : int, float, optional
-        Amount in seconds the main sound should be delayed. In other words, in seconds how
-        long the background sound should play before the clean / main / target audio starts.
-        (default None)
-    seed : int 
-        A value to allow random order of audiofiles to be predictable. 
-        (default None). If None, the order of audiofiles will not be predictable.
-    **kwargs : additional keyword arguments
-        The keyword arguments for pysoundtool.data.loadsound
-        
-
-    Returns
-    -------
-    saveinput_path : pathlib.PosixPath
-        Path to where noisy audio files are located
-    saveoutput_path : pathlib.PosixPath   
-        Path to where clean audio files are located
-        
-    See Also
-    --------
-    pysoundtool.data.loadsound
-        Loads audiofiles.
-    
-    pysoundtool.dsp.add_backgroundsound
-        Add background sound / noise to signal at a determined signal-to-noise ratio.
-    '''
-    import math
-    import time
-    
-    start = time.time()
-
-    # if paths are strings, convert to pathlib ojbects
-    cleandata_dir = pyst.utils.string2pathlib(cleandata_dir)
-    noisedata_dir = pyst.utils.string2pathlib(noisedata_dir)
-    trainingdata_dir = pyst.utils.string2pathlib(trainingdata_dir)
-    
-    cleandata_folder = 'clean'
-    noisedata_folder = 'noisy'
-    if limit is not None:
-        cleandata_folder += '_limit'+str(limit)
-        noisedata_folder += '_limit'+str(limit)
-    
-    newdata_clean_dir = trainingdata_dir.joinpath(cleandata_folder)
-    newdata_noisy_dir = trainingdata_dir.joinpath(noisedata_folder)
-    
-    # create directory to save new data (if not exist)
-    newdata_clean_dir = pyst.utils.check_dir(newdata_clean_dir, make = True)
-    newdata_noisy_dir = pyst.utils.check_dir(newdata_noisy_dir, make = True)
-   
-    # collect audiofiles (not limited to .wav files)
-    cleanaudio = sorted(pyst.utils.collect_audiofiles(cleandata_dir,
-                                                      hidden_files = False,
-                                                      wav_only = False,
-                                                      recursive = False))
-    noiseaudio = sorted(pyst.utils.collect_audiofiles(noisedata_dir,
-                                                      hidden_files = False,
-                                                      wav_only = False,
-                                                      recursive = False))
-    
-    if seed is not None:
-        random.seed(seed)
-    random.shuffle(cleanaudio)
-    
-    if limit is not None:
-        cleanaudio = cleanaudio[:limit]
-    
-    # ensure snr_levels is array-like 
-    if snr_levels is not None:
-        if not isinstance(snr_levels, list) and not isinstance(snr_levels, np.ndarray):
-            snr_levels = list(snr_levels)
-    
-    for i, wavefile in enumerate(cleanaudio):
-        pyst.utils.print_progress(iteration=i, 
-                    total_iterations=len(cleanaudio),
-                    task='clean and noisy audio data generation')
-        # no random seed applied here:
-        # each choice would be the same for each iteration
-        noise = random.choice(noiseaudio)
-        if snr_levels is not None:
-            snr = random.choice(snr_levels)
-        else:
-            snr = None
-        clean_stem = wavefile.stem
-        noise_stem = noise.stem
-        # load clean data to get duration
-        clean_data, sr = pyst.loadsound(wavefile, **kwargs)
-        clean_seconds = len(clean_data)/sr
-        noisy_data, sr, snr_appx = pyst.dsp.add_backgroundsound(audio_main = wavefile, 
-                                                      audio_background = noise, 
-                                                      snr = snr, 
-                                                      delay_mainsound_sec=delay_mainsound_sec, 
-                                                      total_len_sec = clean_seconds,
-                                                      **kwargs)
-        # ensure both noisy and clean files have same beginning to filename (i.e. clean filename)
-        noisydata_filename = newdata_noisy_dir.joinpath(clean_stem+'_'+noise_stem\
-            +'_snr'+str(snr)+'.wav')
-        cleandata_filename = newdata_clean_dir.joinpath(clean_stem+'.wav')     
-        write(noisydata_filename, sr, noisy_data)
-        write(cleandata_filename, sr, clean_data)
-
-    end = time.time()
-    total_time, units = pyst.utils.adjust_time_units(end-start)
-    print('Data creation took a total of {} {}.'.format(
-        round(total_time,2), 
-        units))
-
-    return newdata_noisy_dir, newdata_clean_dir
 
 def prep4scipywavfile(filename, overwrite=False):
     '''Takes soundfile and saves it in a format compatible with scipy.io.wavfile
@@ -1336,267 +1229,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
         raise ValueError('Expect only one instance of "__" to '+\
             'be in the dictionary keys. Multiple found.')
     return updated_dataset_dict, updated_dataset_paths_dict
-
-def dataset_formatter(audiodirectory, recursive=False, new_dir=None, sr=None, dur_sec=None,
-                      zeropad=False, format='WAV', bitdepth=None, overwrite=False, 
-                      mono=False):
-    '''Formats all audio files in a directory to set parameters.
     
-    The audiofiles formatted can be limited to the specific directory or be 
-    extended to the subfolders of that directory. 
-    
-    Parameters
-    ----------
-    audiodirectory : str or pathlib.PosixPath
-        The directory where audio files live.
-        
-    recursive : bool 
-        If False, only audiofiles limited to the specific directory will be 
-        formatted. If True, audio files in nested directories will also be
-        formatted. (default False)
-    
-    new_dir : str or pathlib.PosixPath
-        The audiofiles will be saved with the same structure in this directory. 
-        If None, a default directory name with time stamp will be generated.
-    
-    sr : int 
-        The desired sample rate to assign to the audio files. If None, the orignal
-        sample rate will be maintained.
-        
-    dur_sec : int 
-        The desired length in seconds the audio files should be limited to. If
-        `zeropad` is set to True, the samples will be zeropadded to match this length
-        if they are too short. If None, no limitation will be applied.
-        
-    zeropad : bool 
-        If True, samples will be zeropadded to match `dur_sec`. (default False)
-        
-    format : str 
-        The format to save the audio data in. (default 'WAV')
-        
-    bitdepth : int, str 
-        The desired bitdepth. If int, 16 or 32 are possible. Defaults to 'PCM_16'.
-        
-    overwrite : bool 
-        If True and `new_dir` is None, the audio data will be reformatted in the original
-        directory and saved over any existing filenames. (default False)
-        
-    mono : bool 
-        If True, the audio will be limited to a single channel. Note: not much has been 
-        tested for stereo sound and PySoundTool. (default False)
-        
-    Returns
-    -------
-    directory : pathlib.PosixPath
-        The directory where the formatted audio files are located.
-    
-    See Also
-    --------
-    pysoundtool.utils.collect_audiofiles
-        Collects audiofiles from a given directory.
-        
-    pysoundtool.utils.conversion_formats
-        The available formats for converting audio data.
-        
-    soundfile.available_subtypes
-        The subtypes or bitdepth possible for soundfile
-    '''
-    if new_dir is None and not overwrite:
-        new_dir = 'audiofile_reformat_'+pyst.utils.get_date()
-        import warnings
-        message = '\n\nATTENTION: Due to the risk of corrupting existing datasets, '+\
-            'reformated audio will be saved in the following directory: '+\
-                '\n{}\n'.format(new_dir)
-        warnings.warn(message)
-        
-    # ensure new dir exists, and if not make it
-    if new_dir is not None:
-        new_dir = pyst.utils.check_dir(new_dir, make=True)
-        
-    # ensure audiodirectory exists
-    audiodirectory = pyst.utils.check_dir(audiodirectory, make=False)
-    audiofiles = pyst.utils.collect_audiofiles(audiodirectory,
-                                               recursive=recursive)
-    
-    # set bitdepth for soundfile
-    if bitdepth is None:
-        # get default bitdepth from soundfile
-        bd = sf.default_subtype(format)
-    elif bitdepth == 16:
-        bd = 'PCM_16'
-    elif bitdepth == 32:
-        bd = 'PCM_32'
-    else:
-        bd = bitdepth 
-        
-    # ensure format and bitdepth are valid for soundfile
-    valid = sf.check_format(format, bd)
-    if not valid:
-        if not format in sf.available_formats():
-            raise ValueError('Format {} is not available. Here is a list '+\
-                'of available formats: \n{}'.format(format, 
-                                                    sf.available_formats()))
-        raise ValueError('Format {} cannot be assigned '.format(format)+\
-            ' bitdepth {}.\nAvailable bitdepths include:'.format(bitdepth)+\
-            '\n{}'.format(sf.available_subtypes(format)))
-    
-    for i, audio in enumerate(audiofiles):
-        y, sr2 = pyst.loadsound(audio,
-                               sr=sr, 
-                               dur_sec = dur_sec,
-                               mono = mono)
-        # ensure the sr matches what was set
-        if sr is not None:
-            assert sr2 == sr
-        
-        if zeropad and dur_sec:
-            goal_num_samples = int(dur_sec*sr2)
-            y = pyst.dsp.set_signal_length(y, goal_num_samples)
-            
-        if not overwrite:
-            # ensure no '..' or '.' are in the current audio file's path
-            fparts = list(audio.parts)
-            # TODO does this work with windows and mac?
-            fparts = [x for x in fparts if x != '..' and x != '.']
-            audio = pathlib.Path('/'.join(fparts))
-            # maintains structure of old directory in new directory
-            # but avoids saving the files in a directory some place higher up
-            new_filename = new_dir.joinpath(audio)
-            
-        else:
-            new_filename = audio
-            
-        # change the audio file name to match desired file format:
-        if format:
-            new_filename = pyst.data.replace_ext(new_filename, format.lower())
-            
-        try:
-            new_filename = pyst.savesound(new_filename, y, sr2, 
-                                      overwrite=overwrite,
-                                      format=format,subtype=bd)
-        except FileExistsError:
-            print('File {} already exists.'.format(new_filename))
-            
-        pyst.utils.print_progress(i, len(audiofiles), 
-                                  task = 'reformatting dataset')
-        
-    if new_dir:
-        return new_dir
-    else:
-        return audiodirectory
-    
-def dataset_logger(audiofile_dir = None, recursive=True):
-    '''Logs name, format, bitdepth, sr, duration of audiofiles, num_channels
-    
-    Parameters
-    ----------
-    audiofile_dir : str or pathlib.PosixPath
-        The directory where audiofiles of interest are. If no directory 
-        provided, the example data directory that comes with PySoundTool will be 
-        used.
-        
-    recursive : bool 
-        If True, all audiofiles will be analyzed, also in nested directories.
-        Otherwise, only the audio files in the immediate directory will be
-        analyzed. (default True)
-    
-    
-    Returns
-    -------
-    audiofile_dict : dict 
-        Dictionary within a dictionary, holding the formats of the audiofiles in the 
-        directory/ies.
-        
-    
-    Examples
-    --------
-    >>> audio_info = dataset_logger()
-    >>> # look at three audio files:
-    >>> count = 0
-    >>> for key, value in audio_info.items(): 
-    ...:     for k, v in value.items(): 
-    ...:         print(k, ' : ', v) 
-    ...:     count += 1 
-    ...:     print() 
-    ...:     if count > 2: 
-    ...:         break 
-    audio  :  audiodata/dogbark_2channels.wav
-    sr  :  48000
-    num_channels  :  2
-    dur_sec  :  0.389
-    format_type  :  WAV
-    bitdepth  :  PCM_16
-
-    audio  :  audiodata/python_traffic_pf.wav
-    sr  :  48000
-    num_channels  :  1
-    dur_sec  :  1.86
-    format_type  :  WAV
-    bitdepth  :  DOUBLE
-
-    audio  :  audiodata/259672__nooc__this-is-not-right.wav
-    sr  :  44100
-    num_channels  :  1
-    dur_sec  :  2.48453514739229
-    format_type  :  WAV
-    bitdepth  :  PCM_16
-    
-    
-    See Also
-    --------
-    soundfile.available_subtypes
-        The subtypes available with the package SoundFile
-        
-    soundfile.available_formats
-        The formats available with the package SoundFile
-    '''
-    # ensure audio directory exists:
-    if audiofile_dir is None:
-        audiofile_dir = './audiodata/'
-    audiofile_dir = pyst.utils.check_dir(audiofile_dir)
-    
-    audiofiles = pyst.utils.collect_audiofiles(audiofile_dir,
-                                               recursive = recursive)
-    
-    audiofile_dict = dict()
-    
-    for i, audio in enumerate(audiofiles):
-        # set sr to None to get audio file's sr
-        # set mono to False to see if mono or stereo sound 
-        y, sr = pyst.loadsound(audio, sr=None, mono=False)
-        # see number of channels
-        if len(y.shape) > 1:
-            num_channels = y.shape[1]
-        else:
-            num_channels = 1
-        
-        dur_sec = len(y)/sr
-        
-        try:
-            so = sf.SoundFile(audio)
-            bitdepth = so.subtype
-            format_type = so.format
-        except RuntimeError:
-            if isinstance(audio, str):
-                audio = pathlib.Path(audio)
-            format_type = audio.suffix.upper()[1:] # remove starting dot
-            bitdepth = 'unknown'
-        # ensure audio is string: if pathlib.PosixPath, it saves
-        # the PurePath in the string and makes it difficult to deal 
-        # with later.
-        audio = str(audio)
-        curr_audio_dict = dict(audio = audio,
-                          sr = sr,
-                          num_channels = num_channels,
-                          dur_sec = dur_sec, 
-                          format_type = format_type, 
-                          bitdepth = bitdepth)
-        
-        
-        audiofile_dict[audio] = curr_audio_dict
-        pyst.utils.print_progress(i, len(audiofiles), task='logging audio file details')
-        
-    return audiofile_dict
 
 if __name__ == '__main__':
     import doctest

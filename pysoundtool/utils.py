@@ -82,29 +82,6 @@ def match_dtype(array1, array2):
     assert array1.dtype == array2.dtype
     return array1
     
-# TODO move to dsp?
-def shape_samps_channels(data):
-    '''Returns data in shape (num_samps, num_channels)
-    
-    Parameters
-    ----------
-    data : np.ndarray [size= (num_samples,) or (num_samples, num_channels), or (num_channels, num_samples)]
-        The data that needs to be checked for correct format 
-    
-    Returns
-    -------
-    data : np.ndarray [size = (num_samples,) or (num_samples, num_channels)]
-    '''
-    if len(data.shape) == 1:
-        return data
-    if len(data.shape) > 2:
-        raise ValueError('Expected 2 dimensional data: (num_samples, num_channels,) not '+\
-            'shape {}'.format(data.shape))
-    if data.shape[0] < data.shape[1]:
-        # assumes number of samples will be greater than number of channels
-        data = data.T
-    assert data.shape[0] > data.shape[1] 
-    return data
     
 def get_date():
     '''Get a string containing month, day, hour, minute, second and millisecond.
