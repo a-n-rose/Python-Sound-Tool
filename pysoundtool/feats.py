@@ -966,7 +966,8 @@ def feats2audio(feats, feature_type, sr, win_size_ms,
         [size = (batch_size * num_frames * num_features, 1)]. 
         Otherwise [size = (batch_size * num_frames, num_features)].
     feature_type : str
-        Either 'stft', 'fbank', 'signal', or 'mfcc'
+        Either 'stft', 'fbank', 'signal', or 'mfcc'. For the 'signal'
+        feature, only mono channel is supported.
     sr : int 
         Sampling rate that the features were extracted with
     win_size_ms : int 
@@ -1025,9 +1026,8 @@ def feats2audio(feats, feature_type, sr, win_size_ms,
                 feats,
                 hop_length=int(window_shift*0.001*sr),
                 win_length = int(win_size_ms*0.001*sr))
-    elif feature_type == 'signal':
-        # just need to put in 1D again
-        y = feats.reshape((feats.shape[0],))
+    elif 'signal' in feature_type:
+        y = feats.flatten()
     return y
     
 
