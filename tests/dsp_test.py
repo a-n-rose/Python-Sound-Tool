@@ -21,6 +21,22 @@ samples_22050, sr_22050 = librosa.load(test_audiofile, sr=22050)
 samples_16000, sr_16000 = librosa.load(test_audiofile, sr=16000)
 samples_8000, sr_8000 = librosa.load(test_audiofile, sr=8000)
 
+def test_shape_samps_channels_mono():
+    input_data = np.array([1,2,3,4,5])
+    output_data = pyst.dsp.shape_samps_channels(input_data)
+    assert np.array_equal(input_data, output_data)
+    
+
+def test_shape_samps_channels_stereo_correct():
+    input_data = np.array([1,2,3,4,5,6,7,8,9,10]).reshape(5,2)
+    output_data = pyst.dsp.shape_samps_channels(input_data)
+    assert np.array_equal(input_data, output_data)
+
+def test_shape_samps_channels_stereo_incorrect():
+    input_data = np.array([1,2,3,4,5,6,7,8,9,10]).reshape(2,5)
+    output_data = pyst.dsp.shape_samps_channels(input_data)
+    assert np.array_equal(input_data.T, output_data)
+
 def test_calc_phase():
     np.random.seed(seed=0)
     rand_fft = np.random.random(2) + np.random.random(2) * 1j
@@ -257,48 +273,48 @@ def test_stereo2mono_mono_input():
     data_mono = pyst.dsp.stereo2mono(data)
     assert np.array_equal(data, data_mono)
 
-def test_apply_length():
+def test_apply_sample_length():
     data = np.array([1,2,3,4,5])
     num_samps = 10
-    new_data = pyst.dsp.apply_length(data, num_samps)
+    new_data = pyst.dsp.apply_sample_length(data, num_samps)
     expected = np.array([1,2,3,4,5,1,2,3,4,5])
     assert np.array_equal(new_data, expected)
     assert len(new_data) == num_samps
     assert data.dtype == new_data.dtype
     
-def test_apply_length_tooshort():
+def test_apply_sample_length_tooshort():
     data = np.array([1,2,3,4,5])
     num_samps = 3
-    new_data = pyst.dsp.apply_length(data, num_samps)
+    new_data = pyst.dsp.apply_sample_length(data, num_samps)
     print(new_data)
     assert len(new_data) == num_samps
     assert data.dtype == new_data.dtype
     
-def test_apply_length_stereo_longer():
+def test_apply_sample_length_stereo_longer():
     data = np.zeros((3,2))
     data[:,0] = np.array([0,1,2])
     data[:,1] = np.array([1,2,3])
     num_samps = 5
-    new_data = pyst.dsp.apply_length(data,num_samps)
+    new_data = pyst.dsp.apply_sample_length(data,num_samps)
     assert len(new_data) == num_samps
     assert len(new_data.shape) == len(data.shape)
     assert new_data.shape[1] == data.shape[1]
     
-def test_apply_length_stereo_shorter():
+def test_apply_sample_length_stereo_shorter():
     data = np.zeros((3,2))
     data[:,0] = np.array([0,1,2])
     data[:,1] = np.array([1,2,3])
     num_samps = 2
-    new_data = pyst.dsp.apply_length(data,num_samps)
+    new_data = pyst.dsp.apply_sample_length(data,num_samps)
     assert len(new_data) == num_samps
     assert len(new_data.shape) == len(data.shape)
     assert new_data.shape[1] == data.shape[1]
     assert np.array_equal(data[:2], new_data)
     
-def test_apply_length_toomany_dimensions():
+def test_apply_sample_length_toomany_dimensions():
     data = np.zeros((2,3,3))
     with pytest.raises(ValueError):
-        pyst.dsp.apply_length(data,5)
+        pyst.dsp.apply_sample_length(data,5)
         
 def test_apply_num_channels_1d_to_3d():
     data = np.array([1, 1, 1, 1])

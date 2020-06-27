@@ -61,27 +61,11 @@ def test_match_dtype_int2float():
     assert len(array_to_change) == len(array_adjusted)
     assert np.array_equal(array_to_change, array_adjusted)
     assert array_to_change.dtype != array_original.dtype
-
-def test_shape_samps_channels_mono():
-    input_data = np.array([1,2,3,4,5])
-    output_data = pyst.utils.shape_samps_channels(input_data)
-    assert np.array_equal(input_data, output_data)
-    
-
-def test_shape_samps_channels_stereo_correct():
-    input_data = np.array([1,2,3,4,5,6,7,8,9,10]).reshape(5,2)
-    output_data = pyst.utils.shape_samps_channels(input_data)
-    assert np.array_equal(input_data, output_data)
-
-def test_shape_samps_channels_stereo_incorrect():
-    input_data = np.array([1,2,3,4,5,6,7,8,9,10]).reshape(2,5)
-    output_data = pyst.utils.shape_samps_channels(input_data)
-    assert np.array_equal(input_data.T, output_data)
     
 def test_shape_samps_channels_too_many_dimensions():
     input_data = np.array([1,2,3,4,5,6,7,8,9,10,11,12]).reshape(2,3,2)
     with pytest.raises(ValueError):
-        output_data = pyst.utils.shape_samps_channels(input_data)
+        output_data = pyst.dsp.shape_samps_channels(input_data)
 
 def test_check_dir_default_create():
     test_dir = './testtesttest/'
