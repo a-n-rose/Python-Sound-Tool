@@ -6,6 +6,8 @@ Feature Extraction for Denoising: Clean and Noisy Audio
 
 Use PySoundTool to extract acoustic features from clean and noisy datasets for 
 training a denoising model, e.g. a denoising autoencoder.
+
+To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_feats`.
 """
 
 

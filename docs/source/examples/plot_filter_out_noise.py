@@ -5,7 +5,9 @@
 Filter Out Background Noise
 ===========================
 
-Use PySoundTool to filter out background noise from audio signals.
+Use PySoundTool to filter out background noise from audio signals. 
+
+To see how PySoundTool implements this, see `pysoundtool.builtin.filtersignal`.
 """
 
 

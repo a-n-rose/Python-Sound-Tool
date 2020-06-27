@@ -6,6 +6,8 @@ Feature Extraction for Classification
 
 Use PySoundTool to extract acoustic features from labeled data for 
 training an environment or speech classifier.
+
+To see how PySoundTool implements this, see `pysoundtool.builtin.envclassifier_feats`.
 """
 
 

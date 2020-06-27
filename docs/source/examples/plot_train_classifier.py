@@ -5,6 +5,8 @@ Train an Acoustic Classifier
 ============================
 
 Use PySoundTool to train an acoustic classifier on speech or noise features.
+
+To see how PySoundTool implements this, see `pysoundtool.builtin.envclassifier_train`.
 """
 
 ###############################################################################################

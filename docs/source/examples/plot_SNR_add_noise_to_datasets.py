@@ -6,6 +6,8 @@ Add Noise to Speech at Specific SNR Levels
 ==========================================
 
 Use PySoundTool to add noise at specific SNR levels to speech signals.
+
+To see how PySoundTool implements this, see `pysoundtool.dsp.add_backgroundsound`.
 """
 
 

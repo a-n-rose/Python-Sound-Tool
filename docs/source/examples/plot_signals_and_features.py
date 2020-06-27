@@ -4,7 +4,10 @@
 Create and Plot Signals
 =======================
 
-Use PySoundTool to create and plot signals / noise and add them together at a specific SNR
+Use PySoundTool to create and plot signals / noise and add them together at a specific SNR.
+
+To see how PySoundTool implements this, see `pysoundtool.dsp.generate_sound`, 
+`pysoundtool.dsp.generate_noise` and `pysoundtool.dsp.add_backgroundsound`.
 """
 
 

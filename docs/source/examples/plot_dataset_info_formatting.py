@@ -4,7 +4,10 @@
 Audio Dataset Exploration and Formatting
 ========================================
 
-Use PySoundTool to examine audio files within a dataset, and to reformat them if desired.
+Use PySoundTool to examine audio files within a dataset, and to reformat them if desired.  
+
+To see how PySoundTool implements this, see `pysoundtool.builtin.dataset_logger` and 
+`pysoundtool.builtin.dataset_formatter`.
 """
 
 
@@ -28,7 +31,7 @@ import pysoundtool as pyst;
 ##########################################################
 # PySoundTool offers example datasets. Let's explore them.
 dataset_path = '{}audiodata/'.format(package_dir)
-dataset_info_dict = pyst.data.dataset_logger('{}audiodata/'.format(package_dir));
+dataset_info_dict = pyst.builtin.dataset_logger('{}audiodata/'.format(package_dir));
 
 #########################################################################
 # This returns our data in a dictionary, perfect for exploring via Pandas
@@ -53,7 +56,7 @@ print('number of channels: ', all_data.num_channels.unique())
 ##############################################################
 # Let's say we have a dataset that we want to make consistent. 
 # We can do that with PySoundTool
-new_dataset_dir = pyst.data.dataset_formatter(dataset_path, 
+new_dataset_dir = pyst.builtin.dataset_formatter(dataset_path, 
                                               recursive = True, # we want all the audio, even in nested directories
                                               format='WAV',
                                               bitdepth = 16, # if set to None, a default bitdepth will be applied
@@ -67,7 +70,7 @@ new_dataset_dir = pyst.data.dataset_formatter(dataset_path,
         
 ###############################################
 # Let's see what the audio data looks like now:
-dataset_formatted_dict = pyst.data.dataset_logger(new_dataset_dir, recursive=True);
+dataset_formatted_dict = pyst.builtin.dataset_logger(new_dataset_dir, recursive=True);
 formatted_data = pd.DataFrame(dataset_formatted_dict).T
 
 #####################
@@ -86,6 +89,6 @@ print('number of channels: ', formatted_data.num_channels.unique())
 ###########################################
 # There we go! 
 # You can reformat only parts of the audio files, e.g. format or bitdepth.
-# If you leave parameters in pyst.data.dataset_formatter as None, the original
+# If you leave parameters in pyst.builtin.dataset_formatter as None, the original
 # settings of the audio file will be maintained (except for bitdepth. A default
 # bitdepth will be applied according to the format of the file).

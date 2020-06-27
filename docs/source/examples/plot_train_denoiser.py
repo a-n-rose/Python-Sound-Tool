@@ -5,6 +5,9 @@ Train a Denoising Autoencoder
 =============================
 
 Use PySoundTool to train a denoising autoencoder with clean and noisy acoustic features.
+
+To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_train`, 
+`pysoundtool.builtin.denoiser_feats` and `pysoundtool.builtin.create_denoise_data`.
 """
 
 
