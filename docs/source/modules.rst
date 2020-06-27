@@ -2,6 +2,8 @@
 PySoundTool Functionality
 =========================
 
+.. include:: builtins.rst
+
 .. include:: data.rst
 
 .. include:: feats.rst
@@ -9,8 +11,6 @@ PySoundTool Functionality
 .. include:: dsp.rst
 
 .. include:: filters.rst
-
-.. include:: features_and_models.rst
 
 .. include:: template_models.rst
 
