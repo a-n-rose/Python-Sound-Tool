@@ -268,7 +268,7 @@ def get_feats(sound,
                 feats = np.abs(feats)**2
             #feats -= (np.mean(feats, axis=0) + 1e-8)
         elif 'signal' in features:
-            feats = (data, sr)
+            feats = data
     except librosa.ParameterError as e:
         # potential error in handling fortran array
         feats = get_feats(np.asfortranarray(data),
@@ -643,7 +643,8 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         features of that dataset will be saved.
         E.g. {'train': './data/train.npy', 'val': './data/val.npy', 'test': './data/test.npy'}
     feature_type : str 
-        String including only one of the following: 'stft', 'powspec', 'fbank', and 'mfcc'.
+        String including only one of the following: 'signal', 'stft', 'powspec', 'fbank', and 'mfcc'. 
+        'signal' currently only supports mono channel data. TODO test for stereo
         'powspec' and 'stft' are basically the same; 'powspec' is the 'stft' except without 
         complex values and squared. E.g 'mfcc_noisy' or 'stft_train'.
     sr : int 
@@ -690,7 +691,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
     log_settings : bool
         If True, a .csv file will be saved in the feature extraction directory with 
         most of the feature settings saved. (default True)
-    kwargs : additional keyword arguments
+    **kwargs : additional keyword arguments
         Keyword arguments for `pysoundtool.feats.get_feats`.
     
     Returns
@@ -741,19 +742,40 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                     num_feats = 40
                 elif 'powspec' in feature_type or 'stft' in feature_type:
                     num_feats = int(1+n_fft/2)
+                elif 'signal' in feature_type:
+                    # how many samples make up one window frame?
+                    num_samps_frame = int(sr * win_size_ms * 0.001)
+                    # make divisible by 10
+                    # TODO: might not be necessary
+                    if not num_samps_frame % 10 == 0:
+                        num_samps_frame *= 0.1
+                        # num_feats is how many samples per window frame (here rounded up 
+                        # to the nearest 10)
+                        num_feats = int(round(num_samps_frame, 0) * 10)
+                    # limit in seconds how many samples
+                    # is this necessary?
+                    # dur_sec = num_features * frames_per_sample * batch_size / sr
                 else:
                     raise ValueError('Feature type "{}" '.format(feature_type)+\
                         'not understood.\nMust include one of the following: \n'+\
                             ', '.join(list_available_features()))
             
             # adjust shape for model
+            # input_shape: the input shape for the model
+            # desired_shape: the 2D shape of expected samples. This is used for zeropadding or
+            # limiting the feats to this shape. Once this shape, feats can be reshaped into input_shape
+            # TODO test for labeled data with frames_per_sample
             if frames_per_sample is not None:
-                # want smaller windows, e.g. autoencoder denoiser
+                # want smaller windows, e.g. autoencoder denoiser or speech recognition
                 batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
-                input_shape = (batch_size, frames_per_sample, num_feats)
-                # if extracted data is too short, shape to zeropad:
-                desired_shape = (input_shape[0]*input_shape[1],
-                                        input_shape[2])
+                if labeled_data:
+                    input_shape = (batch_size, frames_per_sample, num_feats + 1)
+                    desired_shape = (input_shape[0] * input_shape[1], 
+                                     input_shape[2]-1)
+                else:
+                    input_shape = (batch_size, frames_per_sample, num_feats)
+                    desired_shape = (input_shape[0]*input_shape[1],
+                                     input_shape[2])
             else:
                 if labeled_data:
                     input_shape = (int(total_rows_per_wav), num_feats + 1)
@@ -766,6 +788,10 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                 complex_vals = True
             else:
                 complex_vals = False
+            # limit feat_type to the basic feature extracted
+            # for example:
+            # feature_type 'powspec' is actually 'stft' but with complex info removed.
+            # the basic feat_type is still 'stft'
             if 'mfcc' in feature_type:
                 feat_type = 'mfcc'
             elif 'fbank' in feature_type:
@@ -774,6 +800,8 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                 feat_type = 'stft'
             elif 'powspec' in feature_type:
                 feat_type = 'stft'
+            elif 'signal' in feature_type:
+                feat_type = 'signal'
             else:
                 raise TypeError('Expected '+', '.join(list_available_features())+\
                     ' to be in `feature_type`, not {}'.format(feature_type))
@@ -807,17 +835,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                     # if power spectrum (remove complex values and squaring features)
                     if 'powspec' in feature_type:
                         feats = np.abs(feats)**2
-                    # zeropad feats if too short:
-                    feats = pyst.data.zeropad_features(
-                        feats, 
-                        desired_shape = desired_shape,
-                        complex_vals = complex_vals)
-                    
-                    if labeled_data:
-                        # create label column
-                        label_col = np.zeros((len(feats),1)) + label
-                        feats = np.concatenate([feats,label_col], axis=1)
-
+                        
                     if visualize:
                         # visualize features:
                         if 'mfcc' in feature_type:
@@ -841,6 +859,33 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                                 audiofile.parent.stem.upper()),
                                             save_pic=visualize, 
                                             name4pic=save_pic_path)
+                        
+                    # zeropad feats if too short:
+                    if 'signal' in feat_type:
+                        feats_zeropadded = np.zeros(desired_shape)
+                        feats_zeropadded = feats_zeropadded.flatten()
+                        if len(feats.shape) > 1:
+                            feats_zeropadded = feats_zeropadded.reshape(feats_zeropadded.shape[0],
+                                                                        feats.shape[1])
+                        if len(feats) > len(feats_zeropadded):
+                            feats = feats[:len(feats_zeropadded)]
+                        feats_zeropadded[:len(feats)] += feats
+                        # reshape here to avoid memory issues if total # samples is large
+                        feats = feats_zeropadded.reshape(desired_shape)
+                    
+                    feats = pyst.data.zeropad_features(
+                        feats, 
+                        desired_shape = desired_shape,
+                        complex_vals = complex_vals)
+                    
+                    if labeled_data:
+                        # create label column
+                        label_col = np.zeros((len(feats),1)) + label
+                        feats = np.concatenate([feats,label_col], axis=1)
+
+
+
+                                            
                     feats = feats.reshape(extraction_shape[1:])
                     # fill in empty matrix with features from each audiofile
 
