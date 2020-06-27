@@ -1,4 +1,4 @@
-'''Builtins module includes more complex functions that pull from several
+'''The builtin module includes more complex functions that pull from several
 other functions to complete fairly complex tasks, such as dataset formatting, extracting features for neural networks, training and implementing models on new data.
 
 Basically, if you want PySoundTool to automate some complex tasks for you, here is where to look.

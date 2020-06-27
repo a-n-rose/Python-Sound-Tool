@@ -2,7 +2,7 @@
 PySoundTool Functionality
 =========================
 
-.. include:: builtins.rst
+.. include:: builtin.rst
 
 .. include:: data.rst
 
