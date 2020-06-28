@@ -87,11 +87,11 @@ def plot(feature_matrix, feature_type,
         feature_matrix = librosa.db_to_amplitude(feature_matrix)
         energy_label = 'amplitude'
     plt.clf()
-    if feature_type != 'signal':
+    if 'signal' not in feature_type:
         x_axis_label = 'Frequency bins'
     else:
         x_axis_label = 'Samples over time'
-    if feature_type == 'signal':
+    if 'signal' in feature_type:
         # transpose matrix if second dimension is larger - probably 
         # because channels are in first dimension. Expect in second dimension
         if not feature_matrix.shape[0] > feature_matrix.shape[1]:
@@ -199,6 +199,7 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
                       mono=mono)
     pyst.feats.plot(feats, feature_type=feature_type, sr=sr,
                     save_pic = save_pic, name4pic=name4pic, scale=power_scale,
+                    win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                     **kwargs)
 
 # TODO test duration limit on all settings
@@ -844,8 +845,12 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                 y_centered = np.pad(y_zeros, int(n_fft // 2), mode=mode)
                 total_samples = len(y_centered)
             # each audio file 
-            total_rows_per_wav = int(1 + (total_samples - n_fft)//hop_length)
-            
+            if 'signal' in feature_type:
+                # don't apply fft to signal (not sectioned into overlapping windows)
+                total_rows_per_wav = total_samples // frame_length
+            else:
+                # do apply fft to signal (via Librosa) - (will be sectioned into overlapping windows)
+                total_rows_per_wav = int(1 + (total_samples - n_fft)//hop_length)
             # set defaults to num_feats if set as None:
             if num_feats is None:
                 if 'mfcc' in feature_type or 'fbank' in feature_type:
@@ -853,23 +858,24 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                 elif 'powspec' in feature_type or 'stft' in feature_type:
                     num_feats = int(1+n_fft/2)
                 elif 'signal' in feature_type:
-                    # how many samples make up one window frame?
-                    num_samps_frame = int(sr * win_size_ms * 0.001)
-                    # make divisible by 10
-                    # TODO: might not be necessary
-                    if not num_samps_frame % 10 == 0:
-                        num_samps_frame *= 0.1
-                        # num_feats is how many samples per window frame (here rounded up 
-                        # to the nearest 10)
-                        num_feats = int(round(num_samps_frame, 0) * 10)
-                    # limit in seconds how many samples
-                    # is this necessary?
-                    # dur_sec = num_features * frames_per_sample * batch_size / sr
+                    num_feats = frame_length
+                    ### how many samples make up one window frame?
+                    ###num_samps_frame = int(sr * win_size_ms * 0.001)
+                    #### make divisible by 10
+                    #### TODO: might not be necessary
+                    ###if not num_samps_frame % 10 == 0:
+                        ###num_samps_frame *= 0.1
+                        #### num_feats is how many samples per window frame (here rounded up 
+                        #### to the nearest 10)
+                        ###num_feats = int(round(num_samps_frame, 0) * 10)
+                    ### limit in seconds how many samples
+                    ### is this necessary?
+                    ### dur_sec = num_features * frames_per_sample * batch_size / sr
                 else:
                     raise ValueError('Feature type "{}" '.format(feature_type)+\
                         'not understood.\nMust include one of the following: \n'+\
                             ', '.join(list_available_features()))
-            
+
             # adjust shape for model
             # input_shape: the input shape for the model
             # desired_shape: the 2D shape of expected samples. This is used for zeropadding or
@@ -948,7 +954,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                         
                     if visualize:
                         # visualize features:
-                        if 'mfcc' in feature_type:
+                        if 'mfcc' in feature_type or 'signal' in feature_type:
                             scale = None
                         else:
                             scale = 'power_to_db'
@@ -980,7 +986,9 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                         if len(feats) > len(feats_zeropadded):
                             feats = feats[:len(feats_zeropadded)]
                         feats_zeropadded[:len(feats)] += feats
-                        # reshape here to avoid memory issues if total # samples is large
+
+                        # reshape here for training models to avoid memory issues later 
+                        # (while training) if total samples is large
                         feats = feats_zeropadded.reshape(desired_shape)
                     
                     feats = pyst.feats.zeropad_features(
@@ -1132,7 +1140,7 @@ def feats2audio(feats, feature_type, sr, win_size_ms,
                 ' and `phase` (shape {}) '.format(phase.shape) +\
                     'to have the same shape: (num_frames, num_features)')
     window_shift = win_size_ms * percent_overlap
-    if feature_type != 'signal':
+    if 'signal' not in feature_type:
         # Will apply Librosa package to feats. Librosa expects data to have
         # shape (num_features, num_frames) not (num_frames, num_features)
         feats = feats.T 
