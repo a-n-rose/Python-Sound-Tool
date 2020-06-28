@@ -5,8 +5,10 @@ Basically, if you want PySoundTool to automate some complex tasks for you, here 
 ''' 
 import time
 import pathlib
+import random
 import numpy as np
 import soundfile as sf
+from scipy.io.wavfile import write
 import keras
 from keras.models import load_model
 
@@ -603,7 +605,8 @@ def dataset_formatter(audiodirectory=None, recursive=False, new_dir=None, sr=Non
 # TODO speed this up, e.g. preload noise data?
 # TODO randomize sections of noise applied
 def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=None,
-                            snr_levels=None, delay_mainsound_sec = None, seed = None, **kwargs):
+                            snr_levels = None, delay_mainsound_sec = None, seed = None,
+                            overwrite = False, **kwargs):
     '''Applies noise to clean audio; saves clean and noisy audio to `traingingdata_dir`.
 
     Parameters
@@ -626,6 +629,9 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
     seed : int 
         A value to allow random order of audiofiles to be predictable. 
         (default None). If None, the order of audiofiles will not be predictable.
+    overwrite : bool 
+        If True, a new dataset will be created regardless of whether or not a matching 
+        directory already exists. (default False)
     **kwargs : additional keyword arguments
         The keyword arguments for pysoundtool.files.loadsound
         
@@ -650,9 +656,10 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
     
     start = time.time()
 
-    # if paths are strings, convert to pathlib ojbects
-    cleandata_dir = pyst.utils.string2pathlib(cleandata_dir)
-    noisedata_dir = pyst.utils.string2pathlib(noisedata_dir)
+    # check to ensure clean and noisy data are there
+    # and turn them into pathlib.PosixPath objects:
+    cleandata_dir = pyst.utils.check_dir(cleandata_dir, make=False)
+    noisedata_dir = pyst.utils.check_dir(noisedata_dir, make=False)
     trainingdata_dir = pyst.utils.string2pathlib(trainingdata_dir)
     
     cleandata_folder = 'clean'
@@ -663,6 +670,19 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
     
     newdata_clean_dir = trainingdata_dir.joinpath(cleandata_folder)
     newdata_noisy_dir = trainingdata_dir.joinpath(noisedata_folder)
+    
+    # See if databases already exist:
+    if not overwrite:
+        try:
+            newdata_clean_dir = pyst.utils.check_dir(newdata_clean_dir, make=False,
+                                                     append = False)
+            newdata_noisy_dir = pyst.utils.check_dir(newdata_noisy_dir, make=False,
+                                                     append = False)
+        except FileExistsError:
+            raise FileExistsError('Datasets already exist at this location. Set '+\
+                '`append` to True or designate a new directory.')
+        except FileNotFoundError:
+            pass
     
     # create directory to save new data (if not exist)
     newdata_clean_dir = pyst.utils.check_dir(newdata_clean_dir, make = True)
@@ -711,6 +731,7 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
                                                       snr = snr, 
                                                       delay_mainsound_sec=delay_mainsound_sec, 
                                                       total_len_sec = clean_seconds,
+                                                      wrap = True,
                                                       **kwargs)
         # ensure both noisy and clean files have same beginning to filename (i.e. clean filename)
         noisydata_filename = newdata_noisy_dir.joinpath(clean_stem+'_'+noise_stem\
@@ -1107,12 +1128,6 @@ def denoiser_feats(
         dict2save = dataprep_settings,
         filename = feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
     return feat_extraction_dir
-
-
-
-
-
-
 
 
 
