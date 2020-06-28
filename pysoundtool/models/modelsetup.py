@@ -1,6 +1,4 @@
-'''
-TODO explore using just weights in ModelCheckpoint
-save_weights_only=True, save_freq='epoch', and save_best_only
+'''The models.modelsetup module containes functionality for preparing for training a model
 '''
 
 import os, sys

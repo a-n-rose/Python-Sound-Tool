@@ -6,6 +6,7 @@ import csv
 import numpy as np
 import datetime
 import pathlib
+import soundfile as sf
 # for converting string lists back into list:
 import ast
 import os, sys
@@ -81,7 +82,6 @@ def match_dtype(array1, array2):
     array1 = array1.astype(array2.dtype)
     assert array1.dtype == array2.dtype
     return array1
-    
     
 def get_date():
     '''Get a string containing month, day, hour, minute, second and millisecond.
@@ -231,23 +231,26 @@ def string2pathlib(pathway_string):
                 'pathlib object, not input of type {}'.format(type(pathway_string)))
     return pathway_string
 
-def string2list(list_paths_string):
-    '''Take a string of wavfiles list and establishes back to list
-
-    Warning: this is a very specific function. It has not been tested to handle
-    a variety of string lists. This handles lists of strings, lists of 
-    pathlib.PosixPath objects, and lists of pathlib.PurePosixPath objects that 
-    were converted into a type string object.
-
+def restore_dictvalue(value_string):
+    '''Takes dict value and converts it to its original type.
+    
+    When loading a dictionary from a .csv file, the values are strings.
+    This function handles integers, floats, tuples, and some strings. 
+    It also has been suited to handle a list of audio files or list of 
+    pathlib.PosixPath objects.
+    
+    Warning: no extensive testing has been completed for this function.
+    It might not handle all value types as expected.
+    
     Parameters
     ----------
-    list_paths_string : str 
-        The list that was converted into a string object 
+    value_string : str 
+        The dictionary value that was converted into a string object .
 
     Returns
     -------
-    list_paths : list 
-        The list converted back to a list of paths as pathlib.PosixPath objects.
+    value_original_type : list, int, tuple, string, float, etc.
+        The value converted back to its original type.
 
     Examples
     --------
@@ -279,16 +282,18 @@ def string2list(list_paths_string):
     pathlib.PosixPath
     '''
     try:
-        # first use reliable module to turn string list into list
-        list_paths = ast.literal_eval(list_paths_string)
+        # first use reliable module to turn string into original type
+        value_original_type = ast.literal_eval(value_string)
     except SyntaxError:
+        # most likely a string with spaces or something
         # can stay string
-        list_paths = str(list_paths_string)
+        value_original_type = str(value_string)
+    # this handles a list of audio files
     except ValueError:
         # ast doesn't handle lists of pathlib.PosixPath objects
         # TODO further testing
         # remove the string brackets '[' and ']'
-        list_remove_brackets = list_paths_string[1:-1]
+        list_remove_brackets = value_string[1:-1]
         if list_remove_brackets[0] == '(' and list_remove_brackets[-1] == ')':
             # list of tuples
             tuple_string = list_remove_brackets.split('), ')
@@ -327,25 +332,25 @@ def string2list(list_paths_string):
                     audiopath = pathlib.Path(audiopath)
                     item_list.append(tuple([label, audiopath]))
                 list_pathlib.append(item_list)
-            list_paths = list_pathlib[0]
-            return list_paths
+            value_original_type = list_pathlib[0]
+            return value_original_type
         
-        list_string_red = list_paths_string[1:-1].split(', ')
-        if 'PurePosixPath' in list_paths_string:
+        list_string_red = value_string[1:-1].split(', ')
+        if 'PurePosixPath' in value_string:
             remove_str = "PurePosixPath('"
             end_index = -2
-        elif 'PosixPath' in list_paths_string:
+        elif 'PosixPath' in value_string:
             remove_str = "PosixPath('"
             end_index = -2
         else:
             remove_str = "('"
             end_index = -2
         # remove unwanted sections of the string items
-        list_paths = []
+        value_original_type = []
         for path in list_string_red:
-            list_paths.append(pathlib.Path(
+            value_original_type.append(pathlib.Path(
                 path.replace(remove_str, '')[:end_index]))
-    return list_paths
+    return value_original_type
 
 def adjust_time_units(time_sec):
     '''Turns seconds into relevant time units.
@@ -464,47 +469,7 @@ def check_extraction_variables(sr=None, feature_type=None,
         raise ValueError('window_shift must be an integer or float, '+\
             'not {} of type {}.'.format(percent_overlap, type(percent_overlap)))
 
-# TODO: add ensure_only_audio
-def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursive=False):
-    '''Collects all files within a given directory.
-    
-    This includes the option to include hidden_files in the collection.
-    
-    Parameters
-    ----------
-    directory : str or pathlib.PosixPath
-        The path to where desired files are located.
-    hidden_files : bool 
-        If True, hidden files will be included. If False, they won't.
-        (default False)
-    wav_only : bool 
-        If True, only .wav files will be included. Otherwise, no limit
-        on file type. 
-    
-    Returns
-    -------
-    paths_list : list of pathlib.PosixPath objects
-        Sorted list of file pathways.
-    '''
-    if not isinstance(directory, pathlib.PosixPath):
-        directory = pathlib.Path(directory)
-    paths_list = []
-    # allow all data types to be collected (not only .wav)
-    if wav_only:
-        filetype = '*.wav'
-    else: 
-        filetype = '*'
-    if recursive:
-        filetype = '**/' + filetype
-    for item in directory.glob(filetype):
-        paths_list.append(item)
-    # pathlib.glob collects hidden files as well - remove them if they are there:
-    if not hidden_files:
-        paths_list = [x for x in paths_list if x.stem[0] != '.']
-    # ensure only audiofiles:
-    paths_list = pyst.data.ensure_only_audiofiles(paths_list)
-    return paths_list
-    
+
 def check_noisy_clean_match(noisyfilename, cleanfilename):
     '''Checks if the clean filename is inside of the noisy filename.
     
@@ -519,7 +484,7 @@ def check_noisy_clean_match(noisyfilename, cleanfilename):
         print('{} is not in {}.'.format(clean, noisy))
         return False
     
-def check_length_match(filename1, filename2):   
+def audiofile_length_match(filename1, filename2):   
     '''Checks that two audiofiles have the same length.
     
     This may be useful if you have clean and noisy audiofiles that 
@@ -562,77 +527,16 @@ def check_length_match(filename1, filename2):
     else:
         return True
 
-def make_number(value):
-    '''If possibe, turns a string into an int, float, or None value.
-
-    This is useful when loading values from a dictionary that are 
-    supposed to be integers, floats, or None values instead of strings.
-
-    Parameters
-    ----------
-    value : str
-        The string that should become a number
-
-    Returns
-    ----------
-    Return value : int, float, None or str
-        If `value` is an integer of type str, the number is converted to type int.
-        If `value` has the structure of a float, it is converted to type float.
-        If `value` is an empty string, it will be converted to type None. 
-        Otherwise, `value` is returned unaltered.
-
-    Examples
-    ----------
-    >>> type_int = make_number('5')
-    >>> type(type_int) 
-    <class 'int'>
-    >>> type_int 
-    5
-    >>> type_float = make_number('0.45')
-    >>> type(type_float) 
-    <class 'float'>
-    >>> type_float 
-    0.45
-    >>> type_none = make_number('')
-    >>> type(type_none) 
-    <class 'NoneType'>
-    >>> type_none 
-    >>>
-    >>> type_str = make_number('53d')
-    Value cannot be converted to a number.
-    >>> type(type_str) 
-    <class 'str'>
-    '''
-    try:
-        if isinstance(value, str) and value == '':
-            value_num = None
-        elif isinstance(value, str) and value.isdigit():
-            value_num = int(value)
-        elif isinstance(value, str):
-            try:
-                value_num = float(value)
-            except ValueError:
-                raise ValueError(
-                    'Value cannot be converted to a number.')
-        else:
-            raise ValueError('Expected string, got {}\
-                             \nReturning original value'.format(
-                type(value)))
-        return value_num
-    except ValueError as e:
-        print(e)
-    return value
-
-def save_dict(dict2save, filename, overwrite=False):
+def save_dict(filename, dict2save, overwrite=False):
     '''Saves dictionary as csv file to indicated path and filename
 
     Parameters
     ----------
-    dict2save : dict
-        The dictionary that is to be saved 
     filename : str 
         The path and name to save the dictionary under. If '.csv' 
         extension is not given, it is added.
+    dict2save : dict
+        The dictionary that is to be saved 
     overwrite : bool, optional
         Whether or not the saved dictionary should overwrite a 
         preexisting file (default False)
@@ -662,7 +566,7 @@ def load_dict(csv_path):
     '''Loads a dictionary from csv file. Expands csv limit if too large.
     
     Increasing the csv limit helps if loading dicitonaries with very long audio 
-    file path lists. For example, see pysoundtool.data.audio2datasets function.
+    file path lists. For example, see pysoundtool.datasets.audio2datasets function.
     '''
     try:
         with open(csv_path, mode='r') as infile:

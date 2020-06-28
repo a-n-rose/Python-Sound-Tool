@@ -134,13 +134,15 @@ data_test_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('test',
 
 ##########################################################
 # create and save encoding/decoding labels dicts
-dict_encode, dict_decode = pyst.data.create_dicts_labelsencoded(labels)
-dict_encode_path = pyst.utils.save_dict(dict_encode, 
-                                    filename = dict_encode_path,
-                                    overwrite=True)
-dict_decode_path = pyst.utils.save_dict(dict_decode, 
-                                    filename = dict_decode_path,
-                                    overwrite=True)
+dict_encode, dict_decode = pyst.datasets.create_dicts_labelsencoded(labels)
+dict_encode_path = pyst.utils.save_dict(
+    dict2save = dict_encode, 
+    filename = dict_encode_path,
+    overwrite=True)
+dict_decode_path = pyst.utils.save_dict(
+    dict2save = dict_decode, 
+    filename = dict_decode_path,
+    overwrite=True)
 
 
 ##########################################################
@@ -163,13 +165,15 @@ for key, value in dict_decode.items():
 
 ##########################################################
 # save audio paths to each label in dict 
-paths_list = pyst.utils.collect_audiofiles(data_dir, recursive=True)
+paths_list = pyst.files.collect_audiofiles(data_dir, recursive=True)
 paths_list = sorted(paths_list)
 
-dict_encodedlabel2audio = pyst.data.create_encodedlabel2audio_dict(dict_encode,
+dict_encodedlabel2audio = pyst.datasets.create_encodedlabel2audio_dict(dict_encode,
                                                     paths_list)
-dict_encdodedlabel2audio_path = pyst.utils.save_dict(dict_encodedlabel2audio, 
-                                        filename = dict_encdodedlabel2audio_path, overwrite=True)
+dict_encdodedlabel2audio_path = pyst.utils.save_dict(
+    dict2save = dict_encodedlabel2audio, 
+    filename = dict_encdodedlabel2audio_path, 
+    overwrite=True)
 
 ##########################################################
 # See what this dictionary looks like:
@@ -183,7 +187,7 @@ for key, value in dict_encodedlabel2audio.items():
 
 ##########################################################
 # assign audiofiles into train, validation, and test datasets
-train, val, test = pyst.data.audio2datasets(dict_encdodedlabel2audio_path,
+train, val, test = pyst.datasets.audio2datasets(dict_encdodedlabel2audio_path,
                                             perc_train=0.8,
                                             limit=None,
                                             seed=40)
@@ -192,8 +196,10 @@ train, val, test = pyst.data.audio2datasets(dict_encdodedlabel2audio_path,
 # save audiofiles for each dataset to dict and save
 dataset_dict = dict([('train',train),('val', val),('test',test)])
 dataset_dict_path = feat_extraction_dir.joinpath('dataset_audiofiles.csv')
-dataset_dict_path = pyst.utils.save_dict(dataset_dict, dataset_dict_path, 
-                                        overwrite=True)
+dataset_dict_path = pyst.utils.save_dict(
+    dict2save = dataset_dict, 
+    filename = dataset_dict_path, 
+    overwrite=True)
     
 ##########################################################
 # save paths to where extracted features of each dataset will be saved to dict w same keys

@@ -405,7 +405,7 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
         after target sound ends (default None).
     
     **kwargs : additional keyword arguments
-        The keyword arguments for pysoundtool.data.loadsound
+        The keyword arguments for pysoundtool.files.loadsound
     
     
     Returns
@@ -423,7 +423,7 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
     
     See Also
     --------
-    pysoundtool.data.loadsound
+    pysoundtool.files.loadsound
         Loads audiofiles.
         
     pysoundtool.dsp.snr_adjustnoiselevel

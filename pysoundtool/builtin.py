@@ -404,7 +404,7 @@ def dataset_logger(audiofile_dir = None, recursive=True):
         audiofile_dir = './'
     audiofile_dir = pyst.utils.check_dir(audiofile_dir)
     
-    audiofiles = pyst.utils.collect_audiofiles(audiofile_dir,
+    audiofiles = pyst.files.collect_audiofiles(audiofile_dir,
                                                recursive = recursive)
     
     audiofile_dict = dict()
@@ -503,10 +503,10 @@ def dataset_formatter(audiodirectory=None, recursive=False, new_dir=None, sr=Non
     
     See Also
     --------
-    pysoundtool.utils.collect_audiofiles
+    pysoundtool.files.collect_audiofiles
         Collects audiofiles from a given directory.
         
-    pysoundtool.data.conversion_formats
+    pysoundtool.files.conversion_formats
         The available formats for converting audio data.
         
     soundfile.available_subtypes
@@ -528,7 +528,7 @@ def dataset_formatter(audiodirectory=None, recursive=False, new_dir=None, sr=Non
         audiodirectory = './'
     # ensure audiodirectory exists
     audiodirectory = pyst.utils.check_dir(audiodirectory, make=False)
-    audiofiles = pyst.utils.collect_audiofiles(audiodirectory,
+    audiofiles = pyst.files.collect_audiofiles(audiodirectory,
                                                recursive=recursive)
     
 
@@ -582,7 +582,7 @@ def dataset_formatter(audiodirectory=None, recursive=False, new_dir=None, sr=Non
             
         # change the audio file name to match desired file format:
         if format:
-            new_filename = pyst.data.replace_ext(new_filename, format.lower())
+            new_filename = pyst.files.replace_ext(new_filename, format.lower())
             
         try:
             new_filename = pyst.savesound(new_filename, y, sr2, 
@@ -627,7 +627,7 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
         A value to allow random order of audiofiles to be predictable. 
         (default None). If None, the order of audiofiles will not be predictable.
     **kwargs : additional keyword arguments
-        The keyword arguments for pysoundtool.data.loadsound
+        The keyword arguments for pysoundtool.files.loadsound
         
 
     Returns
@@ -639,7 +639,7 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
         
     See Also
     --------
-    pysoundtool.data.loadsound
+    pysoundtool.files.loadsound
         Loads audiofiles.
     
     pysoundtool.dsp.add_backgroundsound
@@ -669,11 +669,11 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
     newdata_noisy_dir = pyst.utils.check_dir(newdata_noisy_dir, make = True)
    
     # collect audiofiles (not limited to .wav files)
-    cleanaudio = sorted(pyst.utils.collect_audiofiles(cleandata_dir,
+    cleanaudio = sorted(pyst.files.collect_audiofiles(cleandata_dir,
                                                       hidden_files = False,
                                                       wav_only = False,
                                                       recursive = False))
-    noiseaudio = sorted(pyst.utils.collect_audiofiles(noisedata_dir,
+    noiseaudio = sorted(pyst.files.collect_audiofiles(noisedata_dir,
                                                       hidden_files = False,
                                                       wav_only = False,
                                                       recursive = False))
@@ -813,24 +813,28 @@ def envclassifier_feats(
                                                                         feature_type))
 
     # create and save encoding/decoding labels dicts
-    dict_encode, dict_decode = pyst.data.create_dicts_labelsencoded(labels)
-    dict_encode_path = pyst.utils.save_dict(dict_encode, 
-                                        filename = dict_encode_path,
-                                        overwrite=False)
-    dict_decode_path = pyst.utils.save_dict(dict_encode, 
-                                        filename = dict_decode_path,
-                                        overwrite=False)
+    dict_encode, dict_decode = pyst.datasets.create_dicts_labelsencoded(labels)
+    dict_encode_path = pyst.utils.save_dict(
+        filename = dict_encode_path,
+        dict2save = dict_encode, 
+        overwrite=False)
+    dict_decode_path = pyst.utils.save_dict(
+        filename = dict_decode_path,
+        dict2save = dict_encode, 
+        overwrite=False)
 
     # save audio paths to each label in dict 
-    paths_list = pyst.utils.collect_audiofiles(data_dir, recursive=True)
+    paths_list = pyst.files.collect_audiofiles(data_dir, recursive=True)
     paths_list = sorted(paths_list)
 
-    dict_encodedlabel2audio = pyst.data.create_encodedlabel2audio_dict(dict_encode,
+    dict_encodedlabel2audio = pyst.datasets.create_encodedlabel2audio_dict(dict_encode,
                                                         paths_list)
-    dict_encdodedlabel2audio_path = pyst.utils.save_dict(dict_encodedlabel2audio, 
-                                            filename = dict_encdodedlabel2audio_path, overwrite=False)
+    dict_encdodedlabel2audio_path = pyst.utils.save_dict(
+        dict2save = dict_encodedlabel2audio, 
+        filename = dict_encdodedlabel2audio_path, 
+        overwrite=False)
     # assign audiofiles into train, validation, and test datasets
-    train, val, test = pyst.data.audio2datasets(dict_encdodedlabel2audio_path,
+    train, val, test = pyst.datasets.audio2datasets(dict_encdodedlabel2audio_path,
                                                 perc_train=0.8,
                                                 limit=None,
                                                 seed=40)
@@ -838,8 +842,10 @@ def envclassifier_feats(
     # save audiofiles for each dataset to dict and save
     dataset_dict = dict([('train',train),('val', val),('test',test)])
     dataset_dict_path = feat_extraction_dir.joinpath('dataset_audiofiles.csv')
-    dataset_dict_path = pyst.utils.save_dict(dataset_dict, dataset_dict_path, 
-                                            overwrite=True)
+    dataset_dict_path = pyst.utils.save_dict(
+        dict2save = dataset_dict, 
+        filename = dataset_dict_path, 
+        overwrite=True)
     # save paths to where extracted features of each dataset will be saved to dict w same keys
     datasets_path2save_dict = dict([('train',data_train_path),
                                     ('val', data_val_path),
@@ -870,8 +876,8 @@ def envclassifier_feats(
                             datasets_path2save_dict=datasets_path2save_dict,
                             total_dur_sec = total_dur_sec)
     dataprep_settings_path = pyst.utils.save_dict(
-        dataprep_settings,
-        feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
+        dict2save = dataprep_settings,
+        filename = feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
     
     return feat_extraction_dir
 
@@ -928,7 +934,7 @@ def denoiser_feats(
         
     See Also
     --------
-    pysoundtool.data.create_denoise_data
+    pysoundtool.datasets.create_denoise_data
         Applies noise at specified SNR levels to clean audio files.
     
     pysoundtool.feats.get_feats
@@ -980,7 +986,7 @@ def denoiser_feats(
 
     # 3) collect audiofiles and divide them into train, val, and test datasets
     # noisy data
-    noisyaudio = pyst.utils.collect_audiofiles(audio_noisy_path, 
+    noisyaudio = pyst.files.collect_audiofiles(audio_noisy_path, 
                                                     hidden_files = False,
                                                     wav_only = False,
                                                     recursive = False)
@@ -988,7 +994,7 @@ def denoiser_feats(
     noisyaudio = sorted(noisyaudio)
 
     # clean data
-    cleanaudio = pyst.utils.collect_audiofiles(audio_clean_path, 
+    cleanaudio = pyst.files.collect_audiofiles(audio_clean_path, 
                                                     hidden_files = False,
                                                     wav_only = False,
                                                     recursive = False)
@@ -1005,15 +1011,19 @@ def denoiser_feats(
     clean_audio_dict = dict([('clean', cleanaudio)])
     
     noisy_audio_dict_path = feat_extraction_dir.joinpath('noisy_audio.csv')
-    noisy_audio_dict_path = pyst.utils.save_dict(noisy_audio_dict, noisy_audio_dict_path,
-                                                overwrite=False)
+    noisy_audio_dict_path = pyst.utils.save_dict(
+        dict2save = noisy_audio_dict, 
+        filename = noisy_audio_dict_path,
+        overwrite=False)
     clean_audio_dict_path = feat_extraction_dir.joinpath('clean_audio.csv')
-    clean_audio_dict_path = pyst.utils.save_dict(clean_audio_dict, clean_audio_dict_path,
-                                                overwrite=False)
+    clean_audio_dict_path = pyst.utils.save_dict(
+        dict2save = clean_audio_dict, 
+        filename = clean_audio_dict_path,
+        overwrite=False)
     # separate into datasets
-    train_noisy, val_noisy, test_noisy = pyst.data.audio2datasets(noisy_audio_dict_path,
+    train_noisy, val_noisy, test_noisy = pyst.datasets.audio2datasets(noisy_audio_dict_path,
                                                                 seed=40)
-    train_clean, val_clean, test_clean = pyst.data.audio2datasets(clean_audio_dict_path,
+    train_clean, val_clean, test_clean = pyst.datasets.audio2datasets(clean_audio_dict_path,
                                                                 seed=40)
 
     # save train, val, test dataset assignments to dict
@@ -1032,12 +1042,14 @@ def denoiser_feats(
     path2_clean_datasets = feat_extraction_dir.joinpath('audiofiles_datasets_clean.csv')
 
     # save dicts to .csv files
-    path2_noisy_datasets = pyst.utils.save_dict(dataset_dict_noisy,
-                                                    path2_noisy_datasets,
-                                                    overwrite=False)
-    path2_clean_datasets = pyst.utils.save_dict(dataset_dict_clean,
-                                                    path2_clean_datasets,
-                                                    overwrite=False)
+    path2_noisy_datasets = pyst.utils.save_dict(
+        dict2save = dataset_dict_noisy,
+        filename = path2_noisy_datasets,
+        overwrite=False)
+    path2_clean_datasets = pyst.utils.save_dict(
+        dict2save = dataset_dict_clean,
+        filename = path2_clean_datasets,
+        overwrite=False)
 
     # 5) extract features
             
@@ -1084,8 +1096,8 @@ def denoiser_feats(
                             dataset_paths_clean_dict = dataset_paths_clean_dict,
                             total_dur_sec = total_dur_sec)
     dataprep_settings_path = pyst.utils.save_dict(
-        dataprep_settings,
-        feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
+        dict2save = dataprep_settings,
+        filename = feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
     return feat_extraction_dir
 
 
@@ -1147,7 +1159,7 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
         
     See Also
     --------
-    pysoundtool.data.separate_train_val_test_files
+    pysoundtool.datasets.separate_train_val_test_files
         Generates paths lists for train, validation, and test files. Useful
         for noisy vs clean datasets and also for multiple training files.
     
@@ -1180,14 +1192,14 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
     # prepare features files to load for training
     features_files = list(dataset_path.glob('*.npy'))
     # NamedTuple: 'datasets.train.noisy', 'datasets.train.clean', etc.
-    datasets = pyst.data.separate_train_val_test_files(
+    datasets = pyst.datasets.separate_train_val_test_files(
         features_files)
     
     # TODO test this:
     if not datasets.train:
         # perhaps data files located in subdirectories 
         features_files = list(dataset_path.glob('**/*.npy'))
-        datasets = pyst.data.separate_train_val_test_files(
+        datasets = pyst.datasets.separate_train_val_test_files(
             features_files)
         if not datasets.train:
             raise FileNotFoundError('Could not locate train, validation, or test '+\
@@ -1235,14 +1247,16 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
     # save variables that are not too large:
     local_variables = locals()
     global_variables = globals()
-    pyst.utils.save_dict(local_variables, 
-                        model_dir.joinpath('local_variables_{}.csv'.format(
+    pyst.utils.save_dict(
+        dict2save = local_variables, 
+        filename = model_dir.joinpath('local_variables_{}.csv'.format(
                             model_name)),
                         overwrite=True)
-    pyst.utils.save_dict(global_variables,
-                        model_dir.joinpath('global_variables_{}.csv'.format(
+    pyst.utils.save_dict(
+        dict2save = global_variables,
+        filename = model_dir.joinpath('global_variables_{}.csv'.format(
                             model_name)),
-                        overwrite = True)
+        overwrite = True)
         
     # start training
     start = time.time()
@@ -1323,8 +1337,9 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
 
         model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
             model_name, i))
-        model_features_dict_path = pyst.utils.save_dict(model_features_dict,
-                                                        model_features_dict_path)
+        model_features_dict_path = pyst.utils.save_dict(
+            dict2save = model_features_dict,
+            filename = model_features_dict_path)
     print('\nFinished training the model. The model and associated files can be '+\
         'found here: \n{}'.format(model_dir))
     
@@ -1388,7 +1403,7 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
         
     See Also
     --------
-    pysoundtool.data.separate_train_val_test_files
+    pysoundtool.datasets.separate_train_val_test_files
         Generates paths lists for train, validation, and test files. Useful
         for noisy vs clean datasets and also for multiple training files.
     
@@ -1421,14 +1436,14 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
     # prepare features files to load for training
     features_files = list(dataset_path.glob('*.npy'))
     # NamedTuple: 'datasets.train', 'datasets.val', 'datasets.test'
-    datasets = pyst.data.separate_train_val_test_files(
+    datasets = pyst.datasets.separate_train_val_test_files(
         features_files)
     
     # TODO test
     if not datasets.train:
         # perhaps data files located in subdirectories 
         features_files = list(dataset_path.glob('**/*.npy'))
-        datasets = pyst.data.separate_train_val_test_files(
+        datasets = pyst.datasets.separate_train_val_test_files(
             features_files)
         if not datasets.train:
             raise FileNotFoundError('Could not locate train, validation, or test '+\
@@ -1477,14 +1492,16 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
     # save variables that are not too large:
     local_variables = locals()
     global_variables = globals()
-    pyst.utils.save_dict(local_variables, 
-                        model_dir.joinpath('local_variables_{}.csv'.format(
+    pyst.utils.save_dict(
+        dict2save = local_variables, 
+        filename = model_dir.joinpath('local_variables_{}.csv'.format(
                             model_name)),
-                        overwrite=True)
-    pyst.utils.save_dict(global_variables,
-                        model_dir.joinpath('global_variables_{}.csv'.format(
+        overwrite=True)
+    pyst.utils.save_dict(
+        dict2save = global_variables,
+        filename = model_dir.joinpath('global_variables_{}.csv'.format(
                             model_name)),
-                        overwrite = True)
+        overwrite = True)
         
     # start training
     start = time.time()
@@ -1593,8 +1610,9 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
 
         model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
             model_name, i))
-        model_features_dict_path = pyst.utils.save_dict(model_features_dict,
-                                                        model_features_dict_path)
+        model_features_dict_path = pyst.utils.save_dict(
+            filename = model_features_dict_path,
+            dict2save = model_features_dict)
     print('\nFinished training the model. The model and associated files can be '+\
         'found here: \n{}'.format(model_dir))
     
@@ -1685,14 +1703,14 @@ def denoiser_run(model, new_audiofile, feat_settings_dict):
         # reshape here to avoid memory issues if total # samples is large
         feats = feats_zeropadded.reshape(desired_shape)
     
-    feats = pystmodels.dataprep.prep_new_audiofeats(feats,
-                                                    desired_shape,
-                                                    input_shape)
+    feats = pyst.feats.prep_new_audiofeats(feats,
+                                           desired_shape,
+                                           input_shape)
     # ensure same shape as feats
     if original_phase is not None:
-        original_phase = pystmodels.dataprep.prep_new_audiofeats(original_phase, 
-                                                   desired_shape,
-                                                   input_shape)
+        original_phase = pyst.feats.prep_new_audiofeats(original_phase,
+                                                        desired_shape,
+                                                        input_shape)
     
     
     feats_normed = pyst.feats.normalize(feats)

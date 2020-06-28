@@ -1,20 +1,22 @@
 ###############################################################################
 from . import utils
 from . import feats
-from .feats import plotsound 
+from . import files
+from . import datasets
 from . import filters
-from .filters import WienerFilter, BandSubtraction
 from . import dsp
-from .dsp import generate_sound, generate_noise
-from .data import loadsound, savesound
-from . import data
 from . import builtin
+from . import exceptions as errors
+from .files import loadsound, savesound
+from .feats import plotsound 
+from .filters import WienerFilter, BandSubtraction
+from .dsp import generate_sound, generate_noise
 from .builtin import envclassifier_feats, denoiser_feats, denoiser_train, \
     envclassifier_train, denoiser_run, filtersignal
-from . import exceptions as errors
+
 
 __all__=['utils', 'feats', 'filters', 
          'WienerFilter', 'BandSubtraction','filtersignal','dsp','errors',
-         'plotsound', 'loadsound', 'savesound', 'data', 'envclassifier_feats',
+         'plotsound', 'loadsound', 'savesound', 'datasets', 'envclassifier_feats',
          'denoiser_feats', 'denoiser_train', 'envclassifier_train',
          'generate_sound', 'generate_noise', 'denoiser_run', 'builtin']

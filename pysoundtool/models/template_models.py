@@ -1,3 +1,6 @@
+'''The models.template_models module contains functions for building (ideally research-based) models.
+'''
+
 import os, sys
 import inspect
 import pathlib

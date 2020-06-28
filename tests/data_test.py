@@ -217,10 +217,10 @@ def test_savesound_default_overwrite():
     soundobject2 = sf.SoundFile(filename)
     assert soundobject1.format == soundobject2.format
 
-def test_adjust_data_shape_last_column():
+def test_adjust_shape_last_column():
     desired_shape = (3,3,5)
     input_data = np.ones((3,3,3))
-    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+    input_adjusted = pyst.feats.adjust_shape(input_data, 
                                            desired_shape = desired_shape)
     expected = np.array([[[1., 1., 1., 0., 0.],
                           [1., 1., 1., 0., 0.],
@@ -237,7 +237,7 @@ def test_adjust_data_shape_last_column():
 def test_adjust_feature_shape_several_columns():
     desired_shape = (3,4,5)
     input_data = np.ones((3,3,3))
-    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+    input_adjusted = pyst.feats.adjust_shape(input_data, 
                                            desired_shape = desired_shape)
     expected = np.array([[[1., 1., 1., 0., 0.],
                           [1., 1., 1., 0., 0.],
@@ -257,7 +257,7 @@ def test_adjust_feature_shape_several_columns():
 def test_adjust_feature_shape_smaller():
     desired_shape = (3,3,2)
     input_data = np.ones((3,3,3))
-    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+    input_adjusted = pyst.feats.adjust_shape(input_data, 
                                            desired_shape = desired_shape)
     expected = np.array([[[1., 1.],
                           [1., 1.],
@@ -274,7 +274,7 @@ def test_adjust_feature_shape_smaller():
 def test_adjust_feature_shape_tuple_smaller():
     desired_shape = (3,2,2)
     input_data = np.ones((3,3,3))
-    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+    input_adjusted = pyst.feats.adjust_shape(input_data, 
                                            desired_shape = desired_shape)
     expected = np.array([[[1., 1.],
                           [1., 1.]],
@@ -289,13 +289,13 @@ def test_adjust_feature_shape_mismatch_dims_error():
     desired_shape = (3,2,2)
     input_data = np.ones((3,3,3,3))
     with pytest.raises(ValueError):
-        input_adjusted = pyst.data.adjust_data_shape(input_data, 
+        input_adjusted = pyst.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
 
 def test_adjust_feature_shape_2dims():
     desired_shape = (3,4)
     input_data = np.ones((3,3))
-    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+    input_adjusted = pyst.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
     expected = np.array([[1., 1., 1., 0.],[1., 1., 1., 0.],[1., 1., 1., 0.]])
     assert np.array_equal(input_adjusted, expected)
@@ -304,7 +304,7 @@ def test_adjust_feature_shape_2dims():
 def test_adjust_feature_shape_1dim_zeropad():
     desired_shape = (4,)
     input_data = np.ones((3,))
-    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+    input_adjusted = pyst.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
     expected = np.array([1., 1., 1., 0.])
     assert np.array_equal(input_adjusted, expected)
@@ -313,7 +313,7 @@ def test_adjust_feature_shape_1dim_zeropad():
 def test_adjust_feature_shape_1dim_limit():
     desired_shape = (2,)
     input_data = np.ones((3,))
-    input_adjusted = pyst.data.adjust_data_shape(input_data, 
+    input_adjusted = pyst.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
     expected = np.array([1., 1.])
     assert np.array_equal(input_adjusted, expected)
@@ -323,7 +323,7 @@ def test_adjust_feature_shape_adding_extra_dimensions():
     desired_shape = (3,2,2,1)
     input_data = np.ones((3,3,3))
     with pytest.raises(ValueError):
-        input_adjusted = pyst.data.adjust_data_shape(input_data, 
+        input_adjusted = pyst.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
 
 def test_audio2datasets_seed0_error():
@@ -387,7 +387,9 @@ def test_audio2datasets_labeledaudio_loaddict():
     saved_dict_path = 'testtest.csv'
     if os.path.exists(saved_dict_path):
         os.remove(saved_dict_path)
-    saved_dict_path = pyst.utils.save_dict(dict_input,saved_dict_path)
+    saved_dict_path = pyst.utils.save_dict(
+        dict2save = dict_input,
+        filename = saved_dict_path)
     dataset_tuple = pyst.data.audio2datasets(saved_dict_path, seed=40)
     for i, dataset in enumerate(dataset_tuple):
         print(i)
@@ -425,7 +427,9 @@ def test_audio2datasets_labeledaudio_loaddict_1label():
     saved_dict_path = 'testtest.csv'
     if os.path.exists(saved_dict_path):
         os.remove(saved_dict_path)
-    saved_dict_path = pyst.utils.save_dict(dict_input,saved_dict_path)
+    saved_dict_path = pyst.utils.save_dict(
+        dict2save = dict_input,
+        filename = saved_dict_path)
     dataset_tuple = pyst.data.audio2datasets(saved_dict_path, seed=40)
     for i, dataset in enumerate(dataset_tuple):
         print(i)

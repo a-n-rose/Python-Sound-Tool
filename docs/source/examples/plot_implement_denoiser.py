@@ -92,8 +92,8 @@ noisy_audio_datasets = pyst.utils.load_dict(
 
 #########################################################
 # Let's use the first two from the test dataset. The denoiser has never seen these.
-clean_audio_test = pyst.utils.string2list(clean_audio_datasets['test'])
-noisy_audio_test = pyst.utils.string2list(noisy_audio_datasets['test'])
+clean_audio_test = pyst.utils.restore_dictvalue(clean_audio_datasets['test'])
+noisy_audio_test = pyst.utils.restore_dictvalue(noisy_audio_datasets['test'])
 clean_sample = clean_audio_test[0]
 noisy_sample = noisy_audio_test[0]
 

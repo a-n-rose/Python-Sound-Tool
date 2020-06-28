@@ -1,3 +1,6 @@
+'''The models.dataprep module covers functionality for feeding features to models.
+'''
+
 import os, sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(
@@ -134,10 +137,10 @@ class Generator:
             # if need greater number of features --> zero padding
             # could this be applied to including both narrowband and wideband data?
             if self.desired_shape is not None:
-                batch_x = pyst.data.adjust_data_shape(batch_x, self.desired_shape)
+                batch_x = pyst.feats.adjust_shape(batch_x, self.desired_shape)
                 
                 if self.labels is None:
-                    batch_y = pyst.data.adjust_data_shape(batch_y, self.desired_shape)
+                    batch_y = pyst.feats.adjust_shape(batch_y, self.desired_shape)
             
             # add tensor dimension
             X_batch = batch_x.reshape(batch_x.shape+(1,))
@@ -156,28 +159,3 @@ class Generator:
             if self.counter >= self.number_of_batches:
                 self.counter = 0
 
-def prep_new_audiofeats(feats, desired_shape, input_shape):
-    '''Prepares new audio data to feed to a pre-trained model.
-    
-    Parameters
-    ----------
-    feats : np.ndarray [shape = (num_frames, num_features)]
-        The features to prepare for feeding to a model.
-    
-    desired_shape : tuple 
-        The expected number of samples necessary to fulfill the expected
-        `input_shape` for the model. The `feats` will be zeropadded or
-        limited to match this `desired_shape`.
-    
-    input_shape : tuple 
-        The `input_shape` the model expects a single sample of data to be.
-        
-    Returns
-    -------
-    feats_reshaped : np.ndarray [shape = (`input_shape`)]
-        The features reshaped to what the model expects.
-    '''
-    feats_reshaped = pyst.data.adjust_data_shape(feats, desired_shape)
-    # reshape to input shape with a necessary "tensor" dimension
-    feats_reshaped = feats_reshaped.reshape(input_shape+(1,))
-    return feats_reshaped

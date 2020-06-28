@@ -147,6 +147,60 @@ def plot(feature_matrix, feature_type,
     else:
         plt.show()
 
+
+
+def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
+    percent_overlap = 0.5, num_filters=40, num_mfcc=40, sr=None,\
+        save_pic=False, name4pic=None, power_scale=None, mono=None, **kwargs):
+    '''Visualize feature extraction depending on set parameters. Does not use Librosa.
+    
+    Parameters
+    ----------
+    audiodata : str or numpy.ndarray
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. Note: in the latter case, `sr`
+        must be declared.
+    feature_type : str
+        Options: 'signal', 'mfcc', or 'fbank' features. 
+        MFCC: mel frequency cepstral
+        coefficients; FBANK: mel-log filterbank energies (default 'fbank')
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 20)
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1.
+    num_filters : int
+        Number of mel-filters to be used when applying mel-scale. For 
+        'fbank' features, 20-128 are common, with 40 being very common.
+        (default 40)
+    num_mfcc : int
+        Number of mel frequency cepstral coefficients. First coefficient
+        pertains to loudness; 2-13 frequencies relevant for speech; 13-40
+        for acoustic environment analysis or non-linguistic information.
+        Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
+        is set to 40, all 40 coefficients will be included.
+        (default 40). 
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. (default None)
+    mono : bool, optional
+        When loading an audiofile, True will limit number of channels to
+        one; False will allow more channels to be loaded. (default None, 
+        which results in mono channel loading.)
+    **kwargs : additional keyword arguments
+        Keyword arguments for pysoundtool.feats.plot
+    '''
+    percent_overlap = check_percent_overlap(percent_overlap)
+    feats = pyst.feats.get_feats(audiodata, features=feature_type, 
+                      win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                      num_filters=num_filters, num_mfcc = num_mfcc, sr=sr,
+                      mono=mono)
+    pyst.feats.plot(feats, feature_type=feature_type, sr=sr,
+                    save_pic = save_pic, name4pic=name4pic, scale=power_scale,
+                    **kwargs)
+
 # TODO test duration limit on all settings
 def get_feats(sound,
               sr=None, 
@@ -282,7 +336,7 @@ def get_feats(sound,
                           mono = mono)
     return feats
 
-# TODO possibly remove? Doesn't use Librsoa, insetad
+# TODO possibly remove? Doesn't use Librsoa, instead
 # python_speech_features
 def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
                      percent_overlap=0.5, num_filters=40, num_mfcc=40,
@@ -324,62 +378,118 @@ def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
                      winfunc=window_function)
     return feats, frame_length, win_size_ms
 
-
-def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
-    percent_overlap = 0.5, num_filters=40, num_mfcc=40, sr=None,\
-        save_pic=False, name4pic=None, power_scale=None, mono=None, **kwargs):
-    '''Visualize feature extraction depending on set parameters. Does not use Librosa.
-    
-    Parameters
-    ----------
-    audiodata : str or numpy.ndarray
-        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
-        the samples of the sound data. Note: in the latter case, `sr`
-        must be declared.
-    feature_type : str
-        Options: 'signal', 'mfcc', or 'fbank' features. 
-        MFCC: mel frequency cepstral
-        coefficients; FBANK: mel-log filterbank energies (default 'fbank')
-    win_size_ms : int or float
-        Window length in milliseconds for Fourier transform to be applied
-        (default 20)
-    percent_overlap : int or float 
-        Amount of overlap between processing windows. For example, if `percent_overlap`
-        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
-        If an integer is provided, it will be converted to a float between 0 and 1.
-    num_filters : int
-        Number of mel-filters to be used when applying mel-scale. For 
-        'fbank' features, 20-128 are common, with 40 being very common.
-        (default 40)
-    num_mfcc : int
-        Number of mel frequency cepstral coefficients. First coefficient
-        pertains to loudness; 2-13 frequencies relevant for speech; 13-40
-        for acoustic environment analysis or non-linguistic information.
-        Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
-        is set to 40, all 40 coefficients will be included.
-        (default 40). 
-    sr : int, optional
-        The sample rate of the sound data or the desired sample rate of
-        the wavfile to be loaded. (default None)
-    mono : bool, optional
-        When loading an audiofile, True will limit number of channels to
-        one; False will allow more channels to be loaded. (default None, 
-        which results in mono channel loading.)
-    **kwargs : additional keyword arguments
-        Keyword arguments for pysoundtool.feats.plot
+def zeropad_features(feats, desired_shape, complex_vals = False):
+    '''Applies zeropadding to a copy of feats. 
     '''
-    percent_overlap = check_percent_overlap(percent_overlap)
-    feats = pyst.feats.get_feats(audiodata, features=feature_type, 
-                      win_size_ms = win_size_ms, percent_overlap = percent_overlap,
-                      num_filters=num_filters, num_mfcc = num_mfcc, sr=sr,
-                      mono=mono)
-    if 'signal' in feature_type:
-        feats, sr = feats
-    else:
-        sr = None
-    pyst.feats.plot(feats, feature_type=feature_type, sr=sr,
-                    save_pic = save_pic, name4pic=name4pic, scale=power_scale,
-                    **kwargs)
+    # to avoid UFuncTypeError:
+    if feats.dtype == np.complex or feats.dtype == np.complex64 or \
+        feats.dtype == np.complex128:
+            complex_vals = True
+    fts = feats.copy()
+    if feats.shape != desired_shape:
+        if complex_vals:
+            dtype = np.complex
+        else:
+            dtype = np.float
+        empty_matrix = np.zeros(desired_shape, dtype = dtype)
+        try:
+            if len(desired_shape) == 1:
+                empty_matrix[:feats.shape[0]] += feats
+            elif len(desired_shape) == 2:
+                empty_matrix[:feats.shape[0], 
+                            :feats.shape[1]] += feats
+            elif len(desired_shape) == 3:
+                empty_matrix[:feats.shape[0], 
+                            :feats.shape[1],
+                            :feats.shape[2]] += feats
+            elif len(desired_shape) == 4:
+                empty_matrix[:feats.shape[0], 
+                            :feats.shape[1],
+                            :feats.shape[2],
+                            :feats.shape[3]] += feats
+            elif len(desired_shape) == 5:
+                empty_matrix[:feats.shape[0], 
+                            :feats.shape[1],
+                            :feats.shape[2],
+                            :feats.shape[3],
+                            :feats.shape[4]] += feats
+            else:
+                raise TypeError('Zeropadding columns requires a matrix with '+\
+                    'a minimum of 1 dimension and maximum of 5 dimensions.')
+            fts = empty_matrix
+        except ValueError as e:
+            print(e)
+            raise ValueError('The desired shape is smaller than the original shape.'+ \
+                ' No zeropadding necessary.')
+        except IndexError as e:
+            print(e)
+            raise IndexError('The dimensions do not align. Zeropadding '+ \
+                'expects same number of dimensions.')
+    assert fts.shape == desired_shape
+    return fts
+
+def reduce_num_features(feats, desired_shape, complex_vals = False):
+    '''Limits number features of a copy of feats. 
+    '''
+    fts = feats.copy()
+    if feats.shape != desired_shape:
+        if complex_vals:
+            dtype = np.complex_
+        else:
+            dtype = np.float
+        empty_matrix = np.zeros(desired_shape, dtype = dtype)
+        try:
+            if len(desired_shape) == 1:
+                empty_matrix += feats[:empty_matrix.shape[0]]
+            elif len(desired_shape) == 2:
+                empty_matrix += feats[:empty_matrix.shape[0], 
+                            :empty_matrix.shape[1]]
+            elif len(desired_shape) == 3:
+                empty_matrix += feats[:empty_matrix.shape[0], 
+                            :empty_matrix.shape[1],
+                            :empty_matrix.shape[2]]
+            elif len(desired_shape) == 4:
+                empty_matrix += feats[:empty_matrix.shape[0], 
+                            :empty_matrix.shape[1],
+                            :empty_matrix.shape[2],
+                            :empty_matrix.shape[3]]
+            elif len(desired_shape) == 5:
+                empty_matrix += feats[:empty_matrix.shape[0], 
+                            :empty_matrix.shape[1],
+                            :empty_matrix.shape[2],
+                            :empty_matrix.shape[3],
+                            :empty_matrix.shape[4]]
+            else:
+                raise TypeError('Reducing items in columns requires a matrix with'+\
+                    ' a minimum of 1 dimension and maximum of 5 dimensions.')
+            fts = empty_matrix
+        except ValueError as e:
+            print(e)
+            raise ValueError('The desired shape is larger than the original shape.'+ \
+                ' Perhaps try zeropadding.')
+        except IndexError as e:
+            print(e)
+            raise IndexError('The dimensions do not align. Zeropadding '+ \
+                'expects same number of dimensions.')
+    assert fts.shape == desired_shape
+    return fts
+
+# TODO remove warning for 'operands could not be broadcast together with shapes..'
+def adjust_shape(data, desired_shape):
+    if len(data.shape) != len(desired_shape):
+        raise ValueError('Cannot adjust data to a different number of '+\
+            'dimensions.\nOriginal data shape: '+str(data.shape)+ \
+                '\nDesired shape: '+str(desired_shape))
+    # attempt to zeropad data:
+    try:
+        data_prepped = pyst.feats.zeropad_features(data, 
+                                                  desired_shape = desired_shape)
+    # if zeropadding is smaller than data.shape/features:
+    except ValueError:
+        # remove extra data/columns to match desired_shape:
+        data_prepped = pyst.feats.reduce_num_features(data, 
+                                                 desired_shape = desired_shape)
+    return data_prepped
 
 def check_percent_overlap(percent_overlap):
     '''Ensures percent_overlap is between 0 and 1.
@@ -669,7 +779,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         given for `datasets_dict`.
     subsection_data : bool 
         If you have a large dataset, you may want to divide it into subsections. See 
-        pysoundtool.data.subsection_data. If datasets are large enough to raise a MemoryError, 
+        pysoundtool.datasets.subsection_data. If datasets are large enough to raise a MemoryError, 
         this will be applied automatically.
     divide_factor : int, optional
         The number of subsections to divide data into. Only large enough sections will be divided.
@@ -712,7 +822,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
     if divide_factor is None:
         divide_factor = 5
     if subsection_data:
-        datasets_dict, datasets_path2save_dict = pyst.data.section_data(
+        datasets_dict, datasets_path2save_dict = pyst.datasets.section_data(
             datasets_dict,
             datasets_path2save_dict,
             divide_factor=divide_factor)
@@ -813,7 +923,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                 datadir = datapath.parent
                 # when loading a dictionary, the value is a string
                 if isinstance(value, str):
-                    value = pyst.utils.string2list(value)
+                    value = pyst.utils.restore_dictvalue(value)
                 extraction_shape = (len(value),) + input_shape
                 feats_matrix = pyst.dsp.create_empty_matrix(
                     extraction_shape, 
@@ -873,7 +983,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                         # reshape here to avoid memory issues if total # samples is large
                         feats = feats_zeropadded.reshape(desired_shape)
                     
-                    feats = pyst.data.zeropad_features(
+                    feats = pyst.feats.zeropad_features(
                         feats, 
                         desired_shape = desired_shape,
                         complex_vals = complex_vals)
@@ -923,16 +1033,17 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                      divide_factor=divide_factor,
                                      kwargs = kwargs
                                      )
-                feat_settings_path = pyst.utils.save_dict(feat_settings,
-                                                          log_filename,
-                                                          overwrite=True)
+                feat_settings_path = pyst.utils.save_dict(
+                    dict2save = feat_settings,
+                    filename = log_filename,
+                    overwrite=True)
         else:
             raise ValueError('Sorry, this functionality is not yet supported. '+\
                 'Set `use_librosa` to True.')
     except MemoryError as e:
         print('MemoryError: ',e)
         print('\nSectioning data and trying again.\n')
-        datasets_dict, datasets_path2save_dict = pyst.data.section_data(
+        datasets_dict, datasets_path2save_dict = pyst.datasets.section_data(
             datasets_dict, datasets_path2save_dict, divide_factor=divide_factor)
         datasets_dict, datasets_path2save_dict = save_features_datasets(
             datasets_dict = datasets_dict, 
@@ -954,6 +1065,35 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
             labeled_data = labeled_data,
             log_settings = log_settings)
     return datasets_dict, datasets_path2save_dict
+
+
+def prep_new_audiofeats(feats, desired_shape, input_shape):
+    '''Prepares new audio data to feed to a pre-trained model.
+    
+    Parameters
+    ----------
+    feats : np.ndarray [shape = (num_frames, num_features)]
+        The features to prepare for feeding to a model.
+    
+    desired_shape : tuple 
+        The expected number of samples necessary to fulfill the expected
+        `input_shape` for the model. The `feats` will be zeropadded or
+        limited to match this `desired_shape`.
+    
+    input_shape : tuple 
+        The `input_shape` the model expects a single sample of data to be.
+        
+    Returns
+    -------
+    feats_reshaped : np.ndarray [shape = (`input_shape`)]
+        The features reshaped to what the model expects.
+    '''
+    feats_reshaped = pyst.feats.adjust_shape(feats, desired_shape)
+    # reshape to input shape with a necessary "tensor" dimension
+    feats_reshaped = feats_reshaped.reshape(input_shape+(1,))
+    return feats_reshaped
+
+
 
 def feats2audio(feats, feature_type, sr, win_size_ms,
                 percent_overlap, phase=None):

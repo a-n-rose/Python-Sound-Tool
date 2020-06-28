@@ -137,7 +137,7 @@ data_test_clean_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('
 
 ##########################################################
 # noisy data
-noisyaudio = pyst.utils.collect_audiofiles(audio_noisy_path, 
+noisyaudio = pyst.files.collect_audiofiles(audio_noisy_path, 
                                                 hidden_files = False,
                                                 wav_only = False,
                                                 recursive = False)
@@ -147,7 +147,7 @@ print(noisyaudio[:5])
 
 ##########################################################
 # clean data
-cleanaudio = pyst.utils.collect_audiofiles(audio_clean_path, 
+cleanaudio = pyst.files.collect_audiofiles(audio_clean_path, 
                                                 hidden_files = False,
                                                 wav_only = False,
                                                 recursive = False)
@@ -170,13 +170,13 @@ clean_audio_dict = dict([('clean', cleanaudio)])
 
 ##########################################################
 # Noisy data
-train_noisy, val_noisy, test_noisy = pyst.data.audio2datasets(noisy_audio_dict,
+train_noisy, val_noisy, test_noisy = pyst.datasets.audio2datasets(noisy_audio_dict,
                                                               perc_train=0.8,
                                                               seed=40)
 
 ##########################################################
 # Clean data 
-train_clean, val_clean, test_clean = pyst.data.audio2datasets(clean_audio_dict,
+train_clean, val_clean, test_clean = pyst.datasets.audio2datasets(clean_audio_dict,
                                                               perc_train=0.8,
                                                               seed=40)
 
@@ -297,12 +297,14 @@ print(feat_extraction_dir)
 # assigned to each dataset file, you can save this information
 # so:
 filename = feat_extraction_dir.joinpath('Noisy_Dataset_Assignments.csv')
-noisy_datasets_dict_paths = pyst.utils.save_dict(dataset_dict_noisy, 
-                                                 filename = filename)
+noisy_datasets_dict_paths = pyst.utils.save_dict(
+    dict2save = dataset_dict_noisy, 
+    filename = filename)
 
 filename = feat_extraction_dir.joinpath('Clean_Dataset_Assignments.csv')
-clean_datasets_dict_paths = pyst.utils.save_dict(dataset_dict_clean, 
-                                                 filename = filename)
+clean_datasets_dict_paths = pyst.utils.save_dict(
+    dict2save = dataset_dict_clean, 
+    filename = filename)
 
 ###########################################################################
 # Examining what info is logged
