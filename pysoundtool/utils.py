@@ -112,7 +112,7 @@ def get_date():
                                         int(time.microsecond*0.001))
     return(time_str)
 
-def check_dir(directory, make=True, write_into=True):
+def check_dir(directory, make=True, append=True):
     '''Checks if directory exists and creates it if indicated.
     
     Parameters
@@ -122,7 +122,7 @@ def check_dir(directory, make=True, write_into=True):
     make : bool 
         Whether or not the directory should be created or just checked to
         ensure it exists. (default True)
-    write_into : bool 
+    append : bool 
         If True, if a directory with the same name exists, new items will be
         saved into the old directory. Otherwise, an error will be raised. 
         (default True)
@@ -152,10 +152,10 @@ def check_dir(directory, make=True, write_into=True):
                 raise FileNotFoundError('The following directory does not exist: '+\
                     '\n{}'.format(directory))
         else:
-            if not write_into:
+            if not append:
                 raise FileExistsError('The following directory already exists: '+\
                     '\n{}'.format(directory)+'\nTo write into this directory, '+\
-                        'set `write_into` to True.')
+                        'set `append` to True.')
     except PermissionError:
         raise PermissionError('Problem reading file. Check to ensure the path '+\
             'does not start with a slash: {}'.format(directory))
