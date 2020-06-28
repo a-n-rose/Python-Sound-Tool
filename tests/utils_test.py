@@ -91,7 +91,7 @@ def test_check_dir_check_exists_notwriteinto_raiseerror():
     test_dir = './testtesttest/'
     test_dir = pyst.utils.check_dir(test_dir, make=True)
     with pytest.raises(FileExistsError):
-        test_dir = pyst.utils.check_dir(test_dir, make=False, write_into=False)
+        test_dir = pyst.utils.check_dir(test_dir, make=False, append=False)
     os.rmdir(test_dir)
     
 def test_check_dir_pathwithextension_raiseerror():
