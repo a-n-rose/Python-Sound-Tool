@@ -1271,6 +1271,10 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
 
     for i, train_path in enumerate(train_paths_noisy):
         if i == 0:
+            if 'epochs' in kwargs:
+                epochs = kwargs['epochs']
+            else:
+                epochs = 10 # default in Keras
             total_epochs = epochs * len(train_paths_noisy)
             print('\n\nThe model will be trained {} epochs per '.format(epochs)+\
                 'training session. \nTotal possible epochs: {}\n\n'.format(total_epochs))
@@ -1293,14 +1297,15 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
         data_val_clean = np.load(data_val_clean_path)
 
         # reinitiate 'callbacks' for additional iterations
+        # TODO test for when callbacks already in **kwargs
         if i > 0: 
             if 'callbacks' not in kwargs:
                 callbacks = pystmodels.setup_callbacks(patience = patience,
                                                         best_modelname = model_path, 
                                                         log_filename = model_dir.joinpath('log.csv'))
-            else:
-                # apply callbacks set in **kwargs
-                callbacks = kwargs['callbacks']
+            #else:
+                ## apply callbacks set in **kwargs
+                #callbacks = kwargs['callbacks']
 
         if use_generator:
             train_generator = pystmodels.Generator(data_matrix1 = data_train_noisy, 
