@@ -888,6 +888,7 @@ def denoiser_feats(
     feature_type = None,
     dur_sec = 3,
     frames_per_sample = 11,
+    limit = None,
     **kwargs):
     '''Autoencoder Denoiser: feature extraction of clean & noisy audio into train, val, & test datasets.
     
@@ -922,6 +923,9 @@ def denoiser_feats(
         If you want to section each audio file feature data into smaller frames. This might be 
         useful for speech related contexts. (Can avoid this by simply reshaping data later)
         (default 11)
+        
+    limit : int, optional
+        The limit of audio files for feature extraction. (default None)
     
     kwargs : additional keyword arguments
         Keyword arguments for `pysoundtool.feats.save_features_datasets` and 
@@ -992,6 +996,8 @@ def denoiser_feats(
                                                     recursive = False)
     # sort audio (can compare if noisy and clean datasets are compatible)
     noisyaudio = sorted(noisyaudio)
+    if limit is not None:
+        noisyaudio =  noisyaudio[:limit]
 
     # clean data
     cleanaudio = pyst.files.collect_audiofiles(audio_clean_path, 
@@ -999,6 +1005,8 @@ def denoiser_feats(
                                                     wav_only = False,
                                                     recursive = False)
     cleanaudio = sorted(cleanaudio)
+    if limit is not None:
+        cleanaudio =  cleanaudio[:limit]
 
 
     # check if they match up: (expects clean file name to be in noisy file name)
@@ -1262,6 +1270,10 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
     start = time.time()
 
     for i, train_path in enumerate(train_paths_noisy):
+        if i == 0:
+            total_epochs = epochs * len(train_paths_noisy)
+            print('\n\nThe model will be trained {} epochs per '.format(epochs)+\
+                'training session. \nTotal possible epochs: {}\n\n'.format(total_epochs))
         start_session = time.time()
         data_train_noisy_path = train_path
         data_train_clean_path = train_paths_clean[i]
@@ -1279,6 +1291,16 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
         data_train_clean = np.load(data_train_clean_path)
         data_val_noisy = np.load(data_val_noisy_path)
         data_val_clean = np.load(data_val_clean_path)
+
+        # reinitiate 'callbacks' for additional iterations
+        if i > 0: 
+            if 'callbacks' not in kwargs:
+                callbacks = pystmodels.setup_callbacks(patience = patience,
+                                                        best_modelname = model_path, 
+                                                        log_filename = model_dir.joinpath('log.csv'))
+            else:
+                # apply callbacks set in **kwargs
+                callbacks = kwargs['callbacks']
 
         if use_generator:
             train_generator = pystmodels.Generator(data_matrix1 = data_train_noisy, 
@@ -1507,6 +1529,10 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
     start = time.time()
 
     for i, train_path in enumerate(train_paths):
+        if i == 0:
+            total_epochs = epochs * len(train_paths_noisy)
+            print('\n\nThe model will be trained {} epochs per '.format(epochs)+\
+                'training session. \nTotal possible epochs: {}\n\n'.format(total_epochs))
         start_session = time.time()
         data_train_path = train_path
         # just use first validation data file
@@ -1522,6 +1548,16 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
         data_train = np.load(data_train_path)
         data_val = np.load(data_val_path)
         data_test = np.load(data_test_path)
+        
+        # reinitiate 'callbacks' for additional iterations
+        if i > 0: 
+            if 'callbacks' not in kwargs:
+                callbacks = pystmodels.setup_callbacks(patience = patience,
+                                                        best_modelname = model_path, 
+                                                        log_filename = model_dir.joinpath('log.csv'))
+            else:
+                # apply callbacks set in **kwargs
+                callbacks = kwargs['callbacks']
 
         if use_generator:
             train_generator = pystmodels.Generator(data_matrix1 = data_train, 
