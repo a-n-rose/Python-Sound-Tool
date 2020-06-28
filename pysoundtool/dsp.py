@@ -369,7 +369,7 @@ def stereo2mono(data):
 
 def add_backgroundsound(audio_main, audio_background, snr=None, 
                         delay_mainsound_sec = None, total_len_sec=None,
-                        **kwargs):
+                        wrap = False, **kwargs):
     '''Adds a sound (i.e. background noise) to a target signal.
     
     If the sample rates of the two audio samples do not match, the sample
@@ -403,6 +403,12 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
     total_len_sec : int or float, optional
         Total length of combined sound in seconds. If none, the sound will end
         after target sound ends (default None).
+        
+    wrap : bool
+        If False, the random selection of sound will be limited to end before 
+        the end of the audio file. If True, the random selection will wrap to 
+        beginning of the audio file if extends beyond the end of the audio file.
+        (default False)
     
     **kwargs : additional keyword arguments
         The keyword arguments for pysoundtool.files.loadsound
@@ -479,7 +485,14 @@ def add_backgroundsound(audio_main, audio_background, snr=None,
                 '`audio_main` will be cut off in '+\
                 'the `combined` audio signal.')
     # make the background sound match the length of total samples
-    sound2add = pyst.dsp.apply_sample_length(sound2add, total_samps)
+    if len(sound2add) < total_samps:
+        # if shorter than total_samps, extend the noise
+        sound2add = pyst.dsp.apply_sample_length(sound2add, total_samps)
+    else:
+        # otherwise, choose random selection of noise
+        sound2add = pyst.dsp.random_selection_samples(sound2add,
+                                                      total_samps,
+                                                      wrap=wrap)
     # separate samples to add to the target signal
     target_sound = sound2add[int(sr*delay_mainsound_sec):len(target)+int(sr*delay_mainsound_sec)]
     # If target is longer than indicated length, shorten it
@@ -2004,6 +2017,31 @@ def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
             mid = start+overlap
             stop = start+frame_length
     return new_signal
+
+def random_selection_samples(samples, len_section_samps, wrap=False, seed=None, axis=0):
+    '''Selects a section of samples, starting at random. 
+    '''
+    if not isinstance(samples, np.ndarray):
+        samples = np.array(samples)
+    if seed is not None and seed is not False:
+        np.random.seed(seed)
+    if wrap:
+        start_index = np.random.choice(range(len(samples)))
+        if start_index + len_section_samps > len(samples):
+            left_over = start_index + len_section_samps - len(samples)
+            start = samples[start_index:]
+            end = samples[:left_over]
+            total_section = np.concatenate((start,end),axis=axis)
+            return total_section
+        else:
+            total_section = samples[start_index:start_index+len_section_samps]
+            return total_section
+    else:
+        max_index_start = len(samples) - len_section_samps + 1
+        start_index = np.random.choice(range(max_index_start))
+        total_section = samples[start_index:start_index+len_section_samps]
+        return total_section
+        
 
 
 if __name__ == '__main__':
