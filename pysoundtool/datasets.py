@@ -64,19 +64,19 @@ def create_encodedlabel2audio_dict(dict_encodelabels, paths_list, limit=None, se
     >>> label_waves_dict = create_encodedlabel2audio_dict(labels, paths)
     >>> label_waves_dict
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
-    (2, [PosixPath('data/audio/vacuum/vacuum1.wav'), \
-    PosixPath('data/audio/vacuum/vacuum2.wav')]), \
-    (1, [PosixPath('data/audio/wind/wind1.wav')])])
+(2, [PosixPath('data/audio/vacuum/vacuum1.wav'), \
+PosixPath('data/audio/vacuum/vacuum2.wav')]), \
+(1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #to set a limit on number of audiofiles per class:
     >>> create_encodedlabel2audio_dict(labels, paths, limit=1, seed=40)
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
-    (2, [PosixPath('data/audio/vacuum/vacuum2.wav')]), \
-    (1, [PosixPath('data/audio/wind/wind1.wav')])])
+(2, [PosixPath('data/audio/vacuum/vacuum2.wav')]), \
+(1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #change the limited pathways chosen:
     >>> create_encodedlabel2audio_dict(labels, paths, limit=1, seed=10)
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
-    (2, [PosixPath('data/audio/vacuum/vacuum1.wav')]), \
-    (1, [PosixPath('data/audio/wind/wind1.wav')])])
+(2, [PosixPath('data/audio/vacuum/vacuum1.wav')]), \
+(1, [PosixPath('data/audio/wind/wind1.wav')])])
     '''
     if not isinstance(dict_encodelabels, dict):
         raise TypeError(
@@ -361,8 +361,8 @@ def separate_train_val_test_files(list_of_files):
     >>> datasets.test
     [PosixPath('test.npy')]
     >>> # try with noisy and clean data
-    >>> features_files = ['train_noisy.npy', 'train_clean.npy', 'val_noisy.npy',
-        'val_clean.npy', 'test_noisy.npy', 'test_clean.npy']
+    >>> features_files = ['train_noisy.npy', 'train_clean.npy', 'val_noisy.npy', \
+'val_clean.npy', 'test_noisy.npy', 'test_clean.npy']
     >>> datasets = separate_train_val_test_files(features_files)
     >>> datasets.train.noisy
     [PosixPath('train_noisy.npy')]
@@ -448,52 +448,52 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     --------
     >>> import pathlib
     >>> # train is longer than val and test
-    >>> d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-            'val': [1, 2, 3, 4, 5],
+    >>> d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],\
+            'val': [1, 2, 3, 4, 5],\
             'test': [1, 2, 3, 4, 5]}
     >>> # dictionary: paths to where extracted data will be saved
-    >>> dp = {'train': pathlib.PosixPath('train_data.npy'),
-              'val': pathlib.PosixPath('val_data.npy'),
+    >>> dp = {'train': pathlib.PosixPath('train_data.npy'),\
+              'val': pathlib.PosixPath('val_data.npy'),\
               'test': pathlib.PosixPath('test_data.npy')}
     >>> d2, dp2 = section_data(d, dp, divide_factor = 3)
     >>> # val and train not touched (too small)
     >>> d2
-    {'train__1': [1, 2, 3, 4, 5],
-    'train__2': [6, 7, 8, 9, 10],
-    'train__3': [11, 12, 13, 14, 15],
-    'val': [1, 2, 3, 4, 5],
-    'test': [1, 2, 3, 4, 5]}
+    {'train__1': [1, 2, 3, 4, 5], \
+'train__2': [6, 7, 8, 9, 10], \
+'train__3': [11, 12, 13, 14, 15], \
+'val': [1, 2, 3, 4, 5], \
+'test': [1, 2, 3, 4, 5]}
     >>> dp2
-    {'train__1': PosixPath('train_data__1.npy'),
-    'train__2': PosixPath('train_data__2.npy'),
-    'train__3': PosixPath('train_data__3.npy'),
-    'val': PosixPath('val_data.npy'),
-    'test': PosixPath('test_data.npy')}
+    {'train__1': PosixPath('train_data__1.npy'), \
+'train__2': PosixPath('train_data__2.npy'), \
+'train__3': PosixPath('train_data__3.npy'), \
+'val': PosixPath('val_data.npy'), \
+'test': PosixPath('test_data.npy')}
     >>> # repeat: now val and test as long as train
     >>> # default divide_factor is 2
     >>> d3, dp3 = section_data(d2, dp2)
     >>> d3
-    {'train__1': PosixPath('train_data__1.npy'),
-    'train__2': PosixPath('train_data__2.npy'),
-    'train__3': PosixPath('train_data__3.npy'),
-    'train__4': PosixPath('train_data__4.npy'),
-    'train__5': PosixPath('train_data__5.npy'),
-    'train__6': PosixPath('train_data__6.npy'),
-    'val__1': PosixPath('val_data__1.npy'),
-    'val__2': PosixPath('val_data__2.npy'),
-    'test__1': PosixPath('test_data__1.npy'),
-    'test__2': PosixPath('test_data__2.npy')}
+    {'train__1': [1, 2], \
+'train__2': [3, 4, 5], \
+'train__3': [6, 7], \
+'train__4': [8, 9, 10], \
+'train__5': [11, 12], \
+'train__6': [13, 14, 15], \
+'val__1': [1, 2], \
+'val__2': [3, 4, 5], \
+'test__1': [1, 2], \
+'test__2': [3, 4, 5]}
     >>> dp3
-    {'train__1': PosixPath('train_data__1.npy'),
-    'train__2': PosixPath('train_data__2.npy'),
-    'train__3': PosixPath('train_data__3.npy'),
-    'train__4': PosixPath('train_data__4.npy'),
-    'train__5': PosixPath('train_data__5.npy'),
-    'train__6': PosixPath('train_data__6.npy'),
-    'val__1': PosixPath('val_data__1.npy'),
-    'val__2': PosixPath('val_data__2.npy'),
-    'test__1': PosixPath('test_data__1.npy'),
-    'test__2': PosixPath('test_data__2.npy')}
+    {'train__1': PosixPath('train_data__1.npy'), \
+'train__2': PosixPath('train_data__2.npy'), \
+'train__3': PosixPath('train_data__3.npy'), \
+'train__4': PosixPath('train_data__4.npy'), \
+'train__5': PosixPath('train_data__5.npy'), \
+'train__6': PosixPath('train_data__6.npy'), \
+'val__1': PosixPath('val_data__1.npy'), \
+'val__2': PosixPath('val_data__2.npy'), \
+'test__1': PosixPath('test_data__1.npy'), \
+'test__2': PosixPath('test_data__2.npy')}
     '''
     if divide_factor is None:
         divide_factor = 2
