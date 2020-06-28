@@ -338,7 +338,7 @@ def test_audio2datasets_seed0_error():
                            '11.aiff','12.aiff','13.aiff','14.aiff',
                            '15.aiff',])])
     with pytest.raises(ValueError):
-        dataset_tuple = pyst.data.audio2datasets(dict_input, seed=0)
+        dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=0)
 
 def test_audio2datasets_labeledaudio_dict():
     dict_input = dict([(0,['1.wav','2.wav','3.wav','4.wav','5.wav',
@@ -351,7 +351,7 @@ def test_audio2datasets_labeledaudio_dict():
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
                            '11.aiff','12.aiff','13.aiff','14.aiff',
                            '15.aiff',])])
-    dataset_tuple = pyst.data.audio2datasets(dict_input, seed=40)
+    dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=40)
     expected_train = [(0, '9.wav'), (0, '10.wav'), (2, '13.aiff'), 
                       (0, '5.wav'), (0, '2.wav'), (2, '2.aiff'), (1, '2.ogg'),
                       (1, '13.ogg'), (2, '3.aiff'), (2, '11.aiff'), 
@@ -390,7 +390,7 @@ def test_audio2datasets_labeledaudio_loaddict():
     saved_dict_path = pyst.utils.save_dict(
         dict2save = dict_input,
         filename = saved_dict_path)
-    dataset_tuple = pyst.data.audio2datasets(saved_dict_path, seed=40)
+    dataset_tuple = pyst.datasets.audio2datasets(saved_dict_path, seed=40)
     for i, dataset in enumerate(dataset_tuple):
         print(i)
         print(dataset)
@@ -430,7 +430,7 @@ def test_audio2datasets_labeledaudio_loaddict_1label():
     saved_dict_path = pyst.utils.save_dict(
         dict2save = dict_input,
         filename = saved_dict_path)
-    dataset_tuple = pyst.data.audio2datasets(saved_dict_path, seed=40)
+    dataset_tuple = pyst.datasets.audio2datasets(saved_dict_path, seed=40)
     for i, dataset in enumerate(dataset_tuple):
         print(i)
         print(dataset)
@@ -459,7 +459,7 @@ def test_audio2datasets_audio_1label_dict():
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
                            '11.aiff','12.aiff','13.aiff','14.aiff',
                            '15.aiff',])])
-    dataset_tuple = pyst.data.audio2datasets(dict_input, seed=40)
+    dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=40)
     expected_train =['8.ogg', '14.ogg', '1.aiff', '4.ogg', '4.wav', '5.wav', 
                      '5.ogg', '2.wav', '12.aiff', '12.ogg', '11.wav', '8.wav',
                      '15.wav', '6.aiff', '5.aiff', '15.aiff', '9.wav', '6.wav',
@@ -486,7 +486,7 @@ def test_audio2datasets_audio_list():
                            '1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
                            '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff']
-    dataset_tuple = pyst.data.audio2datasets(dict_input, seed=40)
+    dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=40)
     expected_train = ['8.ogg', '14.ogg', '1.aiff', '4.ogg', '4.wav', '5.wav', 
                       '5.ogg', '2.wav', '12.aiff', '12.ogg', '11.wav', '8.wav',
                       '15.wav', '6.aiff', '5.aiff', '15.aiff', '9.wav',
@@ -513,7 +513,7 @@ def test_audio2datasets_audio_set():
                            '1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
                            '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff'])
-    dataset_tuple = pyst.data.audio2datasets(dict_input, seed=40)
+    dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=40)
     expected_train = ['8.ogg', '14.ogg', '1.aiff', '4.ogg', '4.wav', '5.wav',
                       '5.ogg', '2.wav', '12.aiff', '12.ogg', '11.wav', '8.wav',
                       '15.wav', '6.aiff', '5.aiff', '15.aiff', '9.wav',
@@ -562,8 +562,8 @@ def test_audio2datasets_noisy_clean_datasets_match():
                         '7_noisy.aiff','8_noisy.aiff','9_noisy.aiff',
                         '10_noisy.aiff','11_noisy.aiff','12_noisy.aiff',
                         '13_noisy.aiff','14_noisy.aiff','15_noisy.aiff']
-    dataset_tuple_clean = pyst.data.audio2datasets(dict_input_clean, seed=40)
-    dataset_tuple_noisy = pyst.data.audio2datasets(dict_input_noisy, seed=40)
+    dataset_tuple_clean = pyst.datasets.audio2datasets(dict_input_clean, seed=40)
+    dataset_tuple_noisy = pyst.datasets.audio2datasets(dict_input_noisy, seed=40)
     expected_train_clean = ['8_clean.ogg', '15_clean.ogg', '10_clean.aiff', 
                             '4_clean.ogg', '4_clean.wav', '5_clean.wav',
                             '5_clean.ogg', '2_clean.wav', '13_clean.aiff',
