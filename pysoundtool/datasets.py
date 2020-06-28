@@ -502,6 +502,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     for key, value in dataset_dict.items():
         if len(value) > maxlen:
             maxlen = len(value)
+            
     # the length the maximum list will have
     # if other value lists are shorter, don't need to be sectioned.
     new_max_len = int(maxlen/divide_factor)
@@ -514,14 +515,21 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
                 updated_dataset_dict[key] = dataset_dict[key]
                 updated_dataset_paths_dict[key] = dataset_paths_dict[key]
             else:
+                # don't need to divide smaller datasets more than necessary
+                curr_divide_factor = 2
+                while True:
+                    if len(value)//curr_divide_factor > new_max_len:
+                        curr_divide_factor += 1
+                    else:
+                        break
                 # separate value into sections
                 divided_values = {}
-                len_new_values = int(len(value)/divide_factor)
+                len_new_values = int(len(value)/curr_divide_factor)
                 if len_new_values < 1:
                     len_new_values = 1
                 index = 0
-                for i in range(divide_factor):
-                    if i == divide_factor - 1:
+                for i in range(curr_divide_factor):
+                    if i == curr_divide_factor - 1:
                         # to ensure all values are included
                         vals = value[index:]
                     else:
@@ -534,7 +542,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
                 # assign new paths to each section of data:
                 divided_values_paths = {}
                 path_orig = dataset_paths_dict[key]
-                for i in range(divide_factor):
+                for i in range(curr_divide_factor):
                     if not key[-1].isdigit():
                         key_stem = key
                         version_num = 1
@@ -568,7 +576,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
                     divided_values_paths[i] = new_path
                 
                 # apply newly divided data and keys to new dictionaries 
-                for i in range(divide_factor):
+                for i in range(curr_divide_factor):
                     # only if the list of divided values has values in it
                     if len(divided_values[i]) > 0:
                         new_key = divided_values_keys[i]
