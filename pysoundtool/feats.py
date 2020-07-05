@@ -212,7 +212,8 @@ def get_feats(sound,
               num_filters=40,
               num_mfcc=None, 
               dur_sec=None,
-              mono=None):
+              mono=None,
+              **kwargs):
     '''Collects raw signal data, stft, fbank, or mfcc features via librosa.
     
     Parameters
@@ -258,6 +259,8 @@ def get_feats(sound,
         For loading an audiofile, True will result in only one channel of 
         data being loaded; False will allow additional channels be loaded. 
         (default None, which results in mono channel data)
+    **kwargs : additional keyword arguments
+        Additional keyword arguments for librosa.filters.mel.
         
     Returns
     -------
@@ -297,7 +300,8 @@ def get_feats(sound,
                 sr = sr,
                 n_fft = int(win_size_ms * sr // 1000),
                 hop_length = int(win_shift_ms*0.001*sr),
-                n_mels = num_filters, window=window).T
+                n_mels = num_filters, window=window,
+                **kwargs).T
             # have found better results if not conducted:
             # especially if recreating audio signal later
             #feats -= (np.mean(feats, axis=0) + 1e-8)
@@ -311,7 +315,8 @@ def get_feats(sound,
                 n_fft = int(win_size_ms * sr // 1000),
                 hop_length = int(win_shift_ms*0.001*sr),
                 n_mels = num_filters,
-                window=window).T
+                window=window,
+                **kwargs).T
             #feats -= (np.mean(feats, axis=0) + 1e-8)
         elif 'stft' in features or 'powspec' in features:
             feats = librosa.stft(
@@ -334,7 +339,8 @@ def get_feats(sound,
                           num_mfcc = num_mfcc,
                           sr = sr,
                           dur_sec = dur_sec,
-                          mono = mono)
+                          mono = mono,
+                          **kwargs)
     return feats
 
 # TODO possibly remove? Doesn't use Librsoa, instead
@@ -737,7 +743,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                     subsection_data=False, divide_factor=None,
                                     visualize=False, vis_every_n_frames=50, 
                                     use_librosa=True, center=True, mode='reflect', 
-                                    log_settings=True, **kwargs):
+                                    log_settings=True, decode_dict = None, **kwargs):
     '''Extracts and saves audio features, sectioned into datasets, to indicated locations.
     
     If MemoryError, the provided dataset dicts will be adjusted to allow data to be subsectioned.
@@ -802,6 +808,9 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
     log_settings : bool
         If True, a .csv file will be saved in the feature extraction directory with 
         most of the feature settings saved. (default True)
+    decode_dict : dict, optional
+        The dictionary to get the label given the encoded label. This is for plotting 
+        purposes. (default None)
     **kwargs : additional keyword arguments
         Keyword arguments for `pysoundtool.feats.get_feats`.
     
@@ -936,6 +945,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                     complex_vals=complex_vals)
                 for j, audiofile in enumerate(value):
                     if labeled_data:
+                        
                         label, audiofile = int(audiofile[0]), audiofile[1]
                     if isinstance(audiofile, str):
                         audiofile = pathlib.PosixPath(audiofile)
@@ -953,6 +963,19 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                         feats = np.abs(feats)**2
                         
                     if visualize:
+                        if labeled_data:
+                            if decode_dict is not None:
+                                try:
+                                    label_plot = decode_dict[label].upper()
+                                except KeyError:
+                                    try:
+                                        label_plot = decode_dict[str(label)].upper()
+                                    except KeyError:
+                                        label_plot = label
+                            else:
+                                label_plot = label
+                        else:
+                            label_plot = audiofile.parent.stem.upper()
                         # visualize features:
                         if 'mfcc' in feature_type or 'signal' in feature_type:
                             scale = None
@@ -970,9 +993,9 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                             win_size_ms = win_size_ms,
                                             percent_overlap = percent_overlap,
                                             scale=scale,
-                                            title='{} {} features: {} label'.format(
+                                            title='{} {} features: label {}'.format(
                                                 key, feature_type.upper(),
-                                                audiofile.parent.stem.upper()),
+                                                label_plot),
                                             save_pic=visualize, 
                                             name4pic=save_pic_path)
                         
@@ -1071,9 +1094,10 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
             visualize = visualize, 
             vis_every_n_frames = vis_every_n_frames, 
             labeled_data = labeled_data,
-            log_settings = log_settings)
+            log_settings = log_settings,
+            decode_dict = decode_dict,
+            **kwargs)
     return datasets_dict, datasets_path2save_dict
-
 
 def prep_new_audiofeats(feats, desired_shape, input_shape):
     '''Prepares new audio data to feed to a pre-trained model.
@@ -1100,7 +1124,6 @@ def prep_new_audiofeats(feats, desired_shape, input_shape):
     # reshape to input shape with a necessary "tensor" dimension
     feats_reshaped = feats_reshaped.reshape(input_shape+(1,))
     return feats_reshaped
-
 
 
 def feats2audio(feats, feature_type, sr, win_size_ms,
