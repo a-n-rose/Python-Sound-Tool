@@ -10,7 +10,7 @@ from scipy.signal import resample
 import soundfile as sf
 import librosa
 
-import os, sys
+import os, sys, tarfile
 import inspect
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
@@ -588,3 +588,10 @@ def adjustname(filename, adjustment=None):
         fname += '_adj'
     fname += f.suffix
     return fname
+
+def extract(tar_url, extract_path='.'):
+    tar = tarfile.open(tar_url, 'r')
+    for item in tar:
+        tar.extract(item, extract_path)
+        if item.name.find(".tgz") != -1 or item.name.find(".tar") != -1:
+            extract(item.name, "./" + item.name[:item.name.rfind('/')])
