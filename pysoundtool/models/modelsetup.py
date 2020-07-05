@@ -7,7 +7,7 @@ currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
-from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
+from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint, TensorBoard
 import numpy as np
 import pysoundtool as pyst
 
@@ -15,7 +15,7 @@ import pysoundtool as pyst
 
 def setup_callbacks(early_stop=True, patience=15, log=True,
                         log_filename=None, append=True, save_bestmodel=True, 
-                        best_modelname=None,monitor='val_loss', verbose=1, save_best_only=True, mode='min'):
+                        best_modelname=None,monitor='val_loss', verbose=1, save_best_only=True, mode='min', tensorboard=True):
     '''Easy set up of early stopping, model logging, and saving best model.
     
     Parameters
@@ -52,6 +52,8 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
         If `monitor``is set to 'val_acc', this should be set to 'max'. If 
         `mode` is set to 'auto', the direction will be inferred. 
         (default 'min')
+    tensorboard : bool 
+        If True, logs for TensorBoard will be made.
         
     Returns
     -------
@@ -96,6 +98,15 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
                                                 save_best_only=save_best_only,
                                                 mode=mode)
         callbacks.append(checkpoint_callback)
+    if tensorboard:
+        if log_filename is not None:
+            log_filename = pyst.utils.string2pathlib(log_filename)
+            log_dir = log_filename.parent
+            log_dir = log_dir.joinpath('tb_logs/')
+        else:
+            log_dir = pyst.utils.string2pathlib('./model_logs/tb_logs/')
+        tb = TensorBoard(log_dir)
+        callbacks.append(tb)
     if callbacks:
         return callbacks
     return None
