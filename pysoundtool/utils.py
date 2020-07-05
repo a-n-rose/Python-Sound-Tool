@@ -297,6 +297,12 @@ def restore_dictvalue(value_string):
         if list_remove_brackets[0] == '(' and list_remove_brackets[-1] == ')':
             # list of tuples
             tuple_string = list_remove_brackets.split('), ')
+        elif list_remove_brackets[0] == '[' and list_remove_brackets[-1] == ']':
+            # list of lists
+            tuple_string = list_remove_brackets.split('], ')
+        else:
+            tuple_string = None
+        if tuple_string is not None:
             tuple_list = [tuple(x.split(', ') for x in tuple_string)]
             list_paths = []
             for item in tuple_list:
@@ -528,7 +534,9 @@ def audiofile_length_match(filename1, filename2):
         return True
 
 def save_dict(filename, dict2save, overwrite=False):
-    '''Saves dictionary as csv file to indicated path and filename
+    '''Saves dictionary as csv file to indicated path and filename. 
+    
+    Ensures pathlib objects turned to strings. Warning: not thoroughly tested.
 
     Parameters
     ----------
@@ -557,6 +565,23 @@ def save_dict(filename, dict2save, overwrite=False):
             raise FileExistsError(
                 'The file {} already exists at this path:\
                 \n{}'.format(filename.parts[-1], filename))
+    # convert pathlib.PosixPath objects to string - otherwise make things difficult
+    for key, value in dict2save.items():
+        if isinstance(value, list):
+            for i, item in enumerate(value):
+                if isinstance(item, pathlib.PosixPath) or isinstance(item, pathlib.PurePath):
+                    value[i] = str(item)
+                elif isinstance(item, list) or isinstance(item, tuple) or \
+                    isinstance(item, np.ndarray):
+                    if isinstance(item, np.ndarray):
+                        item = list(item)
+                    for j, k in enumerate(item):
+                        if isinstance(k, pathlib.PosixPath) or isinstance(k, pathlib.PurePath):
+                            item[j] = str(k)
+                        value[i] = item
+            dict2save[key] = value
+        elif isinstance(value, pathlib.PosixPath) or isinstance(value, pathlib.PurePath):
+            dit2save[key] = str(value)
     with open(filename, 'w') as f:
         w = csv.writer(f)
         w.writerows(dict2save.items())
