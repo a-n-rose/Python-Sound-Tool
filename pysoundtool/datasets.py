@@ -90,9 +90,10 @@ PosixPath('data/audio/vacuum/vacuum2.wav')]), \
     # get labels from dict_encodelabels:
     labels_set = set(list(dict_encodelabels.keys()))
     for label in sorted(labels_set):
-        # expects name of parent directory to match label
-        label_paths = [path for path in paths_list if
-                       label == path.parent.name]
+        # expects folder name to in pathway to be the same as label
+        label_folder = pathlib.Path('/'+label+'/')
+        label_paths = [path for path in paths_list if str(label_folder).lower() \
+            in str(path).lower()]
         if label_paths:
             if isinstance(limit, int):
                 if seed:
@@ -148,18 +149,28 @@ def create_dicts_labelsencoded(labels_class):
         dict_int2label[i] = label
     return dict_label2int, dict_int2label
 
-def waves2dataset(audiolist, train_perc=0.8, seed=40):
+# TODO change name to audiolist2dataset?
+def waves2dataset(audiolist, perc_train=0.8, seed=40, train=True, val=True, test=True):
     '''Organizes audio files list into train, validation and test datasets.
+    
+    If only two or one dataset is to be prepared, they will be assigned to train and 
+    val or simply to train, respectively. The remaining 'datasets' will remain empty.
 
     Parameters
     ----------
     audiolist : list 
         List containing paths to audio files
-    train_perc : float, int 
+    perc_train : float, int 
         Percentage of data to be in the training dataset (default 0.8)
     seed : int, None, optional
         Set seed for the generation of pseudorandom train, validation, 
         and test datsets. Useful for reproducing results. (default 40)
+    train : bool
+        If True, assumed the training data will be prepared. (default True)
+    val : bool
+        If True, assumed validation data will be prepared. (default True)
+    test : bool
+        If True, assumed test data will be prepared. (default True)
 
     Returns
     -------
@@ -177,25 +188,81 @@ def waves2dataset(audiolist, train_perc=0.8, seed=40):
     >>> #default settings:
     >>> waves2dataset(audiolist)
     ([5, 4, 9, 2, 3, 10, 1, 6], [8], [7])
-    >>> #train_perc set to 50% instead of 80%:
-    >>> waves2dataset(audiolist, train_perc=50)
+    >>> #perc_train set to 50% instead of 80%:
+    >>> waves2dataset(audiolist, perc_train=50)
     ([5, 4, 9, 2, 3, 10], [1, 6], [8, 7])
     >>> #change seed number
     >>> waves2dataset(audiolist, seed=0)
     ([7, 1, 2, 5, 6, 9, 10, 8], [4], [3])
     '''
-    if train_perc > 1:
-        train_perc *= 0.01
-    val_train_perc = (1-train_perc)/2.
+    if seed == 0:
+        raise ValueError('Seed equals 0. This will result in unreliable '+\
+            'randomization. Either set `seed` to None or to another integer.')
+    # set the dataset assignments to strings
+    if isinstance(train, bool) and train:
+        train = 'train'
+    if isinstance(val, bool) and val:
+        val = 'val'
+    if isinstance(test, bool) and test:
+        test = 'test'
+        
+    # ensure percent train is between 0 and 1
+    if perc_train > 1:
+        perc_train /= 100.
+    if perc_train > 1:
+        raise ValueError('The percentage value of train data exceeds 100%')
+    
+    # assign amount of data for train, validation, and test datasets
+    # three datasets
+    if train and val and test:
+        num_datasets = 3
+        perc_valtest = (1-perc_train)/2.
+        if perc_valtest*2 > perc_train:
+            raise ValueError(
+                'The percentage of train data is too small: {}\
+                \nPlease check your values.'.format(
+                    perc_train))
+    # only two
+    elif train and val or train and test or val and test:
+        num_datasets = 2
+        perc_valtest = 1-perc_train
+            
+    # only one
+    else:
+        print('Only one dataset to be prepared.')
+        num_datasets = 1
+        perc_valtest = 0
+        perc_train = 1.
+        
+    # assign empty datasets to train, train and val, for this function
+    if train:
+        pass
+    if val:
+        if not train:
+            train = val 
+            val = ''
+    if test:
+        if not train:
+            train = test
+            test = ''
+        elif not val:
+            val = test
+            test = ''
+
     num_waves = len(audiolist)
-    num_train = int(num_waves * train_perc)
-    num_val_test = int(num_waves * val_train_perc)
-    if num_val_test < 1:
-        num_val_test += 1
-        num_train -= 2
-    if num_train + 2*num_val_test < num_waves:
+    num_train = int(num_waves * perc_train)
+    num_val_test = int(num_waves * perc_valtest)
+    if num_datasets > 1 and num_val_test < num_datasets-1:
+        while num_val_test < num_datasets-1:
+            num_val_test += 1
+            num_train -= 1
+            if num_val_test == num_datasets-1:
+                break
+    if num_datasets == 3 and num_train + 2*num_val_test < num_waves:
         diff = num_waves - num_train - 2*num_val_test
         num_train += diff
+    elif num_datasets == 1 and num_train < num_waves:
+        num_train = num_waves
     if seed:
         np.random.seed(seed=seed)
     rand_idx = np.random.choice(range(num_waves),
@@ -203,16 +270,31 @@ def waves2dataset(audiolist, train_perc=0.8, seed=40):
                                 replace=False)
     train_idx = rand_idx[:num_train]
     val_test_idx = rand_idx[num_train:]
-    val_idx = val_test_idx[:num_val_test]
-    test_idx = val_test_idx[num_val_test:]
+    if num_datasets == 3:
+        val_idx = val_test_idx[:num_val_test]
+        test_idx = val_test_idx[num_val_test:]
+    elif num_datasets == 2:
+        val_idx = val_test_idx
+        test_idx = []
+    else:
+        val_idx = val_test_idx # should be empty
+        test_idx = val_test_idx # should be empty
     train_waves = list(np.array(audiolist)[train_idx])
     val_waves = list(np.array(audiolist)[val_idx])
     test_waves = list(np.array(audiolist)[test_idx])
-    assert len(train_waves)+len(val_waves)+len(test_waves) == len(audiolist)
+    try:
+        assert len(train_waves)+len(val_waves)+len(test_waves) == len(audiolist)
+    except AssertionError:
+        print('mismatch lengths:')
+        print(len(train_waves))
+        print(len(val_waves)) 
+        print(len(test_waves))
+        print(test_waves)
+        print(len(audiolist))
     return train_waves, val_waves, test_waves
 
-
-def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
+# TODO rename to audioclasses2datasets?
+def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None, **kwargs):
     '''Organizes all audio in audio class directories into datasets (randomized).
     
     The validation and test datasets are halved between what isn't train data. For 
@@ -227,12 +309,14 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
         be stored. The dictionary with the labels and their encoded values
         can also directly supplied here. If the data does not have labels, a list or 
         set of audiofiles can be provided to be placed in train, val, and test datasets.
-    perc_train : int, float
-        The percentage or decimal representing the amount of training
-        data compared to the test and validation data (default 0.8)
+        
     seed : int, optional
         A value to allow random order of audiofiles to be predictable. 
         (default None). If None, the order of audiofiles will not be predictable.
+        
+    **kwargs : additional keyword arguments
+        Keyword arguments for pysoundtool.datasets.waves2dataset
+
 
     Returns
     -------
@@ -246,20 +330,11 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
     if seed == 0:
         raise ValueError('Seed equals 0. This will result in unreliable '+\
             'randomization. Either set `seed` to None or to another integer.')
-    if perc_train > 1:
-        perc_train /= 100.
-    if perc_train > 1:
-        raise ValueError('The percentage value of train data exceeds 100%')
-    perc_valtest = (1-perc_train)/2.
-    if perc_valtest*2 > perc_train:
-        raise ValueError(
-            'The percentage of train data is too small: {}\
-            \nPlease check your values.'.format(
-                perc_train))
     if isinstance(audiodata, dict) or isinstance(audiodata, list) or \
         isinstance(audiodata, set):
         waves = audiodata
     else:
+        # it is a string or pathlib.PosixPath
         waves = pyst.utils.load_dict(audiodata)
     if isinstance(waves, list) or isinstance(waves,set) or len(waves) == 1:
         multiple_labels = False
@@ -267,9 +342,9 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
         multiple_labels = True
     count = 0
     row = 0
-    train = []
-    val = []
-    test = []
+    train_list = []
+    val_list = []
+    test_list = []
     if multiple_labels:
         for key, value in waves.items():
             if isinstance(value, str):
@@ -279,13 +354,14 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
                 key = int(key)
             else:
                 audiolist = value
-            train_waves, val_waves, test_waves = waves2dataset(sorted(audiolist), seed=seed)
+            train_waves, val_waves, test_waves = waves2dataset(sorted(audiolist), seed=seed,
+                                                               **kwargs)
             for i, wave in enumerate(train_waves):
-                train.append(tuple([key, wave]))
+                train_list.append(tuple([key, wave]))
             for i, wave in enumerate(val_waves):
-                val.append(tuple([key, wave]))
+                val_list.append(tuple([key, wave]))
             for i, wave in enumerate(test_waves):
-                test.append(tuple([key, wave]))
+                test_list.append(tuple([key, wave]))
     else:
         # data has all same label, can be in a simple list, not paired with a label
         if isinstance(waves, dict):
@@ -300,35 +376,38 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None):
         else:
             audiolist = waves
         # sort to ensure a consistent order of audio; otherwise cannot control randomization
-        train_waves, val_waves, test_waves = waves2dataset(sorted(audiolist), seed=seed)
+        train_waves, val_waves, test_waves = waves2dataset(sorted(audiolist), seed=seed,
+                                                           **kwargs)
         for i, wave in enumerate(train_waves):
-            train.append(wave)
+            train_list.append(wave)
         for i, wave in enumerate(val_waves):
-            val.append(wave)
+            val_list.append(wave)
         for i, wave in enumerate(test_waves):
-            test.append(wave)
+            test_list.append(wave)
         
     # be sure the classes are not in any certain order
     if seed is not None: 
         random.seed(seed)
-    random.shuffle(train)
+    random.shuffle(train_list)
     if seed is not None: 
         random.seed(seed)
-    random.shuffle(val)
+    random.shuffle(val_list)
     if seed is not None: 
         random.seed(seed)
-    random.shuffle(test)
+    random.shuffle(test_list)
     # esure the number of training data is 80% of all available audiodata:
-    if len(train) < math.ceil((len(train)+len(val)+len(test))*perc_train):
-        raise pyst.errors.notsufficientdata_error(len(train),
-                                      len(val),
-                                      len(test),
+    if len(train_list) < math.ceil((len(train_list)+len(val_list)+len(test_list))*perc_train):
+        raise pyst.errors.notsufficientdata_error(len(train_list),
+                                      len(val_list),
+                                      len(test_list),
                                       math.ceil(
-                                          (len(train)+len(val)+len(test))*perc_train))
+                                          (len(train_list)+len(val_list)+len(test_list))*perc_train))
+    
     TrainingData = collections.namedtuple('TrainingData',
                                           ['train_data', 'val_data', 'test_data'])
+    
     dataset_audio = TrainingData(
-        train_data=train, val_data=val, test_data=test)
+        train_data = train_list, val_data = val_list, test_data = test_list)
     return dataset_audio
 
 
