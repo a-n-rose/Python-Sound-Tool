@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 import pysoundtool as pyst
 
-test_audiofile = './audio2channels.wav'
+test_audiofile = './audiodata/audio2channels.wav'
 test_noisyfile = './audiodata/python_traffic.wav'
 test_filtered_wiener = './audiodata/python_traffic_wiener.wav'
 test_filtered_wiener_postfilter = './audiodata/python_traffic_pf.wav'

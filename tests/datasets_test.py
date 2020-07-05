@@ -351,21 +351,20 @@ def test_audio2datasets_labeledaudio_dict():
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
                            '11.aiff','12.aiff','13.aiff','14.aiff',
                            '15.aiff',])])
-    dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=40)
-    expected_train = [(0, '9.wav'), (0, '10.wav'), (2, '13.aiff'), 
-                      (0, '5.wav'), (0, '2.wav'), (2, '2.aiff'), (1, '2.ogg'),
-                      (1, '13.ogg'), (2, '3.aiff'), (2, '11.aiff'), 
-                      (2, '8.aiff'), (2, '5.aiff'), (2, '12.aiff'), 
-                      (1, '5.ogg'), (1, '12.ogg'), (0, '3.wav'), (0, '4.wav'),
-                      (1, '11.ogg'), (2, '1.aiff'), (0, '13.wav'), 
-                      (1, '10.ogg'), (0, '7.wav'), (0, '12.wav'), 
-                      (2, '7.aiff'), (1, '9.ogg'), (0, '1.wav'), (1, '7.ogg'),
-                      (1, '3.ogg'), (2, '4.aiff'), (0, '14.wav'), 
-                      (1, '14.ogg'), (0, '11.wav'), (1, '1.ogg'), (1, '4.ogg'),
-                      (1, '8.ogg'), (0, '8.wav'), (2, '10.aiff'), 
-                      (2, '14.aiff'), (2, '9.aiff')]
-    expected_val = [(2, '6.aiff'), (0, '6.wav'), (1, '6.ogg')]
-    expected_test = [(2, '15.aiff'), (0, '15.wav'), (1, '15.ogg')]
+    dataset_tuple = pyst.datasets.audio2datasets(dict_input, perc_train=0.7, seed=40)
+    expected_train = [(1, '7.ogg'), (0, '9.wav'), (1, '11.ogg'), (1, '12.ogg'), 
+                      (2, '11.aiff'), (2, '1.aiff'), (2, '7.aiff'), (0, '3.wav'), 
+                      (1, '10.ogg'), (1, '13.ogg'), (0, '4.wav'), (2, '3.aiff'), 
+                      (2, '5.aiff'), (2, '4.aiff'), (1, '8.ogg'), (2, '12.aiff'), 
+                      (2, '9.aiff'), (0, '7.wav'), (2, '8.aiff'), (1, '4.ogg'), 
+                      (0, '1.wav'), (1, '9.ogg'), (0, '11.wav'), (1, '1.ogg'), 
+                      (0, '12.wav'), (0, '13.wav'), (2, '13.aiff'), (1, '5.ogg'), 
+                      (1, '3.ogg'), (0, '5.wav'), (0, '10.wav'), (0, '8.wav'), 
+                      (2, '10.aiff')]
+    expected_val = [(1, '14.ogg'), (0, '2.wav'), (2, '2.aiff'), (0, '14.wav'), 
+                    (2, '14.aiff'), (1, '2.ogg')]
+    expected_test = [(1, '6.ogg'), (0, '15.wav'), (2, '15.aiff'), (0, '6.wav'), 
+                     (2, '6.aiff'), (1, '15.ogg')]
     for i, dataset in enumerate(dataset_tuple):
         print(i)
         print(dataset)
@@ -390,24 +389,23 @@ def test_audio2datasets_labeledaudio_loaddict():
     saved_dict_path = pyst.utils.save_dict(
         dict2save = dict_input,
         filename = saved_dict_path)
-    dataset_tuple = pyst.datasets.audio2datasets(saved_dict_path, seed=40)
+    dataset_tuple = pyst.datasets.audio2datasets(saved_dict_path, perc_train=0.7, seed=40)
     for i, dataset in enumerate(dataset_tuple):
         print(i)
         print(dataset)
-    expected_train = [(0, '9.wav'), (0, '10.wav'), (2, '13.aiff'), 
-                      (0, '5.wav'), (0, '2.wav'), (2, '2.aiff'), (1, '2.ogg'),
-                      (1, '13.ogg'), (2, '3.aiff'), (2, '11.aiff'), 
-                      (2, '8.aiff'), (2, '5.aiff'), (2, '12.aiff'), 
-                      (1, '5.ogg'), (1, '12.ogg'), (0, '3.wav'), (0, '4.wav'),
-                      (1, '11.ogg'), (2, '1.aiff'), (0, '13.wav'), 
-                      (1, '10.ogg'), (0, '7.wav'), (0, '12.wav'), 
-                      (2, '7.aiff'), (1, '9.ogg'), (0, '1.wav'), (1, '7.ogg'), 
-                      (1, '3.ogg'), (2, '4.aiff'), (0, '14.wav'), 
-                      (1, '14.ogg'), (0, '11.wav'), (1, '1.ogg'), (1, '4.ogg'), 
-                      (1, '8.ogg'), (0, '8.wav'), (2, '10.aiff'), (2, '14.aiff'), 
-                      (2, '9.aiff')]
-    expected_val = [(2, '6.aiff'), (0, '6.wav'), (1, '6.ogg')]
-    expected_test = [(2, '15.aiff'), (0, '15.wav'), (1, '15.ogg')]
+    expected_train = [(1, '7.ogg'), (0, '9.wav'), (1, '11.ogg'), (1, '12.ogg'), 
+                      (2, '11.aiff'), (2, '1.aiff'), (2, '7.aiff'), (0, '3.wav'), 
+                      (1, '10.ogg'), (1, '13.ogg'), (0, '4.wav'), (2, '3.aiff'), 
+                      (2, '5.aiff'), (2, '4.aiff'), (1, '8.ogg'), (2, '12.aiff'), 
+                      (2, '9.aiff'), (0, '7.wav'), (2, '8.aiff'), (1, '4.ogg'), 
+                      (0, '1.wav'), (1, '9.ogg'), (0, '11.wav'), (1, '1.ogg'), 
+                      (0, '12.wav'), (0, '13.wav'), (2, '13.aiff'), (1, '5.ogg'), 
+                      (1, '3.ogg'), (0, '5.wav'), (0, '10.wav'), (0, '8.wav'), 
+                      (2, '10.aiff')]
+    expected_val = [(1, '14.ogg'), (0, '2.wav'), (2, '2.aiff'), (0, '14.wav'), 
+                    (2, '14.aiff'), (1, '2.ogg')]
+    expected_test = [(1, '6.ogg'), (0, '15.wav'), (2, '15.aiff'), (0, '6.wav'), 
+                     (2, '6.aiff'), (1, '15.ogg')]
     assert expected_train == dataset_tuple[0]
     assert expected_val == dataset_tuple[1]
     assert expected_test == dataset_tuple[2]

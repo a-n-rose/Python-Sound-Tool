@@ -12,7 +12,7 @@ import pathlib
 import pysoundtool as pyst
 
 
-test_audiofile = './audio2channels.wav'
+test_audiofile = './audiodata/audio2channels.wav'
 audiodata_dir = './audiodata/'
 
 
@@ -124,4 +124,3 @@ def test_string2list_loaddict():
     assert audiofiles ==  audiofiles_checked
     os.remove(test_dict_path)
     
-
