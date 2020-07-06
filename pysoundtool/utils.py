@@ -581,7 +581,7 @@ def save_dict(filename, dict2save, overwrite=False):
                         value[i] = item
             dict2save[key] = value
         elif isinstance(value, pathlib.PosixPath) or isinstance(value, pathlib.PurePath):
-            dit2save[key] = str(value)
+            dict2save[key] = str(value)
     with open(filename, 'w') as f:
         w = csv.writer(f)
         w.writerows(dict2save.items())
