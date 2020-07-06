@@ -1200,6 +1200,34 @@ def feats2audio(feats, feature_type, sr, win_size_ms,
     elif 'signal' in feature_type:
         y = feats.flatten()
     return y
+
+def grayscale2color(image_matrix, colorscale=3):
+    '''Expects grayscale image. Adds extra channels to pretend to be rgb-scale.
+    
+    This is useful for pre-trained models that require features
+    to have rgb channels, not grayscale.
+    '''
+    if image_matrix.shape[-1] != 1:
+        image_matrix = image_matrix.reshape(image_matrix.shape + (1,))
+    expected_shape = image_matrix.shape[:-1] + (colorscale,)
+    # create extra empty channels to copy gray image to it:
+    image_zeropadded = pyst.feats.zeropad_features(image_matrix, expected_shape)
+    for i in range(colorscale):
+        if i == 0:
+            pass
+        else:
+            if len(image_zeropadded.shape) == 3:
+                image_zeropadded[:,:,i] = image_zeropadded[:,:,0]
+            elif len(image_zeropadded.shape) == 4:
+                image_zeropadded[:,:,:,i] = image_zeropadded[:,:,:,0]
+            elif len(image_zeropadded.shape) == 5:
+                image_zeropadded[:,:,:,:,i] = image_zeropadded[:,:,:,:,0]
+            elif len(image_zeropadded.shape) == 6:
+                image_zeropadded[:,:,:,:,:,i] = image_zeropadded[:,:,:,:,:,0]
+            else:
+                raise ValueError('This function expects between 2 and 6 dimensions, '\
+                    'not {} dimensions'.format(len(image_matrix.shape)))
+    return image_zeropadded
     
 
 if __name__ == "__main__":
