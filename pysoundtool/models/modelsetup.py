@@ -17,7 +17,7 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
                         log_filename=None, append=True, save_bestmodel=True, 
                         best_modelname=None,monitor='val_loss', verbose=1, save_best_only=True, mode='min', tensorboard=True,
                         write_images=False, x_test=None, y_test=None,
-                        batch_size = None):
+                        batch_size = None, embedded_layer_name = None):
     '''Easy set up of early stopping, model logging, and saving best model.
     
     Parameters
@@ -107,15 +107,14 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
             log_dir = log_dir.joinpath('tb_logs/')
         else:
             log_dir = pyst.utils.string2pathlib('./model_logs/tb_logs/')
-        if batch_size is not None:
-            batch_size = batch_size
-        else:
-            batch_size = None
+        log_dir = pyst.utils.check_dir(log_dir, make=True)
         if x_test is not None and y_test is not None:
             with open(os.path.join(log_dir, 'metadata.tsv'), 'w') as f:
                 np.savetxt(f, y_test)
             embeddings_freq = 1
-            embeddings_layer_names=['features']
+            if embedded_layer_name is None:
+                embedded_layer_name = 'features'
+            embeddings_layer_names = [embedded_layer_name]
             embeddings_metadata = 'metadata.tsv'
             embeddings_data = x_test
         else:
@@ -123,8 +122,6 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
             embeddings_layer_names = None
             embeddings_metadata = None
             embeddings_data = None
-            
-        
         tb = TensorBoard(log_dir, batch_size = batch_size, write_images=write_images, 
                          embeddings_freq = embeddings_freq, 
                          embeddings_layer_names = embeddings_layer_names, 
