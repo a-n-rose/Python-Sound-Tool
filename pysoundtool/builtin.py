@@ -755,6 +755,7 @@ def envclassifier_feats(
     data_features_dir = None,
     feature_type = None,
     dur_sec = 1,
+    perc_train = 0.8,
     **kwargs):
     '''Environment Classifier: feature extraction of scene audio into train, val, & test datasets.
     
@@ -807,7 +808,7 @@ def envclassifier_feats(
     if 'signal' in feature_type:
         raise ValueError('Feature type "signal" is not yet supported for CNN training.')
 
-    feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
+    feat_extraction_dir = 'features_'+ feature_type + '_' + pyst.utils.get_date()
 
     # collect labels 
     labels = []
@@ -858,7 +859,7 @@ def envclassifier_feats(
         overwrite=False)
     # assign audiofiles into train, validation, and test datasets
     train, val, test = pyst.datasets.audio2datasets(dict_encdodedlabel2audio_path,
-                                                perc_train=0.8,
+                                                perc_train=perc_train,
                                                 limit=None,
                                                 seed=40)
 
@@ -912,6 +913,7 @@ def denoiser_feats(
     dur_sec = 3,
     frames_per_sample = 11,
     limit = None,
+    perc_train = 0.8,
     **kwargs):
     '''Autoencoder Denoiser: feature extraction of clean & noisy audio into train, val, & test datasets.
     
@@ -1052,10 +1054,12 @@ def denoiser_feats(
         filename = clean_audio_dict_path,
         overwrite=False)
     # separate into datasets
-    train_noisy, val_noisy, test_noisy = pyst.datasets.audio2datasets(noisy_audio_dict_path,
-                                                                seed=40)
-    train_clean, val_clean, test_clean = pyst.datasets.audio2datasets(clean_audio_dict_path,
-                                                                seed=40)
+    train_noisy, val_noisy, test_noisy = pyst.datasets.audio2datasets(
+        noisy_audio_dict_path, perc_train = perc_train, seed=40)
+    train_clean, val_clean, test_clean = pyst.datasets.audio2datasets(
+        clean_audio_dict_path,
+        perc_train = perc_train,
+        seed=40)
 
     # save train, val, test dataset assignments to dict
     dataset_dict_noisy = dict([('train', train_noisy),('val', val_noisy),('test', test_noisy)])
@@ -1552,7 +1556,11 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
 
     for i, train_path in enumerate(train_paths):
         if i == 0:
-            total_epochs = epochs * len(train_paths_noisy)
+            if 'epochs' in kwargs:
+                epochs = kwargs['epochs']
+            else:
+                epochs = 10 # default in Keras
+            total_epochs = epochs * len(train_paths)
             print('\n\nThe model will be trained {} epochs per '.format(epochs)+\
                 'training session. \nTotal possible epochs: {}\n\n'.format(total_epochs))
         start_session = time.time()
