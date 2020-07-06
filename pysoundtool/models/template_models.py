@@ -6,10 +6,11 @@ import inspect
 import pathlib
 import numpy as np
 # for building and training models
-from keras.models import Sequential, load_model
+from keras import applications
+from keras.models import Sequential, load_model, Model
 from keras.layers import Dense, Conv2D, Flatten, Dropout, Conv2DTranspose
 from keras.constraints import max_norm
-from sklearn.preprocessing import StandardScaler, normalize
+from keras.optimizers import SGD, Adam 
  
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
@@ -121,7 +122,8 @@ def autoencoder_denoise(input_shape,
         
     References
     ----------
-    https://www.machinecurve.com/index.php/2019/12/19/creating-a-signal-noise-removal-autoencoder-with-keras/#creating-the-autoencoder
+    Versloot, Christian (2019, December 19). Creating a Signal Noise Removal 
+    Autoencoder with Keras. MachineCurve. https://www.machinecurve.com
     '''
     autoencoder = Sequential()
     autoencoder.add(Conv2D(128, kernel_size = kernel_size,
@@ -153,3 +155,33 @@ def autoencoder_denoise(input_shape,
                     padding = padding,
                     kernel_initializer = kernel_initializer)
     return autoencoder, settings
+
+def resnet50_classifier(input_shape, num_labels, activation = 'softmax',
+                        final_layer_name = 'features'):
+    '''Simple image classifier built ontop of a pretrained ResNet50 model.
+    
+    References
+    ----------
+    Revay, S. & Teschke, M. (2019). Multiclass Language Identification using Deep 
+    Learning on Spectral Images of Audio Signals. arXiv:1905.04348 [cs.SD]
+    '''
+    if len(input_shape) != 3:
+        raise ValueError('ResNet50 expects 3D feature data, not {}D.'.format(
+            len(input_shape)))
+    if input_shape[-1] != 3:
+        raise ValueError('ResNet50 expects 3 channels for RGB values, not {}.'.format(
+            input_shape[-1]))
+    base_model = applications.resnet50.ResNet50(weights=None, include_top=False,
+                                                input_shape = input_shape)
+    x = base_model.output 
+    x = Flatten()(x)
+    predictions = Dense(num_labels,
+                        activation = activation,
+                        name = final_layer_name)(x) # add name to this layer for TensorBoard visuals
+    model = Model(inputs = base_model.input,
+                  outputs = predictions)
+    settings = dict(input_shape = input_shape,
+                    num_labels = num_labels,
+                    activation = activation,
+                    final_layer_name = final_layer_name)
+    return model, settings
