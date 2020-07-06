@@ -532,7 +532,10 @@ def dataset_formatter(audiodirectory=None, recursive=False, new_dir=None, sr=Non
     audiodirectory = pyst.utils.check_dir(audiodirectory, make=False)
     audiofiles = pyst.files.collect_audiofiles(audiodirectory,
                                                recursive=recursive)
-    
+    audiodir_parent = audiodirectory.stem
+    # add this base directory to 'new_dir'
+    new_dir = new_dir.joinpath(audiodir_parent)
+    new_dir = pyst.utils.check_dir(new_dir,make=True)
 
     # set bitdepth for soundfile
     if bitdepth is None:
@@ -569,16 +572,15 @@ def dataset_formatter(audiodirectory=None, recursive=False, new_dir=None, sr=Non
             goal_num_samples = int(dur_sec*sr2)
             y = pyst.dsp.set_signal_length(y, goal_num_samples)
             
-        if not overwrite:
-            # ensure no '..' or '.' are in the current audio file's path
+        if overwrite is not True:
+            # limit audiopath to parent dir 
             fparts = list(audio.parts)
-            # TODO does this work with windows and mac?
-            fparts = [x for x in fparts if x != '..' and x != '.']
+            dir_idx = [i for i, j in enumerate(fparts) if j == audiodir_parent]
+            dir_id = dir_idx[-1]
+            fparts = fparts[dir_id+1:] # dir name included in new_dir path
             audio = pathlib.Path('/'.join(fparts))
-            # maintains structure of old directory in new directory
-            # but avoids saving the files in a directory some place higher up
+            # maintains structure of old directory in new directory            
             new_filename = new_dir.joinpath(audio)
-            
         else:
             new_filename = audio
             
