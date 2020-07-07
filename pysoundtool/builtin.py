@@ -1403,7 +1403,7 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
                    feature_extraction_dir = None,
                    use_generator = True,
                    normalized = False,
-                   patience = 10,
+                   patience = 15,
                    **kwargs):
     '''Collects training features and trains cnn environment classifier.
     
@@ -1813,3 +1813,256 @@ def denoiser_run(model, new_audiofile, feat_settings_dict):
     # match the scale of the original audio:
     cleaned_audio = pyst.dsp.scalesound(cleaned_audio, max_val = max_energy_original)
     return cleaned_audio, sr
+
+def collect_classifier_settings(feature_extraction_dir):
+    # ensure feature_extraction_folder exists:
+    dataset_path = pyst.utils.check_dir(feature_extraction_dir, make=False)
+    
+    # prepare features files to load for training
+    features_files = list(dataset_path.glob('*.npy'))
+    # NamedTuple: 'datasets.train', 'datasets.val', 'datasets.test'
+    datasets = pyst.datasets.separate_train_val_test_files(
+        features_files)
+    # TODO test
+    if not datasets.train:
+        # perhaps data files located in subdirectories 
+        features_files = list(dataset_path.glob('**/*.npy'))
+        datasets = pyst.datasets.separate_train_val_test_files(
+            features_files)
+        if not datasets.train:
+            raise FileNotFoundError('Could not locate train, validation, or test '+\
+                '.npy files in the provided directory: \n{}'.format(dataset_path) +\
+                    '\nThis program expects "train", "val", or "test" to be '+\
+                        'included in each filename (not parent directory/ies) names.')
+        
+    train_paths = datasets.train
+    val_paths = datasets.val 
+    test_paths = datasets.test
+    
+    # need dictionary for decoding labels:
+    dict_decode_path = dataset_path.joinpath('dict_decode.csv')
+    if not os.path.exists(dict_decode_path):
+        raise FileNotFoundError('Could not find {}.'.format(dict_decode_path))
+    dict_decode = pyst.utils.load_dict(dict_decode_path)
+    num_labels = len(dict_decode)
+    
+    settings_dict = pyst.utils.load_dict(
+        dataset_path.joinpath('log_extraction_settings.csv'))
+    num_feats = pyst.utils.restore_dictvalue(settings_dict['num_feats'])
+    # should the shape include the label column or not?
+    # currently not
+    feat_shape = pyst.utils.restore_dictvalue(settings_dict['desired_shape'])
+    feature_type = settings_dict['feat_type']
+    return datasets, num_labels, feat_shape, num_feats, feature_type
+
+def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
+                  feature_extraction_dir = None,
+                  use_generator = True,
+                  normalized = False,
+                  patience = 15,
+                  timesteps = 5,
+                  context_window = 5,
+                  colorscale = 1,
+                  total_training_sessions = None,
+                  **kwargs):
+    '''Many settings followed by the paper below.
+    
+    References
+    ----------
+    Kim, Myungjong & Cao, Beiming & An, Kwanghoon & Wang, Jun. (2018). Dysarthric Speech Recognition Using Convolutional LSTM Neural Network. 10.21437/interspeech.2018-2250.
+    '''
+    
+    datasets, num_labels, feat_shape, num_feats, feature_type =\
+        collect_classifier_settings(feature_extraction_dir)
+    
+    train_paths = datasets.train
+    val_paths = datasets.val
+    test_paths = datasets.test
+    
+    # Save model directory inside feature directory
+    dataset_path = train_paths[0].parent
+    if feature_type:
+        model_name += '_'+feature_type + '_' + pyst.utils.get_date() 
+    else:
+        model_name += '_' + pyst.utils.get_date() 
+    model_dir = dataset_path.joinpath(model_name)
+    model_dir = pyst.utils.check_dir(model_dir, make=True)
+    model_name += '.h5'
+    model_path = model_dir.joinpath(model_name)
+    
+    frame_width = context_window * 2 + 1 # context window w central frame
+    input_shape = (timesteps, frame_width, num_feats, colorscale)
+    model, settings = pystmodels.cnnlstm_classifier(num_labels = num_labels, 
+                                                    input_shape = input_shape, 
+                                                    lstm_cells = num_feats)
+    
+
+    # create callbacks variable if not in kwargs
+    # allow users to use different callbacks if desired
+    if 'callbacks' not in kwargs:
+        callbacks = pystmodels.setup_callbacks(patience = patience,
+                                                best_modelname = model_path, 
+                                                log_filename = model_dir.joinpath('log.csv'))
+    optimizer = 'adam'
+    loss = 'sparse_categorical_crossentropy'
+    metrics = ['accuracy']
+    model.compile(optimizer = optimizer,
+                          loss = loss,
+                          metrics = metrics)
+    
+    # update settings with optimizer etc.
+    additional_settings = dict(optimizer = optimizer,
+                               loss = loss,
+                               metrics = metrics,
+                               kwargs = kwargs)
+    settings.update(additional_settings)
+    
+    
+    # start training
+    start = time.time()
+
+    for i, train_path in enumerate(train_paths):
+        if i == 0:
+            if 'epochs' in kwargs:
+                epochs = kwargs['epochs']
+            else:
+                epochs = 10 # default in Keras
+            total_epochs = epochs * len(train_paths)
+            print('\n\nThe model will be trained {} epochs per '.format(epochs)+\
+                'training session. \nTotal possible epochs: {}\n\n'.format(total_epochs))
+        start_session = time.time()
+        data_train_path = train_path
+        # just use first validation data file
+        data_val_path = val_paths[0]
+        # just use first test data file
+        data_test_path = test_paths[0]
+        
+        print('\nTRAINING SESSION ',i+1)
+        print("Training on: ")
+        print(data_train_path)
+        print()
+        
+        data_train = np.load(data_train_path)
+        data_val = np.load(data_val_path)
+        data_test = np.load(data_test_path)
+        
+        # shuffle data_train 
+        np.random.shuffle(data_train) 
+        
+        # reinitiate 'callbacks' for additional iterations
+        if i > 0: 
+            if 'callbacks' not in kwargs:
+                callbacks = pystmodels.setup_callbacks(patience = patience,
+                                                        best_modelname = model_path, 
+                                                        log_filename = model_dir.joinpath('log.csv'))
+            else:
+                # apply callbacks set in **kwargs
+                callbacks = kwargs['callbacks']
+
+        if use_generator:
+            train_generator = pystmodels.Generator(data_matrix1 = data_train, 
+                                                    data_matrix2 = None,
+                                                    normalized = normalized,
+                                                    adjust_shape = input_shape)
+            val_generator = pystmodels.Generator(data_matrix1 = data_val,
+                                                data_matrix2 = None,
+                                                normalized = normalized,
+                                                adjust_shape = input_shape)
+            test_generator = pystmodels.Generator(data_matrix1 = data_test,
+                                                  data_matrix2 = None,
+                                                  normalized = normalized,
+                                                  adjust_shape = input_shape)
+
+            train_generator.generator()
+            val_generator.generator()
+            test_generator.generator()
+            history = model.fit_generator(
+                train_generator.generator(),
+                steps_per_epoch = data_train.shape[0],
+                callbacks = callbacks,
+                validation_data = val_generator.generator(),
+                validation_steps = data_val.shape[0],
+                **kwargs)
+            
+            # TODO test how well prediction works. use simple predict instead?
+            # need to define `y_test`
+            X_test, y_test = pyst.feats.separate_dependent_var(data_test)
+            y_predicted = model.predict_generator(
+                test_generator.generator(),
+                steps = data_test.shape[0])
+
+        else:
+            # TODO make scaling data optional?
+            # data is separated and shaped for this classifier in scale_X_y..
+            X_train, y_train, scalars = pyst.feats.scale_X_y(data_train,
+                                                                is_train=True)
+            X_val, y_val, __ = pyst.feats.scale_X_y(data_val,
+                                                    is_train=False, 
+                                                    scalars=scalars)
+            X_test, y_test, __ = pyst.feats.scale_X_y(data_test,
+                                                        is_train=False, 
+                                                        scalars=scalars)
+            
+            history = envclassifier.fit(X_train, y_train, 
+                                        callbacks = callbacks, 
+                                        validation_data = (X_val, y_val),
+                                        **kwargs)
+            
+            envclassifier.evaluate(X_test, y_test)
+            y_predicted = envclassifier.predict(X_test)
+            # which category did the model predict?
+            
+    
+        y_pred = np.argmax(y_predicted, axis=1)
+        if len(y_pred.shape) > len(y_test.shape):
+            y_test = np.expand_dims(y_test, axis=1)
+        elif len(y_pred.shape) < len(y_test.shape):
+            y_pred = np.expand_dims(y_pred, axis=1)
+        try:
+            assert y_pred.shape == y_test.shape
+        except AssertionError:
+            raise ValueError('The shape of prediction data {}'.format(y_pred.shape) +\
+                ' does not match the `y_test` dataset {}'.format(y_test.shape) +\
+                    '\nThe shapes much match in order to measure accuracy.')
+                
+        match = sum(y_test == y_pred)
+        if len(match.shape) == 1:
+            match = match[0]
+        test_accuracy = round(match/len(y_test),4)
+        print('\nModel reached accuracy of {}%'.format(test_accuracy*100))
+        
+        end_session = time.time()
+        total_dur_sec_session = round(end_session-start_session,2)
+        model_features_dict = dict(model_path = model_path,
+                                data_train_path = data_train_path,
+                                data_val_path = data_val_path, 
+                                data_test_path = data_test_path, 
+                                total_dur_sec_session = total_dur_sec_session,
+                                use_generator = use_generator,
+                                kwargs = kwargs)
+        model_features_dict.update(settings)
+        model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
+            model_name, i))
+        model_features_dict_path = pyst.utils.save_dict(
+            filename = model_features_dict_path,
+            dict2save = model_features_dict)
+        if total_training_sessions is None:
+            total_training_sessions = len(train_paths)
+        if i == total_training_sessions-1:
+            end = time.time()
+            total_duration_seconds = round(end-start,2)
+            time_dict = dict(total_duration_seconds=total_duration_seconds)
+            model_features_dict.update(time_dict)
+
+            model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
+                model_name, i))
+            model_features_dict_path = pyst.utils.save_dict(
+                filename = model_features_dict_path,
+                dict2save = model_features_dict,
+                overwrite = True)
+            print('\nFinished training the model. The model and associated files can be '+\
+            'found here: \n{}'.format(model_dir))
+            model.save(model_dir.joinpath('final_not_best_model.h5'))
+            return model_dir, history
+
+    

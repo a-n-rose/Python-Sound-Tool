@@ -8,9 +8,9 @@ import numpy as np
 # for building and training models
 from keras import applications
 from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Conv2D, Flatten, Dropout, Conv2DTranspose
+from keras.layers import Dense, Conv2D, Flatten, Dropout, Conv2DTranspose, \
+    LSTM, MaxPooling2D, TimeDistributed
 from keras.constraints import max_norm
-from keras.optimizers import SGD, Adam 
  
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
@@ -102,7 +102,7 @@ def cnn_classifier(feature_maps = [40, 20, 10],
 # TODO: update model based on research
 def autoencoder_denoise(input_shape,
                         kernel_size = (3,3),
-                        max_norm_value=2.0,
+                        max_norm_value = 2.0,
                         activation_function_layer = 'relu',
                         activation_function_output = 'sigmoid',
                         padding = 'same',
@@ -184,4 +184,41 @@ def resnet50_classifier(input_shape, num_labels, activation = 'softmax',
                     num_labels = num_labels,
                     activation = activation,
                     final_layer_name = final_layer_name)
+    return model, settings
+
+def cnnlstm_classifier(num_labels, input_shape, lstm_cells, 
+                       feature_map_filters = 32, kernel_size = (8,4),
+                       pool_size = (3,3), dense_hidden_units = 60, 
+                       activation_layer = 'relu', activation_output = 'softmax', 
+                       dropout = 0.25):
+    '''Model architecture inpsired from the paper below.
+    
+    References
+    ----------
+    Kim, Myungjong & Cao, Beiming & An, Kwanghoon & Wang, Jun. (2018). Dysarthric Speech Recognition Using Convolutional LSTM Neural Network. 10.21437/interspeech.2018-2250. 
+    '''
+    cnn = Sequential()
+    cnn.add(Conv2D(feature_map_filters, kernel_size = kernel_size, activation = activation_layer))
+    # non-overlapping pool_size 
+    cnn.add(MaxPooling2D(pool_size = pool_size))
+    cnn.add(Dropout(dropout))
+    cnn.add(Flatten())
+
+    # prepare stacked LSTM
+    model = Sequential()
+    model.add(TimeDistributed(cnn,input_shape = input_shape))
+    model.add(LSTM(lstm_cells, return_sequences = True))
+    model.add(LSTM(lstm_cells, return_sequences = True))
+    model.add(Flatten())
+    model.add(Dense(num_labels,activation = activation_output)) 
+    settings = dict(input_shape = input_shape,
+                    num_labels = num_labels,
+                    kernel_size = kernel_size,
+                    pool_size = pool_size,
+                    activation_layer = activation_layer,
+                    activation_output = activation_output,
+                    lstm_cells = lstm_cells,
+                    feature_map_filters = feature_map_filters,
+                    dense_hidden_units = dense_hidden_units,
+                    dropout = dropout)
     return model, settings

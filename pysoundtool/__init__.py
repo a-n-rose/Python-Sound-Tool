@@ -12,11 +12,15 @@ from .feats import plotsound
 from .filters import WienerFilter, BandSubtraction
 from .dsp import generate_sound, generate_noise
 from .builtin import envclassifier_feats, denoiser_feats, denoiser_train, \
-    envclassifier_train, denoiser_run, filtersignal
+    envclassifier_train, denoiser_run, filtersignal, cnnlstm_train
+
+from warnings import simplefilter
+# ignore all future warnings
+simplefilter(action='ignore', category=FutureWarning)
 
 
 __all__=['utils', 'feats', 'filters', 
          'WienerFilter', 'BandSubtraction','filtersignal','dsp','errors',
          'plotsound', 'loadsound', 'savesound', 'datasets', 'envclassifier_feats',
          'denoiser_feats', 'denoiser_train', 'envclassifier_train',
-         'generate_sound', 'generate_noise', 'denoiser_run', 'builtin']
+         'generate_sound', 'generate_noise', 'denoiser_run', 'builtin', 'cnnlstm_train']
