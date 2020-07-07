@@ -294,7 +294,8 @@ def waves2dataset(audiolist, perc_train=0.8, seed=40, train=True, val=True, test
     return train_waves, val_waves, test_waves
 
 # TODO rename to audioclasses2datasets?
-def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None, **kwargs):
+def audio2datasets(audiodata, perc_train=0.8, limit=None, seed = None,
+                   audio_only = True, **kwargs):
     '''Organizes all audio in audio class directories into datasets (randomized).
     
     The validation and test datasets are halved between what isn't train data. For 
@@ -313,6 +314,11 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None, **kwargs):
     seed : int, optional
         A value to allow random order of audiofiles to be predictable. 
         (default None). If None, the order of audiofiles will not be predictable.
+        
+    audio_only : bool 
+        If audio files are expected (e.g. extensions of .wav, .flac etc.) or not. 
+        If True, list will be checked to contain only audio files. Otherwise not.
+        (default True)
         
     **kwargs : additional keyword arguments
         Keyword arguments for pysoundtool.datasets.waves2dataset
@@ -349,8 +355,9 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None, **kwargs):
         for key, value in waves.items():
             if isinstance(value, str):
                 audiolist = pyst.utils.restore_dictvalue(value)
-                # check to make sure all audiofiles and none were lost
-                audiolist = pyst.files.ensure_only_audiofiles(audiolist)
+                if audio_only:
+                    # check to make sure all audiofiles and none were lost
+                    audiolist = pyst.files.ensure_only_audiofiles(audiolist)
                 key = int(key)
             else:
                 audiolist = value
@@ -372,7 +379,8 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None, **kwargs):
                 if isinstance(audiolist, str):
                     # check to make sure all audiofiles and none were lost
                     audiolist = pyst.utils.restore_dictvalue(audiolist)
-                    audiolist = pyst.files.ensure_only_audiofiles(audiolist)
+                    if audio_only:
+                        audiolist = pyst.files.ensure_only_audiofiles(audiolist)
         else:
             audiolist = waves
         # sort to ensure a consistent order of audio; otherwise cannot control randomization
@@ -395,6 +403,14 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed=None, **kwargs):
     if seed is not None: 
         random.seed(seed)
     random.shuffle(test_list)
+    
+    if limit is not None:
+        num_train = limit * perc_train
+        num_val = limit * (1-perc_train) // 2
+        num_test = limit * (1-perc_train) // 2
+        train_list = train_list[:int(num_train)]
+        val_list = val_list[:int(num_val)+1]
+        test_list = test_list[:int(num_test)+1]
     # esure the number of training data is 80% of all available audiodata:
     if len(train_list) < math.ceil((len(train_list)+len(val_list)+len(test_list))*perc_train):
         raise pyst.errors.notsufficientdata_error(len(train_list),
