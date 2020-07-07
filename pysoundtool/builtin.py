@@ -11,6 +11,7 @@ import soundfile as sf
 from scipy.io.wavfile import write
 import keras
 from keras.models import load_model
+from keras.optimizers import Adam
 
 # in order to import pysoundtool
 import os, sys
@@ -1404,6 +1405,7 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
                    use_generator = True,
                    normalized = False,
                    patience = 15,
+                   add_tensor_last = True,
                    **kwargs):
     '''Collects training features and trains cnn environment classifier.
     
@@ -1592,13 +1594,16 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
         if use_generator:
             train_generator = pystmodels.Generator(data_matrix1 = data_train, 
                                                     data_matrix2 = None,
-                                                    normalized = normalized)
+                                                    normalized = normalized,
+                                                    add_tensor_last = add_tensor_last)
             val_generator = pystmodels.Generator(data_matrix1 = data_val,
                                                 data_matrix2 = None,
-                                                normalized = normalized)
+                                                normalized = normalized,
+                                                    add_tensor_last = add_tensor_last)
             test_generator = pystmodels.Generator(data_matrix1 = data_test,
                                                   data_matrix2 = None,
-                                                  normalized = normalized)
+                                                  normalized = normalized,
+                                                    add_tensor_last = add_tensor_last)
 
             train_generator.generator()
             val_generator.generator()
@@ -1864,6 +1869,7 @@ def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
                   context_window = 5,
                   colorscale = 1,
                   total_training_sessions = None,
+                  add_tensor_last = False,
                   **kwargs):
     '''Many settings followed by the paper below.
     
@@ -1963,15 +1969,18 @@ def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
             train_generator = pystmodels.Generator(data_matrix1 = data_train, 
                                                     data_matrix2 = None,
                                                     normalized = normalized,
-                                                    adjust_shape = input_shape)
+                                                    adjust_shape = input_shape,
+                                                    add_tensor_last = add_tensor_last)
             val_generator = pystmodels.Generator(data_matrix1 = data_val,
                                                 data_matrix2 = None,
                                                 normalized = normalized,
-                                                adjust_shape = input_shape)
+                                                adjust_shape = input_shape,
+                                                    add_tensor_last = add_tensor_last)
             test_generator = pystmodels.Generator(data_matrix1 = data_test,
                                                   data_matrix2 = None,
                                                   normalized = normalized,
-                                                  adjust_shape = input_shape)
+                                                  adjust_shape = input_shape,
+                                                  add_tensor_last = add_tensor_last)
 
             train_generator.generator()
             val_generator.generator()
@@ -2081,6 +2090,236 @@ def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
             'found here: \n{}'.format(model_dir))
             model.save(model_dir.joinpath('final_not_best_model.h5'))
             return model_dir, history
+
+def resnet50_train(model_name = 'model_resnet50_classifier',
+                  feature_extraction_dir = None,
+                  use_generator = False,
+                  normalized = False,
+                  patience = 15,
+                  colorscale = 3,
+                  total_training_sessions = None,
+                  add_tensor_last = None,
+                  **kwargs):
+    datasets, num_labels, feat_shape, num_feats, feature_type =\
+        collect_classifier_settings(feature_extraction_dir)
+    
+    train_paths = datasets.train
+    val_paths = datasets.val
+    test_paths = datasets.test
+    
+    # Save model directory inside feature directory
+    dataset_path = train_paths[0].parent
+    if feature_type:
+        model_name += '_'+feature_type + '_' + pyst.utils.get_date() 
+    else:
+        model_name += '_' + pyst.utils.get_date() 
+    model_dir = dataset_path.joinpath(model_name)
+    model_dir = pyst.utils.check_dir(model_dir, make=True)
+    model_name += '.h5'
+    model_path = model_dir.joinpath(model_name)
+    
+    input_shape = (feat_shape[0], num_feats, colorscale)
+    model, settings = pystmodels.resnet50_classifier(num_labels = num_labels, 
+                                                    input_shape = input_shape)
+
+    # create callbacks variable if not in kwargs
+    # allow users to use different callbacks if desired
+    if 'callbacks' not in kwargs:
+        callbacks = pystmodels.setup_callbacks(patience = patience,
+                                                best_modelname = model_path, 
+                                                log_filename = model_dir.joinpath('log.csv'))
+    optimizer = Adam(lr=0.0001)
+    loss='sparse_categorical_crossentropy'
+    metrics = ['accuracy']
+    model.compile(optimizer=optimizer, loss = loss, 
+                metrics = metrics)
+    
+    # update settings with optimizer etc.
+    additional_settings = dict(optimizer = optimizer,
+                               loss = loss,
+                               metrics = metrics,
+                               kwargs = kwargs)
+    settings.update(additional_settings)
+    
+    
+    # start training
+    start = time.time()
+
+    for i, train_path in enumerate(train_paths):
+        if i == 0:
+            if 'epochs' in kwargs:
+                epochs = kwargs['epochs']
+            else:
+                epochs = 10 # default in Keras
+            total_epochs = epochs * len(train_paths)
+            print('\n\nThe model will be trained {} epochs per '.format(epochs)+\
+                'training session. \nTotal possible epochs: {}\n\n'.format(total_epochs))
+        start_session = time.time()
+        data_train_path = train_path
+        # just use first validation data file
+        data_val_path = val_paths[0]
+        # just use first test data file
+        data_test_path = test_paths[0]
+        
+        print('\nTRAINING SESSION ',i+1)
+        print("Training on: ")
+        print(data_train_path)
+        print()
+        
+        data_train = np.load(data_train_path)
+        data_val = np.load(data_val_path)
+        data_test = np.load(data_test_path)
+        
+        # shuffle data_train, just to ensure random
+        np.random.shuffle(data_train) 
+        
+        # reinitiate 'callbacks' for additional iterations
+        if i > 0: 
+            if 'callbacks' not in kwargs:
+                callbacks = pystmodels.setup_callbacks(patience = patience,
+                                                        best_modelname = model_path, 
+                                                        log_filename = model_dir.joinpath('log.csv'))
+            else:
+                # apply callbacks set in **kwargs
+                callbacks = kwargs['callbacks']
+
+        if use_generator:
+            train_generator = pystmodels.Generator(data_matrix1 = data_train, 
+                                                    data_matrix2 = None,
+                                                    normalized = normalized,
+                                                    adjust_shape = input_shape,
+                                                    add_tensor_last = add_tensor_last,
+                                                    gray2color = True)
+            val_generator = pystmodels.Generator(data_matrix1 = data_val,
+                                                data_matrix2 = None,
+                                                normalized = normalized,
+                                                adjust_shape = input_shape,
+                                                    add_tensor_last = add_tensor_last,
+                                                    gray2color = True)
+            test_generator = pystmodels.Generator(data_matrix1 = data_test,
+                                                  data_matrix2 = None,
+                                                  normalized = normalized,
+                                                  adjust_shape = input_shape,
+                                                  add_tensor_last = add_tensor_last,
+                                                    gray2color = True)
+
+            train_generator.generator()
+            val_generator.generator()
+            test_generator.generator()
+            history = model.fit_generator(
+                train_generator.generator(),
+                steps_per_epoch = data_train.shape[0],
+                callbacks = callbacks,
+                validation_data = val_generator.generator(),
+                validation_steps = data_val.shape[0],
+                **kwargs)
+            
+            # TODO test how well prediction works. use simple predict instead?
+            # need to define `y_test`
+            X_test, y_test = pyst.feats.separate_dependent_var(data_test)
+            y_predicted = model.predict_generator(
+                test_generator.generator(),
+                steps = data_test.shape[0])
+
+        else:
+            # TODO make scaling data optional?
+            # data is separated and shaped for this classifier in scale_X_y..
+            X_train, y_train, scalars = pyst.feats.scale_X_y(data_train,
+                                                                is_train=True)
+            X_val, y_val, __ = pyst.feats.scale_X_y(data_val,
+                                                    is_train=False, 
+                                                    scalars=scalars)
+            X_test, y_test, __ = pyst.feats.scale_X_y(data_test,
+                                                        is_train=False, 
+                                                        scalars=scalars)
+            
+            print(X_train.shape)
+            X_train = pyst.feats.adjust_shape(X_train, 
+                                              (X_train.shape[0],)+input_shape,
+                                              change_dims = True)
+            print(X_train.shape)
+            X_val = pyst.feats.adjust_shape(X_val, 
+                                            (X_val.shape[0],)+input_shape,
+                                              change_dims = True)
+            X_test = pyst.feats.adjust_shape(X_test, 
+                                             (X_test.shape[0],)+input_shape,
+                                              change_dims = True)
+            
+            # randomize train data
+            rand_idx = np.random.choice(range(len(X_train)),
+                                        len(X_train),
+                                        replace=False)
+            X_train = X_train[rand_idx]
+            
+            # make grayscale to colorscale
+            X_train = pyst.feats.grayscale2color(X_train, colorscale = 3)
+            X_val = pyst.feats.grayscale2color(X_val, colorscale = 3)
+            X_test = pyst.feats.grayscale2color(X_test, colorscale = 3)
+            
+            print(X_train.shape)
+            
+            history = model.fit(X_train, y_train, 
+                                        callbacks = callbacks, 
+                                        validation_data = (X_val, y_val),
+                                        **kwargs)
+            
+            model.evaluate(X_test, y_test)
+            y_predicted = model.predict(X_test)
+            # which category did the model predict?
+            
+    
+        y_pred = np.argmax(y_predicted, axis=1)
+        if len(y_pred.shape) > len(y_test.shape):
+            y_test = np.expand_dims(y_test, axis=1)
+        elif len(y_pred.shape) < len(y_test.shape):
+            y_pred = np.expand_dims(y_pred, axis=1)
+        try:
+            assert y_pred.shape == y_test.shape
+        except AssertionError:
+            raise ValueError('The shape of prediction data {}'.format(y_pred.shape) +\
+                ' does not match the `y_test` dataset {}'.format(y_test.shape) +\
+                    '\nThe shapes much match in order to measure accuracy.')
+                
+        match = sum(y_test == y_pred)
+        if len(match.shape) == 1:
+            match = match[0]
+        test_accuracy = round(match/len(y_test),4)
+        print('\nModel reached accuracy of {}%'.format(test_accuracy*100))
+        
+        end_session = time.time()
+        total_dur_sec_session = round(end_session-start_session,2)
+        model_features_dict = dict(model_path = model_path,
+                                data_train_path = data_train_path,
+                                data_val_path = data_val_path, 
+                                data_test_path = data_test_path, 
+                                total_dur_sec_session = total_dur_sec_session,
+                                use_generator = use_generator,
+                                kwargs = kwargs)
+        model_features_dict.update(settings)
+        model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
+            model_name, i))
+        model_features_dict_path = pyst.utils.save_dict(
+            filename = model_features_dict_path,
+            dict2save = model_features_dict)
+        if total_training_sessions is None:
+            total_training_sessions = len(train_paths)
+        if i == total_training_sessions-1:
+            end = time.time()
+            total_duration_seconds = round(end-start,2)
+            time_dict = dict(total_duration_seconds=total_duration_seconds)
+            model_features_dict.update(time_dict)
+
+            model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
+                model_name, i))
+            model_features_dict_path = pyst.utils.save_dict(
+                filename = model_features_dict_path,
+                dict2save = model_features_dict,
+                overwrite = True)
+            print('\nFinished training the model. The model and associated files can be '+\
+            'found here: \n{}'.format(model_dir))
+            model.save(model_dir.joinpath('final_not_best_model.h5'))
+            return model_dir, history
+
 
 def extract_voxforge():
     '''This is a function specifically suited for the VoxForge dataset
