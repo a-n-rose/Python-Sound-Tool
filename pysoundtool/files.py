@@ -256,6 +256,45 @@ def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursiv
     # ensure only audiofiles:
     paths_list = pyst.files.ensure_only_audiofiles(paths_list)
     return paths_list
+
+
+def collect_zipfiles(directory, hidden_files = False, ext='tgz', recursive=False):
+    '''Collects all zipfiles within a given directory.
+    
+    This includes the option to include hidden_files in the collection.
+    
+    Parameters
+    ----------
+    directory : str or pathlib.PosixPath
+        The path to where desired files are located.
+    hidden_files : bool 
+        If True, hidden files will be included. If False, they won't.
+        (default False)
+    wav_only : bool 
+        If True, only .wav files will be included. Otherwise, no limit
+        on file type. 
+    
+    Returns
+    -------
+    paths_list : list of pathlib.PosixPath objects
+        Sorted list of file pathways.
+    '''
+    if not isinstance(directory, pathlib.PosixPath):
+        directory = pathlib.Path(directory)
+    paths_list = []
+    # allow all data types to be collected (not only .wav)
+    if ext[0] == '.':
+        filetype = '*' + ext
+    else: 
+        filetype = '*.' + ext
+    if recursive:
+        filetype = '**/' + filetype
+    for item in directory.glob(filetype):
+        paths_list.append(item)
+    # pathlib.glob collects hidden files as well - remove them if they are there:
+    if not hidden_files:
+        paths_list = [x for x in paths_list if x.stem[0] != '.']
+    return paths_list
     
 def ensure_only_audiofiles(audiolist):
     possible_extensions = pyst.files.list_possibleformats(use_scipy=False)
@@ -595,3 +634,16 @@ def extract(tar_url, extract_path='.'):
         tar.extract(item, extract_path)
         if item.name.find(".tgz") != -1 or item.name.find(".tar") != -1:
             extract(item.name, "./" + item.name[:item.name.rfind('/')])
+
+def delete_dir_contents(directory, remove_dir = False):
+    '''
+    https://stackoverflow.com/a/28834214
+    '''
+    d = pyst.utils.string2pathlib(directory)
+    for sub in d.iterdir():
+        if sub.is_dir():
+            delete_dir_contents(sub)
+        else:
+            sub.unlink()
+    if remove_dir:
+        d.rmdir()
