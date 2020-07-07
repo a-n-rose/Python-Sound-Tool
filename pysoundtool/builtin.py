@@ -1860,7 +1860,7 @@ def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
                   use_generator = True,
                   normalized = False,
                   patience = 15,
-                  timesteps = 5,
+                  timesteps = 10,
                   context_window = 5,
                   colorscale = 1,
                   total_training_sessions = None,
@@ -1946,7 +1946,7 @@ def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
         data_val = np.load(data_val_path)
         data_test = np.load(data_test_path)
         
-        # shuffle data_train 
+        # shuffle data_train, just to ensure random
         np.random.shuffle(data_train) 
         
         # reinitiate 'callbacks' for additional iterations
@@ -2003,13 +2003,30 @@ def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
                                                         is_train=False, 
                                                         scalars=scalars)
             
-            history = envclassifier.fit(X_train, y_train, 
+            X_train = pyst.feats.adjust_shape(X_train, 
+                                              (X_train.shape[0],)+input_shape,
+                                              change_dims = True)
+            
+            X_val = pyst.feats.adjust_shape(X_val, 
+                                            (X_val.shape[0],)+input_shape,
+                                              change_dims = True)
+            X_test = pyst.feats.adjust_shape(X_test, 
+                                             (X_test.shape[0],)+input_shape,
+                                              change_dims = True)
+            
+            # randomize train data
+            rand_idx = np.random.choice(range(len(X_train)),
+                                        len(X_train),
+                                        replace=False)
+            X_train = X_train[rand_idx]
+            
+            history = model.fit(X_train, y_train, 
                                         callbacks = callbacks, 
                                         validation_data = (X_val, y_val),
                                         **kwargs)
             
-            envclassifier.evaluate(X_test, y_test)
-            y_predicted = envclassifier.predict(X_test)
+            model.evaluate(X_test, y_test)
+            y_predicted = model.predict(X_test)
             # which category did the model predict?
             
     
@@ -2065,4 +2082,7 @@ def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
             model.save(model_dir.joinpath('final_not_best_model.h5'))
             return model_dir, history
 
-    
+def extract_voxforge():
+    '''This is a function specifically suited for the VoxForge dataset
+    '''
+    pass
