@@ -647,3 +647,59 @@ def delete_dir_contents(directory, remove_dir = False):
             sub.unlink()
     if remove_dir:
         d.rmdir()
+        
+def matching_filenames(list1, list_of_lists):
+    list1_files = []
+    if isinstance(list1[0], tuple):
+        for item in list1:
+            if len(item) != 2:
+                # ensures expected length of 2: (encoded_label, pathway)
+                raise ValueError('Expected a list of tuple pairs: encoded '+\
+                    'label and associated pathway. Received tuple of length ', len(item))
+            # checks to ensure encoded label comes first
+            if isinstance(item[0], int) or isinstance(item[0], str) and item[0].isdigit():
+                list1_files.append(item[1])
+    elif isinstance(list1[0], str) or isinstance(list1[0], pathlib.PosixPath) or isinstance(list1[0], pathlib.PurePath):
+        list1_files = list1
+    other_lists_files = []
+    for l in list_of_lists:
+        if isinstance(l[0], tuple):
+            for item in l:
+                if len(item) != 2:
+                    # ensures expected length of 2: (encoded_label, pathway)
+                    raise ValueError('Expected a list of tuple pairs: encoded '+\
+                        'label and associated pathway. Received tuple of length ', len(item))
+                # checks to ensure encoded label comes first
+                if isinstance(item[0], int) or isinstance(item[0], str) and item[0].isdigit():
+                    # ensure pathway is string, not pathlib (for iteration purposes)
+                    other_lists_files.append(str(item[1]))
+        elif isinstance(l[0], str) or isinstance(l[0], pathlib.PosixPath) or isinstance(l[0], pathlib.PurePath):
+            other_lists_files.append(l)
+    # ensure list of lists is flat list
+    flatten = lambda l: [item for sublist in l for item in sublist]
+    other_lists_files = flatten(other_lists_files)
+    contanimated_files = []
+    for item in list1_files:
+        if isinstance(item, str):
+            item = pyst.string2pathlib(item)
+        fname = item.stem
+        fname_parts = fname.split('-')
+        fname_head = fname_parts[:-1]
+        fname_head = '-'.join(fname_head)
+        for i in other_lists_files:
+            if fname_head in i:
+                contanimated_files.append(item)
+                break
+    return contanimated_files
+        
+def remove_contaminated_files(list1, contaminated_files):
+    # ensure files are strings not pathlib.PosixPath objects
+    contaminated_files = [str(x) for x in contaminated_files]
+    remove_idx = []
+    if isinstance(list1[0], tuple):
+        for i, tuple_pair in enumerate(list1):
+            pathway = str(tuple_pair[1])
+            if pathway in contaminated_files:
+                remove_idx.append(i)
+    list_uncont = [x for j, x in enumerate(list1) if j not in remove_idx]
+    return list_uncont
