@@ -24,7 +24,7 @@ class Generator:
         This generator pulls data out in sections (i.e. batch sizes). Prepared for 3 dimensional data.
         
         Note: Keras adds a dimension to input to represent the "Tensor" that 
-        handles the input. This means that sometimes you have to add a 
+        #handles the input. This means that sometimes you have to add a 
         shape of (1,) to the shape of the data. 
         
         Parameters
@@ -96,18 +96,19 @@ class Generator:
                 self.desired_shape = None
         else:
             self.desired_shape = None
-        # raise warnings if data will be significatnly adjusted 
+        # raise warnings if data will be significantly adjusted 
+        # TODO test this or delete it
         if self.desired_shape is not None:
-            if len(self.desired_shape)+1 != len(datax.shape):
+            if len(self.desired_shape)+1 != len(self.datax.shape):
                 import warnings
                 message = '\nWARNING: The number of dimensions will be adjusted in the '+\
-                    'generator.\nOriginal data has ' + str(len(datax.shape))+\
+                    'generator.\nOriginal data has ' + str(len(self.datax.shape))+\
                         ' dimensions\nAdjusted data has ' + str(len(self.desired_shape)+1) +\
                             'dimensions'
-            if self.desired_shape < datax.shape[1:]:
+            if self.desired_shape < self.datax.shape[1:]:
                 import warnings
                 message = '\nWARNING: Desired shape '+ str(self.desired_shape) +\
-                    ' is smaller than the original data shape ' + str(datax.shape[1:])+\
+                    ' is smaller than the original data shape ' + str(self.datax.shape[1:])+\
                         '. Some data will therefore be removed, NOT ZEROPADDED.'
 
     def generator(self):
@@ -137,14 +138,17 @@ class Generator:
             # if need greater number of features --> zero padding
             # could this be applied to including both narrowband and wideband data?
             if self.desired_shape is not None:
-                batch_x = pyst.feats.adjust_shape(batch_x, self.desired_shape)
+                batch_x = pyst.feats.adjust_shape(batch_x, self.desired_shape, change_dims=True)
                 
                 if self.labels is None:
-                    batch_y = pyst.feats.adjust_shape(batch_y, self.desired_shape)
+                    batch_y = pyst.feats.adjust_shape(batch_y, self.desired_shape, change_dims=True)
             
-            # add tensor dimension
-            X_batch = batch_x.reshape(batch_x.shape+(1,))
-            y_batch = batch_y.reshape(batch_y.shape+(1,))
+            ## add tensor dimension
+            X_batch = batch_x.reshape((1,)+batch_x.shape)
+            y_batch = batch_y.reshape((1,)+batch_y.shape)
+            
+            #X_batch = batch_x
+            #y_batch = batch_y
             
             if len(X_batch.shape) == 3:
                 # needs to be 4 dimensions / have extra tensor
