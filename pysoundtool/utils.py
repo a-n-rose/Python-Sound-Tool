@@ -571,8 +571,7 @@ def save_dict(filename, dict2save, overwrite=False):
             for i, item in enumerate(value):
                 if isinstance(item, pathlib.PosixPath) or isinstance(item, pathlib.PurePath):
                     value[i] = str(item)
-                elif isinstance(item, list) or isinstance(item, tuple) or \
-                    isinstance(item, np.ndarray):
+                elif isinstance(item, list) or isinstance(item, np.ndarray):
                     if isinstance(item, np.ndarray):
                         item = list(item)
                     for j, k in enumerate(item):
