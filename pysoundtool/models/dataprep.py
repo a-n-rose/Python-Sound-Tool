@@ -19,7 +19,7 @@ import numpy as np
 class Generator:
     def __init__(self, data_matrix1, data_matrix2=None, 
                  normalized=False, apply_log = False, adjust_shape = None,
-                 labeled_data = False):
+                 labeled_data = False, add_tensor_last = None, gray2color = False):
         '''
         This generator pulls data out in sections (i.e. batch sizes). Prepared for 3 dimensional data.
         
@@ -60,6 +60,8 @@ class Generator:
         self.datay = data_matrix2
         self.normalized = normalized
         self.apply_log = apply_log
+        self.add_tensor_last = add_tensor_last
+        self.gray2color = gray2color # if need to change grayscale data to rgb
         if len(self.datax.shape) == 4:
             # expects shape (num_samples, batch_size, num_frames, num_feats)
             self.batches_per_sample = self.datax.shape[1]
@@ -143,12 +145,27 @@ class Generator:
                 if self.labels is None:
                     batch_y = pyst.feats.adjust_shape(batch_y, self.desired_shape, change_dims=True)
             
+            if self.gray2color:
+                # expects colorscale to be last column.
+                # will copy first channel into the other (assumed empty) channels.
+                # the empty channels were created in pyst.feats.adjust_shape
+                batch_x = pyst.feats.grayscale2color(batch_x, 
+                                                     colorscale = batch_x.shape[-1])
+                if self.labels is None:
+                    batch_y = pyst.feats.gray2color(batch_y, 
+                                                    colorscale = batch_y.shape[-1])
             ## add tensor dimension
-            X_batch = batch_x.reshape((1,)+batch_x.shape)
-            y_batch = batch_y.reshape((1,)+batch_y.shape)
-            
-            #X_batch = batch_x
-            #y_batch = batch_y
+            if self.add_tensor_last is True:
+                # e.g. for some conv model
+                X_batch = batch_x.reshape(batch_x.shape+(1,))
+                y_batch = batch_y.reshape(batch_y.shape+(1,))
+            elif self.add_tensor_last is False:
+                # e.g. for some lstm models
+                X_batch = batch_x.reshape((1,)+batch_x.shape)
+                y_batch = batch_y.reshape((1,)+batch_y.shape)
+            else:
+                X_batch = batch_x
+                y_batch = batch_y
             
             if len(X_batch.shape) == 3:
                 # needs to be 4 dimensions / have extra tensor
