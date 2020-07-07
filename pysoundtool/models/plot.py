@@ -38,5 +38,3 @@ def featuremaps(features, model, image_dir='./feature_maps/'):
                                             'featmap_{}.png'.format(i))
             image_par = pyst.utils.check_dir(image_path.parent, make=True)
             plt.savefig(image_path)
-    
-    
