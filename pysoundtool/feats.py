@@ -1606,12 +1606,14 @@ def feats2audio(feats, feature_type, sr, win_size_ms,
     return y
 
 def grayscale2color(image_matrix, colorscale=3):
-    '''Expects grayscale image. Adds extra channels to pretend to be rgb-scale.
+    '''Expects grayscale image. Copies first channel into additional channels.
     
     This is useful for pre-trained models that require features
-    to have rgb channels, not grayscale.
+    to have rgb channels, not grayscale. Assumes last channel the colorscale 
+    column.
     '''
-    if image_matrix.shape[-1] != 1:
+    if len(image_matrix.shape) == 2:
+        # if colorscale column not there, adds it
         image_matrix = image_matrix.reshape(image_matrix.shape + (1,))
     expected_shape = image_matrix.shape[:-1] + (colorscale,)
     # create extra empty channels to copy gray image to it:
