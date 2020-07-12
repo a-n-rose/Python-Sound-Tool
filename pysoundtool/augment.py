@@ -180,12 +180,6 @@ def piecewise_linear_warp(fft_value, alpha):
         denominator = np.pi - fft_value * (min(alpha, 1) / (alpha + 1e-6))
         fft_warped = np.pi - (nominator / denominator + 1e-6) * (np.pi - fft_value)
     return fft_warped
-
-def bilinear_warp_stft(stft_matrix, alpha):
-    nominator = (1-alpha) * np.sin(stft_matrix)
-    denominator = 1 - (1-alpha) * np.cos(stft_matrix)
-    stft_t = stft_matrix + 2 * np.arctan(nominator/(denominator + 1e-6) + 1e-6)
-    return stft_t
     
 def jitter():
     '''
