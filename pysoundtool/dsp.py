@@ -971,7 +971,7 @@ def apply_window(samples, window, zeropad=False):
     samples_win = samples * window
     return samples_win
 
-def calc_fft(signal_section, real_signal=None, norm=False):
+def calc_fft(signal_section, real_signal=None, norm=False, fft_bins = None):
     """Calculates the fast Fourier transform of a 1D time series
 
     The length of the signal_section determines the number of frequency
@@ -1005,9 +1005,9 @@ def calc_fft(signal_section, real_signal=None, norm=False):
     else:
         norm = None
     if real_signal:
-        fft_vals = rfft(signal_section, norm=norm)
+        fft_vals = rfft(signal_section, n = fft_bins, norm = norm)
     else:
-        fft_vals = fft(signal_section, norm=norm)
+        fft_vals = fft(signal_section, n = fft_bins, norm = norm)
     return fft_vals
 
 # TODO: https://github.com/biopython/biopython/issues/1496
