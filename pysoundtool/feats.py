@@ -143,10 +143,18 @@ def plot(feature_matrix, feature_type,
         plt.ylabel(y_label)
     if save_pic:
         outputname = name4pic or 'visualize{}feats'.format(feature_type.upper())
-        plt.savefig('{}.png'.format(outputname))
+        outputname = pyst.utils.string2pathlib(outputname)
+        if outputname.suffix:
+            if outputname.suffix != '.png':
+                # add .png as extension
+                fname = outputname.name + '.png'
+                outputname = outputname.parent.joinpath(fname)
+        else:
+            fname = outputname.stem + '.png'
+            outputname = outputname.parent.joinpath(fname)
+        plt.savefig(outputname)
     else:
         plt.show()
-
 
 
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
