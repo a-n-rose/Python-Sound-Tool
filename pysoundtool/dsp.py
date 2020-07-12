@@ -1084,7 +1084,7 @@ def calc_phase(fft_matrix, radians=False):
     
     Parameters
     ----------
-    fft_vals : np.ndarray [shape=(d, t), dtype=complex]
+    fft_vals : np.ndarray [shape=(num_frames, num_features), dtype=complex]
         matrix with fft values
     
     radians : boolean
@@ -1094,7 +1094,7 @@ def calc_phase(fft_matrix, radians=False):
     
     Returns
     -------
-    phase : np.ndarray [shape=(d, t)]
+    phase : np.ndarray [shape=(num_frames, num_features)]
         Phase values for fft_vals. If radians is set to False, dtype = complex.
         If radians is set to True, dtype = float. 
     
