@@ -33,36 +33,63 @@ def speed():
     '''
     pass
 
-def shuffle(sound):
+def shufflesound(sound, sr, num_subsections = 2, random_seed = 40, **kwargs):
     '''Acoustic augmentation of noise or background sounds.
+    
+    This separates the sound into `num_subsections` and pseudorandomizes
+    the order.
     
     References
     ----------
-    Inoue, T., Vinayavekhin, P., Wang, S., Wood, D., Munawar, A., Ko, B. J., 
-    Greco, N., & Tachibana, R. (2019). Detection and Classification of 
+    Inoue, T., Vinayavekhin, P., Wang, S., Wood, D., Munawar, A., Ko, B. J.,
+    Greco, N., & Tachibana, R. (2019). Shuffling and mixing data augmentation 
+    for environmental sound classification. Detection and Classification of 
     Acoustic Scenes and Events 2019. 25-26 October 2019, New York, NY, USA
     '''
-    pass
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        assert sr2 == sr
+    subsection_length = len(data) // num_subsections
+    order = np.arange(num_subsections)
+    if random_seed is not None:
+        np.random.seed(random_seed)
+    np.random.shuffle(order)
+    section_dict = {}
+    sample = 0
+    for i in range(num_subsections):
+        if i == num_subsections-1:
+            section = data[sample:]
+        else:
+            section = data[sample:sample+subsection_length]
+        section_dict[i] = section
+        sample += subsection_length
+    # combine samples in new order:
+    samples_shuffled = np.array([])
+    for i in order:
+        samples_shuffled = np.concatenate((samples_shuffled, section_dict[i]),axis=0)
+    return samples_shuffled
 
 def mix2sounds(sound1, sound2):
     '''Acoustic augmentation of noise or background sounds.
     
+    Two sounds are mixed together. However, currently out of the scope of PySoundTool
+    functionality.
+    
     References
     ----------
-    Inoue, T., Vinayavekhin, P., Wang, S., Wood, D., Munawar, A., Ko, B. J., 
-    Greco, N., & Tachibana, R. (2019). Detection and Classification of 
+    Inoue, T., Vinayavekhin, P., Wang, S., Wood, D., Munawar, A., Ko, B. J.,
+    Greco, N., & Tachibana, R. (2019). Shuffling and mixing data augmentation 
+    for environmental sound classification. Detection and Classification of 
     Acoustic Scenes and Events 2019. 25-26 October 2019, New York, NY, USA
     '''
     pass
 
 
-def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
-         oversize_factor = 1, win_size_ms = 16, percent_overlap = 0.5,
-         bilinear = True):
+def vtlp_stft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
+         oversize_factor = 1, win_size_ms = 16, percent_overlap = 0.5):
     '''
-    # TODO work out how to apply oversize factor. Perhaps works better
-    # if calculate dft per frame rather than stft with librosa.
-    # TODO add piecewise linear rule option (not just bi-linear rule)
     
     References
     ----------
@@ -90,10 +117,11 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
     return stft_t, vtlp_a
       
       
-def vtlp_warp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
+def vtlp_dft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann'):
-    '''
+    '''Applies vocal tract length perturbations directly to dft (oversized) windows.
+    
     References
     ----------
     Kim, C., Shin, M., Garg, A., & Gowda, D. (2019). Improved vocal tract length perturbation 
@@ -174,8 +202,8 @@ def stochastic_feature_mapping():
     '''
     References
     ----------
-    Xiaodong Cui, Vaibhava Goel, and Brian Kingsbury. Dataaugmentation for deep convolutional
-    neuralnetwork acoustic modeling. In2015 IEEE International Conference on Acoustics, Speech 
+    Xiaodong Cui, Vaibhava Goel, and Brian Kingsbury. Data augmentation for deep convolutional
+    neuralnetwork acoustic modeling. In 2015 IEEE International Conference on Acoustics, Speech 
     and SignalProcessing, ICASSP 2015, South Brisbane, Queensland, Australia, April 19-24, 2015, 
     pages 4545–4549,2015.
     '''
