@@ -89,6 +89,67 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
 
     return stft_t, vtlp_a
       
+      
+def vtlp_iterative(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
+         oversize_factor = 1, win_size_ms = 16, percent_overlap = 0.5,
+         bilinear = True, real_signal = True, fft_bins = 1024, window = 'hann'):
+    '''
+    # TODO work out how to apply oversize factor. Perhaps works better
+    # if calculate dft per frame rather than stft with librosa.
+    # TODO add piecewise linear rule option (not just bi-linear rule)
+    
+    References
+    ----------
+    Kim, C., Shin, M., Garg, A., & Gowda, D. (2019). Improved vocal tract length perturbation 
+    for a state-of-the-art end-to-end speech recognition system. Interspeech. September 15-19, 
+    Graz, Austria.
+    '''
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr)
+        assert sr2 == sr
+    vtlp_a = np.random.choice(np.arange(min(a), max(a)+.1, 0.1)  )
+    
+    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+                                                frame_length = frame_length,
+                                                overlap_samples = num_overlap_samples,
+                                                zeropad = True)
+    if real_signal:
+        total_rows = fft_bins // 2 + 1
+    else:
+        total_rows = fft_bins
+    # initialize empty matrix to fill dft values into
+    stft_matrix = pyst.dsp.create_empty_matrix((num_subframes,total_rows), complex_vals = True)
+    
+    section_start = 0
+    window_frame = pyst.dsp.create_window(window, frame_length)
+    for frame in range(num_subframes):
+        section = data[section_start:section_start+frame_length]
+        section = pyst.dsp.apply_window(section, window_frame, zeropad = True)
+        section_fft = pyst.dsp.calc_fft(section, 
+                                        real_signal = real_signal,
+                                        fft_bins = total_rows,
+                                        )
+        section_transformed = pyst.augment.bilinear_warp_item(section_fft, vtlp_a)
+        section_transformed = section_transformed[:total_rows]
+        stft_matrix[frame][:len(section_transformed)] = section_transformed
+        section_start += num_overlap_samples
+    return stft_matrix, vtlp_a
+      
+def bilinear_warp_item(fft_value, alpha):
+    nominator = (1-alpha) * np.sin(fft_value)
+    denominator = 1 - (1-alpha) * np.cos(fft_value)
+    fft_warped = fft_value + 2 * np.arctan(nominator/(denominator + 1e-6) + 1e-6)
+    return fft_warped
+
+def bilinear_warp_stft(stft_matrix, alpha):
+    nominator = (1-alpha) * np.sin(stft_matrix)
+    denominator = 1 - (1-alpha) * np.cos(stft_matrix)
+    stft_t = stft_matrix + 2 * np.arctan(nominator/(denominator + 1e-6) + 1e-6)
+    return stft_t
     
 def jitter():
     '''
