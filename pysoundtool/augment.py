@@ -90,14 +90,10 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
     return stft_t, vtlp_a
       
       
-def vtlp_iterative(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
-         oversize_factor = 1, win_size_ms = 16, percent_overlap = 0.5,
-         bilinear = True, real_signal = True, fft_bins = 1024, window = 'hann'):
+def vtlp_warp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
+         oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
+         bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann'):
     '''
-    # TODO work out how to apply oversize factor. Perhaps works better
-    # if calculate dft per frame rather than stft with librosa.
-    # TODO add piecewise linear rule option (not just bi-linear rule)
-    
     References
     ----------
     Kim, C., Shin, M., Garg, A., & Gowda, D. (2019). Improved vocal tract length perturbation 
@@ -109,6 +105,8 @@ def vtlp_iterative(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
     else:
         data, sr2 = pyst.loadsound(sound, sr=sr)
         assert sr2 == sr
+    if random_seed is not None:
+        np.random.seed(random_seed)
     vtlp_a = np.random.choice(np.arange(min(a), max(a)+.1, 0.1)  )
     
     frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
@@ -117,10 +115,7 @@ def vtlp_iterative(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
-    if real_signal:
-        total_rows = fft_bins // 2 + 1
-    else:
-        total_rows = fft_bins
+    total_rows = fft_bins * oversize_factor
     # initialize empty matrix to fill dft values into
     stft_matrix = pyst.dsp.create_empty_matrix((num_subframes,total_rows), complex_vals = True)
     
@@ -129,20 +124,33 @@ def vtlp_iterative(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
         section = pyst.dsp.apply_window(section, window_frame, zeropad = True)
+        # apply dft to large window - increase frequency resolution during warping
         section_fft = pyst.dsp.calc_fft(section, 
                                         real_signal = real_signal,
                                         fft_bins = total_rows,
                                         )
-        section_transformed = pyst.augment.bilinear_warp_item(section_fft, vtlp_a)
-        section_transformed = section_transformed[:total_rows]
-        stft_matrix[frame][:len(section_transformed)] = section_transformed
+        if bilinear_warp:
+            section_warped = pyst.augment.bilinear_warp(section_fft, vtlp_a)
+        else:
+            section_warped = pyst.augment.piecewise_linear_warp(section_fft, vtlp_a)
+        section_warped = section_warped[:total_rows]
+        stft_matrix[frame][:len(section_warped)] = section_warped
         section_start += num_overlap_samples
     return stft_matrix, vtlp_a
       
-def bilinear_warp_item(fft_value, alpha):
+def bilinear_warp(fft_value, alpha):
     nominator = (1-alpha) * np.sin(fft_value)
     denominator = 1 - (1-alpha) * np.cos(fft_value)
     fft_warped = fft_value + 2 * np.arctan(nominator/(denominator + 1e-6) + 1e-6)
+    return fft_warped
+
+def piecewise_linear_warp(fft_value, alpha):
+    if fft_value.all() <= (fft_value * (min(alpha, 1)/ (alpha + 1e-6))).all():
+        fft_warped = fft_value * alpha
+    else:
+        nominator = np.pi - fft_value * (min(alpha, 1))
+        denominator = np.pi - fft_value * (min(alpha, 1) / (alpha + 1e-6))
+        fft_warped = np.pi - (nominator / denominator + 1e-6) * (np.pi - fft_value)
     return fft_warped
 
 def bilinear_warp_stft(stft_matrix, alpha):
