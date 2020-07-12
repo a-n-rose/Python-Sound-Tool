@@ -25,7 +25,7 @@ import pysoundtool as pyst
 
 # TODO Clean up   
 def plot(feature_matrix, feature_type, 
-                    save_pic=False, name4pic=None, scale=None,
+                    save_pic=False, name4pic=None, energy_scale=None,
                     title=None, sr=None, win_size_ms=None, percent_overlap=None,
                     x_label=None, y_label=None):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
@@ -71,19 +71,19 @@ def plot(feature_matrix, feature_type,
         axis_feature_label = 'Amplitude'
     else:
         axis_feature_label = 'Energy'
-    if scale is None or feature_type == 'signal':
+    if energy_scale is None or feature_type == 'signal':
         energy_label = 'energy'
         pass
-    elif scale == 'power_to_db':
+    elif energy_scale == 'power_to_db':
         feature_matrix = librosa.power_to_db(feature_matrix)
         energy_label = 'decicels'
-    elif scale == 'db_to_power':
+    elif energy_scale == 'db_to_power':
         feature_matrix = librosa.db_to_power(feature_matrix)
         energy_label = 'power'
-    elif scale == 'amplitude_to_db':
+    elif energy_scale == 'amplitude_to_db':
         feature_matrix = librosa.amplitude_to_db(feature_matrix)
         energy_label = 'decibels'
-    elif scale == 'db_to_amplitude':
+    elif energy_scale == 'db_to_amplitude':
         feature_matrix = librosa.db_to_amplitude(feature_matrix)
         energy_label = 'amplitude'
     plt.clf()
@@ -151,7 +151,7 @@ def plot(feature_matrix, feature_type,
 
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     percent_overlap = 0.5, num_filters=40, num_mfcc=40, sr=None,\
-        save_pic=False, name4pic=None, power_scale=None, mono=None, **kwargs):
+        save_pic=False, name4pic=None, energy_scale=None, mono=None, **kwargs):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
     Parameters
@@ -193,26 +193,29 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
         Keyword arguments for pysoundtool.feats.plot
     '''
     percent_overlap = check_percent_overlap(percent_overlap)
-    feats = pyst.feats.get_feats(audiodata, features=feature_type, 
+    feats = pyst.feats.get_feats(audiodata, feature_type=feature_type, 
                       win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                       num_filters=num_filters, num_mfcc = num_mfcc, sr=sr,
-                      mono=mono)
+                      mono = mono)
     pyst.feats.plot(feats, feature_type=feature_type, sr=sr,
-                    save_pic = save_pic, name4pic=name4pic, scale=power_scale,
+                    save_pic = save_pic, name4pic=name4pic, energy_scale = energy_scale,
                     win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                     **kwargs)
 
 # TODO test duration limit on all settings
 def get_feats(sound,
-              sr=None, 
-              features='fbank', 
+              sr = None, 
+              feature_type = 'fbank', 
               win_size_ms = 20, 
               percent_overlap = 0.5,
               window = 'hann',
-              num_filters=40,
-              num_mfcc=None, 
-              dur_sec=None,
-              mono=None,
+              num_filters = 40,
+              num_mfcc = None, 
+              dur_sec = None,
+              mono = None,
+              rate_of_change = False,
+              rate_of_acceleration = False,
+              subtract_mean = False,
               **kwargs):
     '''Collects raw signal data, stft, fbank, or mfcc features via librosa.
     
@@ -222,10 +225,12 @@ def get_feats(sound,
         If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
         the samples of the sound data. Note: in the latter case, `sr`
         must be declared.
+    
     sr : int, optional
         The sample rate of the sound data or the desired sample rate of
         the wavfile to be loaded. (default None)
-    features : str
+    
+    feature_type : str
         Options include 'signal', 'stft', 'powspec', 'fbank',  or 'mfcc' data 
         (default 'fbank').
         signal: energy/amplitude measurements along time
@@ -233,19 +238,24 @@ def get_feats(sound,
         powspec : power spectrum (absolute value of stft, squared)
         FBANK: mel-log filterbank energies 
         MFCC: mel frequency cepstral coefficients 
+    
     win_size_ms : int or float
         Window length in milliseconds for Fourier transform to be applied
         (default 20)
+    
     percent_overlap : int or float 
         Amount of overlap between processing windows. For example, if `percent_overlap`
         is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
         If an integer is provided, it will be converted to a float between 0 and 1. 
+    
     window : str or np.ndarray [size (n_fft, )]
         The window function to be applied to each window. (Default 'hann')
+    
     num_filters : int
         Number of mel-filters to be used when applying mel-scale. For 
         'fbank' features, 20-128 are common, with 40 being very common.
         (default 40)
+    
     num_mfcc : int
         Number of mel frequency cepstral coefficients. First coefficient
         pertains to loudness; 2-13 frequencies relevant for speech; 13-40
@@ -253,12 +263,29 @@ def get_feats(sound,
         Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
         is set to 40, all 40 coefficients will be included.
         (default None). 
+    
     dur_sec : float, optional
         Time in seconds to limit in loading a signal. (default None)
+    
     mono: bool, optional
         For loading an audiofile, True will result in only one channel of 
         data being loaded; False will allow additional channels be loaded. 
         (default None, which results in mono channel data)
+    
+    rate_of_change : bool 
+        If True, the first derivative of spectral data will be concatenated 
+        to the features.
+        This is applicable for all feature types except 'signal'.
+        
+    rate_of_acceleration : bool 
+        If True, the second derivative of spectral data will be concatenated 
+        to the features.
+        This is applicable for all feature types except 'signal'.
+        
+    subtract_mean : bool 
+        If True, the mean of each feature column will be subtracted from
+        each row. This is applicable for all feature types except 'signal'.
+    
     **kwargs : additional keyword arguments
         Additional keyword arguments for librosa.filters.mel.
         
@@ -281,7 +308,7 @@ def get_feats(sound,
                 data = data.T 
             # remove additional channel for 'stft', 'fbank' etc. feature
             # extraction
-            if 'signal' not in features and num_channels > 1:
+            if 'signal' not in feature_type and num_channels > 1:
                 data = data[:,0]
     else:
         if sr is None:
@@ -294,7 +321,7 @@ def get_feats(sound,
     percent_overlap = check_percent_overlap(percent_overlap)
     win_shift_ms = win_size_ms * percent_overlap
     try:
-        if 'fbank' in features:
+        if 'fbank' in feature_type:
             feats = librosa.feature.melspectrogram(
                 data,
                 sr = sr,
@@ -302,10 +329,7 @@ def get_feats(sound,
                 hop_length = int(win_shift_ms*0.001*sr),
                 n_mels = num_filters, window=window,
                 **kwargs).T
-            # have found better results if not conducted:
-            # especially if recreating audio signal later
-            #feats -= (np.mean(feats, axis=0) + 1e-8)
-        elif 'mfcc' in features:
+        elif 'mfcc' in feature_type:
             if num_mfcc is None:
                 num_mfcc = num_filters
             feats = librosa.feature.mfcc(
@@ -317,22 +341,29 @@ def get_feats(sound,
                 n_mels = num_filters,
                 window=window,
                 **kwargs).T
-            #feats -= (np.mean(feats, axis=0) + 1e-8)
-        elif 'stft' in features or 'powspec' in features:
+        elif 'stft' in feature_type or 'powspec' in feature_type:
             feats = librosa.stft(
                 data,
                 n_fft = int(win_size_ms * sr // 1000),
                 hop_length = int(win_shift_ms*0.001*sr),
                 window=window).T
-            if 'powspec' in features:
+            if 'powspec' in feature_type:
                 feats = np.abs(feats)**2
-            #feats -= (np.mean(feats, axis=0) + 1e-8)
-        elif 'signal' in features:
+        elif 'signal' in feature_type:
             feats = data
+        if 'signal' not in feature_type:
+            if rate_of_change or rate_of_acceleration:
+                d, d_d = pyst.feats.get_change_acceleration_rate(feats)
+                if rate_of_change:
+                    feats = np.concatenate((feats, d), axis=1)
+                if rate_of_acceleration:
+                    feats = np.concatenate((feats, d_d), axis=1)
+            if subtract_mean:
+                feats -= (np.mean(feats, axis=0) + 1e-8)
     except librosa.ParameterError as e:
         # potential error in handling fortran array
         feats = get_feats(np.asfortranarray(data),
-                          features = features,
+                          feature_type = feature_type,
                           win_size_ms = win_size_ms,
                           percent_overlap = percent_overlap,
                           num_filters = num_filters,
@@ -340,8 +371,37 @@ def get_feats(sound,
                           sr = sr,
                           dur_sec = dur_sec,
                           mono = mono,
+                          rate_of_change = rate_of_change,
+                          rate_of_acceleration = rate_of_acceleration,
+                          subtract_mean = subtract_mean,
                           **kwargs)
     return feats
+
+def get_change_acceleration_rate(spectro_data):
+    '''Gets first and second derivatives of spectral data.
+    
+    This is useful particularly for speech recognition.
+    
+    Parameters
+    ----------
+    spectro_data : np.ndarray [shape = (num_samples, num_features)]
+    
+    Returns
+    -------
+    delta : np.ndarray [shape = (num_samples, num_features)]
+        The first order derivative of spectral data. Reflects rate of change in signal.
+        
+    delta_delta : np.ndarray [shape = (num_samples, num_features)]
+        The second order derivative of spectral data. Reflects rate of acceleration in signal.
+    '''
+    spectro_data = spectro_data.T
+    #first derivative = delta (rate of change)
+    delta = librosa.feature.delta(spectro_data)
+    #second derivative = delta delta (acceleration changes)
+    delta_delta = librosa.feature.delta(spectro_data,order=2)
+    delta = delta.T
+    delta_delta = delta_delta.T
+    return delta, delta_delta
 
 # TODO possibly remove? Doesn't use Librsoa, instead
 # python_speech_features
