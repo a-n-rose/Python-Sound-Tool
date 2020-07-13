@@ -8,6 +8,17 @@ Ma, E. (2019). NLP Augmentation. https://github.com/makcedward/nlpaug
 Park, D. S., Chan, W., Zhang, Y., Chiu, C., Zoph, B., Cubuk, E. D., & Le, Q. V.
 (2019). Google Brain. arxiv.org/pdf/1904.08779.pdf
 
+
+Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
+improving animal audio classification. Ecological Informatics, 57, 101084. 
+https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084:
+
+1.Signal speed scaling by a random number in[0.8,1.2](SpeedupFactoryRange).
+2.Pitch shift by a random number in [−2,2]semitones(SemitoneShiftRange).
+3.Volume increase/decrease by a random number in [−3,3]dB(VolumeGainRange).
+4.Addition of random noise in the range [0,10]dB(SNR).
+5.Time shift in the range [−0.005,0.005]seconds(TimeShiftRange).
+
 '''
 ###############################################################################
 import os, sys
@@ -30,6 +41,13 @@ def speed():
     ----------
     Ko, T., Peddinti, V., Povey, D., & Khudanpur (2015). Audio Augmentation for 
     Speech Recognition. Interspeech. 
+    
+    W. Verhelst and M. Roelands, “An overlap-add technique based on
+    waveform similarity (wsola) for high quality time-scale modifica-
+    tion of speech,” in Proceedings of the International Conference on
+    Acoustics, Speech and Signal Processing (ICASSP), vol. 2, April
+    1993, pp. 554–557 vol.2.
+
     '''
     pass
 
@@ -86,16 +104,21 @@ def mix2sounds(sound1, sound2):
     '''
     pass
 
-
+        
 def vtlp_stft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
          oversize_factor = 1, win_size_ms = 16, percent_overlap = 0.5):
     '''
+    TODO: reference Nanni et al. work and try to implement it.
     
     References
     ----------
     Kim, C., Shin, M., Garg, A., & Gowda, D. (2019). Improved vocal tract length perturbation 
     for a state-of-the-art end-to-end speech recognition system. Interspeech. September 15-19, 
     Graz, Austria.
+    
+    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
+    improving animal audio classification. Ecological Informatics, 57, 101084. 
+    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
     '''
     if isinstance(sound, np.ndarray):
         data = sound
@@ -122,11 +145,17 @@ def vtlp_dft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
          bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann'):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
     
+    TODO: reference Nanni et al. work and try to implement it.
+    
     References
     ----------
     Kim, C., Shin, M., Garg, A., & Gowda, D. (2019). Improved vocal tract length perturbation 
     for a state-of-the-art end-to-end speech recognition system. Interspeech. September 15-19, 
     Graz, Austria.
+    
+    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
+    improving animal audio classification. Ecological Informatics, 57, 101084. 
+    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
     '''
     if isinstance(sound, np.ndarray):
         data = sound
@@ -163,7 +192,7 @@ def vtlp_dft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
             section_warped = pyst.augment.piecewise_linear_warp(section_fft, vtlp_a)
         section_warped = section_warped[:total_rows]
         stft_matrix[frame][:len(section_warped)] = section_warped
-        section_start += num_overlap_samples
+        section_start += (frame_length - num_overlap_samples)
     return stft_matrix, vtlp_a
       
 def bilinear_warp(fft_value, alpha):
@@ -197,7 +226,7 @@ def stochastic_feature_mapping():
     References
     ----------
     Xiaodong Cui, Vaibhava Goel, and Brian Kingsbury. Data augmentation for deep convolutional
-    neuralnetwork acoustic modeling. In 2015 IEEE International Conference on Acoustics, Speech 
+    neural network acoustic modeling. In 2015 IEEE International Conference on Acoustics, Speech 
     and SignalProcessing, ICASSP 2015, South Brisbane, Queensland, Australia, April 19-24, 2015, 
     pages 4545–4549,2015.
     '''
