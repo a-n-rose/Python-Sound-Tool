@@ -1187,13 +1187,6 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
     assert output_matrix.shape == (n_fft,)
     return output_matrix
 
-# TODO
-def vad():
-    '''voice activity detection
-    
-    Determines whether speech exists or not in the signal
-    '''
-    pass
 # TODO: test with 2d+ dimensions
 def apply_original_phase(spectrum, phase):
     '''Multiplies phase to power spectrum
@@ -2042,6 +2035,217 @@ def random_selection_samples(samples, len_section_samps, wrap=False, seed=None, 
         total_section = samples[start_index:start_index+len_section_samps]
         return total_section
         
+def calc_fundamental_freq(sound, sr=16000, resolution = 0.1,
+                          win_size_ms = 50, percent_overlap = 0.5,
+                          real_signal = False, fft_bins = 1024, 
+                          window = 'hann', **kwargs):
+    '''This is an untested approximation of fundamental frequency. 
+    
+    Takes the mean of dominant frequencies of voice activated regions in a signal.
+    '''
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr)
+        assert sr2 == sr
+    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+                                                frame_length = frame_length,
+                                                overlap_samples = num_overlap_samples,
+                                                zeropad = True)
+    max_freq = fft_bins//2
+    # ensure even
+    if not max_freq % 2 == 0:
+        max_freq += 1
+    total_rows = fft_bins
+    # initialize empty matrix for dominant frequency values of speech frames
+    freq_matrix = pyst.dsp.create_empty_matrix((num_subframes,),
+                                              complex_vals = False)
+    section_start = 0
+    extra_rows = 0
+    e_min = None
+    f_min = None
+    sfm_min = None
+    window_frame = pyst.dsp.create_window(window, frame_length)
+    row = 0
+    for frame in range(num_subframes):
+        section = data[section_start:section_start+frame_length]
+        section_vad, e, f, sfm = pyst.dsp.vad(section, 
+                                     sr=sr, 
+                                     win_size_ms = 10, 
+                                     percent_overlap = 0.5,
+                                     min_energy = e_min, 
+                                     min_freq = f_min, 
+                                     min_sfm = sfm_min)
+        
+        if e_min is None or e < e_min:
+            e_min = e
+        if f_min is None or f < f_min:
+            f_min = f
+        if sfm_min is None or sfm < sfm_min:
+            sfm_min = sfm
+        if sum(section_vad) < 1:
+            # start over with the loop
+            extra_rows += 1
+            section_start += (frame_length - num_overlap_samples)
+            continue
+        # otherwise calculate frequency info
+        section = pyst.dsp.apply_window(section, 
+                                        window_frame, 
+                                        zeropad = True)
+        
+        section_fft = pyst.dsp.calc_fft(section, 
+                                        real_signal = real_signal,
+                                        fft_bins = total_rows,
+                                        )
+        section_power = pyst.dsp.calc_power(section_fft)
+        dom_f = pyst.dsp.get_dom_freq(section_power)
+        if dom_f > 0:
+            freq_matrix[row] = dom_f
+            row += 1
+        else:
+            extra_rows += 1
+        section_start += (frame_length - num_overlap_samples)
+        
+    freq_matrix = freq_matrix[:-extra_rows]
+    return freq_matrix
+
+
+
+# TODO test real_signal parameter  - perhaps remove? force non-real fft?
+def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5, 
+        real_signal = False, fft_bins = None, window = 'hann',
+        energy_thresh = 40, freq_thresh = 185, sfm_thresh = 5,
+        min_energy = None, min_freq = None, min_sfm = None,
+        **kwargs):
+    '''
+    Parameters
+    ----------
+    energy_thresh : int, float
+        The minimum amount of energy for speech detection.
+    
+    freq_thresh : int, float 
+        The maximum frequency threshold.
+    
+    sfm_thresh : int, float 
+        The spectral flatness measure threshold. 
+    
+    References
+    ----------
+    M. H. Moattar and M. M. Homayounpour, "A simple but efficient real-time Voice Activity Detection algorithm," 2009 17th European Signal Processing Conference, Glasgow, 2009, pp. 2549-2553.
+    '''
+    # if real signal, divide freq_thresh in half, as only half freq_bins are used
+    if real_signal:
+        freq_thresh /= 2 
+    if fft_bins is None: 
+        fft_bins = sr // 2
+    if fft_bins % 2 != 0:
+        fft_bins += 1
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr)
+        assert sr2 == sr
+    # first scale samples to be between -1 and 1
+    data = pyst.dsp.scalesound(data, max_val = 1)
+    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+                                                frame_length = frame_length,
+                                                overlap_samples = num_overlap_samples,
+                                                zeropad = True)
+    # initialize empty matrix to vad values into
+    vad_matrix = pyst.dsp.create_empty_matrix((num_subframes,),
+                                              complex_vals = False)
+    section_start = 0
+    speech = 0
+    silence = 0
+    window_frame = pyst.dsp.create_window(window, frame_length)
+    for frame in range(num_subframes):
+        samples = data[section_start:section_start+frame_length]
+        samples_windowed = pyst.dsp.apply_window(samples, window_frame, zeropad = True)
+        # apply dft to large window - increase frequency resolution during warping
+        section_fft = pyst.dsp.calc_fft(samples_windowed, 
+                                        real_signal = real_signal,
+                                        fft_bins = fft_bins,
+                                        )
+        section_power = pyst.dsp.calc_power(section_fft)
+        # set minimum values if not yet set
+        if min_energy is None and frame == 0:
+            min_energy = pyst.dsp.short_term_energy(samples)
+        ste = pyst.dsp.short_term_energy(samples)
+        if ste < min_energy:
+            min_energy = ste
+            
+        if min_freq is None and frame == 0:
+            min_freq = pyst.dsp.get_dom_freq(section_power)
+        f = pyst.dsp.get_dom_freq(section_power)
+        if f < min_freq:
+            min_freq = f
+        
+        if min_sfm is None and frame == 0:
+            min_sfm = pyst.dsp.spectral_flatness_measure(section_power)
+        sfm = pyst.dsp.spectral_flatness_measure(section_power)
+        if sfm < min_sfm:
+            min_sfm = sfm         
+        # decide if speech or silence 
+        # not finding this helpful
+        #thresh_e = energy_thresh * np.log(min_energy)
+        counter = 0
+        if ste - min_energy > energy_thresh:
+            counter += 1
+        if f - min_freq > freq_thresh:
+            counter += 1
+        if sfm - min_sfm > sfm_thresh:
+            counter += 1
+        if counter >= 1:
+            vad_matrix[frame] += 1
+            speech += 1
+            # set silence back to 0 if at least 5 speech frames
+            if speech > 5:
+                silence = 0
+        else:
+            vad_matrix[frame] += 0
+            # update min energy and silence count
+            silence += 1
+            # not finding this helpful
+            #min_energy = ((silence * min_energy) + ste) / \
+                #silence + 1
+            # if silence has been longer than 10 frames, set speech to 0
+            if silence > 10:
+                speech = 0
+        # not finding this helpful
+        #thresh_e = energy_thresh * np.log(min_energy)
+        section_start += (frame_length - num_overlap_samples)
+    return vad_matrix, min_energy, min_freq, min_sfm
+
+# TODO test
+# basically pointless so far
+def spectral_flatness_measure(power_values):
+    import scipy
+    g = scipy.stats.gmean(power_values)
+    a = np.mean(power_values)
+    # I added absolute value. Otherwise mainly negative and pointless.
+    sfm = np.abs(np.log10(np.abs(g)/(np.abs(a)+1e-6)))
+    return sfm
+
+def get_dom_freq(power_values):
+    '''If real_signal, might mess up values.
+    '''
+    freq_bin = np.argmax(power_values)
+    return freq_bin
+
+def short_term_energy(signal_windowed):
+    '''
+    Expects `signal` to be scaled (-1, 1) as well as windowed.
+    
+    References
+    ----------
+    http://vlab.amrita.edu/?sub=3&brch=164&sim=857&cnt=1
+    '''
+    ste = sum(np.abs(signal_windowed)**2)
+    return ste
 
 
 if __name__ == '__main__':
