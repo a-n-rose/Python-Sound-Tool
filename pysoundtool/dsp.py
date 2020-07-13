@@ -1516,11 +1516,11 @@ def asl_P56(samples, sr, bitdepth=16, smooth_factor=0.03, hangover=0.2, margin_d
     asl = 0
     asl_rsm = 0
     eps = 2**-52
+    # https://www.researchgate.net/post/What_does_eps_in_MATLAB_mean_What_is_the_value_of_it
     if activity_counter[0]==0:
         return None #??
         #pass #
         #AdB1 = None #?
-    # https://www.researchgate.net/post/What_does_eps_in_MATLAB_mean_What_is_the_value_of_it
     #else:
     AdB1 = 10 * np.log10(square_energy/activity_counter[0] + eps)
     # if activity_counter[0] = 1 --> 21.89073220006766
@@ -2185,13 +2185,14 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
             min_freq = f
         
         if min_sfm is None and frame == 0:
-            min_sfm = pyst.dsp.spectral_flatness_measure(section_power)
+            min_sfm = pyst.dsp.spectral_flatness_measure(section_fft)
         sfm = pyst.dsp.spectral_flatness_measure(section_power)
         if sfm < min_sfm:
             min_sfm = sfm         
         # decide if speech or silence 
         # not finding this helpful
         #thresh_e = energy_thresh * np.log(min_energy)
+        
         counter = 0
         if ste - min_energy > energy_thresh:
             counter += 1
@@ -2221,17 +2222,16 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
     return vad_matrix, min_energy, min_freq, min_sfm
 
 # TODO test
-# basically pointless so far
-def spectral_flatness_measure(power_values):
+def spectral_flatness_measure(spectrum):
     import scipy
-    g = scipy.stats.gmean(power_values)
-    a = np.mean(power_values)
-    # I added absolute value. Otherwise mainly negative and pointless.
-    sfm = np.abs(np.log10(np.abs(g)/(np.abs(a)+1e-6)))
+    spectrum = np.abs(spectrum)
+    g = scipy.stats.gmean(spectrum)
+    a = np.mean(spectrum)
+    sfm = 10 * np.log10(g/a)
     return sfm
 
 def get_dom_freq(power_values):
-    '''If real_signal, might mess up values.
+    '''If real_signal (i.e. half fft bins), might mess up values.
     '''
     freq_bin = np.argmax(power_values)
     return freq_bin
