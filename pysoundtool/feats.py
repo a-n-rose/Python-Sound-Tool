@@ -25,7 +25,7 @@ import pysoundtool as pyst
 
 # TODO Clean up   
 def plot(feature_matrix, feature_type, 
-                    save_pic=False, name4pic=None, energy_scale=None,
+                    save_pic=False, name4pic=None, energy_scale='power_to_db',
                     title=None, sr=None, win_size_ms=None, percent_overlap=None,
                     x_label=None, y_label=None):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
@@ -46,9 +46,9 @@ def plot(feature_matrix, feature_type,
         True to save image as .png; False to just plot it.
     name4pic : str, optional
         If `save_pic` set to True, the name the image should be saved under.
-    scale : str, optional
+    energy_scale : str, optional
         If features need to be adjusted, e.g. from power to decibels. 
-        Default is None.
+        Default is 'power_to_db'.
     title : str, optional
         The title for the graph. If None, `feature_type` is used.
     sr : int, optional
@@ -73,6 +73,7 @@ def plot(feature_matrix, feature_type,
         axis_feature_label = 'Energy'
     if energy_scale is None or feature_type == 'signal':
         energy_label = 'energy'
+        energy_scale = None
         pass
     elif energy_scale == 'power_to_db':
         feature_matrix = librosa.power_to_db(feature_matrix)
@@ -158,7 +159,7 @@ def plot(feature_matrix, feature_type,
 
 
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
-    percent_overlap = 0.5, num_filters=40, num_mfcc=40, sr=None,\
+    percent_overlap = 0.5, fft_bins = None, num_filters=40, num_mfcc=40, sr=None,\
         save_pic=False, name4pic=None, energy_scale=None, mono=None, **kwargs):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
@@ -203,8 +204,8 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     percent_overlap = check_percent_overlap(percent_overlap)
     feats = pyst.feats.get_feats(audiodata, feature_type=feature_type, 
                       win_size_ms = win_size_ms, percent_overlap = percent_overlap,
-                      num_filters=num_filters, num_mfcc = num_mfcc, sr=sr,
-                      mono = mono)
+                      fft_bins = fft_bins, num_filters=num_filters, num_mfcc = num_mfcc,
+                      sr=sr, mono = mono)
     pyst.feats.plot(feats, feature_type=feature_type, sr=sr,
                     save_pic = save_pic, name4pic=name4pic, energy_scale = energy_scale,
                     win_size_ms = win_size_ms, percent_overlap = percent_overlap,
@@ -217,6 +218,7 @@ def get_feats(sound,
               win_size_ms = 20, 
               percent_overlap = 0.5,
               window = 'hann',
+              fft_bins = None,
               num_filters = 40,
               num_mfcc = None, 
               dur_sec = None,
@@ -329,11 +331,13 @@ def get_feats(sound,
     percent_overlap = check_percent_overlap(percent_overlap)
     win_shift_ms = win_size_ms * percent_overlap
     try:
+        if fft_bins is None:
+            fft_bins = int(win_size_ms * sr // 1000)
         if 'fbank' in feature_type:
             feats = librosa.feature.melspectrogram(
                 data,
                 sr = sr,
-                n_fft = int(win_size_ms * sr // 1000),
+                n_fft = fft_bins,
                 hop_length = int(win_shift_ms*0.001*sr),
                 n_mels = num_filters, window=window,
                 **kwargs).T
@@ -344,7 +348,7 @@ def get_feats(sound,
                 data,
                 sr = sr,
                 n_mfcc = num_mfcc,
-                n_fft = int(win_size_ms * sr // 1000),
+                n_fft = fft_bins,
                 hop_length = int(win_shift_ms*0.001*sr),
                 n_mels = num_filters,
                 window=window,
@@ -352,13 +356,17 @@ def get_feats(sound,
         elif 'stft' in feature_type or 'powspec' in feature_type:
             feats = librosa.stft(
                 data,
-                n_fft = int(win_size_ms * sr // 1000),
+                n_fft = fft_bins,
                 hop_length = int(win_shift_ms*0.001*sr),
                 window=window).T
             if 'powspec' in feature_type:
                 feats = np.abs(feats)**2
         elif 'signal' in feature_type:
             feats = data
+        else:
+            raise ValueError('Feature type "{}" not recognized. '.format(feature_type)+\
+                'Please ensure one of the following is included in `feature_type`:\n- '+\
+                    '\n- '.join(pyst.feats.list_available_features()))
         if 'signal' not in feature_type:
             if rate_of_change or rate_of_acceleration:
                 d, d_d = pyst.feats.get_change_acceleration_rate(feats)
@@ -374,6 +382,7 @@ def get_feats(sound,
                           feature_type = feature_type,
                           win_size_ms = win_size_ms,
                           percent_overlap = percent_overlap,
+                          n_fft = nfft,
                           num_filters = num_filters,
                           num_mfcc = num_mfcc,
                           sr = sr,
@@ -384,6 +393,65 @@ def get_feats(sound,
                           subtract_mean = subtract_mean,
                           **kwargs)
     return feats
+
+# allows for more control over fft bins / resolution of each iteration.
+def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
+                real_signal = False, fft_bins = 1024, 
+                window = 'hamming'):
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr)
+        assert sr2 == sr
+    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+                                                frame_length = frame_length,
+                                                overlap_samples = num_overlap_samples,
+                                                zeropad = True)
+    total_rows = fft_bins
+    stft_matrix = pyst.dsp.create_empty_matrix((num_subframes, total_rows),
+                                              complex_vals = True)
+    section_start = 0
+    window_frame = pyst.dsp.create_window(window, frame_length)
+    row = 0
+    for frame in range(num_subframes):
+        section = data[section_start:section_start+frame_length]
+        section = pyst.dsp.apply_window(section, 
+                                        window_frame, 
+                                        zeropad = True)
+        
+        section_fft = pyst.dsp.calc_fft(section, 
+                                        real_signal = real_signal,
+                                        fft_bins = total_rows,
+                                        )
+        stft_matrix[row] = section_fft
+        row += 1
+        section_start += (frame_length - num_overlap_samples)
+    
+    return stft_matrix[:,:fft_bins//2]
+
+def plot_dom_freq(sound, energy_scale = 'power_to_db',**kwargs):
+    stft_matrix = pyst.feats.get_stft(sound, **kwargs)
+    pitch = pyst.dsp.get_pitch(sound, **kwargs)
+    stft_matrix = librosa.power_to_db(stft_matrix)
+    plt.pcolormesh(stft_matrix.T)
+    color = 'yellow'
+    linestyle = ':'
+    plt.plot(pitch, 'ro', color=color)
+    plt.show()
+    
+def plot_vad(sound, energy_scale = 'power_to_db',**kwargs):
+    stft_matrix = pyst.feats.get_stft(sound, **kwargs)
+    vad, x,y,z = pyst.dsp.vad(sound, **kwargs)
+    stft_matrix = librosa.power_to_db(stft_matrix)
+    y_axis = stft_matrix.shape[1]
+    vad = pyst.dsp.scalesound(vad, max_val = y_axis, min_val = 0)
+    plt.pcolormesh(stft_matrix.T)
+    color = 'yellow'
+    linestyle = ':'
+    plt.plot(vad, 'ro', color=color)
+    plt.show()
 
 def get_change_acceleration_rate(spectro_data):
     '''Gets first and second derivatives of spectral data.
