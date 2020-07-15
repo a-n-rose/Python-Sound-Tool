@@ -2034,14 +2034,59 @@ def random_selection_samples(samples, len_section_samps, wrap=False, seed=None, 
         start_index = np.random.choice(range(max_index_start))
         total_section = samples[start_index:start_index+len_section_samps]
         return total_section
+
+ 
+def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
+                real_signal = False, fft_bins = 1024, 
+                window = 'hann', **kwargs):
+    '''Approximates pitch by collecting dominant frequencies of signal.
+    '''
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr)
+        assert sr2 == sr
+    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+                                                frame_length = frame_length,
+                                                overlap_samples = num_overlap_samples,
+                                                zeropad = True)
+    max_freq = fft_bins//2
+    # ensure even
+    if not max_freq % 2 == 0:
+        max_freq += 1
+    total_rows = fft_bins
+    # initialize empty matrix for dominant frequency values of speech frames
+    freq_matrix = pyst.dsp.create_empty_matrix((num_subframes,),
+                                              complex_vals = False)
+    section_start = 0
+    window_frame = pyst.dsp.create_window(window, frame_length)
+    row = 0
+    for frame in range(num_subframes):
+        section = data[section_start:section_start+frame_length]
+        # otherwise calculate frequency info
+        section = pyst.dsp.apply_window(section, 
+                                        window_frame, 
+                                        zeropad = True)
         
-def calc_fundamental_freq(sound, sr=16000, resolution = 0.1,
-                          win_size_ms = 50, percent_overlap = 0.5,
+        section_fft = pyst.dsp.calc_fft(section, 
+                                        real_signal = real_signal,
+                                        fft_bins = total_rows,
+                                        )
+        # limit exploration of dominant frequency to max frequency (Nyquist Theorem)
+        section_fft = section_fft[:max_freq]
+        section_power = pyst.dsp.calc_power(section_fft)
+        dom_f = pyst.dsp.get_dom_freq(section_power)
+        freq_matrix[row] = dom_f
+        row += 1
+        section_start += (frame_length - num_overlap_samples)
+    return freq_matrix
+    
+def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', **kwargs):
-    '''This is an untested approximation of fundamental frequency. 
-    
-    Takes the mean of dominant frequencies of voice activated regions in a signal.
+    '''Takes the mean of dominant frequencies of voice activated regions in a signal.
     '''
     if isinstance(sound, np.ndarray):
         data = sound
@@ -2099,6 +2144,8 @@ def calc_fundamental_freq(sound, sr=16000, resolution = 0.1,
                                         real_signal = real_signal,
                                         fft_bins = total_rows,
                                         )
+        # limit exploration of dominant frequency to max frequency (Nyquist Theorem)
+        section_fft = section_fft[:max_freq]
         section_power = pyst.dsp.calc_power(section_fft)
         dom_f = pyst.dsp.get_dom_freq(section_power)
         if dom_f > 0:
@@ -2109,8 +2156,8 @@ def calc_fundamental_freq(sound, sr=16000, resolution = 0.1,
         section_start += (frame_length - num_overlap_samples)
         
     freq_matrix = freq_matrix[:-extra_rows]
-    return freq_matrix
-
+    fund_freq = np.mean(freq_matrix)
+    return fund_freq
 
 
 # TODO test real_signal parameter  - perhaps remove? force non-real fft?
@@ -2142,6 +2189,10 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
         fft_bins = sr // 2
     if fft_bins % 2 != 0:
         fft_bins += 1
+    max_freq = fft_bins//2
+    # ensure even
+    if not max_freq % 2 == 0:
+        max_freq += 1
     if isinstance(sound, np.ndarray):
         data = sound
     else:
@@ -2170,6 +2221,8 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
                                         real_signal = real_signal,
                                         fft_bins = fft_bins,
                                         )
+        # limit exploration of dominant frequency to max frequency (Nyquist Theorem)
+        section_fft = section_fft[:max_freq]
         section_power = pyst.dsp.calc_power(section_fft)
         # set minimum values if not yet set
         if min_energy is None and frame == 0:
