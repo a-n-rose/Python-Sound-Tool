@@ -106,7 +106,7 @@ def mix2sounds(sound1, sound2):
 
         
 def vtlp_stft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
-         oversize_factor = 1, win_size_ms = 16, percent_overlap = 0.5):
+         oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5):
     '''
     TODO: reference Nanni et al. work and try to implement it.
     
@@ -128,10 +128,12 @@ def vtlp_stft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
     vtlp_a = np.random.choice(np.arange(min(a), max(a)+.1, 0.1)  )
     # can put in a stft or complex matrix. If so, skip this step
     if data.dtype != np.complex64 and data.dtype != np.complex128:
-        stft = pyst.feats.get_feats(sound, sr=sr, feature_type = 'stft', 
-                                    win_size_ms = win_size_ms * oversize_factor, 
-                                    percent_overlap = 0.5)
-    stft = data
+        stft = pyst.feats.get_stft(sound, sr=sr,
+                                    win_size_ms = win_size_ms, 
+                                    percent_overlap = 0.5, 
+                                    fft_bins = win_size_ms * oversize_factor)
+    else:
+        stft = data
     # bi-linear transformation
     nominator = (1-vtlp_a) * np.sin(stft)
     denominator = 1 - (1-vtlp_a) * np.cos(stft)
@@ -142,7 +144,7 @@ def vtlp_stft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
       
 def vtlp_dft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
-         bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann'):
+         bilinear_warp = True, real_signal = False, fft_bins = 1024, window = 'hann'):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
     
     TODO: reference Nanni et al. work and try to implement it.
@@ -172,6 +174,10 @@ def vtlp_dft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
+    max_freq = sr//2
+    # ensure even
+    if not max_freq % 2 == 0:
+        max_freq += 1
     total_rows = fft_bins * oversize_factor
     # initialize empty matrix to fill dft values into
     stft_matrix = pyst.dsp.create_empty_matrix((num_subframes,total_rows), complex_vals = True)
@@ -189,10 +195,12 @@ def vtlp_dft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
         if bilinear_warp:
             section_warped = pyst.augment.bilinear_warp(section_fft, vtlp_a)
         else:
-            section_warped = pyst.augment.piecewise_linear_warp(section_fft, vtlp_a)
+            section_warped = pyst.augment.piecewise_linear_warp(section_fft, vtlp_a,
+                                                                max_freq = max_freq)
         section_warped = section_warped[:total_rows]
-        stft_matrix[frame][:len(section_warped)] = section_warped
+        stft_matrix[frame] = section_warped
         section_start += (frame_length - num_overlap_samples)
+    stft_matrix = stft_matrix[:,:max_freq]
     return stft_matrix, vtlp_a
       
 def bilinear_warp(fft_value, alpha):
@@ -201,12 +209,12 @@ def bilinear_warp(fft_value, alpha):
     fft_warped = fft_value + 2 * np.arctan(nominator/(denominator + 1e-6) + 1e-6)
     return fft_warped
 
-def piecewise_linear_warp(fft_value, alpha):
-    if fft_value.all() <= (fft_value * (min(alpha, 1)/ (alpha + 1e-6))).all():
+def piecewise_linear_warp(fft_value, alpha, max_freq):
+    if fft_value.all() <= max_freq * (min(alpha, 1)/ (alpha + 1e-6)):
         fft_warped = fft_value * alpha
     else:
-        nominator = np.pi - fft_value * (min(alpha, 1))
-        denominator = np.pi - fft_value * (min(alpha, 1) / (alpha + 1e-6))
+        nominator = np.pi - max_freq * (min(alpha, 1))
+        denominator = np.pi - max_freq * (min(alpha, 1) / (alpha + 1e-6))
         fft_warped = np.pi - (nominator / denominator + 1e-6) * (np.pi - fft_value)
     return fft_warped
     
