@@ -2052,7 +2052,7 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
-    max_freq = fft_bins//2
+    max_freq = sr//2
     # ensure even
     if not max_freq % 2 == 0:
         max_freq += 1
@@ -2099,7 +2099,7 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
-    max_freq = fft_bins//2
+    max_freq = sr//2
     # ensure even
     if not max_freq % 2 == 0:
         max_freq += 1
@@ -2189,7 +2189,7 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
         fft_bins = sr // 2
     if fft_bins % 2 != 0:
         fft_bins += 1
-    max_freq = fft_bins//2
+    max_freq = sr//2
     # ensure even
     if not max_freq % 2 == 0:
         max_freq += 1
