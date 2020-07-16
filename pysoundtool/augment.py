@@ -104,18 +104,10 @@ def mix2sounds(sound1, sound2):
     '''
     pass
 
-        
-def vtlp_stft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
-         oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5):
+def add_white_noise(sound, sr, noise_level=0.01, snr=10, random_seed=40, **kwargs):
     '''
-    TODO: reference Nanni et al. work and try to implement it.
-    
     References
     ----------
-    Kim, C., Shin, M., Garg, A., & Gowda, D. (2019). Improved vocal tract length perturbation 
-    for a state-of-the-art end-to-end speech recognition system. Interspeech. September 15-19, 
-    Graz, Austria.
-    
     Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
     improving animal audio classification. Ecological Informatics, 57, 101084. 
     https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
@@ -125,24 +117,17 @@ def vtlp_stft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
     else:
         data, sr2 = pyst.loadsound(sound, sr=sr)
         assert sr2 == sr
-    vtlp_a = np.random.choice(np.arange(min(a), max(a)+.1, 0.1)  )
-    # can put in a stft or complex matrix. If so, skip this step
-    if data.dtype != np.complex64 and data.dtype != np.complex128:
-        stft = pyst.feats.get_stft(sound, sr=sr,
-                                    win_size_ms = win_size_ms, 
-                                    percent_overlap = 0.5, 
-                                    fft_bins = win_size_ms * oversize_factor)
-    else:
-        stft = data
-    # bi-linear transformation
-    nominator = (1-vtlp_a) * np.sin(stft)
-    denominator = 1 - (1-vtlp_a) * np.cos(stft)
-    stft_t = stft + 2 * np.arctan(nominator/(denominator + 1e-6) + 1e-6)
-
-    return stft_t, vtlp_a
+    n = pyst.dsp.generate_noise(num_samples = len(data), 
+                                amplitude=noise_level, 
+                                random_seed=random_seed)
+    sound_n, sr, snr = pyst.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, 
+                        delay_mainsound_sec = None, total_len_sec=None,
+                        wrap = False, **kwargs)
+    return sound_n
+    
+    
       
-      
-def vtlp_dft(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
+def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = False, fft_bins = 1024, window = 'hann'):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
