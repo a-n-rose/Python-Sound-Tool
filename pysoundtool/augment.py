@@ -34,11 +34,15 @@ import librosa
 import pathlib
 import pysoundtool as pyst
 
-def speed():
+def speed_increase(sound, sr, rate=1.15, **kwargs):
     '''Acoustic augmentation of speech.
     
     References
     ----------
+    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
+    improving animal audio classification. Ecological Informatics, 57, 101084. 
+    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
+    
     Ko, T., Peddinti, V., Povey, D., & Khudanpur (2015). Audio Augmentation for 
     Speech Recognition. Interspeech. 
     
@@ -47,9 +51,53 @@ def speed():
     tion of speech,” in Proceedings of the International Conference on
     Acoustics, Speech and Signal Processing (ICASSP), vol. 2, April
     1993, pp. 554–557 vol.2.
-
     '''
-    pass
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        assert sr2 == sr
+    y_fast = librosa.effects.time_stretch(data, rate)
+    return y_fast
+
+def speed_decrease(sound, sr, rate=0.85, **kwargs):
+    '''Acoustic augmentation of speech. 
+    
+    References
+    ----------
+    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
+    improving animal audio classification. Ecological Informatics, 57, 101084. 
+    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
+    '''
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        assert sr2 == sr
+    y_slow = librosa.effects.time_stretch(data, rate)
+    return y_slow
+
+
+def shift(sound, sr, random_seed = None, **kwargs):
+    '''Acoustic augmentation of sound (probably not for speech).
+    
+    Applies random shift of sound by dividing sound into 2 sections and 
+    switching them.
+    
+    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
+    improving animal audio classification. Ecological Informatics, 57, 101084. 
+    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
+    '''
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        assert sr2 == sr
+    switched = pyst.augment.shufflesound(data, sr=sr, 
+                                          num_subsections = 2, 
+                                          random_seed = random_seed)
+    return switched
+    
 
 def shufflesound(sound, sr, num_subsections = 2, random_seed = 40, **kwargs):
     '''Acoustic augmentation of noise or background sounds.
@@ -120,19 +168,68 @@ def add_white_noise(sound, sr, noise_level=0.01, snr=10, random_seed=40, **kwarg
     n = pyst.dsp.generate_noise(num_samples = len(data), 
                                 amplitude=noise_level, 
                                 random_seed=random_seed)
-    sound_n, sr, snr = pyst.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, 
-                        delay_mainsound_sec = None, total_len_sec=None,
-                        wrap = False, **kwargs)
+    sound_n, sr, snr = pyst.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, **kwargs)
     return sound_n
+
+def harmonic_distortion(sound, sr, **kwargs):
+    '''Applies sin function five times.
     
+    References
+    ----------
+    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
+    improving animal audio classification. Ecological Informatics, 57, 101084. 
+    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
+    '''
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        assert sr2 == sr
+    data = 2*np.pi*data
+    count = 0
+    while count < 5:
+        data = np.sin(data)
+        count += 1
+    return data
     
+def pitchshift_i(sound, sr = 16000, num_semitones = 2, **kwargs):
+    '''
+    
+    References
+    ----------
+    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
+    improving animal audio classification. Ecological Informatics, 57, 101084. 
+    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
+    '''
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        assert sr2 == sr
+    y_i = librosa.effects.pitch_shift(data, sr=sr, n_steps = num_semitones)
+    return y_i
+
+def pitchshift_d(sound, sr = 16000, num_semitones = -2, **kwargs):
+    '''
+    
+    References
+    ----------
+    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
+    improving animal audio classification. Ecological Informatics, 57, 101084. 
+    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
+    '''
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        assert sr2 == sr
+    y_d = librosa.effects.pitch_shift(data, sr=sr, n_steps = num_semitones)
+    return y_d
       
 def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = False, fft_bins = 1024, window = 'hann'):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
-    
-    TODO: reference Nanni et al. work and try to implement it.
     
     References
     ----------
@@ -178,30 +275,15 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
                                         fft_bins = total_rows,
                                         )
         if bilinear_warp:
-            section_warped = pyst.augment.bilinear_warp(section_fft, vtlp_a)
+            section_warped = pyst.dsp.bilinear_warp(section_fft, vtlp_a)
         else:
-            section_warped = pyst.augment.piecewise_linear_warp(section_fft, vtlp_a,
+            section_warped = pyst.dsp.piecewise_linear_warp(section_fft, vtlp_a,
                                                                 max_freq = max_freq)
         section_warped = section_warped[:total_rows]
         stft_matrix[frame] = section_warped
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:,:max_freq]
     return stft_matrix, vtlp_a
-      
-def bilinear_warp(fft_value, alpha):
-    nominator = (1-alpha) * np.sin(fft_value)
-    denominator = 1 - (1-alpha) * np.cos(fft_value)
-    fft_warped = fft_value + 2 * np.arctan(nominator/(denominator + 1e-6) + 1e-6)
-    return fft_warped
-
-def piecewise_linear_warp(fft_value, alpha, max_freq):
-    if fft_value.all() <= max_freq * (min(alpha, 1)/ (alpha + 1e-6)):
-        fft_warped = fft_value * alpha
-    else:
-        nominator = np.pi - max_freq * (min(alpha, 1))
-        denominator = np.pi - max_freq * (min(alpha, 1) / (alpha + 1e-6))
-        fft_warped = np.pi - (nominator / denominator + 1e-6) * (np.pi - fft_value)
-    return fft_warped
     
 def jitter():
     '''
