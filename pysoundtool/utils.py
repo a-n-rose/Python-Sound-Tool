@@ -26,7 +26,7 @@ def path_or_samples(input_value):
     
     Parameters
     ----------
-    input_value : str, pathlib.PosixPath, or tuple [size= ( (samples,), sr)]
+    input_value : str, pathlib.PosixPath, or tuple [size= ( (samples,), sr)] or np.ndarray [size = (samples, )]
     
     Returns
     -------
@@ -58,9 +58,11 @@ def path_or_samples(input_value):
     elif isinstance(input_value, tuple):
         if isinstance(input_value[0], np.ndarray):
             return 'samples'
+    elif isinstance(input_value, np.ndarray):
+        return 'samples'
     else:
         raise TypeError('The input for `path_or_samples` expected a str, '+\
-            'pathlib.PosixPath, or tuple with samples and sample rate, '+\
+            'pathlib.PosixPath, np.ndarray, or tuple with samples and sample rate, '+\
                 'not type {}'.format(type(input_value)))
     
 def match_dtype(array1, array2):
