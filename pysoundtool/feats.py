@@ -414,7 +414,6 @@ def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                                               complex_vals = True)
     section_start = 0
     window_frame = pyst.dsp.create_window(window, frame_length)
-    row = 0
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
         section = pyst.dsp.apply_window(section, 
@@ -425,8 +424,7 @@ def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                                         real_signal = real_signal,
                                         fft_bins = total_rows,
                                         )
-        stft_matrix[row] = section_fft
-        row += 1
+        stft_matrix[frame] = section_fft
         section_start += (frame_length - num_overlap_samples)
     
     return stft_matrix[:,:fft_bins//2]
