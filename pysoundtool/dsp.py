@@ -2143,7 +2143,7 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     
 def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
-                          window = 'hann', percent_vad = 0.75):
+                          window = 'hann', percent_vad = .75):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
@@ -2278,12 +2278,18 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     return fund_freq
 
 
-# TODO test real_signal parameter  - perhaps remove? force non-real fft?
+# TODO: finicky 
+# once speech is recognized, doesn't recognize silence as well, especially
+# for female voices in 10-20 snr noise; 
+# but recognizes more speech in clean signals with female 
+# voices than male voices (comparing just two samples)
 def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5, 
         real_signal = False, fft_bins = None, window = 'hann',
         energy_thresh = 40, freq_thresh = 185, sfm_thresh = 5,
         min_energy = None, min_freq = None, min_sfm = None):
     '''
+    Warning: this VAD function does not perform well on snr levels lower than 20.
+    
     Parameters
     ----------
     energy_thresh : int, float
@@ -2368,7 +2374,10 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
             counter += 1
         if f - min_freq > freq_thresh:
             counter += 1
+        # TODO sfm is too sensitive and resulting in more vad than accurate
+        # especially for female voices
         if sfm - min_sfm > sfm_thresh:
+            #pass
             counter += 1
         if counter >= 1:
             vad_matrix[frame] += 1
@@ -2416,6 +2425,72 @@ def short_term_energy(signal_windowed):
     '''
     ste = sum(np.abs(signal_windowed)**2)
     return ste
+
+def bilinear_warp(fft_value, alpha):
+    '''Subfunction for vocal tract length perturbation.
+    
+    See Also
+    --------
+    pysoundtool.augment.vtlp
+    
+    References
+    ----------
+    Kim, C., Shin, M., Garg, A., & Gowda, D. (2019). Improved vocal tract length perturbation 
+    for a state-of-the-art end-to-end speech recognition system. Interspeech. September 15-19, 
+    Graz, Austria.
+    '''
+    nominator = (1-alpha) * np.sin(fft_value)
+    denominator = 1 - (1-alpha) * np.cos(fft_value)
+    fft_warped = fft_value + 2 * np.arctan(nominator/(denominator + 1e-6) + 1e-6)
+    return fft_warped
+
+def piecewise_linear_warp(fft_value, alpha, max_freq):
+    '''Subfunction for vocal tract length perturbation.
+    
+    See Also
+    --------
+    pysoundtool.augment.vtlp
+    
+    References
+    ----------
+    Kim, C., Shin, M., Garg, A., & Gowda, D. (2019). Improved vocal tract length perturbation 
+    for a state-of-the-art end-to-end speech recognition system. Interspeech. September 15-19, 
+    Graz, Austria.
+    '''
+    if fft_value.all() <= max_freq * (min(alpha, 1)/ (alpha + 1e-6)):
+        fft_warped = fft_value * alpha
+    else:
+        nominator = np.pi - max_freq * (min(alpha, 1))
+        denominator = np.pi - max_freq * (min(alpha, 1) / (alpha + 1e-6))
+        fft_warped = np.pi - (nominator / denominator + 1e-6) * (np.pi - fft_value)
+    return fft_warped
+
+def f0_approximation(sound, sr, low_freq = 50, high_freq = 300, **kwargs):
+    '''Approximates fundamental frequency.
+    
+    Limits the stft of voice active sections to frequencies to between 
+    `low_freq` and `high_freq` and takes mean of the dominant frequencies 
+    within that range. Defaults are set at 50 and 300 as most human speech 
+    frequencies occur between 85 and 255 Hz.
+    
+    References
+    ----------
+    https://en.wikipedia.org/wiki/Voice_frequency
+    '''
+    import scipy
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyst.loadsound(sound, sr=sr)
+        assert sr2 == sr
+    stft = pyst.dsp.get_vad_stft(data, sr=sr, **kwargs)
+    stft = stft[:,low_freq:high_freq]
+    power = np.abs(stft)**2
+    dom_f = []
+    for row in power:
+        dom_f.append(pyst.dsp.get_dom_freq(row))
+    return np.mean(dom_f)
+    
 
 
 if __name__ == '__main__':
