@@ -4,6 +4,8 @@ PySoundTool Functionality
 
 .. include:: builtin.rst
 
+.. include:: augment.rst
+
 .. include:: files.rst
 
 .. include:: datasets.rst
