@@ -160,7 +160,7 @@ def plot(feature_matrix, feature_type,
 
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     percent_overlap = 0.5, fft_bins = None, num_filters=40, num_mfcc=40, sr=None,\
-        save_pic=False, name4pic=None, energy_scale=None, mono=None, **kwargs):
+        save_pic=False, name4pic=None, energy_scale='power_to_db', mono=None, **kwargs):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
     Parameters
@@ -379,13 +379,13 @@ def get_feats(sound,
     except librosa.ParameterError as e:
         # potential error in handling fortran array
         feats = get_feats(np.asfortranarray(data),
+                          sr = sr,
                           feature_type = feature_type,
                           win_size_ms = win_size_ms,
                           percent_overlap = percent_overlap,
-                          n_fft = nfft,
+                          fft_bins = fft_bins,
                           num_filters = num_filters,
                           num_mfcc = num_mfcc,
-                          sr = sr,
                           dur_sec = dur_sec,
                           mono = mono,
                           rate_of_change = rate_of_change,
