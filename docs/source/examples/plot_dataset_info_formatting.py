@@ -19,9 +19,11 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.dataset_logger`
 
 ##########################################################
 # Ignore this snippet of code: it is only for this example
+import matplotlib.pyplot as plt
 import os
 package_dir = '../../../'
 os.chdir(package_dir)
+
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
@@ -29,7 +31,7 @@ import pysoundtool as pyst;
 
 
 ##########################################################
-# PySoundTool offers example datasets. Let's explore them.
+# I will explore files in a small dataset on my computer
 dataset_path = '{}audiodata/'.format(package_dir)
 dataset_info_dict = pyst.builtin.dataset_logger('{}audiodata/'.format(package_dir));
 
@@ -48,6 +50,9 @@ print('std dev duration (sec): ', all_data.dur_sec.std())
 print('min sample rate: ', all_data.sr.min())
 print('max sample rate: ', all_data.sr.max())
 print('number of channels: ', all_data.num_channels.unique())
+
+##########################################################
+all_data.groupby('sr').count().plot(kind = 'bar', title = 'Sample Rate Counts')
 
 ###############################################################################################
 # Reformat a Dataset
@@ -85,6 +90,9 @@ print('std dev duration (sec): ', formatted_data.dur_sec.std())
 print('min sample rate: ', formatted_data.sr.min())
 print('max sample rate: ', formatted_data.sr.max())
 print('number of channels: ', formatted_data.num_channels.unique())
+
+##########################################################
+formatted_data.groupby('sr').count().plot(kind = 'bar', title = 'Sample Rate Counts')
 
 ###########################################
 # There we go! 
