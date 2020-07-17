@@ -99,7 +99,7 @@ def shift(sound, sr, random_seed = None, **kwargs):
     return switched
     
 
-def shufflesound(sound, sr, num_subsections = 2, random_seed = 40, **kwargs):
+def shufflesound(sound, sr, num_subsections = 2, random_seed = None, **kwargs):
     '''Acoustic augmentation of noise or background sounds.
     
     This separates the sound into `num_subsections` and pseudorandomizes
@@ -137,22 +137,7 @@ def shufflesound(sound, sr, num_subsections = 2, random_seed = 40, **kwargs):
         samples_shuffled = np.concatenate((samples_shuffled, section_dict[i]),axis=0)
     return samples_shuffled
 
-def mix2sounds(sound1, sound2):
-    '''Acoustic augmentation of noise or background sounds.
-    
-    Two sounds are mixed together. However, currently out of the scope of PySoundTool
-    functionality.
-    
-    References
-    ----------
-    Inoue, T., Vinayavekhin, P., Wang, S., Wood, D., Munawar, A., Ko, B. J.,
-    Greco, N., & Tachibana, R. (2019). Shuffling and mixing data augmentation 
-    for environmental sound classification. Detection and Classification of 
-    Acoustic Scenes and Events 2019. 25-26 October 2019, New York, NY, USA
-    '''
-    pass
-
-def add_white_noise(sound, sr, noise_level=0.01, snr=10, random_seed=40, **kwargs):
+def add_white_noise(sound, sr, noise_level=0.01, snr=10, random_seed=None, **kwargs):
     '''
     References
     ----------
@@ -226,7 +211,7 @@ def pitchshift_d(sound, sr = 16000, num_semitones = -2, **kwargs):
     y_d = librosa.effects.pitch_shift(data, sr=sr, n_steps = num_semitones)
     return y_d
       
-def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
+def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = False, fft_bins = 1024, window = 'hann'):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
@@ -284,25 +269,3 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = 40,
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:,:max_freq]
     return stft_matrix, vtlp_a
-    
-def jitter():
-    '''
-    References
-    ----------
-    Navdeep Jaitly and G. E. Hinton.  Vocal tract length perturbation (vtlp) improves speech 
-    recognition. In Proceedings of the International Conference on Machine Learning (ICML) 
-    2013 Workshop on DeepLearning for Audio, Speech and Language Processing, Atlanta, Georgia, 
-    USA, June 16-21, 2013, 2013.
-    '''
-    pass
-
-def stochastic_feature_mapping():
-    '''
-    References
-    ----------
-    Xiaodong Cui, Vaibhava Goel, and Brian Kingsbury. Data augmentation for deep convolutional
-    neural network acoustic modeling. In 2015 IEEE International Conference on Acoustics, Speech 
-    and SignalProcessing, ICASSP 2015, South Brisbane, Queensland, Australia, April 19-24, 2015, 
-    pages 4545–4549,2015.
-    '''
-    pass
