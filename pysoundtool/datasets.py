@@ -332,6 +332,14 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed = None,
         The label-audiofile pairs are saved as tuples within the lists and contain 
         the encoded label integer (e.g. 0 instead of 'air_conditioner') and the 
         audio paths associated to that class and dataset.
+        
+    Raises
+    ------
+    ValueError 
+        If `perc_train` is set too high for the amount of data or there are 
+        simply too few data. Specifically, if the percentage of train data cannot 
+        be upheld while also ensuring the validation and test datasets have more 
+        than 1 sample.
     '''
     if seed == 0:
         raise ValueError('Seed equals 0. This will result in unreliable '+\
@@ -413,6 +421,7 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed = None,
         test_list = test_list[:int(num_test)+1]
     # esure the number of training data is 80% of all available audiodata:
     if len(train_list) < math.ceil((len(train_list)+len(val_list)+len(test_list))*perc_train):
+        print('perc train', perc_train)
         raise pyst.errors.notsufficientdata_error(len(train_list),
                                       len(val_list),
                                       len(test_list),
