@@ -32,7 +32,7 @@ import IPython.display as ipd
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
-# PySoundTool offers example datasets. Let's use them.
+# I will use speech data from a mini dataset on my computer.
 
 ##########################################################
 # Speech sample:
@@ -44,7 +44,7 @@ word = speech_sample.parent.stem
 word
 
 ##########################################################
-# noise sample:
+# noise sample: (this comes with PySoundTool)
 noise_sample = '{}audiodata/background_samples/cafe.wav'.format(package_dir)
 print(noise_sample)
 noise_sample = pyst.utils.string2pathlib(noise_sample)
