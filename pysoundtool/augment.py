@@ -34,7 +34,7 @@ import librosa
 import pathlib
 import pysoundtool as pyst
 
-def speed_increase(sound, sr, rate=1.15, **kwargs):
+def speed_increase(sound, sr, perc=0.15, **kwargs):
     '''Acoustic augmentation of speech.
     
     References
@@ -57,10 +57,17 @@ def speed_increase(sound, sr, rate=1.15, **kwargs):
     else:
         data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
+    # if entered 50 instead of .50, turns 50 into .50
+    if perc > 1:
+        while perc > 1:
+            perc *= .01
+            if perc <= 1:
+                break
+    rate = 1. + perc
     y_fast = librosa.effects.time_stretch(data, rate)
     return y_fast
 
-def speed_decrease(sound, sr, rate=0.85, **kwargs):
+def speed_decrease(sound, sr, perc=0.15, **kwargs):
     '''Acoustic augmentation of speech. 
     
     References
@@ -74,11 +81,18 @@ def speed_decrease(sound, sr, rate=0.85, **kwargs):
     else:
         data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
+    # if entered 50 instead of .50, turns 50 into .50
+    if perc > 1:
+        while perc > 1:
+            perc *= .01
+            if perc <= 1:
+                break
+    rate = 1. - perc
     y_slow = librosa.effects.time_stretch(data, rate)
     return y_slow
 
 
-def shift(sound, sr, random_seed = None, **kwargs):
+def time_shift(sound, sr, random_seed = None, **kwargs):
     '''Acoustic augmentation of sound (probably not for speech).
     
     Applies random shift of sound by dividing sound into 2 sections and 
@@ -177,7 +191,7 @@ def harmonic_distortion(sound, sr, **kwargs):
         count += 1
     return data
     
-def pitchshift_i(sound, sr = 16000, num_semitones = 2, **kwargs):
+def pitch_increase(sound, sr = 16000, num_semitones = 2, **kwargs):
     '''
     
     References
@@ -194,7 +208,7 @@ def pitchshift_i(sound, sr = 16000, num_semitones = 2, **kwargs):
     y_i = librosa.effects.pitch_shift(data, sr=sr, n_steps = num_semitones)
     return y_i
 
-def pitchshift_d(sound, sr = 16000, num_semitones = -2, **kwargs):
+def pitch_decrease(sound, sr = 16000, num_semitones = 2, **kwargs):
     '''
     
     References
@@ -208,7 +222,7 @@ def pitchshift_d(sound, sr = 16000, num_semitones = -2, **kwargs):
     else:
         data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
-    y_d = librosa.effects.pitch_shift(data, sr=sr, n_steps = num_semitones)
+    y_d = librosa.effects.pitch_shift(data, sr=sr, n_steps = -num_semitones)
     return y_d
       
 def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
