@@ -468,7 +468,6 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
             num_channels = 1
         sound2add = apply_num_channels(sound2add, num_channels)
     original_snr = pyst.dsp.get_vad_snr(target, sound2add, sr=sr)
-    print('original snr', original_snr)
     target_vad = pyst.dsp.get_vad_samples(target,sr)
     target_stft = pyst.dsp.get_vad_stft(target, sr)
     noise_stft = pyst.feats.get_stft(sound2add, sr)
