@@ -244,7 +244,7 @@ def filtersignal(audiofile,
                                                    fil.noise_subframes)
         assert section == fil.noise_subframes * fil.overlap_length
     if visualize:
-        pyst.feats.plot(noise_power, 'stft',title='Average noise power spectrum'.upper()+'\n{}'.format(frame_subtitle), scale='power_to_db',
+        pyst.feats.plot(noise_power, 'stft',title='Average noise power spectrum'.upper()+'\n{}'.format(frame_subtitle), energy_scale='power_to_db',
                              sr = fil.sr)
     
     # prepare target power matrix
@@ -273,7 +273,7 @@ def filtersignal(audiofile,
             # now start filtering!!
             # initialize SNR matrix
             if visualize and frame % visualize_every_n_windows == 0:
-                pyst.feats.plot(target_power,'stft', title='Signal power spectrum'.upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle), scale='power_to_db', sr = fil.sr)
+                pyst.feats.plot(target_power,'stft', title='Signal power spectrum'.upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle), energy_scale='power_to_db', sr = fil.sr)
             if 'wiener' in filter_type:
                 enhanced_fft = fil.apply_wienerfilter(frame, 
                                                        target_fft, 
@@ -323,7 +323,7 @@ def filtersignal(audiofile,
         cols = increment_length
         pyst.feats.plot(np.abs(filtered_sig.reshape((
                 rows,cols,)))**2,
-            'stft', title='Final filtered signal power spectrum'.upper()+'\n{}: {}'.format(filter_type,frame_subtitle), scale='power_to_db')
+            'stft', title='Final filtered signal power spectrum'.upper()+'\n{}: {}'.format(filter_type,frame_subtitle), energy_scale='power_to_db')
         pyst.feats.plot(enhanced_signal,'signal', title='Final filtered signal'.upper()+'\n{}'.format(filter_type), sr = fil.sr)
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
@@ -752,7 +752,7 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
     return newdata_noisy_dir, newdata_clean_dir
 
 def envclassifier_feats(
-    data_dir = None,
+    data_dir,
     data_features_dir = None,
     feature_type = None,
     dur_sec = 1,
@@ -768,10 +768,9 @@ def envclassifier_feats(
     data_dir : str or pathlib.PosixPath
         The directory with scene subfolders (e.g. 'air_conditioner', 'traffic') that 
         contain audio files belonging to that scene (e.g. 'air_conditioner/ac1.wav',
-        'air_conditioner/ac2.wav', 'traffic/t1.wav'). If None, example audio data will 
-        be used.
+        'air_conditioner/ac2.wav', 'traffic/t1.wav'). 
     
-    data_features_dir : str or pathlib.PosixPath
+    data_features_dir : str or pathlib.PosixPath, optional
         The directory where feature extraction related to the dataset will be stored. 
         Within this directory, a unique subfolder will be created each time features are
         extracted. This allows several versions of extracted features on the same dataset
@@ -800,14 +799,12 @@ def envclassifier_feats(
     pysoundtool.feats.save_features_datasets
         Preparation of acoustic features in train, validation and test datasets.
     '''
-    if data_dir is None:
-        data_dir = './audiodata/minidatasets/background_noise/'
     if data_features_dir is None:
         data_features_dir = './audiodata/example_feats_models/envclassifier/'
     if feature_type is None:
         feature_type = 'fbank'
     if 'signal' in feature_type:
-        raise ValueError('Feature type "signal" is not yet supported for CNN training.')
+        raise ValueError('Feature type "signal" is not yet supported for this model.')
 
     feat_extraction_dir = 'features_'+ feature_type + '_' + pyst.utils.get_date()
 
@@ -907,8 +904,8 @@ def envclassifier_feats(
     return feat_extraction_dir
 
 def denoiser_feats(
-    data_clean_dir = None,
-    data_noisy_dir = None,
+    data_clean_dir,
+    data_noisy_dir,
     data_features_dir = None,
     feature_type = None,
     dur_sec = 3,
@@ -923,14 +920,12 @@ def denoiser_feats(
     
     Parameters
     ----------
-    data_clean_dir : str or pathlib.PosixPath, optional
-        The directory with clean audio files. If no directory is given, the sample data
-        available with PySoundTool will be used.
+    data_clean_dir : str or pathlib.PosixPath
+        The directory with clean audio files. 
     
-    data_noisy_dir : str or pathlib.PosixPath, optional
+    data_noisy_dir : str or pathlib.PosixPath
         The directory with noisy audio files. These should be the same as the clean audio,
-        except noise has been added. If no directory is given, the sample data available 
-        with PySoundTool will be used.
+        except noise has been added. 
     
     data_features_dir : str or pathlib.PosixPath, optional
         The directory where feature extraction related to the dataset will be stored. 
@@ -974,10 +969,6 @@ def denoiser_feats(
         Preparation of acoustic features in train, validation and test datasets.
     '''
     # ensure these are not None, and if so, fill with sample data
-    if data_clean_dir is None:
-        data_clean_dir = './audiodata/minidatasets/denoise/clean/'
-    if data_noisy_dir is None:
-        data_noisy_dir = './audiodata/minidatasets/denoise/noisy/'
     if data_features_dir is None:
         data_features_dir = './audiodata/example_feats_models/denoiser/'
     if feature_type is None:
@@ -1139,9 +1130,9 @@ def denoiser_feats(
 
 
 # TODO include example extraction data in feature_extraction_dir?
-def denoiser_train(model_name = 'model_autoencoder_denoise',
+def denoiser_train(feature_extraction_dir,
+                   model_name = 'model_autoencoder_denoise',
                    feature_type = None,
-                   feature_extraction_dir = None,
                    use_generator = True,
                    normalized = False,
                    patience = 10, 
@@ -1150,6 +1141,9 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
     
     Parameters
     ----------
+    feature_extraction_dir : str or pathlib.PosixPath
+        Directory where extracted feature files are located (format .npy).
+        
     model_name : str
         The name for the model. This can be quite generic as the date up to 
         the millisecond will be added to ensure a unique name for each trained model.
@@ -1159,10 +1153,6 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
         The type of features that will be used to train the model. This is 
         only for the purposes of naming the model. If set to None, it will 
         not be included in the model name.
-        
-    feature_extraction_dir : str or pathlib.PosixPath
-        Directory where extracted feature files are located (format .npy). If None,
-        sample extracted files will be loaded.
         
     use_generator : bool 
         If True, a generator will be used to feed training data to the model. Otherwise
@@ -1203,10 +1193,6 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
     pysoundtool.models.template_models.autoencoder_denoise
         Template model architecture for basic autoencoder denoiser.
     '''
-    # ensure feature_extraction_folder exists:
-    if feature_extraction_dir is None:
-        feature_extraction_dir = './audiodata/example_feats_models/denoiser/'+\
-            'features_fbank_6m20d0h7m17s996ms/'
     dataset_path = pyst.utils.check_dir(feature_extraction_dir, make=False)
     
     # designate where to save model and related files
@@ -1332,19 +1318,28 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
         if use_generator:
             train_generator = pystmodels.Generator(data_matrix1 = data_train_noisy, 
                                                     data_matrix2 = data_train_clean,
-                                                    normalized = normalized)
+                                                    normalized = normalized,
+                                                    add_tensor_last = True)
             val_generator = pystmodels.Generator(data_matrix1 = data_val_noisy,
                                                 data_matrix2 = data_val_clean,
-                                                normalized = normalized)
+                                                normalized = normalized,
+                                                add_tensor_last = True)
 
             train_generator.generator()
             val_generator.generator()
-            history = denoiser.fit_generator(train_generator.generator(),
+            try:
+                history = denoiser.fit_generator(train_generator.generator(),
                                                     steps_per_epoch = data_train_noisy.shape[0],
                                                     callbacks = callbacks,
                                                     validation_data = val_generator.generator(),
                                                     validation_steps = data_val_noisy.shape[0], 
                                                     **kwargs)
+            except ValueError as e:
+                print('\nValueError: ', e)
+                raise ValueError('Try setting changing the parameter '+\
+                    '`add_tensor_last` (in function '+\
+                        '`pysoundtool.models.dataprep.Generator`)'+\
+                        ' to either True, False, or None.')
 
         else:
             #reshape to mix samples and batchsizes:
@@ -1399,14 +1394,14 @@ def denoiser_train(model_name = 'model_autoencoder_denoise',
 ###############################################################################
 
 # TODO include example extraction data in feature_extraction_dir?
-def envclassifier_train(model_name = 'model_cnn_classifier',
-                   feature_type = None,
-                   feature_extraction_dir = None,
-                   use_generator = True,
-                   normalized = False,
-                   patience = 15,
-                   add_tensor_last = True,
-                   **kwargs):
+def envclassifier_train(feature_extraction_dir,
+                        model_name = 'model_cnn_classifier',
+                        feature_type = None,
+                        use_generator = True,
+                        normalized = False,
+                        patience = 15,
+                        add_tensor_last = True,
+                        **kwargs):
     '''Collects training features and trains cnn environment classifier.
     
     This model may be applied to any speech and label scenario, for example, 
@@ -1415,6 +1410,9 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
     
     Parameters
     ----------
+    feature_extraction_dir : str or pathlib.PosixPath
+        Directory where extracted feature files are located (format .npy).
+    
     model_name : str
         The name for the model. This can be quite generic as the date up to 
         the millisecond will be added to ensure a unique name for each trained model.
@@ -1424,9 +1422,6 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
         The type of features that will be used to train the model. This is 
         only for the purposes of naming the model. If set to None, it will 
         not be included in the model name.
-        
-    feature_extraction_dir : str or pathlib.PosixPath
-        Directory where extracted feature files are located (format .npy).
         
     use_generator : bool 
         If True, a generator will be used to feed training data to the model. Otherwise
@@ -1863,8 +1858,8 @@ def collect_classifier_settings(feature_extraction_dir):
     feature_type = settings_dict['feat_type']
     return datasets, num_labels, feat_shape, num_feats, feature_type
 
-def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
-                  feature_extraction_dir = None,
+def cnnlstm_train(feature_extraction_dir,
+                  model_name = 'model_cnnlstm_classifier',
                   use_generator = True,
                   normalized = False,
                   patience = 15,
@@ -2094,15 +2089,15 @@ def cnnlstm_train(model_name = 'model_cnnlstm_classifier',
             model.save(model_dir.joinpath('final_not_best_model.h5'))
             return model_dir, history
 
-def resnet50_train(model_name = 'model_resnet50_classifier',
-                  feature_extraction_dir = None,
-                  use_generator = False,
-                  normalized = False,
-                  patience = 15,
-                  colorscale = 3,
-                  total_training_sessions = None,
-                  add_tensor_last = None,
-                  **kwargs):
+def resnet50_train(feature_extraction_dir,
+                   model_name = 'model_resnet50_classifier',
+                   use_generator = False,
+                   normalized = False,
+                   patience = 15,
+                   colorscale = 3,
+                   total_training_sessions = None,
+                   add_tensor_last = None,
+                   **kwargs):
     datasets, num_labels, feat_shape, num_feats, feature_type =\
         collect_classifier_settings(feature_extraction_dir)
     
