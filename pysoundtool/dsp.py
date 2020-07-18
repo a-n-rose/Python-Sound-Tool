@@ -369,7 +369,7 @@ def stereo2mono(data):
 
 def add_backgroundsound(audio_main, audio_background, sr, snr=None, 
                         delay_mainsound_sec = None, total_len_sec=None,
-                        wrap = False, **kwargs):
+                        wrap = False, stationary_noise = True, **kwargs):
     '''Adds a sound (i.e. background noise) to a target signal.
     
     If the sample rates of the two audio samples do not match, the sample
@@ -467,18 +467,21 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
         else:
             num_channels = 1
         sound2add = apply_num_channels(sound2add, num_channels)
-    original_snr = pyst.dsp.get_vad_snr(target, sound2add, sr=sr)
-    target_vad = pyst.dsp.get_vad_samples(target,sr)
     target_stft = pyst.dsp.get_vad_stft(target, sr)
-    noise_stft = pyst.feats.get_stft(sound2add, sr)
+    if stationary_noise:
+        noise_stft = pyst.feats.get_stft(sound2add, sr)
+    else:
+        # get energy of noise when active (e.g. car honking)
+        noise_stft = pyst.dsp.get_vad_stft(sound2add, sr)
     target_power = np.abs(target_stft)**2
     noise_power = np.abs(noise_stft)**2
     target_energy = np.mean(target_power)
-    noise_mean = np.mean(noise_power)
+    noise_energy = np.mean(noise_power)
+    print(noise_energy)
     
     if snr is not None:
         # see pysoundtool.dsp.snr_adjustnoiselevel
-        adjust_sound = (np.sqrt(target_energy/noise_mean / (10**(snr/10))))
+        adjust_sound = (np.sqrt(target_energy/noise_energy / (10**(snr/10))))
         sound2add *= adjust_sound
     
     new_snr = pyst.dsp.get_vad_snr(target, sound2add, sr=sr)
@@ -518,7 +521,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
         # set aside ending samples for ending (if sound is extended)
         ending_sound = sound2add[len(target)+int(sr*delay_mainsound_sec):total_samps]
         combined = np.concatenate((combined, ending_sound))
-    return combined, sr, new_snr
+    return combined, new_snr
 
 def apply_num_channels(sound_data, num_channels):
     '''Ensures `data` has indicated `num_channels`. 
