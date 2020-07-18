@@ -27,8 +27,8 @@ import pysoundtool as pyst;
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
-# PySoundTool offers pre-extracted features. Let's use them.
-feature_extraction_dir = '{}audiodata/example_feats_models/'.format(package_dir)+\
+# I will load previously extracted features (sample data)
+feature_extraction_dir = '{}test_audio/example_feats_models/'.format(package_dir)+\
     'envclassifier/example_feats_fbank/'
 
 #########################################################

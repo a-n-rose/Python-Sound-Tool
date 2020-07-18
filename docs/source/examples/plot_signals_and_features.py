@@ -28,11 +28,15 @@ import pysoundtool as pyst;
 # Create a Signal
 # ^^^^^^^^^^^^^^^
 
+########################################################################
+# First let's set what sample rate we want to use
+sr = 8000
+
 
 #########################################################################
-# Let's create a signal of 10 Hz
+# Let's create a signal of 10 Hz 
 sig1_hz = 10
-sig1, sr = pyst.generate_sound(freq=sig1_hz, amplitude = 0.4, sr=1000, dur_sec=1)
+sig1, sr = pyst.generate_sound(freq=sig1_hz, amplitude = 0.4, sr=sr, dur_sec=1)
 pyst.plotsound(sig1, sr=sr, feature_type = 'signal',
                title = 'Signal: {} Hz'.format(sig1_hz))
 
@@ -40,7 +44,7 @@ pyst.plotsound(sig1, sr=sr, feature_type = 'signal',
 #########################################################################
 # Let's create a signal of 20 Hz
 sig2_hz = 20 
-sig2, sr = pyst.generate_sound(freq=sig2_hz, amplitude= 0.4, sr=1000, dur_sec=1)
+sig2, sr = pyst.generate_sound(freq=sig2_hz, amplitude= 0.4, sr=sr, dur_sec=1)
 pyst.plotsound(sig2, sr=sr, feature_type = 'signal',
                title = 'Signal: {} Hz'.format(sig2_hz))
 
@@ -72,47 +76,53 @@ pyst.plotsound(noise, sr=sr, feature_type = 'signal', title='Random Noise')
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 40
-sig_noisy, sr, snr = pyst.dsp.add_backgroundsound(audio_main = (sig3, sr), 
-                                         audio_background = (noise, sr),
+sig_noisy, snr = pyst.dsp.add_backgroundsound(audio_main = sig3, 
+                                         audio_background = noise, 
+                                         sr = sr,
                                          snr = 40)
+
 # keep energy between 1 and -1 
-sig_noisy = pyst.dsp.control_volume(sig_noisy, max_limit=1)
+sig_noisy = pyst.dsp.scalesound(sig_noisy, max_val=1)
 pyst.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 40 SNR')
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 20
-sig_noisy, sr, snr = pyst.dsp.add_backgroundsound(audio_main = (sig3, sr), 
-                                         audio_background = (noise, sr),
+sig_noisy, snr = pyst.dsp.add_backgroundsound(audio_main = sig3, 
+                                         audio_background = noise,
+                                         sr = sr,
                                          snr = 20)
 # keep energy between 1 and -1 
-sig_noisy = pyst.dsp.control_volume(sig_noisy, max_limit=1)
+sig_noisy = pyst.dsp.scalesound(sig_noisy, max_val=1)
 pyst.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 20 SNR')
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 10
-sig_noisy, sr, snr = pyst.dsp.add_backgroundsound(audio_main = (sig3, sr), 
-                                         audio_background = (noise, sr),
+sig_noisy, snr = pyst.dsp.add_backgroundsound(audio_main = sig3, 
+                                         audio_background = noise,
+                                         sr = sr,
                                          snr = 10)
 # keep energy between 1 and -1 
-sig_noisy = pyst.dsp.control_volume(sig_noisy, max_limit=1)
+sig_noisy = pyst.dsp.scalesound(sig_noisy, max_val=1)
 pyst.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 10 SNR')
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 0
-sig_noisy, sr, snr = pyst.dsp.add_backgroundsound(audio_main = (sig3, sr), 
-                                         audio_background = (noise, sr),
+sig_noisy, snr = pyst.dsp.add_backgroundsound(audio_main = sig3,
+                                         audio_background = noise,
+                                         sr = sr,
                                          snr = 0)
 # keep energy between 1 and -1 
-sig_noisy = pyst.dsp.control_volume(sig_noisy, max_limit=1)
+sig_noisy = pyst.dsp.scalesound(sig_noisy, max_val=1)
 pyst.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 0 SNR')
 
 
 #########################################################################
 # Add noise at signal-to-noise ratio of -10
-sig_noisy, sr, snr = pyst.dsp.add_backgroundsound(audio_main = (sig3, sr), 
-                                         audio_background = (noise, sr),
+sig_noisy, snr = pyst.dsp.add_backgroundsound(audio_main = sig3, 
+                                         audio_background = noise,
+                                         sr = sr,
                                          snr = -10)
 # keep energy between 1 and -1 
-sig_noisy = pyst.dsp.control_volume(sig_noisy, max_limit=1)
+sig_noisy = pyst.dsp.scalesound(sig_noisy, max_val=1)
 pyst.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: -10 SNR')
 

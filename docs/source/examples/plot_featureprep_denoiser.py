@@ -32,12 +32,12 @@ import IPython.display as ipd
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
-# PySoundTool offers example datasets. Let's use them.
+# I will use a mini denoising dataset as an example
 
 # Example noisy data:
-data_noisy_dir = '{}audiodata/minidatasets/denoise/noisy/'.format(package_dir)
+data_noisy_dir = '{}../mini-audio-datasets/denoise/noisy/'.format(package_dir)
 # Example clean data:
-data_clean_dir = '{}audiodata/minidatasets/denoise/clean/'.format(package_dir)
+data_clean_dir = '{}../mini-audio-datasets/denoise/clean/'.format(package_dir)
 # Where to save extracted features:
 data_features_dir = './audiodata/example_feats_models/denoiser/'
 
@@ -65,15 +65,19 @@ frames_per_sample = 11
 
 ############################################################
 # Define which data to use and which features to extract. 
+# NOTE: beacuse of the very small dataset, will set 
+# `perc_train` to a lower level than 0.8. (Otherwise, will raise error)
 # Everything else is based on defaults. A feature folder with
 # the feature data will be created in the current working directory.
 
 # (Although, you can set this under the parameter `data_features_dir`)
+perc_train = 0.6
 extraction_dir = pyst.denoiser_feats(data_clean_dir = data_clean_dir, 
                                      data_noisy_dir = data_noisy_dir,
                                      feature_type = feature_type, 
                                      dur_sec = dur_sec,
                                      frames_per_sample = frames_per_sample,
+                                     perc_train = perc_train,
                                      visualize=True);
 print(extraction_dir)
 
@@ -169,15 +173,15 @@ clean_audio_dict = dict([('clean', cleanaudio)])
 # Separate into datasets, with random seed set so noisy and clean data match
 
 ##########################################################
-# Noisy data
+# Noisy data (lower percent train due to small dataset)
 train_noisy, val_noisy, test_noisy = pyst.datasets.audio2datasets(noisy_audio_dict,
-                                                              perc_train=0.8,
+                                                              perc_train = perc_train,
                                                               seed=40)
 
 ##########################################################
 # Clean data 
 train_clean, val_clean, test_clean = pyst.datasets.audio2datasets(clean_audio_dict,
-                                                              perc_train=0.8,
+                                                              perc_train = perc_train,
                                                               seed=40)
 
 ##########################################################
@@ -242,11 +246,11 @@ ipd.Audio(samps,rate=sr)
 
 ######################################################
 # Noisy speech sample
-pyst.plotsound(noisyaudio[0], feature_type=feature_type, power_scale='power_to_db')
+pyst.plotsound(noisyaudio[0], feature_type=feature_type, energy_scale='power_to_db')
 
 ######################################################################
 # Clean speech sample
-pyst.plotsound(cleanaudio[0], feature_type=feature_type, power_scale='power_to_db')
+pyst.plotsound(cleanaudio[0], feature_type=feature_type, energy_scale='power_to_db')
 
 ######################################################
 # Extract and Save Features

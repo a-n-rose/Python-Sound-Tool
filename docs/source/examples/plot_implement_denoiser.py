@@ -39,8 +39,8 @@ import keras
 
 ######################################################
 # PySoundTool offers pre-trained models. Let's use one.
-model = '{}audiodata/example_feats_models/'.format(package_dir)+\
-    'denoiser/example_model/example_denoiser_stft.h5'
+model = '{}audiodata/models/'.format(package_dir)+\
+    'denoiser/example_denoiser_stft.h5'
 # ensure is a pathlib.PosixPath object
 print(model)
 model = pyst.utils.string2pathlib(model)
@@ -79,45 +79,37 @@ feature_type = feat_settings['feature_type']
 sr = feat_settings['sr']
 
 ######################################################
-# Provide a new audiofile for the denoiser to denoise!
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Provide new audio for the denoiser to denoise!
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #########################################################
-# To load a new audiofile the denoiser hasn't seen yet, we'll use the 
-# dataset assignment files PySoundTool generated during feature extraction:
-clean_audio_datasets = pyst.utils.load_dict(
-    model_dir.joinpath('audiofiles_datasets_clean.csv'))
-noisy_audio_datasets = pyst.utils.load_dict(
-    model_dir.joinpath('audiofiles_datasets_noisy.csv'))
+# We'll use the sample speech sample:
+speech = pyst.string2pathlib('{}audiodata/python.wav'.format(package_dir))
+s, sr = pyst.loadsound(speech, sr=sr)
 
 #########################################################
-# Let's use the first two from the test dataset. The denoiser has never seen these.
-clean_audio_test = pyst.utils.restore_dictvalue(clean_audio_datasets['test'])
-noisy_audio_test = pyst.utils.restore_dictvalue(noisy_audio_datasets['test'])
-clean_sample = clean_audio_test[0]
-noisy_sample = noisy_audio_test[0]
+# Let's add some white noise (10 SNR)
+s_n = pyst.augment.add_white_noise(s, sr=sr, snr=10)
 
 ##############################################################
 # What does the noisy audio sound like?
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-samps_noisy, sr = pyst.loadsound(noisy_sample, sr=sr)
-ipd.Audio(samps_noisy,rate=sr)
+ipd.Audio(s_n,rate=sr)
 
 ##############################################################
 # What does the noisy audio look like?
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pyst.plotsound(samps_noisy, sr = sr, feature_type='signal')
+pyst.plotsound(s_n, sr = sr, feature_type='signal')
 
 ##############################################################
 # What does the clean audio sound like?
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-samps_clean, sr = pyst.loadsound(clean_sample, sr = sr)
-ipd.Audio(samps_clean,rate=sr)
+ipd.Audio(s,rate=sr)
 
 ##############################################################
 # What does the clean audio look like?
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pyst.plotsound(samps_clean, sr = sr, feature_type='signal')
+pyst.plotsound(s, sr = sr, feature_type='signal')
 
 #########################################################################
 # Built-In Denoiser Functionality
@@ -126,7 +118,7 @@ pyst.plotsound(samps_clean, sr = sr, feature_type='signal')
 ##############################################################
 # We just need to feed the model path, the noisy sample path, and 
 # the feature settings dictionary we looked at above.
-y, sr = pyst.denoiser_run(model, noisy_sample, feat_settings)
+y, sr = pyst.denoiser_run(model, s_n, feat_settings)
 
 ##########################################################
 # How does the output sound?
@@ -144,17 +136,17 @@ pyst.plotsound(y, sr=sr, feature_type = 'signal')
 
 ##########################################################
 # STFT features of the noisy version of the audio:
-pyst.plotsound(samps_noisy, sr=sr, feature_type = 'stft', power_scale = 'power_to_db',
+pyst.plotsound(s_n, sr=sr, feature_type = 'stft', energy_scale = 'power_to_db',
                title = 'Noisy input audiofile: STFT features')
 
 ##########################################################
 # STFT features of the output
-pyst.plotsound(y, sr=sr, feature_type = 'stft', power_scale = 'power_to_db',
+pyst.plotsound(y, sr=sr, feature_type = 'stft', energy_scale = 'power_to_db',
                title = 'Denoiser Output: STFT features')
 
 ##########################################################
 # STFT features of the clean version of the audio:
-pyst.plotsound(samps_clean, sr=sr, feature_type = 'stft', power_scale = 'power_to_db',
+pyst.plotsound(s, sr=sr, feature_type = 'stft', energy_scale = 'power_to_db',
                title = 'Clean "target" audiofile: STFT features')
 
 

@@ -35,21 +35,24 @@ import IPython.display as ipd
 # PySoundTool offers example audio files. Let's use them.
 
 ##########################################################
-# Speech sample:
-speech_noisy = '{}audiodata/python_traffic.wav'.format(package_dir)
-speech_noisy = pyst.utils.string2pathlib(speech_noisy)
-print(speech_noisy)
-speech_clean = '{}audiodata/python.wav'.format(package_dir)
-speech_clean = pyst.utils.string2pathlib(speech_clean)
-print(speech_clean)
+# Noise sample:
+noise = '{}audiodata/background_samples/traffic.wav'.format(package_dir)
+noise = pyst.string2pathlib(noise)
+
+speech = '{}audiodata/python.wav'.format(package_dir)
+speech = pyst.utils.string2pathlib(speech)
+
+# For filtering, we will set the sample rate to be quite high:
+sr = 48000
+noisy, snr_measured = pyst.dsp.add_backgroundsound(speech, noise, sr = sr, 
+                                                 snr = 10, 
+                                                 total_len_sec = 3, 
+                                                 delay_mainsound_sec = 1)
 
 ##########################################################
 # Hear and see the noisy speech 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# For filtering, we will set the sample rate to be quite high:
-sr = 48000
-noisy, sr = pyst.loadsound(speech_noisy, sr=sr)
 ipd.Audio(noisy,rate=sr)
 
 ##########################################################
@@ -58,11 +61,11 @@ pyst.plotsound(noisy, sr=sr, feature_type='signal', title='Noisy Speech')
 
 ##########################################################
 # The same for the clean speech:
-clean, sr = pyst.loadsound(speech_clean, sr=sr)
-ipd.Audio(clean,rate=sr)
+s, sr = pyst.loadsound(speech, sr=sr)
+ipd.Audio(s,rate=sr)
 
 ##########################################################
-pyst.plotsound(clean, sr=sr, feature_type='signal', title='Clean Speech')
+pyst.plotsound(s, sr=sr, feature_type='signal', title='Clean Speech')
 
 
 ##########################################################

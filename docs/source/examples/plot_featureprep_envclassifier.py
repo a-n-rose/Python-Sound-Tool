@@ -31,15 +31,15 @@ import pysoundtool as pyst;
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
-# PySoundTool offers example datasets. Let's use one.
+# I will use a sample data set:
 
 # Example data:
-# data_dir = '{}audiodata/minidatasets/background_noise/'.format(package_dir)
+# data_dir = '{}../mini-audio-datasets/background_noise/'.format(package_dir)
 
 ###########################################################
 # There is also a small speech dataset you can try instead:
 
-data_dir = '{}audiodata/minidatasets/speech_commands/'.format(package_dir)
+data_dir = '{}../mini-audio-datasets/speech_commands/'.format(package_dir)
 
 ######################################################
 # Which type of feature:
@@ -225,7 +225,7 @@ pyst.plotsound(paths_list[0], feature_type='signal',
 
 ######################################################
 # first audio sample
-pyst.plotsound(paths_list[0], feature_type=feature_type, power_scale='power_to_db',
+pyst.plotsound(paths_list[0], feature_type=feature_type, energy_scale='power_to_db',
                title = paths_list[0].parent.stem+': '+feature_type)
 
 ######################################################
