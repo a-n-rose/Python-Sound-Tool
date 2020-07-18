@@ -1102,7 +1102,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                         audiofile = pathlib.PosixPath(audiofile)
                     feats = pyst.feats.get_feats(audiofile,
                                                 sr=sr,
-                                                features=feat_type,
+                                                feature_type=feat_type,
                                                 win_size_ms=win_size_ms,
                                                 percent_overlap=percent_overlap,
                                                 num_filters=num_feats,
@@ -1129,9 +1129,9 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                             label_plot = audiofile.parent.stem.upper()
                         # visualize features:
                         if 'mfcc' in feature_type or 'signal' in feature_type:
-                            scale = None
+                            energy_scale = None
                         else:
-                            scale = 'power_to_db'
+                            energy_scale = 'power_to_db'
                         #visualize features only every n num frames
                         if j % vis_every_n_frames == 0:
                             save_pic_path = datadir.joinpath(
@@ -1143,7 +1143,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                             feature_type = feature_type,
                                             win_size_ms = win_size_ms,
                                             percent_overlap = percent_overlap,
-                                            scale=scale,
+                                            energy_scale = energy_scale,
                                             title='{} {} features: label {}'.format(
                                                 key, feature_type.upper(),
                                                 label_plot),
@@ -1479,7 +1479,7 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
                                 break
                             feats = pyst.feats.get_feats(audiolist[i],
                                                         sr=sr,
-                                                        features=feat_type,
+                                                        feature_type=feat_type,
                                                         win_size_ms=win_size_ms,
                                                         percent_overlap=percent_overlap,
                                                         num_filters=num_feats,
@@ -1506,9 +1506,9 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
                                     label_plot = audiofile.parent.stem.upper()
                                 # visualize features:
                                 if 'mfcc' in feature_type or 'signal' in feature_type:
-                                    scale = None
+                                    energy_scale = None
                                 else:
-                                    scale = 'power_to_db'
+                                    energy_scale = 'power_to_db'
                                 #visualize features only every n num frames
                                 if j % vis_every_n_frames == 0:
                                     save_pic_path = datadir.joinpath(
@@ -1520,7 +1520,7 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
                                                     feature_type = feature_type,
                                                     win_size_ms = win_size_ms,
                                                     percent_overlap = percent_overlap,
-                                                    scale=scale,
+                                                    energy_scale = energy_scale,
                                                     title='{} {} features: label {}'.format(
                                                         key, feature_type.upper(),
                                                         label_plot),
