@@ -1690,7 +1690,7 @@ def envclassifier_train(model_name = 'model_cnn_classifier',
     return model_dir, history
 
 
-def denoiser_run(model, new_audiofile, feat_settings_dict):
+def denoiser_run(model, new_audio, feat_settings_dict):
     '''Implements a pre-trained denoiser
     
     Parameters
@@ -1698,7 +1698,7 @@ def denoiser_run(model, new_audiofile, feat_settings_dict):
     model : str or pathlib.PosixPath
         The path to the denoising model.
     
-    new_audiofile : str or pathlib.PosixPath
+    new_audio : str, pathlib.PosixPath, or np.ndarray
         The path to the noisy audiofile.
         
     feat_settings_dict : dict 
@@ -1737,8 +1737,8 @@ def denoiser_run(model, new_audiofile, feat_settings_dict):
     num_feats = feat_settings_dict['num_feats']
     desired_shape = feat_settings_dict['desired_shape']
     
-    feats = pyst.feats.get_feats(new_audiofile, sr=sr, 
-                                features = feature_type,
+    feats = pyst.feats.get_feats(new_audio, sr=sr, 
+                                feature_type = feature_type,
                                 win_size_ms = win_size_ms,
                                 percent_overlap = percent_overlap,
                                 window = window, 
@@ -1749,9 +1749,9 @@ def denoiser_run(model, new_audiofile, feat_settings_dict):
         original_phase = pyst.dsp.calc_phase(feats,
                                                radians=False)
     elif 'stft' in feature_type or 'powspec' in feature_type:
-        feats_stft = pyst.feats.get_feats(new_audiofile, 
+        feats_stft = pyst.feats.get_feats(new_audio, 
                                           sr=sr, 
-                                          features = 'stft',
+                                          feature_type = 'stft',
                                           win_size_ms = win_size_ms,
                                           percent_overlap = percent_overlap,
                                           window = window, 
@@ -1810,7 +1810,10 @@ def denoiser_run(model, new_audiofile, feat_settings_dict):
                                            win_size_ms = win_size_ms,
                                            percent_overlap = percent_overlap,
                                            phase = original_phase)
-    noisy_audio, noisy_sr = pyst.loadsound(new_audiofile, sr=sr)
+    if not isinstance(new_audio, np.ndarray):
+        noisy_audio, __ = pyst.loadsound(new_audio, sr=sr)
+    else:
+        noisy_audio = new_audio
     if len(cleaned_audio) > len(noisy_audio):
         cleaned_audio = cleaned_audio[:len(noisy_audio)]
     
