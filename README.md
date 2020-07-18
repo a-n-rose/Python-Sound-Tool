@@ -2,21 +2,22 @@
 
 # PySoundTool
 
-PySoundTool is an experimental framework for exploring sound as well as machine learning in the context of sound. For examples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>. Note: as is, PySoundTool is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility.
+PySoundTool is an experimental framework (very much beta state) for exploring sound as well as machine learning in the context of sound. For examples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>. Note: as is, PySoundTool is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility. 
 
 Those who might find this useful: 
 
 * speech and sound enthusiasts
 * digital signal processing / mathematics / physics / acoustics enthusiasts
+* deep learning enthusiasts
 * researchers
 * linguists
 * psycholinguists
 
 The main goal of PySoundTool is to provide the code and functionality with more context via visualization, research, and mathematics. Most of the resources used to build the functionality stems from publicly available research and datasets. (For a list of open datasets, see my ever growing <a href='https://a-n-rose.github.io/2019/01/06/resources-publicly-available-speech-databases.html'>collection</a>.)
 
-As it covers quite a large range, from audio file conversion to implementation of trained neural networks, the purpose of PySoundTool is not to be the perfect implementation of all functions (although that is also a goal :P ), but rather a peak into how they *can* be implemented, hopefully offering people a foundation for trying out different ways of implementation (feature extraction, building neural networks, etc.).
+As it covers quite a large range, from audio file conversion to implementation of trained neural networks, the purpose of PySoundTool is not to be the perfect implementation of all functions (although that is also a goal :P ), but rather a peak into how they *can* be implemented, hopefully offering others a foundation for trying out different ways of implementation (feature extraction, building neural networks, etc.).
 
-This project is still in the beginning stages and has a lot of room for growth, especially from people with data science, computer science, physics, acoustics backgrounds / knowledge.
+This project is still in the beginning stages and has a lot of room for growth, especially with contributers having a background / knowlege in data science, computer science, machine and deep learning, physics, acoustics, or dsp. Contributers from other backgrounds are also welcome! If you'd like PySoundTool to do something it doesn't, try making it or create an issue.
 
 # Installation
 
@@ -29,7 +30,7 @@ $ python3 -m venv env
 ```
 or, to better control your python version:
 ```
-$ virtualenv -p python3.8 env
+$ virtualenv -p python3.6 env
 ```
 Then activate the environment
 ```
@@ -43,20 +44,21 @@ Then install necessary installations via pip:
 
 # Examples 
 
-You can run the examples below using ipython or other python console, or python script.
+You can explore example code with visuals and audio via the provided jupyter notebooks.
 
-Install and run ipython:
+Install and run jupyter notebook:
 ```
-(env)..$ pip install ipython
-(env)..$ ipython
->>> # import what we need for the examples:
->>> import pysoundtool as pyst
+(env)..$ pip install notebook
+(env)..$ jupyter notebook
 ```
-See the <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a> in the documentation for code to try out.
+
+Venture into the folder `jupyter_notebooks` and have a go!
+
+Otherwise, you can see (and hear) some <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a> in the documentation.
 
 ## Example datasets
 
-If you would like to play around with various types of sound, check out my <a href='https://github.com/a-n-rose/mini-audio-datasets'>repo</a> containing minid datasets of sound, ranging from speech to noise. 
+If you would like to play around with various types of sound, check out my <a href='https://github.com/a-n-rose/mini-audio-datasets'>repo</a> containing mini datasets of sound, ranging from speech to noise. They are very small so don't expect much as it comes to training neural networks. These example datasets are used in some of the documentation <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a>.
 
 # About the Author
 
