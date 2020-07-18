@@ -21,7 +21,7 @@ The main goal of PySoundTool is to provide the code and functionality with more 
 
 As it covers quite a large range, from audio file conversion to implementation of trained neural networks, the purpose of PySoundTool is not to be the perfect implementation of all functions (although that is also a goal :P ), but rather a peak into how they *can* be implemented, hopefully offering people a foundation for trying out different ways of implementation (feature extraction, building neural networks, etc.).
 
-This project is still in the beginning stages and has a lot of room for growth, especially from people with data science, computer science, machine and deep learning, physics, acoustics, dsp backgrounds / knowledge. 
+This project is still in the beginning stages and has a lot of room for growth, especially with contributers having a background / knowlege in data science, computer science, machine and deep learning, physics, acoustics, or dsp. Contributers from other backgrounds are also welcome! If you'd like PySoundTool to do something it doesn't, try making it or create an issue.
 
 .. _package: https://github.com/a-n-rose/Python-Sound-Tool/tree/reorganize_pysoundtool
 
