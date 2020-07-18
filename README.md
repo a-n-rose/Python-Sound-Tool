@@ -2,24 +2,37 @@
 
 # PySoundTool
 
-PySoundTool is a framework for exploring sound as well as machine learning in the context of sound. For exmples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>.
+PySoundTool is an experimental framework for exploring sound as well as machine learning in the context of sound. For examples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>. Note: as is, PySoundTool is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility.
 
-The goal is to make this exploration more accessible to people who didn't study acoustics, digital signal processing, or computer science but who are interested in these fields. 
+Those who might find this useful: 
 
-A large portion of the functionality stems from previous research conducted in these fields, referenced within the functions themselves.
+* speech and sound enthusiasts
+* digital signal processing / mathematics / physics / acoustics enthusiasts
+* researchers
+* linguists
+* psycholinguists
 
-This is a project in development that can improve with contributions from people of all backgrounds, ranging from documentation readability to the efficiency, reliability, and expansion of functionality.
+The main goal of PySoundTool is to provide the code and functionality with more context via visualization, research, and mathematics. Most of the resources used to build the functionality stems from publicly available research and datasets. (For a list of open datasets, see my ever growing <a href='https://a-n-rose.github.io/2019/01/06/resources-publicly-available-speech-databases.html'>collection</a>.)
+
+As it covers quite a large range, from audio file conversion to implementation of trained neural networks, the purpose of PySoundTool is not to be the perfect implementation of all functions (although that is also a goal :P ), but rather a peak into how they *can* be implemented, hopefully offering people a foundation for trying out different ways of implementation (feature extraction, building neural networks, etc.).
+
+This project is still in the beginning stages and has a lot of room for growth, especially from people with data science, computer science, physics, acoustics backgrounds / knowledge.
 
 # Installation
 
-This repository serves as a place to explore sound. Therefore, small sound datasets are included in this repo. The size is appx. 30MB. If you clone this repo, this sound data will be cloned as well.
-
-If you are fine with this, clone this repository. Set the working directory where you clone this repository.
+Clone this repository. Set the working directory where you clone this repository.
 
 Start a virtual environment:
 
 ```
 $ python3 -m venv env
+```
+or, to better control your python version:
+```
+$ virtualenv -p python3.8 env
+```
+Then activate the environment
+```
 $ source env/bin/activate
 (env)..$
 ```
@@ -41,11 +54,14 @@ Install and run ipython:
 ```
 See the <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a> in the documentation for code to try out.
 
+## Example datasets
+
+If you would like to play around with various types of sound, check out my <a href='https://github.com/a-n-rose/mini-audio-datasets'>repo</a> containing minid datasets of sound, ranging from speech to noise. 
+
 # About the Author
 
-I studied clinical linguistics for my master's which introduced me to the inspiring world of open source software, python programming, and the beauty of acoustics. My interests broadened from academic experimental design to the development of tools for identifiying speech irregularities and beyond. Through this I discovered a bit of a missing niche in the Python community: a high-level sound tool for filtering, analysis, and deep learning that also offers context to its functionality. You can read more about me and my projects on my <a href="https://a-n-rose.github.io/">blog</a>.
+I studied clinical linguistics for my master's which introduced me to the inspiring world of open source software, python programming, and the beauty of acoustics. My interests broadened from academic experimental design to the development of tools for identifiying speech irregularities and beyond. Through this I discovered a bit of a missing niche in the Python community: a high-level sound tool for filtering, analysis, **and** deep learning that also offers context to its functionality. You can read more about me and my projects on my <a href="https://a-n-rose.github.io/">blog</a>.
 
 # The Beginnings of PySoundTool
 
 This project stemmed from the Prototype Fund project <a href="https://github.com/pgys/NoIze">NoIze</a> which was <a href="https://www.youtube.com/watch?v=BJ0f2x49Imc&feature=youtu.be">presented</a> at PyConDE / PyData Berlin in 2019. This fork broadens the application of the software from smart noise filtering to general sound analysis, filtering, visualization, preparation, etc. Therefore the name has been adapted to more general sound functionality.
-
