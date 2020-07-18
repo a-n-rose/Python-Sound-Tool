@@ -13,7 +13,7 @@ import pysoundtool as pyst
 
 
 
-test_audiofile = './audiodata/audio2channels.wav'
+test_audiofile = './test_audio/audio2channels.wav'
 
 samples_48000, sr_48000 = librosa.load(test_audiofile, sr=48000)
 samples_44100, sr_44100 = librosa.load(test_audiofile, sr=44100)
@@ -25,7 +25,6 @@ def test_shape_samps_channels_mono():
     input_data = np.array([1,2,3,4,5])
     output_data = pyst.dsp.shape_samps_channels(input_data)
     assert np.array_equal(input_data, output_data)
-    
 
 def test_shape_samps_channels_stereo_correct():
     input_data = np.array([1,2,3,4,5,6,7,8,9,10]).reshape(5,2)

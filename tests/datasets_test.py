@@ -13,15 +13,16 @@ import pysoundtool as pyst
 
 ###############################################################################
 
-example_dir = './audiodata/examps/'
+audiodir = 'test_audio/'
+example_dir = '{}examps/'.format(audiodir)
 example_dir = pyst.utils.check_dir(example_dir, make=True)
-test_wav_stereo = './audiodata/audio2channels.wav'
-test_wav_mono = './audiodata/traffic.wav'
-test_aiff = './audiodata/traffic.aiff'
-test_flac = './audiodata/259672__nooc__this-is-not-right.flac'
-test_m4a = './audiodata/505803__skennison__new-recording.m4a'
-test_mp3 = './audiodata/244287__kleinhirn2000__toast-glas-langsam.mp3'
-test_ogg = './audiodata/240674__zajo__you-have-been-denied.ogg'
+test_wav_stereo = '{}audio2channels.wav'.format(audiodir)
+test_wav_mono = '{}traffic.wav'.format(audiodir)
+test_aiff = '{}traffic.aiff'.format(audiodir)
+test_flac = '{}259672__nooc__this-is-not-right.flac'.format(audiodir)
+test_m4a = '{}505803__skennison__new-recording.m4a'.format(audiodir)
+test_mp3 = '{}244287__kleinhirn2000__toast-glas-langsam.mp3'.format(audiodir)
+test_ogg = '{}240674__zajo__you-have-been-denied.ogg'.format(audiodir)
 
 def test_loadsound_mono_uselibrosa_False():
     samples, sr = pyst.loadsound(test_wav_stereo,use_scipy=True)

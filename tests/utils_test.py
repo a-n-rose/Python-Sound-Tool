@@ -11,9 +11,9 @@ import librosa
 import pathlib
 import pysoundtool as pyst
 
+audio_dir = 'test_audio/'
+test_audiofile = '{}audio2channels.wav'.format(audio_dir)
 
-test_audiofile = './audiodata/audio2channels.wav'
-audiodata_dir = './audiodata/'
 
 
 def test_path_or_samples_str():
@@ -100,14 +100,14 @@ def test_check_dir_pathwithextension_raiseerror():
         test_dir = pyst.utils.check_dir(test_dir, make=False)
         
 def test_string2list():
-    audiofiles = pyst.files.collect_audiofiles(audiodata_dir,wav_only=False,
+    audiofiles = pyst.files.collect_audiofiles(audio_dir,wav_only=False,
                                          recursive=False)
     audiofiles_string = str(audiofiles)
     audiofiles_checked = pyst.utils.restore_dictvalue(audiofiles_string)
     assert audiofiles ==  audiofiles_checked
     
 def test_string2list_loaddict():
-    audiofiles = pyst.files.collect_audiofiles(audiodata_dir,wav_only=False,
+    audiofiles = pyst.files.collect_audiofiles(audio_dir,wav_only=False,
                                          recursive=False)
     d = dict([(0,audiofiles)])
     test_dict_path = 'testest.csv'

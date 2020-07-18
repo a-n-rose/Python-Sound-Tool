@@ -11,11 +11,12 @@ import numpy as np
 import pytest
 import pysoundtool as pyst
 
-test_audiofile = './audiodata/audio2channels.wav'
-test_noisyfile = './audiodata/python_traffic.wav'
-test_filtered_wiener = './audiodata/python_traffic_wiener.wav'
-test_filtered_wiener_postfilter = './audiodata/python_traffic_pf.wav'
-test_filtered_bandsub = './audiodata/python_traffic_bs.wav'
+audiodir = 'test_audio/'
+test_audiofile = '{}audio2channels.wav'.format(audiodir)
+test_noisyfile = '{}python_traffic.wav'.format(audiodir)
+test_filtered_wiener = '{}python_traffic_wiener.wav'.format(audiodir)
+test_filtered_wiener_postfilter = '{}python_traffic_pf.wav'.format(audiodir)
+test_filtered_bandsub = '{}python_traffic_bs.wav'.format(audiodir)
 
 
 def test_setup_bands_default():
