@@ -63,7 +63,7 @@ pyst.plotsound(f, sr=sr, feature_type='stft', title='Female Speech')
 ##########################################################
 # Let's increase the speed by 15%:
 
-fast = pyst.augment.speed_increase(f, sr=sr, rate = 1.15) 
+fast = pyst.augment.speed_increase(f, sr=sr, perc = 0.15) 
 
 ##########################################################
 ipd.Audio(fast,rate=sr)
@@ -75,7 +75,7 @@ pyst.plotsound(fast, sr=sr, feature_type='stft',
 ##########################################################
 # Let's decrease the speed by 15%:
 
-slow = pyst.augment.speed_decrease(f, sr=sr, rate = 0.85) 
+slow = pyst.augment.speed_decrease(f, sr=sr, perc = 0.15) 
 
 ##########################################################
 ipd.Audio(slow,rate=sr)
@@ -123,7 +123,7 @@ pyst.plotsound(hd, sr=sr, feature_type='stft',
 ##########################################################
 # Pitch shift increase
 
-psi = pyst.augment.pitchshift_i(f, sr=sr, num_semitones = 2) 
+psi = pyst.augment.pitch_increase(f, sr=sr, num_semitones = 2) 
 
 ##########################################################
 ipd.Audio(psi,rate=sr)
@@ -135,7 +135,7 @@ pyst.plotsound(psi, sr=sr, feature_type='stft',
 ##########################################################
 # Pitch shift decrease
 
-psd = pyst.augment.pitchshift_d(f, sr=sr, num_semitones = -2) 
+psd = pyst.augment.pitch_decrease(f, sr=sr, num_semitones = 2) 
 
 ##########################################################
 ipd.Audio(psd,rate=sr)
@@ -215,7 +215,7 @@ pyst.plotsound(h, sr=sr, feature_type='stft',
 
 ##########################################################
 # We'll apply a random shift to the sound
-h_shift = pyst.augment.shift(h, sr=sr)
+h_shift = pyst.augment.time_shift(h, sr=sr)
 
 ##########################################################
 ipd.Audio(h_shift,rate=sr)
