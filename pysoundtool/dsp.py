@@ -477,7 +477,6 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
     noise_power = np.abs(noise_stft)**2
     target_energy = np.mean(target_power)
     noise_energy = np.mean(noise_power)
-    print(noise_energy)
     
     if snr is not None:
         # see pysoundtool.dsp.snr_adjustnoiselevel
