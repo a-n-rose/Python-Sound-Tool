@@ -167,7 +167,7 @@ def add_white_noise(sound, sr, noise_level=0.01, snr=10, random_seed=None, **kwa
     n = pyst.dsp.generate_noise(num_samples = len(data), 
                                 amplitude=noise_level, 
                                 random_seed=random_seed)
-    sound_n, sr, snr = pyst.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, **kwargs)
+    sound_n, snr = pyst.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, **kwargs)
     return sound_n
 
 def harmonic_distortion(sound, sr, **kwargs):
