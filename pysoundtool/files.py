@@ -573,25 +573,21 @@ def newbitdepth(wave, bitdepth=16, newname=None, overwrite=False):
     else:
         raise ValueError('Provided bitdepth is not an option. Available bit depths: 16, 32')
     data, sr = sf.read(wave)
-    if newname is None:
-        newname = wave
+
     if overwrite:
+        if newname is None:
+            newname = wave
         sf.write(newname, data, sr, subtype=newbit)
         savedname = newname
     else:
-        try:
+        if not newname:
+            newname = adjustname(wave, adjustment='_bitdepth{}'.format(bitdepth))
+            print("No new filename provided. Saved file as '{}'".format(newname))
             sf.write(newname, data, sr, subtype=newbit)
-        except TypeError as e:
-            if not newname:
-                newname = adjustname(wave, adjustment='_bitdepth{}'.format(bitdepth))
-                print("No new filename provided. Saved file as '{}'".format(newname))
-                sf.write(newname, data, sr, subtype=newbit)
-            elif newname:
-                #make sure new extension matches original extension
-                wave, newname = match_ext(wave, newname)
-                sf.write(newname, data, sr, subtype=newbit)
-            else:
-                raise e
+        elif newname:
+            #make sure new extension matches original extension
+            wave, newname = match_ext(wave, newname)
+            sf.write(newname, data, sr, subtype=newbit)
         savedname = newname
     return savedname
 
