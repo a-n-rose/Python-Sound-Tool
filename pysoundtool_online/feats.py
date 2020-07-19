@@ -195,11 +195,8 @@ def librosa_power_to_db(S, ref=1.0, amin=1e-10, top_db=80.0):
     else:
         magnitude = S
 
-    if six.callable(ref):
-        # User supplied a function to calculate reference power
-        ref_value = ref(magnitude)
-    else:
-        ref_value = np.abs(ref)
+
+    ref_value = np.abs(ref)
 
     log_spec = 10.0 * np.log10(np.maximum(amin, magnitude))
     log_spec -= 10.0 * np.log10(np.maximum(amin, ref_value))
@@ -234,11 +231,7 @@ def librosa_amplitude_to_db(S, ref=1.0, amin=1e-5, top_db=80.0):
 
     magnitude = np.abs(S)
 
-    if six.callable(ref):
-        # User supplied a function to calculate reference power
-        ref_value = ref(magnitude)
-    else:
-        ref_value = np.abs(ref)
+    ref_value = np.abs(ref)
 
     power = np.square(magnitude, out=magnitude)
 
