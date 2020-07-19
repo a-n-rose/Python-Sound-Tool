@@ -14,9 +14,10 @@ sys.path.insert(0, packagedir)
 import numpy as np
 import math
 import scipy
+from scipy.signal import hann, hamming
 #import librosa
 import pathlib
-from python_speech_features import logfbank, mfcc
+from python_speech_features import logfbank, fbank, mfcc
 from sklearn.preprocessing import StandardScaler, normalize
 import matplotlib.pyplot as plt
 import pysoundtool_online as pyst
@@ -387,7 +388,8 @@ def get_feats(sound,
         each row. This is applicable for all feature types except 'signal'.
     
     **kwargs : additional keyword arguments
-        Additional keyword arguments for librosa.filters.mel.
+        Additional keyword arguments for librosa.filters.mel or 
+        python-speech-features.
         
     Returns
     -------
@@ -429,7 +431,7 @@ def get_feats(sound,
             feats = pyst.feats.get_mfcc_fbank(data,
                                                 feature_type = 'fbank',
                                                 sr = sr,
-                                                win_shift_ms = win_size_ms,
+                                                win_size_ms = win_size_ms,
                                                 percent_overlap = percent_overlap,
                                                 num_filters = num_filters,
                                                 fft_bins = fft_bins,
@@ -449,7 +451,7 @@ def get_feats(sound,
             feats = pyst.feats.get_mfcc_fbank(data,
                                                 feature_type = 'mfcc',
                                                 sr = sr,
-                                                win_shift_ms = win_size_ms,
+                                                win_size_ms = win_size_ms,
                                                 percent_overlap = percent_overlap,
                                                 num_filters = num_filters,
                                                 num_mfcc = num_mfcc,
@@ -700,7 +702,8 @@ def librosa_delta(data, width=9, order=1, axis=-1, mode='interp', **kwargs):
 # python_speech_features
 def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
                      percent_overlap=0.5, num_filters=40, num_mfcc=40,
-                     fft_bins = None, window_function = None, zeropad = True):
+                     fft_bins = None, window_function = None, zeropad = True,
+                     **kwargs):
     '''Collects fbank or mfcc features via python speech features.
     '''
     if not window_function:
@@ -725,22 +728,24 @@ def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
     if fft_bins is None:
         fft_bins = frame_length
     if 'fbank' in feature_type:
-        feats = logfbank(samples,
-                         sr = sr,
+        feats, energy = fbank(samples,
+                         samplerate = sr,
                          winlen = win_size_ms * 0.001,
                          winstep = window_shift_ms * 0.001,
                          nfilt = num_filters,
                          nfft = fft_bins,
-                         winfunc = window_function)
+                         winfunc = window_function, 
+                         **kwargs)
     elif 'mfcc' in feature_type:
         feats = mfcc(samples,
-                     sr = sr,
+                     samplerate = sr,
                      winlen = win_size_ms * 0.001,
                      winstep = window_shift_ms * 0.001,
                      nfilt = num_filters,
                      numcep = num_mfcc,
                      nfft = fft_bins,
-                     winfunc = window_function)
+                     winfunc = window_function,
+                     **kwargs)
     return feats
 
 def zeropad_features(feats, desired_shape, complex_vals = False):
