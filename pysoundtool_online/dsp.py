@@ -1133,7 +1133,14 @@ def calc_phase(fft_matrix, radians=False):
     array([0.        , 1.95921533])
     '''
     if not radians:
-        raise pyst.VersionError('Set `radians` to True for phase extraction.')
+        if len(fft_matrix.shape) > 1 and fft_matrix.shape[1] > 1:
+            # pysoundtool works with (num_frames, num_features)
+            # librosa works with (num_features, num_frames)
+            fft_matrix = fft_matrix.T
+        __, phase = librosa_magphase(fft_matrix)
+        if len(phase.shape) > 1 and phase.shape[1] > 1:
+            # transpose back to (num_frames, num_features)
+            phase = phase.T
     else:
         # in radians 
         #if normalization:
@@ -1141,6 +1148,18 @@ def calc_phase(fft_matrix, radians=False):
         #else:
         phase = np.angle(fft_matrix)
     return phase
+
+def librosa_magphase(D, power=1):
+    '''
+    References
+    ----------
+    librosa.core.spectrum.magphase
+    '''
+    mag = np.abs(D)
+    mag **= power
+    phase = np.exp(1.j * np.angle(D))
+
+    return mag, phase
 
 def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
     '''Reconstruct whole spectrum by mirroring complex conjugate of data.

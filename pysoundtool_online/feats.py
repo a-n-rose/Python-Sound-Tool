@@ -92,8 +92,20 @@ def plot(feature_matrix, feature_type,
             feature_matrix = librosa.db_to_amplitude(feature_matrix)
             energy_label = 'amplitude'
     else:
-        energy_label = 'energy'
-        energy_scale = None
+        # apply librosa's function from within PySoundTool
+        if energy_scale == 'power_to_db':
+            feature_matrix = librosa_power_to_db(feature_matrix)
+            energy_label = 'decicels'
+        elif energy_scale == 'db_to_power':
+            
+            feature_matrix = librosa_db_to_power(feature_matrix)
+            energy_label = 'power'
+        elif energy_scale == 'amplitude_to_db':
+            feature_matrix = librosa_amplitude_to_db(feature_matrix)
+            energy_label = 'decibels'
+        elif energy_scale == 'db_to_amplitude':
+            feature_matrix = librosa_db_to_amplitude(feature_matrix)
+            energy_label = 'amplitude'
     plt.clf()
     if 'signal' not in feature_type:
         x_axis_label = 'Frequency bins'
@@ -164,6 +176,82 @@ def plot(feature_matrix, feature_type,
     else:
         plt.show()
 
+def librosa_power_to_db(S, ref=1.0, amin=1e-10, top_db=80.0):
+    '''
+    References
+    ----------
+    librosa.core.spectrum.power_to_db
+    '''
+    S = np.asarray(S)
+
+    if amin <= 0:
+        raise ParameterError('amin must be strictly positive')
+
+    if np.issubdtype(S.dtype, np.complexfloating):
+        warnings.warn('power_to_db was called on complex input so phase '
+                      'information will be discarded. To suppress this warning, '
+                      'call power_to_db(np.abs(D)**2) instead.')
+        magnitude = np.abs(S)
+    else:
+        magnitude = S
+
+    if six.callable(ref):
+        # User supplied a function to calculate reference power
+        ref_value = ref(magnitude)
+    else:
+        ref_value = np.abs(ref)
+
+    log_spec = 10.0 * np.log10(np.maximum(amin, magnitude))
+    log_spec -= 10.0 * np.log10(np.maximum(amin, ref_value))
+
+    if top_db is not None:
+        if top_db < 0:
+            raise ParameterError('top_db must be non-negative')
+        log_spec = np.maximum(log_spec, log_spec.max() - top_db)
+
+    return log_spec
+
+def librosa_db_to_power(S_db, ref=1.0):
+    '''
+    References
+    ----------
+    librosa.core.spectrum.db_to_power
+    '''
+    return ref * np.power(10.0, 0.1 * S_db)
+
+def librosa_amplitude_to_db(S, ref=1.0, amin=1e-5, top_db=80.0):
+    '''
+    References
+    ----------
+    librosa.core.spectrum.amplitude_to_db
+    '''
+    S = np.asarray(S)
+
+    if np.issubdtype(S.dtype, np.complexfloating):
+        warnings.warn('amplitude_to_db was called on complex input so phase '
+                      'information will be discarded. To suppress this warning, '
+                      'call amplitude_to_db(np.abs(S)) instead.')
+
+    magnitude = np.abs(S)
+
+    if six.callable(ref):
+        # User supplied a function to calculate reference power
+        ref_value = ref(magnitude)
+    else:
+        ref_value = np.abs(ref)
+
+    power = np.square(magnitude, out=magnitude)
+
+    return power_to_db(power, ref=ref_value**2, amin=amin**2,
+                       top_db=top_db)
+
+def librosa_db_to_amplitude():
+    '''
+    References
+    ----------
+    librosa.core.spectrum.db_to_amplitude
+    '''
+    return db_to_power(S_db, ref=ref**2)**0.5
 
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20,
               percent_overlap = 0.5, fft_bins = None, num_filters=40, num_mfcc=40,

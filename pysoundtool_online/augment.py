@@ -40,7 +40,6 @@ def speed_increase(sound, sr, perc=0.15, **kwargs):
 def speed_decrease(sound, sr, perc=0.15, **kwargs):
     raise pyst.VersionError()
 
-
 def time_shift(sound, sr, random_seed = None, **kwargs):
     '''Acoustic augmentation of sound (probably not for speech).
     
