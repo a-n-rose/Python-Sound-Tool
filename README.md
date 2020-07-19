@@ -44,17 +44,26 @@ Then install necessary installations via pip:
 
 # Examples 
 
-You can explore example code with visuals and audio via the provided jupyter notebooks.
+You can explore example code via:
+
+* Binder (albeit limited as some packages cannot be loaded into online environments)
+* locally on your machine via Jupyter Notebook
+* <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a> in the documentation. 
+
+### Binder
+
+Click on the Binder button (it might take a while to load) and venture into the folder `binder_notebooks`.
+
+### Locally via Jupyter Notebook:
 
 Install and run jupyter notebook:
+
 ```
 (env)..$ pip install notebook
 (env)..$ jupyter notebook
 ```
 
 Venture into the folder `jupyter_notebooks` and have a go!
-
-Otherwise, you can see (and hear) some <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a> in the documentation.
 
 ## Example datasets
 
