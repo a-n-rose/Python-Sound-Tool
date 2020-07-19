@@ -30,66 +30,15 @@ sys.path.insert(0, packagedir)
 
 import numpy as np
 import math
-import librosa
+#import librosa
 import pathlib
 import pysoundtool_online as pyst
 
 def speed_increase(sound, sr, perc=0.15, **kwargs):
-    '''Acoustic augmentation of speech.
-    
-    References
-    ----------
-    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
-    improving animal audio classification. Ecological Informatics, 57, 101084. 
-    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
-    
-    Ko, T., Peddinti, V., Povey, D., & Khudanpur (2015). Audio Augmentation for 
-    Speech Recognition. Interspeech. 
-    
-    W. Verhelst and M. Roelands, “An overlap-add technique based on
-    waveform similarity (wsola) for high quality time-scale modifica-
-    tion of speech,” in Proceedings of the International Conference on
-    Acoustics, Speech and Signal Processing (ICASSP), vol. 2, April
-    1993, pp. 554–557 vol.2.
-    '''
-    if isinstance(sound, np.ndarray):
-        data = sound
-    else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
-        assert sr2 == sr
-    # if entered 50 instead of .50, turns 50 into .50
-    if perc > 1:
-        while perc > 1:
-            perc *= .01
-            if perc <= 1:
-                break
-    rate = 1. + perc
-    y_fast = librosa.effects.time_stretch(data, rate)
-    return y_fast
+    raise pyst.VersionError()
 
 def speed_decrease(sound, sr, perc=0.15, **kwargs):
-    '''Acoustic augmentation of speech. 
-    
-    References
-    ----------
-    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
-    improving animal audio classification. Ecological Informatics, 57, 101084. 
-    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
-    '''
-    if isinstance(sound, np.ndarray):
-        data = sound
-    else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
-        assert sr2 == sr
-    # if entered 50 instead of .50, turns 50 into .50
-    if perc > 1:
-        while perc > 1:
-            perc *= .01
-            if perc <= 1:
-                break
-    rate = 1. - perc
-    y_slow = librosa.effects.time_stretch(data, rate)
-    return y_slow
+    raise pyst.VersionError()
 
 
 def time_shift(sound, sr, random_seed = None, **kwargs):
@@ -192,38 +141,10 @@ def harmonic_distortion(sound, sr, **kwargs):
     return data
     
 def pitch_increase(sound, sr = 16000, num_semitones = 2, **kwargs):
-    '''
-    
-    References
-    ----------
-    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
-    improving animal audio classification. Ecological Informatics, 57, 101084. 
-    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
-    '''
-    if isinstance(sound, np.ndarray):
-        data = sound
-    else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
-        assert sr2 == sr
-    y_i = librosa.effects.pitch_shift(data, sr=sr, n_steps = num_semitones)
-    return y_i
+    raise pyst.VersionError()
 
 def pitch_decrease(sound, sr = 16000, num_semitones = 2, **kwargs):
-    '''
-    
-    References
-    ----------
-    Nanni, L., Maguolo, G., & Paci, M. (2020). Data augmentation approaches for 
-    improving animal audio classification. Ecological Informatics, 57, 101084. 
-    https://doi.org/https://doi.org/10.1016/j.ecoinf.2020.101084
-    '''
-    if isinstance(sound, np.ndarray):
-        data = sound
-    else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
-        assert sr2 == sr
-    y_d = librosa.effects.pitch_shift(data, sr=sr, n_steps = -num_semitones)
-    return y_d
+    raise pyst.VersionError()
       
 def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,

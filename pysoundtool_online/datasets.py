@@ -5,9 +5,6 @@ import random
 import collections
 import math 
 import pathlib
-from scipy.io.wavfile import write, read
-from scipy.signal import resample
-import librosa
 
 import os, sys
 import inspect

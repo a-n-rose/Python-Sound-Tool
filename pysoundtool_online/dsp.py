@@ -8,7 +8,7 @@ import inspect
 import numpy as np
 from numpy.fft import fft, rfft, ifft, irfft
 from scipy.signal import hamming, hann, resample, iirfilter, lfilter
-import librosa
+#import librosa
 import math
 
 currentdir = os.path.dirname(os.path.abspath(
@@ -1133,14 +1133,7 @@ def calc_phase(fft_matrix, radians=False):
     array([0.        , 1.95921533])
     '''
     if not radians:
-        if len(fft_matrix.shape) > 1 and fft_matrix.shape[1] > 1:
-            # pysoundtool works with (num_frames, num_features)
-            # librosa works with (num_features, num_frames)
-            fft_matrix = fft_matrix.T
-        __, phase = librosa.magphase(fft_matrix)
-        if len(phase.shape) > 1 and phase.shape[1] > 1:
-            # transpose back to (num_frames, num_features)
-            phase = phase.T
+        raise pyst.VersionError('Set `radians` to True for phase extraction.')
     else:
         # in radians 
         #if normalization:
