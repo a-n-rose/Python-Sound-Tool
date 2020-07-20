@@ -1,10 +1,18 @@
+# PySoundTool
+
+PySoundTool is an experimental framework for exploring sound as well as machine learning in the context of sound. 
+
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master)
 [![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)](https://github.com/a-n-rose/Python-Sound-Tool/blob/master/LICENSE.md)
 
 
-# PySoundTool
+## Documentation
 
-PySoundTool is an experimental framework (very much beta state) for exploring sound as well as machine learning in the context of sound. For examples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>. Note: as is, PySoundTool is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility. 
+For examples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>. 
+
+## About
+
+Note: as is, PySoundTool is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility. 
 
 Those who might find this useful: 
 
