@@ -14,5 +14,5 @@ docs/make.bat
 docs/source/auto_examples/
 docs/source/examples/
 example_dir/
-
+tests/testing_pypi/
 test_audio/
