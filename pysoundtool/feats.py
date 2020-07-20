@@ -15,7 +15,7 @@ import numpy as np
 import math
 import librosa
 import pathlib
-from python_speech_features import logfbank, mfcc
+from python_speech_features import fbank, mfcc
 from sklearn.preprocessing import StandardScaler, normalize
 import matplotlib.pyplot as plt
 import pysoundtool as pyst
@@ -27,7 +27,7 @@ import pysoundtool as pyst
 def plot(feature_matrix, feature_type, 
                     save_pic=False, name4pic=None, energy_scale='power_to_db',
                     title=None, sr=None, win_size_ms=None, percent_overlap=None,
-                    x_label=None, y_label=None):
+                    x_label=None, y_label=None, use_scipy = True):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
     
     Parameters
@@ -56,8 +56,8 @@ def plot(feature_matrix, feature_type,
         presented as time in seconds.
     '''
     # ensure real numbers
-    if isinstance(feature_matrix[0], np.complex_):
-        feature_matrix = feature_matrix.real
+    if feature_matrix.dtype == np.complex64 or feature_matrix.dtype == np.complex128:
+        feature_matrix = np.abs(feature_matrix)
     # features presented via colormesh need 2D format.
     if len(feature_matrix.shape) == 1:
         feature_matrix = np.expand_dims(feature_matrix, axis=1)
@@ -74,8 +74,7 @@ def plot(feature_matrix, feature_type,
     if energy_scale is None or feature_type == 'signal':
         energy_label = 'energy'
         energy_scale = None
-        pass
-    elif energy_scale == 'power_to_db':
+    if energy_scale == 'power_to_db':
         feature_matrix = librosa.power_to_db(feature_matrix)
         energy_label = 'decicels'
     elif energy_scale == 'db_to_power':
@@ -157,7 +156,6 @@ def plot(feature_matrix, feature_type,
     else:
         plt.show()
 
-
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     percent_overlap = 0.5, fft_bins = None, num_filters=40, num_mfcc=40, sr=None,\
         save_pic=False, name4pic=None, energy_scale='power_to_db', mono=None, **kwargs):
@@ -226,6 +224,7 @@ def get_feats(sound,
               rate_of_change = False,
               rate_of_acceleration = False,
               subtract_mean = False,
+              use_scipy = True,
               **kwargs):
     '''Collects raw signal data, stft, fbank, or mfcc features via librosa.
     
@@ -308,7 +307,7 @@ def get_feats(sound,
     if isinstance(sound, str) or isinstance(sound, pathlib.PosixPath):
         if mono is None:
             mono = True
-        data, sr = librosa.load(sound, sr=sr, duration=dur_sec, mono=mono)
+        data, sr = pyst.loadsound(sound, sr = sr, dur_sec = dur_sec, mono = mono)
         if mono is False and len(data.shape) > 1:
             index_samples = np.argmax(data.shape)
             index_channels = np.argmin(data.shape)
@@ -319,6 +318,9 @@ def get_feats(sound,
             # remove additional channel for 'stft', 'fbank' etc. feature
             # extraction
             if 'signal' not in feature_type and num_channels > 1:
+                import Warnings
+                Warnings.warn('Only one channel is used for {}'.format(feature_type)+\
+                    ' feature extraction. Removing extra channels.')
                 data = data[:,0]
     else:
         if sr is None:
@@ -334,6 +336,17 @@ def get_feats(sound,
         if fft_bins is None:
             fft_bins = int(win_size_ms * sr // 1000)
         if 'fbank' in feature_type:
+        if use_scipy:
+            feats = pyst.feats.get_mfcc_fbank(
+                data,
+                feature_type = 'fbank',
+                sr = sr,
+                win_size_ms = win_size_ms,
+                percent_overlap = percent_overlap,
+                num_filters = num_filters,
+                fft_bins = fft_bins,
+                window_function = window)
+        else:
             feats = librosa.feature.melspectrogram(
                 data,
                 sr = sr,
@@ -344,21 +357,43 @@ def get_feats(sound,
         elif 'mfcc' in feature_type:
             if num_mfcc is None:
                 num_mfcc = num_filters
-            feats = librosa.feature.mfcc(
-                data,
-                sr = sr,
-                n_mfcc = num_mfcc,
-                n_fft = fft_bins,
-                hop_length = int(win_shift_ms*0.001*sr),
-                n_mels = num_filters,
-                window=window,
-                **kwargs).T
+            if use_scipy:
+                feats = pyst.feats.get_mfcc_fbank(
+                    data,
+                    feature_type = 'mfcc',
+                    sr = sr,
+                    win_size_ms = win_size_ms,
+                    percent_overlap = percent_overlap,
+                    num_filters = num_filters,
+                    num_mfcc = num_mfcc,
+                    fft_bins = fft_bins,
+                    window_function = window)
+            else:
+                feats = librosa.feature.mfcc(
+                    data,
+                    sr = sr,
+                    n_mfcc = num_mfcc,
+                    n_fft = fft_bins,
+                    hop_length = int(win_shift_ms*0.001*sr),
+                    n_mels = num_filters,
+                    window=window,
+                    **kwargs).T
         elif 'stft' in feature_type or 'powspec' in feature_type:
-            feats = librosa.stft(
-                data,
-                n_fft = fft_bins,
-                hop_length = int(win_shift_ms*0.001*sr),
-                window=window).T
+            if use_scipy:
+                feats = pyst.feats.get_stft(
+                    data,
+                    sr = sr, 
+                    win_size_ms = win_size_ms,
+                    percent_overlap = percent_overlap,
+                    real_signal = False,
+                    fft_bins = fft_bins,
+                    window = window)
+            else:
+                feats = librosa.stft(
+                    data,
+                    n_fft = fft_bins,
+                    hop_length = int(win_shift_ms*0.001*sr),
+                    window=window).T
             if 'powspec' in feature_type:
                 feats = np.abs(feats)**2
         elif 'signal' in feature_type:
@@ -391,6 +426,7 @@ def get_feats(sound,
                           rate_of_change = rate_of_change,
                           rate_of_acceleration = rate_of_acceleration,
                           subtract_mean = subtract_mean,
+                          use_scipy = use_scipy
                           **kwargs)
     return feats
 
@@ -477,11 +513,9 @@ def get_change_acceleration_rate(spectro_data):
     delta_delta = delta_delta.T
     return delta, delta_delta
 
-# TODO possibly remove? Doesn't use Librsoa, instead
-# python_speech_features
 def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
                      percent_overlap=0.5, num_filters=40, num_mfcc=40,
-                     window_function=None):
+                     fft_bins = None, window_function = None, zeropad = True, **kwargs):
     '''Collects fbank or mfcc features via python speech features.
     '''
     if not window_function:
@@ -496,28 +530,33 @@ def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
             # default for python_speech_features:
             def window_function(x): return np.ones((x,))
     if len(samples)/sr*1000 < win_size_ms:
-        win_size_ms = len(samples)/sr*1000
+        if zeropad:
+            samples = pyst.dsp.zeropad_sound(samples, win_size_ms * sr / 1000, sr = sr)
+        else:
+            win_size_ms = len(samples)/sr*1000
     frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
     percent_overlap = check_percent_overlap(percent_overlap)
     window_shift_ms = win_size_ms * percent_overlap
     if 'fbank' in feature_type:
-        feats = logfbank(samples,
-                         sr=sr,
-                         winlen=win_size_ms * 0.001,
-                         winstep=window_shift_ms * 0.001,
-                         nfilt=num_filters,
-                         nfft=frame_length,
-                         winfunc=window_function)
+        feats, energy = fbank(samples,
+                         samplerate = sr,
+                         winlen = win_size_ms * 0.001,
+                         winstep = window_shift_ms * 0.001,
+                         nfilt = num_filters,
+                         nfft = fft_bins,
+                         winfunc = window_function, 
+                         **kwargs)
     elif 'mfcc' in feature_type:
         feats = mfcc(samples,
-                     sr=sr,
-                     winlen=win_size_ms * 0.001,
-                     winstep=window_shift_ms * 0.001,
-                     nfilt=num_filters,
-                     numcep=num_mfcc,
-                     nfft=frame_length,
-                     winfunc=window_function)
-    return feats, frame_length, win_size_ms
+                     samplerate = sr,
+                     winlen = win_size_ms * 0.001,
+                     winstep = window_shift_ms * 0.001,
+                     nfilt = num_filters,
+                     numcep = num_mfcc,
+                     nfft = fft_bins,
+                     winfunc = window_function,
+                     **kwargs)
+    return feats
 
 def zeropad_features(feats, desired_shape, complex_vals = False):
     '''Applies zeropadding to a copy of feats. 
