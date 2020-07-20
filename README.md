@@ -57,7 +57,7 @@ Then install necessary installations via pip:
 
 You can explore example code via:
 
-* Binder (albeit limited as some packages cannot be loaded into online environments)
+* Binder (albeit limited as some packages - librosa, soundfile - cannot be loaded into online environments)
 * locally on your machine via Jupyter Notebook
 * <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a> in the documentation. 
 
