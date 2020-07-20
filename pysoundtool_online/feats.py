@@ -562,7 +562,7 @@ def plot_vad(sound, energy_scale = 'power_to_db',**kwargs):
     plt.plot(vad, 'ro', color=color)
     plt.show()
 
-def get_change_acceleration_rate(spectro_data, use_scipy = False):
+def get_change_acceleration_rate(spectro_data, use_scipy = True):
     '''Gets first and second derivatives of spectral data.
     
     This is useful particularly for speech recognition.
