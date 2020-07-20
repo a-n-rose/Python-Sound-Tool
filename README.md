@@ -80,6 +80,14 @@ Venture into the folder `jupyter_notebooks` and have a go!
 
 If you would like to play around with various types of sound, check out my <a href='https://github.com/a-n-rose/mini-audio-datasets'>repo</a> containing mini datasets of sound, ranging from speech to noise. They are very small so don't expect much as it comes to training neural networks. These example datasets are used in some of the documentation <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a>.
 
+## Testing
+
+If you want to run the tests for PySoundTool, they currently use <a href="https://github.com/a-n-rose/mini-audio-datasets/tree/master/test_audio">audiofiles available</a> in the example datasets repo, mentioned above. Also, see `tests_requirements.txt`. The packages located there will need to be installed via:
+
+```
+(env)..$ pip install -r tests_requirements.txt
+```
+
 # About the Author
 
 I studied clinical linguistics for my master's which introduced me to the inspiring world of open source software, python programming, and the beauty of acoustics. My interests broadened from academic experimental design to the development of tools for identifiying speech irregularities and beyond. Through this I discovered a bit of a missing niche in the Python community: a high-level sound tool for filtering, analysis, **and** deep learning that also offers context to its functionality. You can read more about me and my projects on my <a href="https://a-n-rose.github.io/">blog</a>.
