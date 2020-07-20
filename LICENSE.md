@@ -1,4 +1,4 @@
-## GNU AGPL License
+## AGPL-3.0 License
 
 Copyright (c) 2020, Aislyn Rose.
 
