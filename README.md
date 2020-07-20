@@ -2,6 +2,7 @@
 
 PySoundTool is an experimental framework for exploring sound as well as machine learning in the context of sound. 
 
+[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a1-red)](https://pypi.org/project/pysoundtool/)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master)
 [![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)](https://github.com/a-n-rose/Python-Sound-Tool/blob/master/LICENSE.md)
 [![PyPI pyversions](https://img.shields.io/badge/python-3.6-yellow)](https://www.python.org/downloads/release/python-360/)
@@ -32,9 +33,9 @@ This project is still in the beginning stages and has a lot of room for growth, 
 
 # Installation
 
-Clone this repository. Set the working directory where you clone this repository.
+You can install PySoundTool via pip or by cloning this repository. 
 
-Start a virtual environment:
+Before either, I suggest a virtual environment:
 
 ```
 $ python3 -m venv env
@@ -48,7 +49,18 @@ Then activate the environment
 $ source env/bin/activate
 (env)..$
 ```
-Then install necessary installations via pip:
+
+## pip
+
+```
+(env)..$ pip install pysoundtool
+```
+
+## Clone github repo
+
+Clone this repository. Set the working directory where you clone this repository.
+
+Then install the necessary dependencies via pip:
 ```
 (env)..$ pip install -r requirements.txt
 ```
