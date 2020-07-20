@@ -336,24 +336,24 @@ def get_feats(sound,
         if fft_bins is None:
             fft_bins = int(win_size_ms * sr // 1000)
         if 'fbank' in feature_type:
-        if use_scipy:
-            feats = pyst.feats.get_mfcc_fbank(
-                data,
-                feature_type = 'fbank',
-                sr = sr,
-                win_size_ms = win_size_ms,
-                percent_overlap = percent_overlap,
-                num_filters = num_filters,
-                fft_bins = fft_bins,
-                window_function = window)
-        else:
-            feats = librosa.feature.melspectrogram(
-                data,
-                sr = sr,
-                n_fft = fft_bins,
-                hop_length = int(win_shift_ms*0.001*sr),
-                n_mels = num_filters, window=window,
-                **kwargs).T
+            if use_scipy:
+                feats = pyst.feats.get_mfcc_fbank(
+                    data,
+                    feature_type = 'fbank',
+                    sr = sr,
+                    win_size_ms = win_size_ms,
+                    percent_overlap = percent_overlap,
+                    num_filters = num_filters,
+                    fft_bins = fft_bins,
+                    window_function = window)
+            else:
+                feats = librosa.feature.melspectrogram(
+                    data,
+                    sr = sr,
+                    n_fft = fft_bins,
+                    hop_length = int(win_shift_ms*0.001*sr),
+                    n_mels = num_filters, window=window,
+                    **kwargs).T
         elif 'mfcc' in feature_type:
             if num_mfcc is None:
                 num_mfcc = num_filters
