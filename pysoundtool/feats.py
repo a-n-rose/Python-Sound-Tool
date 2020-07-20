@@ -14,6 +14,7 @@ sys.path.insert(0, packagedir)
 import numpy as np
 import math
 import librosa
+from scipy.signal import hann, hamming
 import pathlib
 from python_speech_features import fbank, mfcc
 from sklearn.preprocessing import StandardScaler, normalize
@@ -27,7 +28,7 @@ import pysoundtool as pyst
 def plot(feature_matrix, feature_type, 
                     save_pic=False, name4pic=None, energy_scale='power_to_db',
                     title=None, sr=None, win_size_ms=None, percent_overlap=None,
-                    x_label=None, y_label=None, use_scipy = True):
+                    x_label=None, y_label=None, use_scipy = False):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
     
     Parameters
@@ -224,7 +225,7 @@ def get_feats(sound,
               rate_of_change = False,
               rate_of_acceleration = False,
               subtract_mean = False,
-              use_scipy = True,
+              use_scipy = False,
               **kwargs):
     '''Collects raw signal data, stft, fbank, or mfcc features via librosa.
     
