@@ -1,4 +1,6 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master)
+[![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)
+
 
 # PySoundTool
 
