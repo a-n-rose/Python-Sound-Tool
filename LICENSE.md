@@ -4,7 +4,7 @@ Copyright (c) 2020, Aislyn Rose.
 
 Permission to use, copy, modify, and/or distribute this software
 under the terms of the GNU General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your option) 
+<a href="http://fsf.org">Free Software Foundation</a>, either version 3 of the License, or (at your option) 
 any later version.
 
 The PySoundTool framework  is distributed in the hope that it will be useful, but 
