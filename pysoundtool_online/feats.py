@@ -17,7 +17,7 @@ import scipy
 from scipy.signal import hann, hamming
 #import librosa
 import pathlib
-from python_speech_features import logfbank, fbank, mfcc
+from python_speech_features import fbank, mfcc
 from sklearn.preprocessing import StandardScaler, normalize
 import matplotlib.pyplot as plt
 import pysoundtool_online as pyst
@@ -59,7 +59,6 @@ def plot(feature_matrix, feature_type,
     '''
     # ensure real numbers
     if feature_matrix.dtype == np.complex64 or feature_matrix.dtype == np.complex128:
-        #feature_matrix = feature_matrix.real
         feature_matrix = np.abs(feature_matrix)
     # features presented via colormesh need 2D format.
     if len(feature_matrix.shape) == 1:
@@ -77,7 +76,6 @@ def plot(feature_matrix, feature_type,
     if energy_scale is None or feature_type == 'signal':
         energy_label = 'energy'
         energy_scale = None
-        pass
     if not use_scipy:
         if energy_scale == 'power_to_db':
             feature_matrix = librosa.power_to_db(feature_matrix)
@@ -412,6 +410,9 @@ def get_feats(sound,
             # remove additional channel for 'stft', 'fbank' etc. feature
             # extraction
             if 'signal' not in feature_type and num_channels > 1:
+                import Warnings
+                Warnings.warn('Only one channel is used for {}'.format(feature_type)+\
+                    ' feature extraction. Removing extra channels.')
                 data = data[:,0]
     else:
         if sr is None:
@@ -428,14 +429,15 @@ def get_feats(sound,
         fft_bins = int(win_size_ms * sr // 1000)
     if 'fbank' in feature_type:
         if use_scipy:
-            feats = pyst.feats.get_mfcc_fbank(data,
-                                                feature_type = 'fbank',
-                                                sr = sr,
-                                                win_size_ms = win_size_ms,
-                                                percent_overlap = percent_overlap,
-                                                num_filters = num_filters,
-                                                fft_bins = fft_bins,
-                                                window_function = window)
+            feats = pyst.feats.get_mfcc_fbank(
+                data,
+                feature_type = 'fbank',
+                sr = sr,
+                win_size_ms = win_size_ms,
+                percent_overlap = percent_overlap,
+                num_filters = num_filters,
+                fft_bins = fft_bins,
+                window_function = window)
         else:
             feats = librosa.feature.melspectrogram(
                 data,
@@ -448,15 +450,16 @@ def get_feats(sound,
         if num_mfcc is None:
             num_mfcc = num_filters
         if use_scipy:
-            feats = pyst.feats.get_mfcc_fbank(data,
-                                                feature_type = 'mfcc',
-                                                sr = sr,
-                                                win_size_ms = win_size_ms,
-                                                percent_overlap = percent_overlap,
-                                                num_filters = num_filters,
-                                                num_mfcc = num_mfcc,
-                                                fft_bins = fft_bins,
-                                                window_function = window)
+            feats = pyst.feats.get_mfcc_fbank(
+                data,
+                feature_type = 'mfcc',
+                sr = sr,
+                win_size_ms = win_size_ms,
+                percent_overlap = percent_overlap,
+                num_filters = num_filters,
+                num_mfcc = num_mfcc,
+                fft_bins = fft_bins,
+                window_function = window)
         else:
             feats = librosa.feature.mfcc(
                 data,
@@ -469,13 +472,14 @@ def get_feats(sound,
                 **kwargs).T
     elif 'stft' in feature_type or 'powspec' in feature_type:
         if use_scipy:
-            feats = pyst.feats.get_stft(data,
-                                        sr = sr, 
-                                        win_size_ms = win_size_ms,
-                                        percent_overlap = percent_overlap,
-                                        real_signal = False,
-                                        fft_bins = fft_bins,
-                                        window = window)
+            feats = pyst.feats.get_stft(
+                data,
+                sr = sr, 
+                win_size_ms = win_size_ms,
+                percent_overlap = percent_overlap,
+                real_signal = False,
+                fft_bins = fft_bins,
+                window = window)
         else:
             feats = librosa.stft(
                 data,
@@ -492,7 +496,7 @@ def get_feats(sound,
                 '\n- '.join(pyst.feats.list_available_features()))
     if 'signal' not in feature_type:
         if rate_of_change or rate_of_acceleration:
-            d, d_d = pyst.feats.get_change_acceleration_rate(feats, use_scipy = False)
+            d, d_d = pyst.feats.get_change_acceleration_rate(feats, use_scipy = use_scipy)
             if rate_of_change:
                 feats = np.concatenate((feats, d), axis=1)
             if rate_of_acceleration:
@@ -698,8 +702,6 @@ def librosa_delta(data, width=9, order=1, axis=-1, mode='interp', **kwargs):
                                       mode=mode,
                                       **kwargs)
 
-# TODO possibly remove? Doesn't use Librsoa, instead
-# python_speech_features
 def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
                      percent_overlap=0.5, num_filters=40, num_mfcc=40,
                      fft_bins = None, window_function = None, zeropad = True,
