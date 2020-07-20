@@ -22,7 +22,7 @@ copyright = '2020, Aislyn Rose'
 author = 'Aislyn Rose'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.0b'
+release = '0.1.0a'
 
 
 # -- General configuration ---------------------------------------------------
