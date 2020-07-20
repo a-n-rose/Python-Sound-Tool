@@ -35,6 +35,8 @@ This project is still in the beginning stages and has a lot of room for growth, 
 
 You can install PySoundTool via pip or by cloning this repository. 
 
+If you clone this repository, you will be able to use the provided example audio and models in the folder `audiodata` and you can also use pysoundtool_online instead of pysoundtool, however, this has decreased functionality as it does not import librosa or soundfile, two awesome packages for working with audio.
+
 Before either, I suggest a virtual environment:
 
 ```
