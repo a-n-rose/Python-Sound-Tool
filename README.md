@@ -1,5 +1,5 @@
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master)
-[![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)
+[![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)]
 
 
 # PySoundTool
@@ -54,7 +54,7 @@ You can explore example code via:
 
 ### Binder
 
-Click on the Binder button (it might take a while to load) and venture into the folder `binder_notebooks`.
+Click on the Binder badge at the top of this README (it might take a while to load) and venture into the folder `binder_notebooks`.
 
 ### Locally via Jupyter Notebook:
 
