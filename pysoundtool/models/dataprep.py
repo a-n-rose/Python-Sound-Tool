@@ -10,7 +10,7 @@ sys.path.insert(0, packagedir)
 
 import numpy as np
 import random
-import pysoundtool as pyst
+import pysoundtool as pyso
 
 
 ###############################################################################

@@ -9,7 +9,7 @@ packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint, TensorBoard
 import numpy as np
-import pysoundtool as pyst
+import pysoundtool as pyso
 
 ###############################################################################
 

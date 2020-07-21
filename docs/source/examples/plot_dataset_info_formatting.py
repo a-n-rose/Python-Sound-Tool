@@ -32,8 +32,8 @@ import pysoundtool as pyso;
 
 ##########################################################
 # I will explore files in a small dataset on my computer
-dataset_path = '{}test_audio/'.format(package_dir)
-dataset_info_dict = pyso.builtin.dataset_logger('{}test_audio/'.format(package_dir));
+dataset_path = '{}audiodata2/'.format(package_dir)
+dataset_info_dict = pyso.builtin.dataset_logger('{}audiodata2/'.format(package_dir));
 
 #########################################################################
 # This returns our data in a dictionary, perfect for exploring via Pandas
