@@ -19,7 +19,7 @@ import pathlib
 from python_speech_features import fbank, mfcc
 from sklearn.preprocessing import StandardScaler, normalize
 import matplotlib.pyplot as plt
-import pysoundtool as pyst
+import pysoundtool as pyso
 
 
 
@@ -100,7 +100,7 @@ def plot(feature_matrix, feature_type,
         if sr is not None:
             x_axis_label = 'Time (sec)'
             dur_sec = feature_matrix.shape[0] / sr
-            time_sec = pyst.dsp.get_time_points(dur_sec, sr)
+            time_sec = pyso.dsp.get_time_points(dur_sec, sr)
             for channel in range(feature_matrix.shape[1]):
                 data = feature_matrix[:,channel]
                 # overlay the channel data
@@ -144,7 +144,7 @@ def plot(feature_matrix, feature_type,
         plt.ylabel(y_label)
     if save_pic:
         outputname = name4pic or 'visualize{}feats'.format(feature_type.upper())
-        outputname = pyst.utils.string2pathlib(outputname)
+        outputname = pyso.utils.string2pathlib(outputname)
         if outputname.suffix:
             if outputname.suffix != '.png':
                 # add .png as extension
@@ -201,11 +201,11 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
         Keyword arguments for pysoundtool.feats.plot
     '''
     percent_overlap = check_percent_overlap(percent_overlap)
-    feats = pyst.feats.get_feats(audiodata, feature_type=feature_type, 
+    feats = pyso.feats.get_feats(audiodata, feature_type=feature_type, 
                       win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                       fft_bins = fft_bins, num_filters=num_filters, num_mfcc = num_mfcc,
                       sr=sr, mono = mono)
-    pyst.feats.plot(feats, feature_type=feature_type, sr=sr,
+    pyso.feats.plot(feats, feature_type=feature_type, sr=sr,
                     save_pic = save_pic, name4pic=name4pic, energy_scale = energy_scale,
                     win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                     **kwargs)
@@ -308,7 +308,7 @@ def get_feats(sound,
     if isinstance(sound, str) or isinstance(sound, pathlib.PosixPath):
         if mono is None:
             mono = True
-        data, sr = pyst.loadsound(sound, sr = sr, dur_sec = dur_sec, mono = mono)
+        data, sr = pyso.loadsound(sound, sr = sr, dur_sec = dur_sec, mono = mono)
         if mono is False and len(data.shape) > 1:
             index_samples = np.argmax(data.shape)
             index_channels = np.argmin(data.shape)
@@ -338,7 +338,7 @@ def get_feats(sound,
             fft_bins = int(win_size_ms * sr // 1000)
         if 'fbank' in feature_type:
             if use_scipy:
-                feats = pyst.feats.get_mfcc_fbank(
+                feats = pyso.feats.get_mfcc_fbank(
                     data,
                     feature_type = 'fbank',
                     sr = sr,
@@ -359,7 +359,7 @@ def get_feats(sound,
             if num_mfcc is None:
                 num_mfcc = num_filters
             if use_scipy:
-                feats = pyst.feats.get_mfcc_fbank(
+                feats = pyso.feats.get_mfcc_fbank(
                     data,
                     feature_type = 'mfcc',
                     sr = sr,
@@ -381,7 +381,7 @@ def get_feats(sound,
                     **kwargs).T
         elif 'stft' in feature_type or 'powspec' in feature_type:
             if use_scipy:
-                feats = pyst.feats.get_stft(
+                feats = pyso.feats.get_stft(
                     data,
                     sr = sr, 
                     win_size_ms = win_size_ms,
@@ -402,10 +402,10 @@ def get_feats(sound,
         else:
             raise ValueError('Feature type "{}" not recognized. '.format(feature_type)+\
                 'Please ensure one of the following is included in `feature_type`:\n- '+\
-                    '\n- '.join(pyst.feats.list_available_features()))
+                    '\n- '.join(pyso.feats.list_available_features()))
         if 'signal' not in feature_type:
             if rate_of_change or rate_of_acceleration:
-                d, d_d = pyst.feats.get_change_acceleration_rate(feats)
+                d, d_d = pyso.feats.get_change_acceleration_rate(feats)
                 if rate_of_change:
                     feats = np.concatenate((feats, d), axis=1)
                 if rate_of_acceleration:
@@ -438,26 +438,26 @@ def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr)
+        data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
-    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
-    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+    num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
     total_rows = fft_bins
-    stft_matrix = pyst.dsp.create_empty_matrix((num_subframes, total_rows),
+    stft_matrix = pyso.dsp.create_empty_matrix((num_subframes, total_rows),
                                               complex_vals = True)
     section_start = 0
-    window_frame = pyst.dsp.create_window(window, frame_length)
+    window_frame = pyso.dsp.create_window(window, frame_length)
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section = pyst.dsp.apply_window(section, 
+        section = pyso.dsp.apply_window(section, 
                                         window_frame, 
                                         zeropad = True)
         
-        section_fft = pyst.dsp.calc_fft(section, 
+        section_fft = pyso.dsp.calc_fft(section, 
                                         real_signal = real_signal,
                                         fft_bins = total_rows,
                                         )
@@ -467,8 +467,8 @@ def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     return stft_matrix[:,:fft_bins//2]
 
 def plot_dom_freq(sound, energy_scale = 'power_to_db',**kwargs):
-    stft_matrix = pyst.feats.get_stft(sound, **kwargs)
-    pitch = pyst.dsp.get_pitch(sound, **kwargs)
+    stft_matrix = pyso.feats.get_stft(sound, **kwargs)
+    pitch = pyso.dsp.get_pitch(sound, **kwargs)
     stft_matrix = librosa.power_to_db(stft_matrix)
     plt.pcolormesh(stft_matrix.T)
     color = 'yellow'
@@ -477,11 +477,11 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db',**kwargs):
     plt.show()
     
 def plot_vad(sound, energy_scale = 'power_to_db',**kwargs):
-    stft_matrix = pyst.feats.get_stft(sound, **kwargs)
-    vad, x,y,z = pyst.dsp.vad(sound, **kwargs)
+    stft_matrix = pyso.feats.get_stft(sound, **kwargs)
+    vad, x,y,z = pyso.dsp.vad(sound, **kwargs)
     stft_matrix = librosa.power_to_db(stft_matrix)
     y_axis = stft_matrix.shape[1]
-    vad = pyst.dsp.scalesound(vad, max_val = y_axis, min_val = 0)
+    vad = pyso.dsp.scalesound(vad, max_val = y_axis, min_val = 0)
     plt.pcolormesh(stft_matrix.T)
     color = 'yellow'
     linestyle = ':'
@@ -532,10 +532,10 @@ def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
             def window_function(x): return np.ones((x,))
     if len(samples)/sr*1000 < win_size_ms:
         if zeropad:
-            samples = pyst.dsp.zeropad_sound(samples, win_size_ms * sr / 1000, sr = sr)
+            samples = pyso.dsp.zeropad_sound(samples, win_size_ms * sr / 1000, sr = sr)
         else:
             win_size_ms = len(samples)/sr*1000
-    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     percent_overlap = check_percent_overlap(percent_overlap)
     window_shift_ms = win_size_ms * percent_overlap
     if 'fbank' in feature_type:
@@ -668,7 +668,7 @@ def adjust_shape(data, desired_shape, change_dims = False):
             total_desired_samples *= i
         data_flattened = data.flatten()
         if len(data_flattened) < total_desired_samples:
-            data_flattened = pyst.feats.zeropad_features(data_flattened, 
+            data_flattened = pyso.feats.zeropad_features(data_flattened, 
                                                          desired_shape = (total_desired_samples,))
         if len(data_flattened) > total_desired_samples:
             data_flattened = data_flattened[:total_desired_samples]
@@ -677,12 +677,12 @@ def adjust_shape(data, desired_shape, change_dims = False):
         
     # attempt to zeropad data:
     try:
-        data_prepped = pyst.feats.zeropad_features(data, 
+        data_prepped = pyso.feats.zeropad_features(data, 
                                                   desired_shape = desired_shape)
     # if zeropadding is smaller than data.shape/features:
     except ValueError:
         # remove extra data/columns to match desired_shape:
-        data_prepped = pyst.feats.reduce_num_features(data, 
+        data_prepped = pyso.feats.reduce_num_features(data, 
                                                  desired_shape = desired_shape)
     return data_prepped
 
@@ -885,7 +885,7 @@ def scale_X_y(matrix, is_train=True, scalars=None):
     scalars : dict
         The scalars either created or previously loaded.
     '''
-    X, y = pyst.feats.separate_dependent_var(matrix)
+    X, y = pyso.feats.separate_dependent_var(matrix)
     if is_train:
         scalars = {}
     elif scalars is None:
@@ -906,8 +906,8 @@ def scale_X_y(matrix, is_train=True, scalars=None):
             X[:, :, j] = scalars[j].transform(X[:, :, j])
         X[:, :, j] = normalize(X[:, :, j])
     # Keras needs an extra dimension as a tensor / holder of data
-    X = pyst.feats.add_tensor(X)
-    y = pyst.feats.add_tensor(y)
+    X = pyso.feats.add_tensor(X)
+    y = pyso.feats.add_tensor(y)
     return X, y, scalars
 
 # TODO move to data module??
@@ -1023,7 +1023,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
     if divide_factor is None:
         divide_factor = 5
     if subsection_data:
-        datasets_dict, datasets_path2save_dict = pyst.datasets.section_data(
+        datasets_dict, datasets_path2save_dict = pyso.datasets.section_data(
             datasets_dict,
             datasets_path2save_dict,
             divide_factor=divide_factor)
@@ -1031,10 +1031,10 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         # depending on which packages one uses, shape of data changes.
         # for example, Librosa centers/zeropads data automatically
         # TODO see which shapes result from python_speech_features
-        total_samples = pyst.dsp.calc_frame_length(dur_sec*1000, sr=sr)
+        total_samples = pyso.dsp.calc_frame_length(dur_sec*1000, sr=sr)
         # if using Librosa:
         if use_librosa:
-            frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+            frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
             hop_length = int(win_size_ms*percent_overlap*0.001*sr)
             if n_fft is None:
                 n_fft = frame_length
@@ -1129,9 +1129,9 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                 datadir = datapath.parent
                 # when loading a dictionary, the value is a string
                 if isinstance(value, str):
-                    value = pyst.utils.restore_dictvalue(value)
+                    value = pyso.utils.restore_dictvalue(value)
                 extraction_shape = (len(value),) + input_shape
-                feats_matrix = pyst.dsp.create_empty_matrix(
+                feats_matrix = pyso.dsp.create_empty_matrix(
                     extraction_shape, 
                     complex_vals=complex_vals)
                 for j, audiofile in enumerate(value):
@@ -1140,7 +1140,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                         label, audiofile = int(audiofile[0]), audiofile[1]
                     if isinstance(audiofile, str):
                         audiofile = pathlib.PosixPath(audiofile)
-                    feats = pyst.feats.get_feats(audiofile,
+                    feats = pyso.feats.get_feats(audiofile,
                                                 sr=sr,
                                                 feature_type=feat_type,
                                                 win_size_ms=win_size_ms,
@@ -1178,8 +1178,8 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                 'images',key,'{}_sample{}'.format(
                                     feature_type, j))
                             # make sure this directory exists
-                            save_pic_dir = pyst.utils.check_dir(save_pic_path.parent, make=True)
-                            pyst.feats.plot(feats, 
+                            save_pic_dir = pyso.utils.check_dir(save_pic_path.parent, make=True)
+                            pyso.feats.plot(feats, 
                                             feature_type = feature_type,
                                             win_size_ms = win_size_ms,
                                             percent_overlap = percent_overlap,
@@ -1205,7 +1205,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                         # (while training) if total samples is large
                         feats = feats_zeropadded.reshape(desired_shape)
                     
-                    feats = pyst.feats.zeropad_features(
+                    feats = pyso.feats.zeropad_features(
                         feats, 
                         desired_shape = desired_shape,
                         complex_vals = complex_vals)
@@ -1222,7 +1222,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                     # fill in empty matrix with features from each audiofile
 
                     feats_matrix[j] = feats
-                    pyst.utils.print_progress(iteration = j, 
+                    pyso.utils.print_progress(iteration = j, 
                                             total_iterations = len(value),
                                             task = '{} {} feature extraction'.format(
                                                 key, feature_type))
@@ -1255,7 +1255,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                                      divide_factor=divide_factor,
                                      kwargs = kwargs
                                      )
-                feat_settings_path = pyst.utils.save_dict(
+                feat_settings_path = pyso.utils.save_dict(
                     dict2save = feat_settings,
                     filename = log_filename,
                     overwrite=True)
@@ -1265,7 +1265,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
     except MemoryError as e:
         print('MemoryError: ',e)
         print('\nSectioning data and trying again.\n')
-        datasets_dict, datasets_path2save_dict = pyst.datasets.section_data(
+        datasets_dict, datasets_path2save_dict = pyso.datasets.section_data(
             datasets_dict, datasets_path2save_dict, divide_factor=divide_factor)
         datasets_dict, datasets_path2save_dict = save_features_datasets(
             datasets_dict = datasets_dict, 
@@ -1388,7 +1388,7 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
     if divide_factor is None:
         divide_factor = 5
     if subsection_data:
-        datasets_dict, datasets_path2save_dict = pyst.datasets.section_data(
+        datasets_dict, datasets_path2save_dict = pyso.datasets.section_data(
             datasets_dict,
             datasets_path2save_dict,
             divide_factor=divide_factor)
@@ -1396,10 +1396,10 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
         # depending on which packages one uses, shape of data changes.
         # for example, Librosa centers/zeropads data automatically
         # TODO see which shapes result from python_speech_features
-        total_samples = pyst.dsp.calc_frame_length(dur_sec*1000, sr=sr)
+        total_samples = pyso.dsp.calc_frame_length(dur_sec*1000, sr=sr)
         # if using Librosa:
         if use_librosa:
-            frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+            frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
             hop_length = int(win_size_ms*percent_overlap*0.001*sr)
             if n_fft is None:
                 n_fft = frame_length
@@ -1494,9 +1494,9 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
                 datadir = datapath.parent
                 # when loading a dictionary, the value is a string
                 if isinstance(value, str):
-                    value = pyst.utils.restore_dictvalue(value)
+                    value = pyso.utils.restore_dictvalue(value)
                 extraction_shape = (len(value) * audiofile_lim,) + input_shape
-                feats_matrix = pyst.dsp.create_empty_matrix(
+                feats_matrix = pyso.dsp.create_empty_matrix(
                     extraction_shape, 
                     complex_vals=complex_vals)
                 # count empty rows (if speaker doesn't have audiofile_lim data)
@@ -1507,9 +1507,9 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
                     if isinstance(zipfile, str):
                         zipfile = pathlib.PosixPath(zipfile)
                     # extract `audiofile_lim` from zipfile:
-                    extract_dir = pyst.utils.check_dir(extract_dir, make=True)
-                    pyst.files.extract(zipfile, extract_path = extract_dir)
-                    audiolist = pyst.files.collect_audiofiles(extract_dir,
+                    extract_dir = pyso.utils.check_dir(extract_dir, make=True)
+                    pyso.files.extract(zipfile, extract_path = extract_dir)
+                    audiolist = pyso.files.collect_audiofiles(extract_dir,
                                                               recursive = True)
                     if audiofile_lim is not None:
                         for i in range(audiofile_lim):
@@ -1517,7 +1517,7 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
                                 print('Short number files: ', audiofile_lim - i)
                                 empty_rows += audiofile_lim - i
                                 break
-                            feats = pyst.feats.get_feats(audiolist[i],
+                            feats = pyso.feats.get_feats(audiolist[i],
                                                         sr=sr,
                                                         feature_type=feat_type,
                                                         win_size_ms=win_size_ms,
@@ -1555,8 +1555,8 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
                                         'images',key,'{}_sample{}'.format(
                                             feature_type, j))
                                     # make sure this directory exists
-                                    save_pic_dir = pyst.utils.check_dir(save_pic_path.parent, make=True)
-                                    pyst.feats.plot(feats, 
+                                    save_pic_dir = pyso.utils.check_dir(save_pic_path.parent, make=True)
+                                    pyso.feats.plot(feats, 
                                                     feature_type = feature_type,
                                                     win_size_ms = win_size_ms,
                                                     percent_overlap = percent_overlap,
@@ -1582,7 +1582,7 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
                                 # (while training) if total samples is large
                                 feats = feats_zeropadded.reshape(desired_shape)
                             
-                            feats = pyst.feats.zeropad_features(
+                            feats = pyso.feats.zeropad_features(
                                 feats, 
                                 desired_shape = desired_shape,
                                 complex_vals = complex_vals)
@@ -1600,8 +1600,8 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
 
                             feats_matrix[j+i] = feats
                     # delete extracted data (not directories):
-                    pyst.files.delete_dir_contents(extract_dir, remove_dir = False)
-                    pyst.utils.print_progress(iteration = j, 
+                    pyso.files.delete_dir_contents(extract_dir, remove_dir = False)
+                    pyso.utils.print_progress(iteration = j, 
                                             total_iterations = len(value),
                                             task = '{} {} feature extraction'.format(
                                                 key, feature_type))
@@ -1640,7 +1640,7 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
                                      divide_factor=divide_factor,
                                      kwargs = kwargs
                                      )
-                feat_settings_path = pyst.utils.save_dict(
+                feat_settings_path = pyso.utils.save_dict(
                     dict2save = feat_settings,
                     filename = log_filename,
                     overwrite=True)
@@ -1650,7 +1650,7 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
     except MemoryError as e:
         print('MemoryError: ',e)
         print('\nSectioning data and trying again.\n')
-        datasets_dict, datasets_path2save_dict = pyst.datasets.section_data(
+        datasets_dict, datasets_path2save_dict = pyso.datasets.section_data(
             datasets_dict, datasets_path2save_dict, divide_factor=divide_factor)
         datasets_dict, datasets_path2save_dict = save_features_datasets_zipfiles(
             datasets_dict = datasets_dict, 
@@ -1698,7 +1698,7 @@ def prep_new_audiofeats(feats, desired_shape, input_shape):
     feats_reshaped : np.ndarray [shape = (`input_shape`)]
         The features reshaped to what the model expects.
     '''
-    feats_reshaped = pyst.feats.adjust_shape(feats, desired_shape)
+    feats_reshaped = pyso.feats.adjust_shape(feats, desired_shape)
     # reshape to input shape with a necessary "tensor" dimension
     feats_reshaped = feats_reshaped.reshape(input_shape+(1,))
     return feats_reshaped
@@ -1791,7 +1791,7 @@ def grayscale2color(image_matrix, colorscale=3):
         image_matrix = image_matrix.reshape(image_matrix.shape + (1,))
     expected_shape = image_matrix.shape[:-1] + (colorscale,)
     # create extra empty channels to copy gray image to it:
-    image_zeropadded = pyst.feats.zeropad_features(image_matrix, expected_shape)
+    image_zeropadded = pyso.feats.zeropad_features(image_matrix, expected_shape)
     for i in range(colorscale):
         if i == 0:
             pass

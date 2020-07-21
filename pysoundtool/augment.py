@@ -32,7 +32,7 @@ import numpy as np
 import math
 import librosa
 import pathlib
-import pysoundtool as pyst
+import pysoundtool as pyso
 
 def speed_increase(sound, sr, perc=0.15, **kwargs):
     '''Acoustic augmentation of speech.
@@ -55,7 +55,7 @@ def speed_increase(sound, sr, perc=0.15, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     # if entered 50 instead of .50, turns 50 into .50
     if perc > 1:
@@ -79,7 +79,7 @@ def speed_decrease(sound, sr, perc=0.15, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     # if entered 50 instead of .50, turns 50 into .50
     if perc > 1:
@@ -105,9 +105,9 @@ def time_shift(sound, sr, random_seed = None, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
-    switched = pyst.augment.shufflesound(data, sr=sr, 
+    switched = pyso.augment.shufflesound(data, sr=sr, 
                                           num_subsections = 2, 
                                           random_seed = random_seed)
     return switched
@@ -129,7 +129,7 @@ def shufflesound(sound, sr, num_subsections = 2, random_seed = None, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     subsection_length = len(data) // num_subsections
     order = np.arange(num_subsections)
@@ -162,12 +162,12 @@ def add_white_noise(sound, sr, noise_level=0.01, snr=10, random_seed=None, **kwa
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr)
+        data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
-    n = pyst.dsp.generate_noise(num_samples = len(data), 
+    n = pyso.dsp.generate_noise(num_samples = len(data), 
                                 amplitude=noise_level, 
                                 random_seed=random_seed)
-    sound_n, snr = pyst.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, **kwargs)
+    sound_n, snr = pyso.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, **kwargs)
     return sound_n
 
 def harmonic_distortion(sound, sr, **kwargs):
@@ -182,7 +182,7 @@ def harmonic_distortion(sound, sr, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     data = 2*np.pi*data
     count = 0
@@ -203,7 +203,7 @@ def pitch_increase(sound, sr = 16000, num_semitones = 2, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     y_i = librosa.effects.pitch_shift(data, sr=sr, n_steps = num_semitones)
     return y_i
@@ -220,7 +220,7 @@ def pitch_decrease(sound, sr = 16000, num_semitones = 2, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     y_d = librosa.effects.pitch_shift(data, sr=sr, n_steps = -num_semitones)
     return y_d
@@ -243,15 +243,15 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr)
+        data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
     if random_seed is not None:
         np.random.seed(random_seed)
     vtlp_a = np.random.choice(np.arange(min(a), max(a)+.1, 0.1)  )
     
-    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
-    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+    num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
@@ -261,22 +261,22 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
         max_freq += 1
     total_rows = fft_bins * oversize_factor
     # initialize empty matrix to fill dft values into
-    stft_matrix = pyst.dsp.create_empty_matrix((num_subframes,total_rows), complex_vals = True)
+    stft_matrix = pyso.dsp.create_empty_matrix((num_subframes,total_rows), complex_vals = True)
     
     section_start = 0
-    window_frame = pyst.dsp.create_window(window, frame_length)
+    window_frame = pyso.dsp.create_window(window, frame_length)
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section = pyst.dsp.apply_window(section, window_frame, zeropad = True)
+        section = pyso.dsp.apply_window(section, window_frame, zeropad = True)
         # apply dft to large window - increase frequency resolution during warping
-        section_fft = pyst.dsp.calc_fft(section, 
+        section_fft = pyso.dsp.calc_fft(section, 
                                         real_signal = real_signal,
                                         fft_bins = total_rows,
                                         )
         if bilinear_warp:
-            section_warped = pyst.dsp.bilinear_warp(section_fft, vtlp_a)
+            section_warped = pyso.dsp.bilinear_warp(section_fft, vtlp_a)
         else:
-            section_warped = pyst.dsp.piecewise_linear_warp(section_fft, vtlp_a,
+            section_warped = pyso.dsp.piecewise_linear_warp(section_fft, vtlp_a,
                                                                 max_freq = max_freq)
         section_warped = section_warped[:total_rows]
         stft_matrix[frame] = section_warped

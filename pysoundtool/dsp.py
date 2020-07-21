@@ -16,7 +16,7 @@ currentdir = os.path.dirname(os.path.abspath(
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
-import pysoundtool as pyst
+import pysoundtool as pyso
 
 def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
     '''Generates a sound signal with the provided parameters. Signal begins at 0.
@@ -171,7 +171,7 @@ def set_signal_length(samples, numsamps):
         else:
             data = data[:numsamps]
     # ensure returned data same dtype as input 
-    data = pyst.utils.match_dtype(data, samples)
+    data = pyso.utils.match_dtype(data, samples)
     return data
 
 def scalesound(data, max_val = 1, min_val=None):
@@ -444,35 +444,35 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
     pysoundtool.dsp.snr_adjustnoiselevel
         Calculates how much to adjust noise signal to achieve SNR.
     '''
-    input_type_main = pyst.utils.path_or_samples(audio_main)
-    input_type_background = pyst.utils.path_or_samples(audio_background)
+    input_type_main = pyso.utils.path_or_samples(audio_main)
+    input_type_background = pyso.utils.path_or_samples(audio_background)
     if 'path' in input_type_main:
-        target, sr = pyst.loadsound(audio_main, sr = sr, **kwargs)
+        target, sr = pyso.loadsound(audio_main, sr = sr, **kwargs)
     elif 'samples' in input_type_main:
         target, sr = audio_main, sr
     if 'path' in input_type_background:
-        sound2add, sr2 = pyst.loadsound(audio_background, sr = sr, **kwargs)
+        sound2add, sr2 = pyso.loadsound(audio_background, sr = sr, **kwargs)
     elif 'samples' in input_type_background:
         sound2add, sr2 = audio_background, sr
     if sr != sr2:
-        sound2add, sr2 = pyst.dsp.resample_audio(sound2add, sr2, sr)
+        sound2add, sr2 = pyso.dsp.resample_audio(sound2add, sr2, sr)
         assert sr2 == sr
     
     # make background same shape as signal
     if len(target.shape) != len(sound2add.shape):
         # ensure in shape (num_samples,) or (num_samples, num_channels)
-        target = pyst.dsp.shape_samps_channels(target)
+        target = pyso.dsp.shape_samps_channels(target)
         if len(target.shape) > 1:
             num_channels = target.shape[1]
         else:
             num_channels = 1
         sound2add = apply_num_channels(sound2add, num_channels)
-    target_stft = pyst.dsp.get_vad_stft(target, sr)
+    target_stft = pyso.dsp.get_vad_stft(target, sr)
     if stationary_noise:
-        noise_stft = pyst.feats.get_stft(sound2add, sr)
+        noise_stft = pyso.feats.get_stft(sound2add, sr)
     else:
         # get energy of noise when active (e.g. car honking)
-        noise_stft = pyst.dsp.get_vad_stft(sound2add, sr)
+        noise_stft = pyso.dsp.get_vad_stft(sound2add, sr)
     target_power = np.abs(target_stft)**2
     noise_power = np.abs(noise_stft)**2
     target_energy = np.mean(target_power)
@@ -483,7 +483,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
         adjust_sound = (np.sqrt(target_energy/noise_energy / (10**(snr/10))))
         sound2add *= adjust_sound
     
-    new_snr = pyst.dsp.get_vad_snr(target, sound2add, sr=sr)
+    new_snr = pyso.dsp.get_vad_snr(target, sound2add, sr=sr)
     if delay_mainsound_sec is None:
         delay_mainsound_sec = 0
     if total_len_sec is not None:
@@ -500,10 +500,10 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
     # make the background sound match the length of total samples
     if len(sound2add) < total_samps:
         # if shorter than total_samps, extend the noise
-        sound2add = pyst.dsp.apply_sample_length(sound2add, total_samps)
+        sound2add = pyso.dsp.apply_sample_length(sound2add, total_samps)
     else:
         # otherwise, choose random selection of noise
-        sound2add = pyst.dsp.random_selection_samples(sound2add,
+        sound2add = pyso.dsp.random_selection_samples(sound2add,
                                                       total_samps,
                                                       wrap=wrap)
     # separate samples to add to the target signal
@@ -604,7 +604,7 @@ def apply_sample_length(data, target_len):
     --------
     >>> import numpy as np
     >>> data = np.array([1,2,3,4])
-    >>> pyst.dsp.apply_sample_length(data, 12)
+    >>> pyso.dsp.apply_sample_length(data, 12)
     array([1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4])
     >>> # two channels
     >>> data = np.zeros((3,2))
@@ -614,7 +614,7 @@ def apply_sample_length(data, target_len):
     array([[0., 1.],
            [1., 2.],
            [2., 3.]])
-    >>> pyst.dsp.apply_sample_length(data,5)
+    >>> pyso.dsp.apply_sample_length(data,5)
     array([[0., 1.],
            [1., 2.],
            [2., 3.],
@@ -629,7 +629,7 @@ def apply_sample_length(data, target_len):
         return new_data
     if len(data.shape) > 1:
         # ensure stereo in correct format (num_samples, num_channels)
-        data = pyst.dsp.shape_samps_channels(data)
+        data = pyso.dsp.shape_samps_channels(data)
         num_channels = data.shape[1]
     else:
         num_channels = 0
@@ -645,7 +645,7 @@ def apply_sample_length(data, target_len):
         else:
             new_data[row_id:row_id+len(data)] = data
         row_id += len(data)
-    new_data = pyst.utils.match_dtype(new_data, data)
+    new_data = pyso.utils.match_dtype(new_data, data)
     return new_data
 
 # TODO: raise error or only warning if original data cut off?
@@ -694,7 +694,7 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
     array([1, 2, 3])
     '''
     # ensure data follows shape of (num_samples,) or (num_samples, num_channels)
-    data = pyst.dsp.shape_samps_channels(data)
+    data = pyso.dsp.shape_samps_channels(data)
     num_channels = get_num_channels(data)
     if delay_sec is None:
         delay_sec = 0
@@ -767,8 +767,8 @@ def combine_sounds(file1, file2, match2shortest=True, time_delay_sec=None,total_
     sr1 : int 
         The sample rate of the original signals and added sound
     '''
-    data1, sr1 = pyst.loadsound(file1)
-    data2, sr2 = pyst.loadsound(file2)
+    data1, sr1 = pyso.loadsound(file1)
+    data2, sr2 = pyso.loadsound(file2)
     if sr1 != sr2:
         data2, sr2 = resample_audio(data2, sr2, sr1)
     if time_delay_sec:
@@ -1174,12 +1174,12 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
     --------
     >>> x = np.array([3.,2.,1.,0.])
     >>> # double the size of x
-    >>> x_rec = pyst.dsp.reconstruct_whole_spectrum(x, n_fft=int(len(x)*2))
+    >>> x_rec = pyso.dsp.reconstruct_whole_spectrum(x, n_fft=int(len(x)*2))
     >>> x_rec
     array([3., 2., 1., 0., 0., 1., 2., 3.])
     >>> # overwrite right side of data
     >>> x = np.array([3.,2.,1.,0.,0.,2.,3.,5.])
-    >>> x_rec = pyst.dsp.reconstruct_whole_spectrum(x, n_fft=len(x))
+    >>> x_rec = pyso.dsp.reconstruct_whole_spectrum(x, n_fft=len(x))
     >>> x_rec
     array([3., 2., 1., 0., 0., 1., 2., 3.])
     '''
@@ -1298,14 +1298,14 @@ def get_local_target_high_power(target_samples, sr, local_size_ms=25, min_power_
         local_size_ms = 25
     if min_power_percent is None:
         min_power_percent = 0.25
-    target_power_size = pyst.feats.get_feats(target_samples, sr=sr, 
+    target_power_size = pyso.feats.get_feats(target_samples, sr=sr, 
                                         feature_type='powspec', 
                                         dur_sec = local_size_ms/1000)
-    target_power = pyst.feats.get_feats(target_samples, sr=sr, 
+    target_power = pyso.feats.get_feats(target_samples, sr=sr, 
                                         feature_type='powspec')
-    target_high_power = pyst.dsp.create_empty_matrix(target_power_size.shape, 
+    target_high_power = pyso.dsp.create_empty_matrix(target_power_size.shape, 
                                                      complex_vals=False)
-    max_index = pyst.dsp.get_max_index(target_power)
+    max_index = pyso.dsp.get_max_index(target_power)
     max_power = sum(target_power[max_index])
     min_power = max_power * min_power_percent
     index=0
@@ -1357,11 +1357,11 @@ def get_vad_snr(target_samples, noise_samples, sr):
     https://www.who.int/occupational_health/publications/noise1.pdf
     '''
     # get target power with only high energy values (vad)
-    vad_stft = pyst.dsp.get_vad_stft(target_samples, 
+    vad_stft = pyso.dsp.get_vad_stft(target_samples, 
                                        sr=sr, percent_vad = 0.75)
     target_power = np.abs(vad_stft)**2
             
-    noise_stft = pyst.feats.get_stft(noise_samples, sr=sr)
+    noise_stft = pyso.feats.get_stft(noise_samples, sr=sr)
     noise_power = np.abs(noise_stft)**2
     snr = 10 * np.log10(np.mean(target_power)/ (np.mean(noise_power) + 1e-6))
     snr = np.mean(snr)
@@ -1369,14 +1369,14 @@ def get_vad_snr(target_samples, noise_samples, sr):
 
 def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0, 
                     percent_vad = 0.9, **kwargs):
-    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
-    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+    num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
     
-    samples_matrix = pyst.dsp.create_empty_matrix((len(data)),
+    samples_matrix = pyso.dsp.create_empty_matrix((len(data)),
                                                 complex_vals = False)
     section_start = 0
     extra_rows = 0
@@ -1386,7 +1386,7 @@ def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0,
     sfm_min = None
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section_vad, e, f, sfm = pyst.dsp.vad(section, 
+        section_vad, e, f, sfm = pyso.dsp.vad(section, 
                                      sr=sr, 
                                      win_size_ms = 10, 
                                      percent_overlap = 0.5,
@@ -1472,7 +1472,7 @@ def snr_adjustnoiselevel(target_samples, noise_samples, sr, snr):
     '''
     #% Px is the active speech level ms energy, asl is the active factor, and c0
     #% is the active speech level threshold. 
-    target_px, asl, c0 = pyst.dsp.asl_P56(target_samples, sr)
+    target_px, asl, c0 = pyso.dsp.asl_P56(target_samples, sr)
     x = target_samples
     x_len = len(x)
      # apply IRS? to noise segment?
@@ -1807,7 +1807,7 @@ def postfilter(original_powerspec, noisereduced_powerspec, gain,
     system," Proceedings of IEEE International Conference on Acoustics, Speech and 
     Signal Processing, Taipei, 2009.
     '''
-    power_ratio_current_frame = pyst.dsp.calc_power_ratio(
+    power_ratio_current_frame = pyso.dsp.calc_power_ratio(
         original_powerspec,
         noisereduced_powerspec)
     # is there speech? If so, SNR decision = 1
@@ -1815,9 +1815,9 @@ def postfilter(original_powerspec, noisereduced_powerspec, gain,
         SNR_decision = power_ratio_current_frame
     else:
         SNR_decision = 1
-    noise_frame_len = pyst.dsp.calc_noise_frame_len(SNR_decision, threshold, scale)
+    noise_frame_len = pyso.dsp.calc_noise_frame_len(SNR_decision, threshold, scale)
     # apply window
-    postfilter_coeffs = pyst.dsp.calc_linear_impulse(
+    postfilter_coeffs = pyso.dsp.calc_linear_impulse(
         noise_frame_len,
         num_freq_bins = original_powerspec.shape[0])
     gain_postfilter = np.convolve(gain, postfilter_coeffs, mode='valid')
@@ -2103,11 +2103,11 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr)
+        data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
-    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
-    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+    num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
@@ -2117,26 +2117,26 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
         max_freq += 1
     total_rows = fft_bins
     # initialize empty matrix for dominant frequency values of speech frames
-    freq_matrix = pyst.dsp.create_empty_matrix((num_subframes,),
+    freq_matrix = pyso.dsp.create_empty_matrix((num_subframes,),
                                               complex_vals = False)
     section_start = 0
-    window_frame = pyst.dsp.create_window(window, frame_length)
+    window_frame = pyso.dsp.create_window(window, frame_length)
     row = 0
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
         # otherwise calculate frequency info
-        section = pyst.dsp.apply_window(section, 
+        section = pyso.dsp.apply_window(section, 
                                         window_frame, 
                                         zeropad = True)
         
-        section_fft = pyst.dsp.calc_fft(section, 
+        section_fft = pyso.dsp.calc_fft(section, 
                                         real_signal = real_signal,
                                         fft_bins = total_rows,
                                         )
         # limit exploration of dominant frequency to max frequency (Nyquist Theorem)
         section_fft = section_fft[:max_freq]
-        section_power = pyst.dsp.calc_power(section_fft)
-        dom_f = pyst.dsp.get_dom_freq(section_power)
+        section_power = pyso.dsp.calc_power(section_fft)
+        dom_f = pyso.dsp.get_dom_freq(section_power)
         freq_matrix[row] = dom_f
         row += 1
         section_start += (frame_length - num_overlap_samples)
@@ -2148,27 +2148,27 @@ def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr)
+        data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
-    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
-    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+    num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
     total_rows = fft_bins
-    stft_matrix = pyst.dsp.create_empty_matrix((num_subframes, total_rows),
+    stft_matrix = pyso.dsp.create_empty_matrix((num_subframes, total_rows),
                                               complex_vals = True)
     section_start = 0
     extra_rows = 0
-    window_frame = pyst.dsp.create_window(window, frame_length)
+    window_frame = pyso.dsp.create_window(window, frame_length)
     row = 0
     e_min = None
     f_min = None
     sfm_min = None
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section_vad, e, f, sfm = pyst.dsp.vad(section, 
+        section_vad, e, f, sfm = pyso.dsp.vad(section, 
                                      sr=sr, 
                                      win_size_ms = 10, 
                                      percent_overlap = 0.5,
@@ -2186,11 +2186,11 @@ def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
             extra_rows += 1
             section_start += (frame_length - num_overlap_samples)
             continue
-        section = pyst.dsp.apply_window(section, 
+        section = pyso.dsp.apply_window(section, 
                                         window_frame, 
                                         zeropad = True)
         
-        section_fft = pyst.dsp.calc_fft(section, 
+        section_fft = pyso.dsp.calc_fft(section, 
                                         real_signal = real_signal,
                                         fft_bins = total_rows,
                                         )
@@ -2210,11 +2210,11 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr)
+        data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
-    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
-    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+    num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
@@ -2224,18 +2224,18 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
         max_freq += 1
     total_rows = fft_bins
     # initialize empty matrix for dominant frequency values of speech frames
-    freq_matrix = pyst.dsp.create_empty_matrix((num_subframes,),
+    freq_matrix = pyso.dsp.create_empty_matrix((num_subframes,),
                                               complex_vals = False)
     section_start = 0
     extra_rows = 0
     e_min = None
     f_min = None
     sfm_min = None
-    window_frame = pyst.dsp.create_window(window, frame_length)
+    window_frame = pyso.dsp.create_window(window, frame_length)
     row = 0
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section_vad, e, f, sfm = pyst.dsp.vad(section, 
+        section_vad, e, f, sfm = pyso.dsp.vad(section, 
                                      sr=sr, 
                                      win_size_ms = 10, 
                                      percent_overlap = 0.5,
@@ -2255,18 +2255,18 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
             section_start += (frame_length - num_overlap_samples)
             continue
         # otherwise calculate frequency info
-        section = pyst.dsp.apply_window(section, 
+        section = pyso.dsp.apply_window(section, 
                                         window_frame, 
                                         zeropad = True)
         
-        section_fft = pyst.dsp.calc_fft(section, 
+        section_fft = pyso.dsp.calc_fft(section, 
                                         real_signal = real_signal,
                                         fft_bins = total_rows,
                                         )
         # limit exploration of dominant frequency to max frequency (Nyquist Theorem)
         section_fft = section_fft[:max_freq]
-        section_power = pyst.dsp.calc_power(section_fft)
-        dom_f = pyst.dsp.get_dom_freq(section_power)
+        section_power = pyso.dsp.calc_power(section_fft)
+        dom_f = pyso.dsp.get_dom_freq(section_power)
         if dom_f > 0:
             freq_matrix[row] = dom_f
             row += 1
@@ -2320,50 +2320,50 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr)
+        data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
     # first scale samples to be between -1 and 1
-    data = pyst.dsp.scalesound(data, max_val = 1)
-    frame_length = pyst.dsp.calc_frame_length(win_size_ms, sr)
+    data = pyso.dsp.scalesound(data, max_val = 1)
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
-    num_subframes = pyst.dsp.calc_num_subframes(len(data),
+    num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
     # initialize empty matrix to vad values into
-    vad_matrix = pyst.dsp.create_empty_matrix((num_subframes,),
+    vad_matrix = pyso.dsp.create_empty_matrix((num_subframes,),
                                               complex_vals = False)
     section_start = 0
     speech = 0
     silence = 0
-    window_frame = pyst.dsp.create_window(window, frame_length)
+    window_frame = pyso.dsp.create_window(window, frame_length)
     for frame in range(num_subframes):
         samples = data[section_start:section_start+frame_length]
-        samples_windowed = pyst.dsp.apply_window(samples, window_frame, zeropad = True)
+        samples_windowed = pyso.dsp.apply_window(samples, window_frame, zeropad = True)
         # apply dft to large window - increase frequency resolution during warping
-        section_fft = pyst.dsp.calc_fft(samples_windowed, 
+        section_fft = pyso.dsp.calc_fft(samples_windowed, 
                                         real_signal = real_signal,
                                         fft_bins = fft_bins,
                                         )
         # limit exploration of dominant frequency to max frequency (Nyquist Theorem)
         section_fft = section_fft[:max_freq]
-        section_power = pyst.dsp.calc_power(section_fft)
+        section_power = pyso.dsp.calc_power(section_fft)
         # set minimum values if not yet set
         if min_energy is None and frame == 0:
-            min_energy = pyst.dsp.short_term_energy(samples)
-        ste = pyst.dsp.short_term_energy(samples)
+            min_energy = pyso.dsp.short_term_energy(samples)
+        ste = pyso.dsp.short_term_energy(samples)
         if ste < min_energy:
             min_energy = ste
             
         if min_freq is None and frame == 0:
-            min_freq = pyst.dsp.get_dom_freq(section_power)
-        f = pyst.dsp.get_dom_freq(section_power)
+            min_freq = pyso.dsp.get_dom_freq(section_power)
+        f = pyso.dsp.get_dom_freq(section_power)
         if f < min_freq:
             min_freq = f
         
         if min_sfm is None and frame == 0:
-            min_sfm = pyst.dsp.spectral_flatness_measure(section_fft)
-        sfm = pyst.dsp.spectral_flatness_measure(section_power)
+            min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
+        sfm = pyso.dsp.spectral_flatness_measure(section_power)
         if sfm < min_sfm:
             min_sfm = sfm         
         # decide if speech or silence 
@@ -2482,14 +2482,14 @@ def f0_approximation(sound, sr, low_freq = 50, high_freq = 300, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyst.loadsound(sound, sr=sr)
+        data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
-    stft = pyst.dsp.get_vad_stft(data, sr=sr, **kwargs)
+    stft = pyso.dsp.get_vad_stft(data, sr=sr, **kwargs)
     stft = stft[:,low_freq:high_freq]
     power = np.abs(stft)**2
     dom_f = []
     for row in power:
-        dom_f.append(pyst.dsp.get_dom_freq(row))
+        dom_f.append(pyso.dsp.get_dom_freq(row))
     return np.mean(dom_f)
     
 

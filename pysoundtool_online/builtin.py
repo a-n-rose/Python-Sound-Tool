@@ -19,8 +19,8 @@ currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
-import pysoundtool_online as pyst
-import pysoundtool_online.models as pystmodels
+import pysoundtool_online as pyso
+import pysoundtool_online.models as pysodl
 
 
 def filtersignal(audiofile, 
@@ -135,7 +135,7 @@ def filtersignal(audiofile,
             warnings.warn('\n\nWARNING: sample rate 22050 may have some '+\
                 'missing frames within the filtered signal. \nIf possible, '+\
                     'perhaps use 8000, 16000, 41000, or 48000 sample rate instead.\n')
-        fil = pyst.WienerFilter(sr = sr, **kwargs)
+        fil = pyso.WienerFilter(sr = sr, **kwargs)
     elif 'band' in filter_type:
         # at this point, band spectral subtraction only works with 
         if sr != 48000:
@@ -143,18 +143,18 @@ def filtersignal(audiofile,
             warnings.warn('\n\nWARNING: Band spectral subtraciton requires a sample rate'+\
                 ' of 48 kHz. Sample rate adjusted from {} to 48000.\n'.format(sr))
             sr = 48000
-        fil = pyst.BandSubtraction(sr=48000,
+        fil = pyso.BandSubtraction(sr=48000,
                                    **kwargs)
     if visualize:
         frame_subtitle = 'frame size {}ms, window shift {}ms'.format(fil.frame_dur, int(fil.percent_overlap*fil.frame_dur))
 
     # load signal (to be filtered)
     if not isinstance(audiofile, np.ndarray):
-        samples_orig, sr = pyst.loadsound(audiofile, fil.sr, dur_sec=None, use_scipy=use_scipy)
+        samples_orig, sr = pyso.loadsound(audiofile, fil.sr, dur_sec=None, use_scipy=use_scipy)
     else:
         samples_orig, sr = audiofile, sr
     if sr != fil.sr:
-        samples_orig, sr = pyst.dsp.resample_audio(samples_orig, 
+        samples_orig, sr = pyso.dsp.resample_audio(samples_orig, 
                                                    sr_original = sr, 
                                                    sr_desired = fil.sr)
     assert fil.sr == sr
@@ -172,7 +172,7 @@ def filtersignal(audiofile,
             # tuple must contain samples and sampling rate
             samples_noise, sr_noise = noise_file
             if sr_noise != fil.sr:
-                samples_noise, sr_noise = pyst.dsp.resample_audio(samples_noise,
+                samples_noise, sr_noise = pyso.dsp.resample_audio(samples_noise,
                                                                   sr_noise,
                                                                   fil.sr)
                 assert sr_noise == fil.sr
@@ -196,7 +196,7 @@ def filtersignal(audiofile,
                     dur_sec = duration_noise_ms/1000
                 else:
                     dur_sec = None
-                samples_noise, sr_noise = pyst.loadsound(noise_file, 
+                samples_noise, sr_noise = pyso.loadsound(noise_file, 
                                                          fil.sr, 
                                                          dur_sec=dur_sec,
                                                          use_scipy=use_scipy)
@@ -209,7 +209,7 @@ def filtersignal(audiofile,
                             '\n\nDid not expect {} as input.'.format(noise_file))
 
     else:
-        starting_noise_len = pyst.dsp.calc_frame_length(fil.sr, 
+        starting_noise_len = pyso.dsp.calc_frame_length(fil.sr, 
                                                          duration_noise_ms)
         samples_noise = samples_orig[:starting_noise_len]
     # if noise samples have been collected...
@@ -218,8 +218,8 @@ def filtersignal(audiofile,
         # set how many subframes are needed to process entire noise signal
         fil.set_num_subframes(len(samples_noise), is_noise=True, zeropad=fil.zeropad)
     if visualize:
-        pyst.feats.plot(samples_orig, 'signal', title='Signal to filter'.upper(),sr = fil.sr)
-        pyst.feats.plot(samples_noise, 'signal', title= 'Noise samples to filter out'.upper(), sr=fil.sr)
+        pyso.feats.plot(samples_orig, 'signal', title='Signal to filter'.upper(),sr = fil.sr)
+        pyso.feats.plot(samples_noise, 'signal', title= 'Noise samples to filter out'.upper(), sr=fil.sr)
     # prepare noise power matrix (if it's not loaded already)
     if fil.noise_subframes:
         if real_signal:
@@ -227,29 +227,29 @@ def filtersignal(audiofile,
             total_rows = fil.num_fft_bins//2+1
         else:
             total_rows = fil.num_fft_bins
-        noise_power = pyst.dsp.create_empty_matrix((total_rows,))
+        noise_power = pyso.dsp.create_empty_matrix((total_rows,))
         section = 0
         for frame in range(fil.noise_subframes):
             noise_section = samples_noise[section:section+fil.frame_length]
-            noise_w_win = pyst.dsp.apply_window(noise_section, fil.get_window(),
+            noise_w_win = pyso.dsp.apply_window(noise_section, fil.get_window(),
                                                 zeropad=fil.zeropad)
-            noise_fft = pyst.dsp.calc_fft(noise_w_win, real_signal=real_signal)
-            noise_power_frame = pyst.dsp.calc_power(noise_fft)
+            noise_fft = pyso.dsp.calc_fft(noise_w_win, real_signal=real_signal)
+            noise_power_frame = pyso.dsp.calc_power(noise_fft)
             noise_power += noise_power_frame
             section += fil.overlap_length
         # welch's method: take average of power that has been collected
         # in windows
-        noise_power = pyst.dsp.calc_average_power(noise_power, 
+        noise_power = pyso.dsp.calc_average_power(noise_power, 
                                                    fil.noise_subframes)
         assert section == fil.noise_subframes * fil.overlap_length
     if visualize:
-        pyst.feats.plot(noise_power, 'stft',title='Average noise power spectrum'.upper()+'\n{}'.format(frame_subtitle), energy_scale='power_to_db',
+        pyso.feats.plot(noise_power, 'stft',title='Average noise power spectrum'.upper()+'\n{}'.format(frame_subtitle), energy_scale='power_to_db',
                              sr = fil.sr)
     
     # prepare target power matrix
     increment_length = int(fil.frame_length * fil.percent_overlap)
     total_rows =  increment_length + increment_length * fil.target_subframes
-    filtered_sig = pyst.dsp.create_empty_matrix(
+    filtered_sig = pyso.dsp.create_empty_matrix(
         (total_rows,), complex_vals=True)
     section = 0
     row = 0
@@ -261,18 +261,18 @@ def filtersignal(audiofile,
     try:
         for frame in range(fil.target_subframes):
             target_section = samples_orig[section:section+fil.frame_length]
-            target_w_window = pyst.dsp.apply_window(target_section,
+            target_w_window = pyso.dsp.apply_window(target_section,
                                                     fil.get_window(), 
                                                     zeropad=fil.zeropad)
             if visualize and frame % visualize_every_n_windows == 0:
-                pyst.feats.plot(target_section,'signal', title='Signal'.upper()+' \nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
-                pyst.feats.plot(target_w_window,'signal', title='Signal with {} window'.format(fil.window_type).upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
-            target_fft = pyst.dsp.calc_fft(target_w_window, real_signal=real_signal)
-            target_power = pyst.dsp.calc_power(target_fft)
+                pyso.feats.plot(target_section,'signal', title='Signal'.upper()+' \nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
+                pyso.feats.plot(target_w_window,'signal', title='Signal with {} window'.format(fil.window_type).upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle),sr = fil.sr)
+            target_fft = pyso.dsp.calc_fft(target_w_window, real_signal=real_signal)
+            target_power = pyso.dsp.calc_power(target_fft)
             # now start filtering!!
             # initialize SNR matrix
             if visualize and frame % visualize_every_n_windows == 0:
-                pyst.feats.plot(target_power,'stft', title='Signal power spectrum'.upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle), energy_scale='power_to_db', sr = fil.sr)
+                pyso.feats.plot(target_power,'stft', title='Signal power spectrum'.upper()+'\nframe {}: {}'.format( frame+1,frame_subtitle), energy_scale='power_to_db', sr = fil.sr)
             if 'wiener' in filter_type:
                 enhanced_fft = fil.apply_wienerfilter(frame, 
                                                        target_fft, 
@@ -283,7 +283,7 @@ def filtersignal(audiofile,
                                                         target_fft,
                                                         target_power)
             elif 'band' in filter_type:
-                target_phase = pyst.dsp.calc_phase(target_fft, 
+                target_phase = pyso.dsp.calc_phase(target_fft, 
                                                    radians=phase_radians)
                 enhanced_fft = fil.apply_bandspecsub(target_power, 
                                                       target_phase, 
@@ -294,7 +294,7 @@ def filtersignal(audiofile,
                                                         target_power,
                                                         noise_power)
             
-            enhanced_ifft = pyst.dsp.calc_ifft(enhanced_fft, 
+            enhanced_ifft = pyso.dsp.calc_ifft(enhanced_fft, 
                                                real_signal=real_signal)
             try:
                 filtered_sig[row:row+fil.frame_length] += enhanced_ifft
@@ -308,7 +308,7 @@ def filtersignal(audiofile,
                     diff = fil.frame_length - len(enhanced_ifft)
                     filtered_sig[row:row+fil.frame_length-diff] += enhanced_ifft
             if visualize and frame % visualize_every_n_windows == 0:
-                pyst.feats.plot(filtered_sig,'signal', title='Filtered signal'.upper()+'\nup to frame {}: {}'.format(frame+1,frame_subtitle), sr = fil.sr)
+                pyso.feats.plot(filtered_sig,'signal', title='Filtered signal'.upper()+'\nup to frame {}: {}'.format(frame+1,frame_subtitle), sr = fil.sr)
             row += fil.overlap_length
             section += fil.overlap_length
     except ValueError as e:
@@ -320,31 +320,31 @@ def filtersignal(audiofile,
     if visualize:
         rows = len(filtered_sig)//increment_length
         cols = increment_length
-        pyst.feats.plot(np.abs(filtered_sig.reshape((
+        pyso.feats.plot(np.abs(filtered_sig.reshape((
                 rows,cols,)))**2,
             'stft', title='Final filtered signal power spectrum'.upper()+'\n{}: {}'.format(filter_type,frame_subtitle), energy_scale='power_to_db')
-        pyst.feats.plot(enhanced_signal,'signal', title='Final filtered signal'.upper()+'\n{}'.format(filter_type), sr = fil.sr)
+        pyso.feats.plot(enhanced_signal,'signal', title='Final filtered signal'.upper()+'\n{}'.format(filter_type), sr = fil.sr)
     enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
     # for backwards compatibility
     if output_filename is not None or save2wav:
         if output_filename is None:
-            output_filename = pyst.utils.get_date()+'.wav'
-        saved_filename = pyst.savesound(str(output_filename), 
+            output_filename = pyso.utils.get_date()+'.wav'
+        saved_filename = pyso.savesound(str(output_filename), 
                                         enhanced_signal,
                                         sr=fil.sr,
                                         overwrite=overwrite)
     return enhanced_signal, fil.sr
 
 def dataset_logger(audiofile_dir = None, recursive=True):
-    raise pyst.VersionError()
+    raise pyso.VersionError()
   
   
 def dataset_formatter(audiodirectory=None, recursive=False, new_dir=None, sr=None, dur_sec=None,
                       zeropad=False, format='WAV', bitdepth=None, overwrite=False, 
                       mono=False):
-    raise pyst.VersionError()
+    raise pyso.VersionError()
  
 
 # TODO speed this up, e.g. preload noise data?
@@ -403,9 +403,9 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
 
     # check to ensure clean and noisy data are there
     # and turn them into pathlib.PosixPath objects:
-    cleandata_dir = pyst.utils.check_dir(cleandata_dir, make=False)
-    noisedata_dir = pyst.utils.check_dir(noisedata_dir, make=False)
-    trainingdata_dir = pyst.utils.string2pathlib(trainingdata_dir)
+    cleandata_dir = pyso.utils.check_dir(cleandata_dir, make=False)
+    noisedata_dir = pyso.utils.check_dir(noisedata_dir, make=False)
+    trainingdata_dir = pyso.utils.string2pathlib(trainingdata_dir)
     
     cleandata_folder = 'clean'
     noisedata_folder = 'noisy'
@@ -419,9 +419,9 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
     # See if databases already exist:
     if not overwrite:
         try:
-            newdata_clean_dir = pyst.utils.check_dir(newdata_clean_dir, make=False,
+            newdata_clean_dir = pyso.utils.check_dir(newdata_clean_dir, make=False,
                                                      append = False)
-            newdata_noisy_dir = pyst.utils.check_dir(newdata_noisy_dir, make=False,
+            newdata_noisy_dir = pyso.utils.check_dir(newdata_noisy_dir, make=False,
                                                      append = False)
         except FileExistsError:
             raise FileExistsError('Datasets already exist at this location. Set '+\
@@ -430,15 +430,15 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
             pass
     
     # create directory to save new data (if not exist)
-    newdata_clean_dir = pyst.utils.check_dir(newdata_clean_dir, make = True)
-    newdata_noisy_dir = pyst.utils.check_dir(newdata_noisy_dir, make = True)
+    newdata_clean_dir = pyso.utils.check_dir(newdata_clean_dir, make = True)
+    newdata_noisy_dir = pyso.utils.check_dir(newdata_noisy_dir, make = True)
    
     # collect audiofiles (not limited to .wav files)
-    cleanaudio = sorted(pyst.files.collect_audiofiles(cleandata_dir,
+    cleanaudio = sorted(pyso.files.collect_audiofiles(cleandata_dir,
                                                       hidden_files = False,
                                                       wav_only = False,
                                                       recursive = False))
-    noiseaudio = sorted(pyst.files.collect_audiofiles(noisedata_dir,
+    noiseaudio = sorted(pyso.files.collect_audiofiles(noisedata_dir,
                                                       hidden_files = False,
                                                       wav_only = False,
                                                       recursive = False))
@@ -456,7 +456,7 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
             snr_levels = list(snr_levels)
     
     for i, wavefile in enumerate(cleanaudio):
-        pyst.utils.print_progress(iteration=i, 
+        pyso.utils.print_progress(iteration=i, 
                     total_iterations=len(cleanaudio),
                     task='clean and noisy audio data generation')
         # no random seed applied here:
@@ -469,9 +469,9 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
         clean_stem = wavefile.stem
         noise_stem = noise.stem
         # load clean data to get duration
-        clean_data, sr = pyst.loadsound(wavefile, **kwargs)
+        clean_data, sr = pyso.loadsound(wavefile, **kwargs)
         clean_seconds = len(clean_data)/sr
-        noisy_data, sr, snr_appx = pyst.dsp.add_backgroundsound(audio_main = wavefile, 
+        noisy_data, sr, snr_appx = pyso.dsp.add_backgroundsound(audio_main = wavefile, 
                                                       audio_background = noise, 
                                                       snr = snr, 
                                                       delay_mainsound_sec=delay_mainsound_sec, 
@@ -486,7 +486,7 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
         write(cleandata_filename, sr, clean_data)
 
     end = time.time()
-    total_time, units = pyst.utils.adjust_time_units(end-start)
+    total_time, units = pyso.utils.adjust_time_units(end-start)
     print('Data creation took a total of {} {}.'.format(
         round(total_time,2), 
         units))
@@ -548,19 +548,19 @@ def envclassifier_feats(
     if 'signal' in feature_type:
         raise ValueError('Feature type "signal" is not yet supported for this model.')
 
-    feat_extraction_dir = 'features_'+ feature_type + '_' + pyst.utils.get_date()
+    feat_extraction_dir = 'features_'+ feature_type + '_' + pyso.utils.get_date()
 
     # collect labels 
     labels = []
-    data_dir = pyst.utils.string2pathlib(data_dir)
+    data_dir = pyso.utils.string2pathlib(data_dir)
     for label in data_dir.glob('*/'):
         labels.append(label.stem)
     labels = set(labels)
 
     # create paths for what we need to save:
-    data_features_dir = pyst.utils.check_dir(data_features_dir)
+    data_features_dir = pyso.utils.check_dir(data_features_dir)
     feat_extraction_dir = data_features_dir.joinpath(feat_extraction_dir)
-    feat_extraction_dir = pyst.utils.check_dir(feat_extraction_dir, make=True)
+    feat_extraction_dir = pyso.utils.check_dir(feat_extraction_dir, make=True)
 
     # dictionaries containing encoding and decoding labels:
     dict_encode_path = feat_extraction_dir.joinpath('dict_encode.csv')
@@ -577,28 +577,28 @@ def envclassifier_feats(
                                                                         feature_type))
 
     # create and save encoding/decoding labels dicts
-    dict_encode, dict_decode = pyst.datasets.create_dicts_labelsencoded(labels)
-    dict_encode_path = pyst.utils.save_dict(
+    dict_encode, dict_decode = pyso.datasets.create_dicts_labelsencoded(labels)
+    dict_encode_path = pyso.utils.save_dict(
         filename = dict_encode_path,
         dict2save = dict_encode, 
         overwrite=False)
-    dict_decode_path = pyst.utils.save_dict(
+    dict_decode_path = pyso.utils.save_dict(
         filename = dict_decode_path,
         dict2save = dict_encode, 
         overwrite=False)
 
     # save audio paths to each label in dict 
-    paths_list = pyst.files.collect_audiofiles(data_dir, recursive=True)
+    paths_list = pyso.files.collect_audiofiles(data_dir, recursive=True)
     paths_list = sorted(paths_list)
 
-    dict_encodedlabel2audio = pyst.datasets.create_encodedlabel2audio_dict(dict_encode,
+    dict_encodedlabel2audio = pyso.datasets.create_encodedlabel2audio_dict(dict_encode,
                                                         paths_list)
-    dict_encdodedlabel2audio_path = pyst.utils.save_dict(
+    dict_encdodedlabel2audio_path = pyso.utils.save_dict(
         dict2save = dict_encodedlabel2audio, 
         filename = dict_encdodedlabel2audio_path, 
         overwrite=False)
     # assign audiofiles into train, validation, and test datasets
-    train, val, test = pyst.datasets.audio2datasets(dict_encdodedlabel2audio_path,
+    train, val, test = pyso.datasets.audio2datasets(dict_encdodedlabel2audio_path,
                                                 perc_train=perc_train,
                                                 limit=None,
                                                 seed=40)
@@ -606,7 +606,7 @@ def envclassifier_feats(
     # save audiofiles for each dataset to dict and save
     dataset_dict = dict([('train',train),('val', val),('test',test)])
     dataset_dict_path = feat_extraction_dir.joinpath('dataset_audiofiles.csv')
-    dataset_dict_path = pyst.utils.save_dict(
+    dataset_dict_path = pyso.utils.save_dict(
         dict2save = dataset_dict, 
         filename = dataset_dict_path, 
         overwrite=True)
@@ -619,7 +619,7 @@ def envclassifier_feats(
 
     start = time.time()
 
-    dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
+    dataset_dict, datasets_path2save_dict = pyso.feats.save_features_datasets(
         datasets_dict = dataset_dict,
         datasets_path2save_dict = datasets_path2save_dict,
         labeled_data = True,
@@ -630,7 +630,7 @@ def envclassifier_feats(
     end = time.time()
     
     total_dur_sec = end-start
-    total_dur, units = pyst.utils.adjust_time_units(total_dur_sec)
+    total_dur, units = pyso.utils.adjust_time_units(total_dur_sec)
     print('\nFinished! Total duration: {} {}.'.format(round(total_dur,2), units))
 
     # save which audiofiles were extracted for each dataset
@@ -639,7 +639,7 @@ def envclassifier_feats(
     dataprep_settings = dict(dataset_dict=dataset_dict,
                             datasets_path2save_dict=datasets_path2save_dict,
                             total_dur_sec = total_dur_sec)
-    dataprep_settings_path = pyst.utils.save_dict(
+    dataprep_settings_path = pyso.utils.save_dict(
         dict2save = dataprep_settings,
         filename = feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
     
@@ -717,16 +717,16 @@ def denoiser_feats(
         feature_type = 'fbank'
     
     # create unique directory for feature extraction session:
-    feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
+    feat_extraction_dir = 'features_'+feature_type + '_' + pyso.utils.get_date()
 
     # 1) Ensure clean and noisy data directories exist
-    audio_clean_path = pyst.utils.check_dir(data_clean_dir, make=False)
-    audio_noisy_path = pyst.utils.check_dir(data_noisy_dir, make=False)
+    audio_clean_path = pyso.utils.check_dir(data_clean_dir, make=False)
+    audio_noisy_path = pyso.utils.check_dir(data_noisy_dir, make=False)
 
     # 2) create paths for what we need to save:
-    denoise_data_path = pyst.utils.check_dir(data_features_dir, make=True)
+    denoise_data_path = pyso.utils.check_dir(data_features_dir, make=True)
     feat_extraction_dir = denoise_data_path.joinpath(feat_extraction_dir)
-    feat_extraction_dir = pyst.utils.check_dir(feat_extraction_dir, make=True)
+    feat_extraction_dir = pyso.utils.check_dir(feat_extraction_dir, make=True)
     # Noisy and clean train, val, and test data paths:
     data_train_noisy_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('train',
                                                                             'noisy',
@@ -749,7 +749,7 @@ def denoiser_feats(
 
     # 3) collect audiofiles and divide them into train, val, and test datasets
     # noisy data
-    noisyaudio = pyst.files.collect_audiofiles(audio_noisy_path, 
+    noisyaudio = pyso.files.collect_audiofiles(audio_noisy_path, 
                                                     hidden_files = False,
                                                     wav_only = False,
                                                     recursive = False)
@@ -759,7 +759,7 @@ def denoiser_feats(
         noisyaudio =  noisyaudio[:limit]
 
     # clean data
-    cleanaudio = pyst.files.collect_audiofiles(audio_clean_path, 
+    cleanaudio = pyso.files.collect_audiofiles(audio_clean_path, 
                                                     hidden_files = False,
                                                     wav_only = False,
                                                     recursive = False)
@@ -770,7 +770,7 @@ def denoiser_feats(
 
     # check if they match up: (expects clean file name to be in noisy file name)
     for i, audiofile in enumerate(noisyaudio):
-        if not pyst.utils.check_noisy_clean_match(audiofile, cleanaudio[i]):
+        if not pyso.utils.check_noisy_clean_match(audiofile, cleanaudio[i]):
             raise ValueError('The noisy and clean audio datasets do not appear to match.')
 
     # save collected audiofiles for noisy and clean datasets to dictionary
@@ -778,19 +778,19 @@ def denoiser_feats(
     clean_audio_dict = dict([('clean', cleanaudio)])
     
     noisy_audio_dict_path = feat_extraction_dir.joinpath('noisy_audio.csv')
-    noisy_audio_dict_path = pyst.utils.save_dict(
+    noisy_audio_dict_path = pyso.utils.save_dict(
         dict2save = noisy_audio_dict, 
         filename = noisy_audio_dict_path,
         overwrite=False)
     clean_audio_dict_path = feat_extraction_dir.joinpath('clean_audio.csv')
-    clean_audio_dict_path = pyst.utils.save_dict(
+    clean_audio_dict_path = pyso.utils.save_dict(
         dict2save = clean_audio_dict, 
         filename = clean_audio_dict_path,
         overwrite=False)
     # separate into datasets
-    train_noisy, val_noisy, test_noisy = pyst.datasets.audio2datasets(
+    train_noisy, val_noisy, test_noisy = pyso.datasets.audio2datasets(
         noisy_audio_dict_path, perc_train = perc_train, seed=40)
-    train_clean, val_clean, test_clean = pyst.datasets.audio2datasets(
+    train_clean, val_clean, test_clean = pyso.datasets.audio2datasets(
         clean_audio_dict_path,
         perc_train = perc_train,
         seed=40)
@@ -811,11 +811,11 @@ def denoiser_feats(
     path2_clean_datasets = feat_extraction_dir.joinpath('audiofiles_datasets_clean.csv')
 
     # save dicts to .csv files
-    path2_noisy_datasets = pyst.utils.save_dict(
+    path2_noisy_datasets = pyso.utils.save_dict(
         dict2save = dataset_dict_noisy,
         filename = path2_noisy_datasets,
         overwrite=False)
-    path2_clean_datasets = pyst.utils.save_dict(
+    path2_clean_datasets = pyso.utils.save_dict(
         dict2save = dataset_dict_clean,
         filename = path2_clean_datasets,
         overwrite=False)
@@ -825,7 +825,7 @@ def denoiser_feats(
     # ensure the noisy and clean values match up:
     for key, value in dataset_dict_noisy.items():
         for j, audiofile in enumerate(value):
-            if not pyst.utils.check_noisy_clean_match(audiofile,
+            if not pyso.utils.check_noisy_clean_match(audiofile,
                                                     dataset_dict_clean[key][j]):
                 raise ValueError('There is a mismatch between noisy and clean audio. '+\
                     '\nThe noisy file:\n{}'.format(dataset_dict_noisy[key][i])+\
@@ -834,7 +834,7 @@ def denoiser_feats(
     start = time.time()
 
     # first clean data
-    dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets(
+    dataset_dict_clean, dataset_paths_clean_dict = pyso.feats.save_features_datasets(
         datasets_dict = dataset_dict_clean,
         datasets_path2save_dict = dataset_paths_clean_dict,
         feature_type = feature_type + ' clean',
@@ -843,7 +843,7 @@ def denoiser_feats(
         **kwargs)
         
     # then noisy data
-    dataset_dict_noisy, dataset_paths_noisy_dict = pyst.feats.save_features_datasets(
+    dataset_dict_noisy, dataset_paths_noisy_dict = pyso.feats.save_features_datasets(
         datasets_dict = dataset_dict_noisy,
         datasets_path2save_dict = dataset_paths_noisy_dict,
         feature_type = feature_type + ' noisy',
@@ -854,7 +854,7 @@ def denoiser_feats(
     end = time.time()
 
     total_dur_sec = round(end-start,2)
-    total_dur, units = pyst.utils.adjust_time_units(total_dur_sec)
+    total_dur, units = pyso.utils.adjust_time_units(total_dur_sec)
     print('\nFinished! Total duration: {} {}.'.format(total_dur, units))
     # save which audiofiles were extracted for each dataset
     # save where extracted data were saved
@@ -864,7 +864,7 @@ def denoiser_feats(
                             dataset_dict_clean = dataset_dict_clean,
                             dataset_paths_clean_dict = dataset_paths_clean_dict,
                             total_dur_sec = total_dur_sec)
-    dataprep_settings_path = pyst.utils.save_dict(
+    dataprep_settings_path = pyso.utils.save_dict(
         dict2save = dataprep_settings,
         filename = feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
     return feat_extraction_dir
@@ -935,29 +935,29 @@ def denoiser_train(feature_extraction_dir,
     pysoundtool.models.template_models.autoencoder_denoise
         Template model architecture for basic autoencoder denoiser.
     '''
-    dataset_path = pyst.utils.check_dir(feature_extraction_dir, make=False)
+    dataset_path = pyso.utils.check_dir(feature_extraction_dir, make=False)
     
     # designate where to save model and related files
     if feature_type:
-        model_name += '_'+feature_type + '_' + pyst.utils.get_date() 
+        model_name += '_'+feature_type + '_' + pyso.utils.get_date() 
     else:
-        model_name += '_' + pyst.utils.get_date() 
+        model_name += '_' + pyso.utils.get_date() 
     model_dir = dataset_path.joinpath(model_name)
-    model_dir = pyst.utils.check_dir(model_dir, make=True)
+    model_dir = pyso.utils.check_dir(model_dir, make=True)
     model_name += '.h5'
     model_path = model_dir.joinpath(model_name)
     
     # prepare features files to load for training
     features_files = list(dataset_path.glob('*.npy'))
     # NamedTuple: 'datasets.train.noisy', 'datasets.train.clean', etc.
-    datasets = pyst.datasets.separate_train_val_test_files(
+    datasets = pyso.datasets.separate_train_val_test_files(
         features_files)
     
     # TODO test this:
     if not datasets.train:
         # perhaps data files located in subdirectories 
         features_files = list(dataset_path.glob('**/*.npy'))
-        datasets = pyst.datasets.separate_train_val_test_files(
+        datasets = pyso.datasets.separate_train_val_test_files(
             features_files)
         if not datasets.train:
             raise FileNotFoundError('Could not locate train, validation, or test '+\
@@ -989,13 +989,13 @@ def denoiser_train(feature_extraction_dir,
 
     
     # setup model 
-    denoiser, settings_dict = pystmodels.autoencoder_denoise(
+    denoiser, settings_dict = pysodl.autoencoder_denoise(
         input_shape = input_shape)
     
     # create callbacks variable if not in kwargs
     # allow users to use different callbacks if desired
     if 'callbacks' not in kwargs:
-        callbacks = pystmodels.setup_callbacks(patience = patience,
+        callbacks = pysodl.setup_callbacks(patience = patience,
                                                 best_modelname = model_path, 
                                                 log_filename = model_dir.joinpath('log.csv'))
     adm = keras.optimizers.Adam(learning_rate=0.0001)
@@ -1005,12 +1005,12 @@ def denoiser_train(feature_extraction_dir,
     # save variables that are not too large:
     local_variables = locals()
     global_variables = globals()
-    pyst.utils.save_dict(
+    pyso.utils.save_dict(
         dict2save = local_variables, 
         filename = model_dir.joinpath('local_variables_{}.csv'.format(
                             model_name)),
                         overwrite=True)
-    pyst.utils.save_dict(
+    pyso.utils.save_dict(
         dict2save = global_variables,
         filename = model_dir.joinpath('global_variables_{}.csv'.format(
                             model_name)),
@@ -1050,7 +1050,7 @@ def denoiser_train(feature_extraction_dir,
         # TODO test for when callbacks already in **kwargs
         if i > 0: 
             if 'callbacks' not in kwargs:
-                callbacks = pystmodels.setup_callbacks(patience = patience,
+                callbacks = pysodl.setup_callbacks(patience = patience,
                                                         best_modelname = model_path, 
                                                         log_filename = model_dir.joinpath('log.csv'))
             #else:
@@ -1058,11 +1058,11 @@ def denoiser_train(feature_extraction_dir,
                 #callbacks = kwargs['callbacks']
 
         if use_generator:
-            train_generator = pystmodels.Generator(data_matrix1 = data_train_noisy, 
+            train_generator = pysodl.Generator(data_matrix1 = data_train_noisy, 
                                                     data_matrix2 = data_train_clean,
                                                     normalized = normalized,
                                                     add_tensor_last = True)
-            val_generator = pystmodels.Generator(data_matrix1 = data_val_noisy,
+            val_generator = pysodl.Generator(data_matrix1 = data_val_noisy,
                                                 data_matrix2 = data_val_clean,
                                                 normalized = normalized,
                                                 add_tensor_last = True)
@@ -1089,10 +1089,10 @@ def denoiser_train(feature_extraction_dir,
             val_shape = (data_val_noisy.shape[0]*data_val_noisy.shape[1],)+ data_val_noisy.shape[2:] + (1,)
             
             if not normalized:
-                data_train_noisy = pyst.feats.normalize(data_train_noisy)
-                data_train_clean = pyst.feats.normalize(data_train_clean)
-                data_val_noisy = pyst.feats.normalize(data_val_noisy)
-                data_val_clean = pyst.feats.normalize(data_val_clean)
+                data_train_noisy = pyso.feats.normalize(data_train_noisy)
+                data_train_clean = pyso.feats.normalize(data_train_clean)
+                data_val_noisy = pyso.feats.normalize(data_val_noisy)
+                data_val_clean = pyso.feats.normalize(data_val_clean)
                 
             X_train = data_train_noisy.reshape(train_shape)
             y_train = data_train_clean.reshape(train_shape)
@@ -1123,7 +1123,7 @@ def denoiser_train(feature_extraction_dir,
 
         model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
             model_name, i))
-        model_features_dict_path = pyst.utils.save_dict(
+        model_features_dict_path = pyso.utils.save_dict(
             dict2save = model_features_dict,
             filename = model_features_dict_path)
     print('\nFinished training the model. The model and associated files can be '+\
@@ -1208,29 +1208,29 @@ def envclassifier_train(feature_extraction_dir,
     if feature_extraction_dir is None:
         feature_extraction_dir = './audiodata/example_feats_models/envclassifier/'+\
             'features_fbank_6m20d0h18m11s123ms/'
-    dataset_path = pyst.utils.check_dir(feature_extraction_dir, make=False)
+    dataset_path = pyso.utils.check_dir(feature_extraction_dir, make=False)
     
     # designate where to save model and related files
     if feature_type:
-        model_name += '_'+feature_type + '_' + pyst.utils.get_date() 
+        model_name += '_'+feature_type + '_' + pyso.utils.get_date() 
     else:
-        model_name += '_' + pyst.utils.get_date() 
+        model_name += '_' + pyso.utils.get_date() 
     model_dir = dataset_path.joinpath(model_name)
-    model_dir = pyst.utils.check_dir(model_dir, make=True)
+    model_dir = pyso.utils.check_dir(model_dir, make=True)
     model_name += '.h5'
     model_path = model_dir.joinpath(model_name)
     
     # prepare features files to load for training
     features_files = list(dataset_path.glob('*.npy'))
     # NamedTuple: 'datasets.train', 'datasets.val', 'datasets.test'
-    datasets = pyst.datasets.separate_train_val_test_files(
+    datasets = pyso.datasets.separate_train_val_test_files(
         features_files)
     
     # TODO test
     if not datasets.train:
         # perhaps data files located in subdirectories 
         features_files = list(dataset_path.glob('**/*.npy'))
-        datasets = pyst.datasets.separate_train_val_test_files(
+        datasets = pyso.datasets.separate_train_val_test_files(
             features_files)
         if not datasets.train:
             raise FileNotFoundError('Could not locate train, validation, or test '+\
@@ -1246,7 +1246,7 @@ def envclassifier_train(feature_extraction_dir,
     dict_decode_path = dataset_path.joinpath('dict_decode.csv')
     if not os.path.exists(dict_decode_path):
         raise FileNotFoundError('Could not find {}.'.format(dict_decode_path))
-    dict_decode = pyst.utils.load_dict(dict_decode_path)
+    dict_decode = pyso.utils.load_dict(dict_decode_path)
     num_labels = len(dict_decode)
     
     # load smaller dataset to determine input size:
@@ -1258,14 +1258,14 @@ def envclassifier_train(feature_extraction_dir,
     del data_val
     
     # setup model 
-    envclassifier, settings_dict = pystmodels.cnn_classifier(
+    envclassifier, settings_dict = pysodl.cnn_classifier(
         input_shape = input_shape,
         num_labels = num_labels)
     
     # create callbacks variable if not in kwargs
     # allow users to use different callbacks if desired
     if 'callbacks' not in kwargs:
-        callbacks = pystmodels.setup_callbacks(patience = patience,
+        callbacks = pysodl.setup_callbacks(patience = patience,
                                                 best_modelname = model_path, 
                                                 log_filename = model_dir.joinpath('log.csv'))
     optimizer = 'adam'
@@ -1279,12 +1279,12 @@ def envclassifier_train(feature_extraction_dir,
     # save variables that are not too large:
     local_variables = locals()
     global_variables = globals()
-    pyst.utils.save_dict(
+    pyso.utils.save_dict(
         dict2save = local_variables, 
         filename = model_dir.joinpath('local_variables_{}.csv'.format(
                             model_name)),
         overwrite=True)
-    pyst.utils.save_dict(
+    pyso.utils.save_dict(
         dict2save = global_variables,
         filename = model_dir.joinpath('global_variables_{}.csv'.format(
                             model_name)),
@@ -1321,7 +1321,7 @@ def envclassifier_train(feature_extraction_dir,
         # reinitiate 'callbacks' for additional iterations
         if i > 0: 
             if 'callbacks' not in kwargs:
-                callbacks = pystmodels.setup_callbacks(patience = patience,
+                callbacks = pysodl.setup_callbacks(patience = patience,
                                                         best_modelname = model_path, 
                                                         log_filename = model_dir.joinpath('log.csv'))
             else:
@@ -1329,15 +1329,15 @@ def envclassifier_train(feature_extraction_dir,
                 callbacks = kwargs['callbacks']
 
         if use_generator:
-            train_generator = pystmodels.Generator(data_matrix1 = data_train, 
+            train_generator = pysodl.Generator(data_matrix1 = data_train, 
                                                     data_matrix2 = None,
                                                     normalized = normalized,
                                                     add_tensor_last = add_tensor_last)
-            val_generator = pystmodels.Generator(data_matrix1 = data_val,
+            val_generator = pysodl.Generator(data_matrix1 = data_val,
                                                 data_matrix2 = None,
                                                 normalized = normalized,
                                                     add_tensor_last = add_tensor_last)
-            test_generator = pystmodels.Generator(data_matrix1 = data_test,
+            test_generator = pysodl.Generator(data_matrix1 = data_test,
                                                   data_matrix2 = None,
                                                   normalized = normalized,
                                                     add_tensor_last = add_tensor_last)
@@ -1355,7 +1355,7 @@ def envclassifier_train(feature_extraction_dir,
             
             # TODO test how well prediction works. use simple predict instead?
             # need to define `y_test`
-            X_test, y_test = pyst.feats.separate_dependent_var(data_test)
+            X_test, y_test = pyso.feats.separate_dependent_var(data_test)
             y_predicted = envclassifier.predict_generator(
                 test_generator.generator(),
                 steps = data_test.shape[0])
@@ -1363,12 +1363,12 @@ def envclassifier_train(feature_extraction_dir,
         else:
             # TODO make scaling data optional?
             # data is separated and shaped for this classifier in scale_X_y..
-            X_train, y_train, scalars = pyst.feats.scale_X_y(data_train,
+            X_train, y_train, scalars = pyso.feats.scale_X_y(data_train,
                                                                 is_train=True)
-            X_val, y_val, __ = pyst.feats.scale_X_y(data_val,
+            X_val, y_val, __ = pyso.feats.scale_X_y(data_val,
                                                     is_train=False, 
                                                     scalars=scalars)
-            X_test, y_test, __ = pyst.feats.scale_X_y(data_test,
+            X_test, y_test, __ = pyso.feats.scale_X_y(data_test,
                                                         is_train=False, 
                                                         scalars=scalars)
             
@@ -1418,7 +1418,7 @@ def envclassifier_train(feature_extraction_dir,
 
         model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
             model_name, i))
-        model_features_dict_path = pyst.utils.save_dict(
+        model_features_dict_path = pyso.utils.save_dict(
             filename = model_features_dict_path,
             dict2save = model_features_dict)
     print('\nFinished training the model. The model and associated files can be '+\
@@ -1474,7 +1474,7 @@ def denoiser_run(model, new_audio, feat_settings_dict):
     num_feats = feat_settings_dict['num_feats']
     desired_shape = feat_settings_dict['desired_shape']
     
-    feats = pyst.feats.get_feats(new_audio, sr=sr, 
+    feats = pyso.feats.get_feats(new_audio, sr=sr, 
                                 feature_type = feature_type,
                                 win_size_ms = win_size_ms,
                                 percent_overlap = percent_overlap,
@@ -1483,10 +1483,10 @@ def denoiser_run(model, new_audio, feat_settings_dict):
                                 num_filters = num_feats)
     # are phase data still present? (only in stft features)
     if feats.dtype == np.complex and np.min(feats) < 0:
-        original_phase = pyst.dsp.calc_phase(feats,
+        original_phase = pyso.dsp.calc_phase(feats,
                                                radians=False)
     elif 'stft' in feature_type or 'powspec' in feature_type:
-        feats_stft = pyst.feats.get_feats(new_audio, 
+        feats_stft = pyso.feats.get_feats(new_audio, 
                                           sr=sr, 
                                           feature_type = 'stft',
                                           win_size_ms = win_size_ms,
@@ -1494,7 +1494,7 @@ def denoiser_run(model, new_audio, feat_settings_dict):
                                           window = window, 
                                           dur_sec = dur_sec,
                                           num_filters = num_feats)
-        original_phase = pyst.dsp.calc_phase(feats_stft,
+        original_phase = pyso.dsp.calc_phase(feats_stft,
                                                radians = False)
     else:
         original_phase = None
@@ -1511,17 +1511,17 @@ def denoiser_run(model, new_audio, feat_settings_dict):
         # reshape here to avoid memory issues if total # samples is large
         feats = feats_zeropadded.reshape(desired_shape)
     
-    feats = pyst.feats.prep_new_audiofeats(feats,
+    feats = pyso.feats.prep_new_audiofeats(feats,
                                            desired_shape,
                                            input_shape)
     # ensure same shape as feats
     if original_phase is not None:
-        original_phase = pyst.feats.prep_new_audiofeats(original_phase,
+        original_phase = pyso.feats.prep_new_audiofeats(original_phase,
                                                         desired_shape,
                                                         input_shape)
     
     
-    feats_normed = pyst.feats.normalize(feats)
+    feats_normed = pyso.feats.normalize(feats)
     denoiser = load_model(model)
     cleaned_feats = denoiser.predict(feats_normed, batch_size = frames_per_sample)
     
@@ -1541,14 +1541,14 @@ def denoiser_run(model, new_audio, feat_settings_dict):
         original_phase = original_phase.reshape(audio_shape)
     
     # now combine them to create audio samples:
-    cleaned_audio = pyst.feats.feats2audio(cleaned_feats, 
+    cleaned_audio = pyso.feats.feats2audio(cleaned_feats, 
                                            feature_type = feature_type,
                                            sr = sr, 
                                            win_size_ms = win_size_ms,
                                            percent_overlap = percent_overlap,
                                            phase = original_phase)
     if not isinstance(new_audio, np.ndarray):
-        noisy_audio, __ = pyst.loadsound(new_audio, sr=sr)
+        noisy_audio, __ = pyso.loadsound(new_audio, sr=sr)
     else:
         noisy_audio = new_audio
     if len(cleaned_audio) > len(noisy_audio):
@@ -1556,23 +1556,23 @@ def denoiser_run(model, new_audio, feat_settings_dict):
     
     max_energy_original = np.max(noisy_audio)
     # match the scale of the original audio:
-    cleaned_audio = pyst.dsp.scalesound(cleaned_audio, max_val = max_energy_original)
+    cleaned_audio = pyso.dsp.scalesound(cleaned_audio, max_val = max_energy_original)
     return cleaned_audio, sr
 
 def collect_classifier_settings(feature_extraction_dir):
     # ensure feature_extraction_folder exists:
-    dataset_path = pyst.utils.check_dir(feature_extraction_dir, make=False)
+    dataset_path = pyso.utils.check_dir(feature_extraction_dir, make=False)
     
     # prepare features files to load for training
     features_files = list(dataset_path.glob('*.npy'))
     # NamedTuple: 'datasets.train', 'datasets.val', 'datasets.test'
-    datasets = pyst.datasets.separate_train_val_test_files(
+    datasets = pyso.datasets.separate_train_val_test_files(
         features_files)
     # TODO test
     if not datasets.train:
         # perhaps data files located in subdirectories 
         features_files = list(dataset_path.glob('**/*.npy'))
-        datasets = pyst.datasets.separate_train_val_test_files(
+        datasets = pyso.datasets.separate_train_val_test_files(
             features_files)
         if not datasets.train:
             raise FileNotFoundError('Could not locate train, validation, or test '+\
@@ -1588,15 +1588,15 @@ def collect_classifier_settings(feature_extraction_dir):
     dict_decode_path = dataset_path.joinpath('dict_decode.csv')
     if not os.path.exists(dict_decode_path):
         raise FileNotFoundError('Could not find {}.'.format(dict_decode_path))
-    dict_decode = pyst.utils.load_dict(dict_decode_path)
+    dict_decode = pyso.utils.load_dict(dict_decode_path)
     num_labels = len(dict_decode)
     
-    settings_dict = pyst.utils.load_dict(
+    settings_dict = pyso.utils.load_dict(
         dataset_path.joinpath('log_extraction_settings.csv'))
-    num_feats = pyst.utils.restore_dictvalue(settings_dict['num_feats'])
+    num_feats = pyso.utils.restore_dictvalue(settings_dict['num_feats'])
     # should the shape include the label column or not?
     # currently not
-    feat_shape = pyst.utils.restore_dictvalue(settings_dict['desired_shape'])
+    feat_shape = pyso.utils.restore_dictvalue(settings_dict['desired_shape'])
     feature_type = settings_dict['feat_type']
     return datasets, num_labels, feat_shape, num_feats, feature_type
 
@@ -1628,17 +1628,17 @@ def cnnlstm_train(feature_extraction_dir,
     # Save model directory inside feature directory
     dataset_path = train_paths[0].parent
     if feature_type:
-        model_name += '_'+feature_type + '_' + pyst.utils.get_date() 
+        model_name += '_'+feature_type + '_' + pyso.utils.get_date() 
     else:
-        model_name += '_' + pyst.utils.get_date() 
+        model_name += '_' + pyso.utils.get_date() 
     model_dir = dataset_path.joinpath(model_name)
-    model_dir = pyst.utils.check_dir(model_dir, make=True)
+    model_dir = pyso.utils.check_dir(model_dir, make=True)
     model_name += '.h5'
     model_path = model_dir.joinpath(model_name)
     
     frame_width = context_window * 2 + 1 # context window w central frame
     input_shape = (timesteps, frame_width, num_feats, colorscale)
-    model, settings = pystmodels.cnnlstm_classifier(num_labels = num_labels, 
+    model, settings = pysodl.cnnlstm_classifier(num_labels = num_labels, 
                                                     input_shape = input_shape, 
                                                     lstm_cells = num_feats)
     
@@ -1646,7 +1646,7 @@ def cnnlstm_train(feature_extraction_dir,
     # create callbacks variable if not in kwargs
     # allow users to use different callbacks if desired
     if 'callbacks' not in kwargs:
-        callbacks = pystmodels.setup_callbacks(patience = patience,
+        callbacks = pysodl.setup_callbacks(patience = patience,
                                                 best_modelname = model_path, 
                                                 log_filename = model_dir.joinpath('log.csv'))
     optimizer = 'adam'
@@ -1698,7 +1698,7 @@ def cnnlstm_train(feature_extraction_dir,
         # reinitiate 'callbacks' for additional iterations
         if i > 0: 
             if 'callbacks' not in kwargs:
-                callbacks = pystmodels.setup_callbacks(patience = patience,
+                callbacks = pysodl.setup_callbacks(patience = patience,
                                                         best_modelname = model_path, 
                                                         log_filename = model_dir.joinpath('log.csv'))
             else:
@@ -1706,17 +1706,17 @@ def cnnlstm_train(feature_extraction_dir,
                 callbacks = kwargs['callbacks']
 
         if use_generator:
-            train_generator = pystmodels.Generator(data_matrix1 = data_train, 
+            train_generator = pysodl.Generator(data_matrix1 = data_train, 
                                                     data_matrix2 = None,
                                                     normalized = normalized,
                                                     adjust_shape = input_shape,
                                                     add_tensor_last = add_tensor_last)
-            val_generator = pystmodels.Generator(data_matrix1 = data_val,
+            val_generator = pysodl.Generator(data_matrix1 = data_val,
                                                 data_matrix2 = None,
                                                 normalized = normalized,
                                                 adjust_shape = input_shape,
                                                     add_tensor_last = add_tensor_last)
-            test_generator = pystmodels.Generator(data_matrix1 = data_test,
+            test_generator = pysodl.Generator(data_matrix1 = data_test,
                                                   data_matrix2 = None,
                                                   normalized = normalized,
                                                   adjust_shape = input_shape,
@@ -1735,7 +1735,7 @@ def cnnlstm_train(feature_extraction_dir,
             
             # TODO test how well prediction works. use simple predict instead?
             # need to define `y_test`
-            X_test, y_test = pyst.feats.separate_dependent_var(data_test)
+            X_test, y_test = pyso.feats.separate_dependent_var(data_test)
             y_predicted = model.predict_generator(
                 test_generator.generator(),
                 steps = data_test.shape[0])
@@ -1743,23 +1743,23 @@ def cnnlstm_train(feature_extraction_dir,
         else:
             # TODO make scaling data optional?
             # data is separated and shaped for this classifier in scale_X_y..
-            X_train, y_train, scalars = pyst.feats.scale_X_y(data_train,
+            X_train, y_train, scalars = pyso.feats.scale_X_y(data_train,
                                                                 is_train=True)
-            X_val, y_val, __ = pyst.feats.scale_X_y(data_val,
+            X_val, y_val, __ = pyso.feats.scale_X_y(data_val,
                                                     is_train=False, 
                                                     scalars=scalars)
-            X_test, y_test, __ = pyst.feats.scale_X_y(data_test,
+            X_test, y_test, __ = pyso.feats.scale_X_y(data_test,
                                                         is_train=False, 
                                                         scalars=scalars)
             
-            X_train = pyst.feats.adjust_shape(X_train, 
+            X_train = pyso.feats.adjust_shape(X_train, 
                                               (X_train.shape[0],)+input_shape,
                                               change_dims = True)
             
-            X_val = pyst.feats.adjust_shape(X_val, 
+            X_val = pyso.feats.adjust_shape(X_val, 
                                             (X_val.shape[0],)+input_shape,
                                               change_dims = True)
-            X_test = pyst.feats.adjust_shape(X_test, 
+            X_test = pyso.feats.adjust_shape(X_test, 
                                              (X_test.shape[0],)+input_shape,
                                               change_dims = True)
             
@@ -1809,7 +1809,7 @@ def cnnlstm_train(feature_extraction_dir,
         model_features_dict.update(settings)
         model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
             model_name, i))
-        model_features_dict_path = pyst.utils.save_dict(
+        model_features_dict_path = pyso.utils.save_dict(
             filename = model_features_dict_path,
             dict2save = model_features_dict)
         if total_training_sessions is None:
@@ -1822,7 +1822,7 @@ def cnnlstm_train(feature_extraction_dir,
 
             model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
                 model_name, i))
-            model_features_dict_path = pyst.utils.save_dict(
+            model_features_dict_path = pyso.utils.save_dict(
                 filename = model_features_dict_path,
                 dict2save = model_features_dict,
                 overwrite = True)
@@ -1850,22 +1850,22 @@ def resnet50_train(feature_extraction_dir,
     # Save model directory inside feature directory
     dataset_path = train_paths[0].parent
     if feature_type:
-        model_name += '_'+feature_type + '_' + pyst.utils.get_date() 
+        model_name += '_'+feature_type + '_' + pyso.utils.get_date() 
     else:
-        model_name += '_' + pyst.utils.get_date() 
+        model_name += '_' + pyso.utils.get_date() 
     model_dir = dataset_path.joinpath(model_name)
-    model_dir = pyst.utils.check_dir(model_dir, make=True)
+    model_dir = pyso.utils.check_dir(model_dir, make=True)
     model_name += '.h5'
     model_path = model_dir.joinpath(model_name)
     
     input_shape = (feat_shape[0], num_feats, colorscale)
-    model, settings = pystmodels.resnet50_classifier(num_labels = num_labels, 
+    model, settings = pysodl.resnet50_classifier(num_labels = num_labels, 
                                                     input_shape = input_shape)
 
     # create callbacks variable if not in kwargs
     # allow users to use different callbacks if desired
     if 'callbacks' not in kwargs:
-        callbacks = pystmodels.setup_callbacks(patience = patience,
+        callbacks = pysodl.setup_callbacks(patience = patience,
                                                 best_modelname = model_path, 
                                                 log_filename = model_dir.joinpath('log.csv'))
     optimizer = Adam(lr=0.0001)
@@ -1916,7 +1916,7 @@ def resnet50_train(feature_extraction_dir,
         # reinitiate 'callbacks' for additional iterations
         if i > 0: 
             if 'callbacks' not in kwargs:
-                callbacks = pystmodels.setup_callbacks(patience = patience,
+                callbacks = pysodl.setup_callbacks(patience = patience,
                                                         best_modelname = model_path, 
                                                         log_filename = model_dir.joinpath('log.csv'))
             else:
@@ -1924,19 +1924,19 @@ def resnet50_train(feature_extraction_dir,
                 callbacks = kwargs['callbacks']
 
         if use_generator:
-            train_generator = pystmodels.Generator(data_matrix1 = data_train, 
+            train_generator = pysodl.Generator(data_matrix1 = data_train, 
                                                     data_matrix2 = None,
                                                     normalized = normalized,
                                                     adjust_shape = input_shape,
                                                     add_tensor_last = add_tensor_last,
                                                     gray2color = True)
-            val_generator = pystmodels.Generator(data_matrix1 = data_val,
+            val_generator = pysodl.Generator(data_matrix1 = data_val,
                                                 data_matrix2 = None,
                                                 normalized = normalized,
                                                 adjust_shape = input_shape,
                                                     add_tensor_last = add_tensor_last,
                                                     gray2color = True)
-            test_generator = pystmodels.Generator(data_matrix1 = data_test,
+            test_generator = pysodl.Generator(data_matrix1 = data_test,
                                                   data_matrix2 = None,
                                                   normalized = normalized,
                                                   adjust_shape = input_shape,
@@ -1956,7 +1956,7 @@ def resnet50_train(feature_extraction_dir,
             
             # TODO test how well prediction works. use simple predict instead?
             # need to define `y_test`
-            X_test, y_test = pyst.feats.separate_dependent_var(data_test)
+            X_test, y_test = pyso.feats.separate_dependent_var(data_test)
             y_predicted = model.predict_generator(
                 test_generator.generator(),
                 steps = data_test.shape[0])
@@ -1964,24 +1964,24 @@ def resnet50_train(feature_extraction_dir,
         else:
             # TODO make scaling data optional?
             # data is separated and shaped for this classifier in scale_X_y..
-            X_train, y_train, scalars = pyst.feats.scale_X_y(data_train,
+            X_train, y_train, scalars = pyso.feats.scale_X_y(data_train,
                                                                 is_train=True)
-            X_val, y_val, __ = pyst.feats.scale_X_y(data_val,
+            X_val, y_val, __ = pyso.feats.scale_X_y(data_val,
                                                     is_train=False, 
                                                     scalars=scalars)
-            X_test, y_test, __ = pyst.feats.scale_X_y(data_test,
+            X_test, y_test, __ = pyso.feats.scale_X_y(data_test,
                                                         is_train=False, 
                                                         scalars=scalars)
             
             print(X_train.shape)
-            X_train = pyst.feats.adjust_shape(X_train, 
+            X_train = pyso.feats.adjust_shape(X_train, 
                                               (X_train.shape[0],)+input_shape,
                                               change_dims = True)
             print(X_train.shape)
-            X_val = pyst.feats.adjust_shape(X_val, 
+            X_val = pyso.feats.adjust_shape(X_val, 
                                             (X_val.shape[0],)+input_shape,
                                               change_dims = True)
-            X_test = pyst.feats.adjust_shape(X_test, 
+            X_test = pyso.feats.adjust_shape(X_test, 
                                              (X_test.shape[0],)+input_shape,
                                               change_dims = True)
             
@@ -1992,9 +1992,9 @@ def resnet50_train(feature_extraction_dir,
             X_train = X_train[rand_idx]
             
             # make grayscale to colorscale
-            X_train = pyst.feats.grayscale2color(X_train, colorscale = 3)
-            X_val = pyst.feats.grayscale2color(X_val, colorscale = 3)
-            X_test = pyst.feats.grayscale2color(X_test, colorscale = 3)
+            X_train = pyso.feats.grayscale2color(X_train, colorscale = 3)
+            X_val = pyso.feats.grayscale2color(X_val, colorscale = 3)
+            X_test = pyso.feats.grayscale2color(X_test, colorscale = 3)
             
             print(X_train.shape)
             
@@ -2038,7 +2038,7 @@ def resnet50_train(feature_extraction_dir,
         model_features_dict.update(settings)
         model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
             model_name, i))
-        model_features_dict_path = pyst.utils.save_dict(
+        model_features_dict_path = pyso.utils.save_dict(
             filename = model_features_dict_path,
             dict2save = model_features_dict)
         if total_training_sessions is None:
@@ -2051,7 +2051,7 @@ def resnet50_train(feature_extraction_dir,
 
             model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
                 model_name, i))
-            model_features_dict_path = pyst.utils.save_dict(
+            model_features_dict_path = pyso.utils.save_dict(
                 filename = model_features_dict_path,
                 dict2save = model_features_dict,
                 overwrite = True)

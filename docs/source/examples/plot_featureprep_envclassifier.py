@@ -23,7 +23,7 @@ os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyst;
+import pysoundtool as pyso;
 
 
 ######################################################
@@ -68,7 +68,7 @@ dur_sec = 1
 # the feature data will be created in the current working directory.
 
 # (Although, you can set this under the parameter `data_features_dir`)
-extraction_dir = pyst.envclassifier_feats(data_dir, 
+extraction_dir = pyso.envclassifier_feats(data_dir, 
                                           feature_type=feature_type, 
                                           dur_sec=dur_sec,
                                           visualize=True);
@@ -93,12 +93,12 @@ data_features_dir = './audiodata/example_feats_models/classifier/'
 
 ######################################################
 # create unique directory for feature extraction session:
-feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
+feat_extraction_dir = 'features_'+feature_type + '_' + pyso.utils.get_date()
 
 ######################################################
 # Ensure data directories exist 
 # and turn into pathlib.PosixPath object:
-data_dir = pyst.utils.check_dir(data_dir, make=False)
+data_dir = pyso.utils.check_dir(data_dir, make=False)
 
 ######################################################
 # collect labels associated with the audio data
@@ -112,9 +112,9 @@ print(labels)
 
 ######################################################
 # create directory for what we need to save:
-data_features_dir = pyst.utils.check_dir(data_features_dir, make=True)
+data_features_dir = pyso.utils.check_dir(data_features_dir, make=True)
 feat_extraction_dir = data_features_dir.joinpath(feat_extraction_dir)
-feat_extraction_dir = pyst.utils.check_dir(feat_extraction_dir, make=True)
+feat_extraction_dir = pyso.utils.check_dir(feat_extraction_dir, make=True)
 
 ##########################################################
 # dictionaries containing encoding and decoding labels:
@@ -134,12 +134,12 @@ data_test_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('test',
 
 ##########################################################
 # create and save encoding/decoding labels dicts
-dict_encode, dict_decode = pyst.datasets.create_dicts_labelsencoded(labels)
-dict_encode_path = pyst.utils.save_dict(
+dict_encode, dict_decode = pyso.datasets.create_dicts_labelsencoded(labels)
+dict_encode_path = pyso.utils.save_dict(
     dict2save = dict_encode, 
     filename = dict_encode_path,
     overwrite=True)
-dict_decode_path = pyst.utils.save_dict(
+dict_decode_path = pyso.utils.save_dict(
     dict2save = dict_decode, 
     filename = dict_decode_path,
     overwrite=True)
@@ -165,12 +165,12 @@ for key, value in dict_decode.items():
 
 ##########################################################
 # save audio paths to each label in dict 
-paths_list = pyst.files.collect_audiofiles(data_dir, recursive=True)
+paths_list = pyso.files.collect_audiofiles(data_dir, recursive=True)
 paths_list = sorted(paths_list)
 
-dict_encodedlabel2audio = pyst.datasets.create_encodedlabel2audio_dict(dict_encode,
+dict_encodedlabel2audio = pyso.datasets.create_encodedlabel2audio_dict(dict_encode,
                                                     paths_list)
-dict_encdodedlabel2audio_path = pyst.utils.save_dict(
+dict_encdodedlabel2audio_path = pyso.utils.save_dict(
     dict2save = dict_encodedlabel2audio, 
     filename = dict_encdodedlabel2audio_path, 
     overwrite=True)
@@ -187,7 +187,7 @@ for key, value in dict_encodedlabel2audio.items():
 
 ##########################################################
 # assign audiofiles into train, validation, and test datasets
-train, val, test = pyst.datasets.audio2datasets(dict_encdodedlabel2audio_path,
+train, val, test = pyso.datasets.audio2datasets(dict_encdodedlabel2audio_path,
                                             perc_train=0.8,
                                             limit=None,
                                             seed=40)
@@ -196,7 +196,7 @@ train, val, test = pyst.datasets.audio2datasets(dict_encdodedlabel2audio_path,
 # save audiofiles for each dataset to dict and save
 dataset_dict = dict([('train',train),('val', val),('test',test)])
 dataset_dict_path = feat_extraction_dir.joinpath('dataset_audiofiles.csv')
-dataset_dict_path = pyst.utils.save_dict(
+dataset_dict_path = pyso.utils.save_dict(
     dict2save = dataset_dict, 
     filename = dataset_dict_path, 
     overwrite=True)
@@ -217,7 +217,7 @@ datasets_path2save_dict = dict([('train',data_train_path),
 
 ######################################################################
 # first audio sample in its raw signal
-pyst.plotsound(paths_list[0], feature_type='signal', 
+pyso.plotsound(paths_list[0], feature_type='signal', 
                title=paths_list[0].parent.stem+': signal')
 
 ######################################################################
@@ -225,7 +225,7 @@ pyst.plotsound(paths_list[0], feature_type='signal',
 
 ######################################################
 # first audio sample
-pyst.plotsound(paths_list[0], feature_type=feature_type, energy_scale='power_to_db',
+pyso.plotsound(paths_list[0], feature_type=feature_type, energy_scale='power_to_db',
                title = paths_list[0].parent.stem+': '+feature_type)
 
 ######################################################
@@ -236,7 +236,7 @@ start = time.time()
 
 ##########################################################
 # extract features:
-dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
+dataset_dict, datasets_path2save_dict = pyso.feats.save_features_datasets(
     datasets_dict = dataset_dict,
     datasets_path2save_dict = datasets_path2save_dict,
     labeled_data = True,
@@ -249,7 +249,7 @@ dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
 end = time.time()
 
 total_dur_sec = round(end-start,2)
-total_dur, units = pyst.utils.adjust_time_units(total_dur_sec)
+total_dur, units = pyso.utils.adjust_time_units(total_dur_sec)
 print('\nFinished! Total duration: {} {}.'.format(total_dur, units))
 print('\nFeatures can be found here:')
 print(feat_extraction_dir)
@@ -288,7 +288,7 @@ for key, value in datasets_path2save_dict.items():
 # If you have very large amounts of audio you would like to process, you can 
 # divide the datasets into smaller sections:
 
-dataset_dict, datasets_path2save_dict = pyst.feats.save_features_datasets(
+dataset_dict, datasets_path2save_dict = pyso.feats.save_features_datasets(
     datasets_dict = dataset_dict,
     datasets_path2save_dict = datasets_path2save_dict,
     labeled_data = True,

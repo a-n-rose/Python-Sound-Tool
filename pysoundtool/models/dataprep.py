@@ -77,7 +77,7 @@ class Generator:
                 'with shape {}.'.format(self.datax.shape))
         if self.datay is None:
             # separate the label from the feature data
-            self.datax, self.datay = pyst.feats.separate_dependent_var(self.datax)
+            self.datax, self.datay = pyso.feats.separate_dependent_var(self.datax)
             # assumes last column of features is the label column
             self.num_feats = self.datax.shape[-1] 
             self.labels = True
@@ -128,9 +128,9 @@ class Generator:
             if not self.normalized or self.datax.dtype == np.complex_:
                 # if complex data, power spectrum will be extracted
                 # power spectrum = np.abs(complex_data)**2
-                batch_x = pyst.feats.normalize(batch_x)
+                batch_x = pyso.feats.normalize(batch_x)
                 if self.labels is None:
-                    batch_y = pyst.feats.normalize(batch_y)
+                    batch_y = pyso.feats.normalize(batch_y)
             # apply log if specified
             if self.apply_log: 
                 batch_x = np.log(np.abs(batch_x))
@@ -142,19 +142,19 @@ class Generator:
             # if need greater number of features --> zero padding
             # could this be applied to including both narrowband and wideband data?
             if self.desired_shape is not None:
-                batch_x = pyst.feats.adjust_shape(batch_x, self.desired_shape, change_dims=True)
+                batch_x = pyso.feats.adjust_shape(batch_x, self.desired_shape, change_dims=True)
                 
                 if self.labels is None:
-                    batch_y = pyst.feats.adjust_shape(batch_y, self.desired_shape, change_dims=True)
+                    batch_y = pyso.feats.adjust_shape(batch_y, self.desired_shape, change_dims=True)
             
             if self.gray2color:
                 # expects colorscale to be last column.
                 # will copy first channel into the other (assumed empty) channels.
-                # the empty channels were created in pyst.feats.adjust_shape
-                batch_x = pyst.feats.grayscale2color(batch_x, 
+                # the empty channels were created in pyso.feats.adjust_shape
+                batch_x = pyso.feats.grayscale2color(batch_x, 
                                                      colorscale = batch_x.shape[-1])
                 if self.labels is None:
-                    batch_y = pyst.feats.gray2color(batch_y, 
+                    batch_y = pyso.feats.gray2color(batch_y, 
                                                     colorscale = batch_y.shape[-1])
             ## add tensor dimension
             if self.add_tensor_last is True:
@@ -314,23 +314,23 @@ class GeneratorFeatExtraction:
                 
                 # extract features
                 # will be shape (num_frames, num_features)
-                feats = pyst.feats.get_feats(audiopath, self.kwargs)
+                feats = pyso.feats.get_feats(audiopath, self.kwargs)
                 if apply_log:
                     # TODO test
                     if feats[0].any() < 0:
                             feats = np.abs(feats)
                     feats = np.log(feats)
                 if normalize:
-                    feats = pyst.feats.normalize(feats)
+                    feats = pyso.feats.normalize(feats)
                 if not labeled_data and self.audiolist2 is not None:
-                    feats2 = pyst.feats.get_feats(audiopath2, self.kwargs)
+                    feats2 = pyso.feats.get_feats(audiopath2, self.kwargs)
                     if apply_log:
                         # TODO test
                         if feats2[0].any() < 0:
                                 feats2 = np.abs(feats2)
                         feats2 = np.log(feats2)
                     if normalize:
-                        feats2 = pyst.feats.normalize(feats2)
+                        feats2 = pyso.feats.normalize(feats2)
                 else:
                     feats2 = None
                     
@@ -339,7 +339,7 @@ class GeneratorFeatExtraction:
                     if self.counter % self.vis_every_n_items == 0:
                         if save_visuals_path is None:
                             save_visuals_path = './images_label{}_training_{}_{}.png'.format(
-                                label, model_name, pyst.utils.get_date())
+                                label, model_name, pyso.utils.get_date())
                         feature_type = kwargs['feature_type']
                         sr = kwargs['sr']
                         win_size_ms = kwargs['win_size_ms']
@@ -349,7 +349,7 @@ class GeneratorFeatExtraction:
                                 energy_scale = 'power_to_db'
                         else:
                             energy_scale = None
-                        pyst.feats.plot(feats, feature_type, sr = sr, 
+                        pyso.feats.plot(feats, feature_type, sr = sr, 
                                         win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                                         energy_scale = energy_scale, save_pic = True, 
                                         name4pic = save_visuals_path,
@@ -357,10 +357,10 @@ class GeneratorFeatExtraction:
                                             '(item {})'.format(self.counter))
                         if feats2 is not None:
                             # add '_2' to pathway
-                            p = pyst.utils.string2pathlib(save_visuals_path)
+                            p = pyso.utils.string2pathlib(save_visuals_path)
                             p2 = p.name.stem
                             save_visuals_path2 = p.parent.joinpath(p2+'_2'+p.name.suffix)
-                            pyst.feats.plot(feats2, feature_type, sr = sr, 
+                            pyso.feats.plot(feats2, feature_type, sr = sr, 
                                             win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                                             energy_scale = energy_scale, save_pic = True, 
                                             name4pic = save_visuals_path2,
@@ -374,16 +374,16 @@ class GeneratorFeatExtraction:
                         change_dims = True
                     else:
                         change_dims = False
-                    feats = pyst.feats.adjust_shape(feats, input_shape, change_dims = change_dims)
+                    feats = pyso.feats.adjust_shape(feats, input_shape, change_dims = change_dims)
                     if feats2 is not None:
-                        feats2 = pyst.feats.adjust_shape(feats2, input_shape, change_dims = change_dims)
+                        feats2 = pyso.feats.adjust_shape(feats2, input_shape, change_dims = change_dims)
                         
                 # grayscale 2 color 
                 # assumes already zeropadded with new channels, channels last
                 if self.gray2color:
-                    feats = pyst.feats.grayscale2color(feats, colorscale = feats.shape[-1])
+                    feats = pyso.feats.grayscale2color(feats, colorscale = feats.shape[-1])
                     if feats2 is not None:
-                        feats2 = pyst.feats.grayscale2color(feats2, colorscale = feats2.shape[-1])
+                        feats2 = pyso.feats.grayscale2color(feats2, colorscale = feats2.shape[-1])
                 
                 # prepare data to be fed to network:
                 X_batch = feats

@@ -20,7 +20,7 @@ os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyst;
+import pysoundtool as pyso;
 
 ######################################################
 # Prepare for Training: Data Organization
@@ -33,7 +33,7 @@ feature_extraction_dir = '{}test_audio/example_feats_models/'.format(package_dir
 
 #########################################################
 # What is in this folder?
-feature_extraction_dir = pyst.utils.check_dir(feature_extraction_dir)
+feature_extraction_dir = pyso.utils.check_dir(feature_extraction_dir)
 files = list(feature_extraction_dir.glob('*.*'))
 for f in files:
     print(f.name)
@@ -53,7 +53,7 @@ for f in files:
 
 #########################################################
 # We'll have a look at which features were extracted and other settings:
-feat_settings = pyst.utils.load_dict(
+feat_settings = pyso.utils.load_dict(
     feature_extraction_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
     print(key, ' --> ', value)
@@ -64,7 +64,7 @@ for key, value in feat_settings.items():
 #########################################################
 # We'll have a look at the audio files that were assigned 
 # to the train, val, and test datasets.
-audio_datasets = pyst.utils.load_dict(
+audio_datasets = pyso.utils.load_dict(
     feature_extraction_dir.joinpath('dataset_audiofiles.csv'))
 count = 0
 for key, value in audio_datasets.items():
@@ -78,7 +78,7 @@ for key, value in audio_datasets.items():
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #############################################################
-model_dir, history = pyst.envclassifier_train(feature_extraction_dir = feature_extraction_dir,
+model_dir, history = pyso.envclassifier_train(feature_extraction_dir = feature_extraction_dir,
                                          epochs = 10)
 
 #########################################################

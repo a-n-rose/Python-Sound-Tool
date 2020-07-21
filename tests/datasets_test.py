@@ -8,14 +8,14 @@ sys.path.insert(0, parentdir)
 import numpy as np
 import pytest
 import soundfile as sf
-import pysoundtool as pyst
+import pysoundtool as pyso
 
 
 ###############################################################################
 
 audiodir = 'test_audio/'
 example_dir = '{}examps/'.format(audiodir)
-example_dir = pyst.utils.check_dir(example_dir, make=True)
+example_dir = pyso.utils.check_dir(example_dir, make=True)
 test_wav_stereo = '{}audio2channels.wav'.format(audiodir)
 test_wav_mono = '{}traffic.wav'.format(audiodir)
 test_aiff = '{}traffic.aiff'.format(audiodir)
@@ -25,7 +25,7 @@ test_mp3 = '{}244287__kleinhirn2000__toast-glas-langsam.mp3'.format(audiodir)
 test_ogg = '{}240674__zajo__you-have-been-denied.ogg'.format(audiodir)
 
 def test_loadsound_mono_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav_stereo,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo,use_scipy=True)
     expected = np.array([0.06140351, 0.06140351, 0.06140351, 0.06140351,
                          0.06140351])
     expected_shape = (len(expected),)
@@ -35,7 +35,7 @@ def test_loadsound_mono_uselibrosa_False():
     assert expected_sr == sr
     
 def test_loadsound_mono_dur1_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav_stereo, dur_sec=1,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, dur_sec=1,use_scipy=True)
     expected = np.array([0.06140351, 0.06140351, 0.06140351, 0.06140351,
                          0.06140351])
     expected_shape = (len(expected),)
@@ -45,7 +45,7 @@ def test_loadsound_mono_dur1_uselibrosa_False():
     assert len(samples) == expected_sr
     
 def test_loadsound_stereo_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav_stereo, mono=False,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, mono=False,use_scipy=True)
     expected = np.array([[0.06140351, 0.06140351],[0.06140351, 0.06140351],
                          [0.06140351, 0.06140351]])
     expected_shape = expected.shape
@@ -55,7 +55,7 @@ def test_loadsound_stereo_uselibrosa_False():
     assert expected_sr == sr
     
 def test_loadsound_stereo_dur1_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav_stereo, mono=False, dur_sec=1,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, mono=False, dur_sec=1,use_scipy=True)
     expected = np.array([[0.06140351, 0.06140351],[0.06140351, 0.06140351],
                          [0.06140351, 0.06140351]])
     expected_shape = expected.shape
@@ -66,7 +66,7 @@ def test_loadsound_stereo_dur1_uselibrosa_False():
     assert len(samples) == expected_sr
     
 def test_loadsound_mono_sr48000_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav_stereo, mono=True, sr=48000,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, mono=True, sr=48000,use_scipy=True)
     expected = np.array([0.07632732, 0.07633357, 0.07633357, 0.07632732,
                          0.07632107])
     expected_sr = 48000
@@ -74,7 +74,7 @@ def test_loadsound_mono_sr48000_uselibrosa_False():
     assert sr == expected_sr
     
 def test_loadsound_stereo_sr48000_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_wav_stereo, sr=48000, mono=False,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, sr=48000, mono=False,use_scipy=True)
     expected = np.array([[0.07632732, 0.07632732],[0.07633357, 0.07628564],
                          [0.07633357, 0.07628563]])
     expected_shape = expected.shape
@@ -84,34 +84,34 @@ def test_loadsound_stereo_sr48000_uselibrosa_False():
     assert expected_sr == sr
     
 def test_loadsound_aiff2wav_sr22050():
-    samples, sr = pyst.loadsound(test_aiff, sr=22050)
+    samples, sr = pyso.loadsound(test_aiff, sr=22050)
     assert samples is not None
     
 def test_loadsound_flac2wav_sr22050_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_flac, sr=22050,use_scipy=True)
+    samples, sr = pyso.loadsound(test_flac, sr=22050,use_scipy=True)
     assert samples is not None
     assert sr == 22050
     
 def test_loadsound_m4a2wav_sr22050_uselibrosa_False():
     print('IF TEST FAILS: Now loads with librosa if RunTimeError.. is this good?')
     with pytest.raises(RuntimeError):
-        samples, sr = pyst.loadsound(test_m4a, sr=22050, use_scipy=True)
+        samples, sr = pyso.loadsound(test_m4a, sr=22050, use_scipy=True)
     
 def test_loadsound_mp32wav_sr22050_error_uselibrosa_False():
     print('IF TEST FAILS: Now loads with librosa if RunTimeError.. is this good?')
     with pytest.raises(RuntimeError):
-        samples, sr = pyst.loadsound(test_mp3, sr=22050,use_scipy=True)
+        samples, sr = pyso.loadsound(test_mp3, sr=22050,use_scipy=True)
     
 def test_loadsound_ogg2wav_sr22050_uselibrosa_False():
-    samples, sr = pyst.loadsound(test_ogg, sr=22050,use_scipy=True)
+    samples, sr = pyso.loadsound(test_ogg, sr=22050,use_scipy=True)
     assert samples is not None
     assert sr == 22050
     
 def test_loadsound_librosa_wav():
     # use librosa to load file
-    samples, sr = pyst.loadsound(test_wav_stereo, use_scipy=False)
+    samples, sr = pyso.loadsound(test_wav_stereo, use_scipy=False)
     # use scipy.io.wavfile to load the file
-    samples2, sr2 = pyst.loadsound(test_wav_stereo)
+    samples2, sr2 = pyso.loadsound(test_wav_stereo)
     assert np.allclose(samples[:5], np.array([0., 0., 0., 0., 0.]))
     assert sr==16000
     print('IF ERROR: Librosa and Scipy.io.wavfile load data a little differently.')
@@ -119,16 +119,16 @@ def test_loadsound_librosa_wav():
     assert np.allclose(samples, samples2)
     
 def test_loadsound_librosa_sr_None():
-    samples, sr = pyst.loadsound(test_wav_stereo, sr=None)
+    samples, sr = pyso.loadsound(test_wav_stereo, sr=None)
     assert sr == 16000
     
 def test_loadsound_scipy_sr_None():
-    samples, sr = pyst.loadsound(test_wav_stereo, sr=None, use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, sr=None, use_scipy=True)
     assert sr == 16000
     
 def test_loadsound_librosa_wav_dur1_sr22050():
     # use librosa to load file
-    samples, sr = pyst.loadsound(test_wav_stereo, dur_sec=1, sr=22050, use_scipy=False)
+    samples, sr = pyso.loadsound(test_wav_stereo, dur_sec=1, sr=22050, use_scipy=False)
 
     assert np.allclose(samples[:5], np.array([0., 0., 0., 0., 0.]))
     assert sr==22050
@@ -136,7 +136,7 @@ def test_loadsound_librosa_wav_dur1_sr22050():
     
 def test_loadsound_librosa_wav_dur1_sr22050_stereo():
     # use librosa to load file
-    samples, sr = pyst.loadsound(test_wav_stereo, mono=False, dur_sec=1, 
+    samples, sr = pyso.loadsound(test_wav_stereo, mono=False, dur_sec=1, 
                                  sr=22050, use_scipy=False)
     expected = np.array([[0.,0.],[0.,0.],[0.,0.]])
     assert np.allclose(samples[:3], expected)
@@ -144,84 +144,84 @@ def test_loadsound_librosa_wav_dur1_sr22050_stereo():
     assert samples.shape == (22050,2)
     
 def test_loadsound_librosa_aiff():
-    samples, sr = pyst.loadsound(test_aiff, use_scipy=False)
+    samples, sr = pyso.loadsound(test_aiff, use_scipy=False)
     expected = np.array([0.09291077, 0.06417847, 0.04179382, 0.02642822, 
                          0.01808167])
     assert np.allclose(samples[:5], expected)
     assert sr==48000
     
 def test_loadsound_librosa_aiff_sr16000():
-    samples, sr = pyst.loadsound(test_aiff, sr=16000, use_scipy=False)
+    samples, sr = pyso.loadsound(test_aiff, sr=16000, use_scipy=False)
     expected = np.array([ 0.05152914,0.03653815, -0.0083929,
                          -0.0207656,-0.03038501])
     assert np.allclose(samples[:5], expected)
     assert sr==16000
     
 def test_loadsound_librosa_flac():
-    samples, sr = pyst.loadsound(test_flac, use_scipy=False)
+    samples, sr = pyso.loadsound(test_flac, use_scipy=False)
     expected = np.array([ 0.0000000e+00,0.0000000e+00, 0.0000000e+00,
                          0.0000000e+00,-3.0517578e-05])
     assert np.allclose(samples[:5], expected)
     assert sr==44100
     
 def test_loadsound_librosa_ogg():
-    samples, sr = pyst.loadsound(test_ogg, use_scipy=False)
+    samples, sr = pyso.loadsound(test_ogg, use_scipy=False)
     expected = np.array([-0.00639889, -0.00722905, -0.00864992, 
                          -0.00878596, -0.00894831])
     assert np.allclose(samples[:5], expected)
     assert sr==44100
     
 def test_loadsound_librosa_m4a():
-    samples, sr = pyst.loadsound(test_m4a, use_scipy=False)
+    samples, sr = pyso.loadsound(test_m4a, use_scipy=False)
     expected = np.array([0. ,0. ,0. ,0. ,0.])
     assert np.allclose(samples[:5], expected)
     assert sr==48000
     
 def test_loadsound_librosa_mp3():
-    samples, sr = pyst.loadsound(test_mp3, use_scipy=False)
+    samples, sr = pyso.loadsound(test_mp3, use_scipy=False)
     expected = np.array([ 0.000e+00, -1.5258789e-05,  0.000e+00, 
                          0.00e+00,0.0000000e+00])
     assert np.allclose(samples[:5], expected)
     assert sr==44100
     
 def test_savesound_mismatch_format_flac_filename_wav():
-    y, sr = pyst.loadsound(test_wav_mono)
-    f = pyst.utils.string2pathlib(test_wav_mono)
+    y, sr = pyso.loadsound(test_wav_mono)
+    f = pyso.utils.string2pathlib(test_wav_mono)
     format_type = 'FLAC'
     audiofile_new = example_dir.joinpath(f.name)
-    audiofile_corrected = pyst.savesound(audiofile_new, y, sr, format=format_type)
+    audiofile_corrected = pyso.savesound(audiofile_new, y, sr, format=format_type)
     soundobject = sf.SoundFile(audiofile_corrected)
     assert audiofile_corrected.suffix[1:].lower() == format_type.lower() 
     assert soundobject.format == format_type
     os.remove(audiofile_corrected)
     
 def test_savesound_filename_wav2flac():
-    y, sr = pyst.loadsound(test_wav_mono)
-    f = pyst.utils.string2pathlib(test_wav_mono)
+    y, sr = pyso.loadsound(test_wav_mono)
+    f = pyso.utils.string2pathlib(test_wav_mono)
     format_type = 'FLAC'
     audiofile_new = example_dir.joinpath(f.stem+'.'+format_type.lower())
-    audiofile_corrected = pyst.savesound(audiofile_new, y, sr)
+    audiofile_corrected = pyso.savesound(audiofile_new, y, sr)
     soundobject = sf.SoundFile(audiofile_corrected)
     assert audiofile_corrected.suffix[1:].lower() == format_type.lower() 
     assert soundobject.format == format_type
     os.remove(audiofile_corrected)
     
 def test_savesound_default_FileExistsError():
-    y, sr = pyst.loadsound(test_wav_mono)
+    y, sr = pyso.loadsound(test_wav_mono)
     with pytest.raises(FileExistsError):
-        filename = pyst.savesound(test_wav_mono, y, sr)
+        filename = pyso.savesound(test_wav_mono, y, sr)
         
 def test_savesound_default_overwrite():
-    y, sr = pyst.loadsound(test_wav_mono)
+    y, sr = pyso.loadsound(test_wav_mono)
     soundobject1 = sf.SoundFile(test_wav_mono)
-    filename = pyst.savesound(test_wav_mono, y, sr, overwrite=True)
+    filename = pyso.savesound(test_wav_mono, y, sr, overwrite=True)
     soundobject2 = sf.SoundFile(filename)
     assert soundobject1.format == soundobject2.format
 
 def test_adjust_shape_last_column():
     desired_shape = (3,3,5)
     input_data = np.ones((3,3,3))
-    input_adjusted = pyst.feats.adjust_shape(input_data, 
+    input_adjusted = pyso.feats.adjust_shape(input_data, 
                                            desired_shape = desired_shape)
     expected = np.array([[[1., 1., 1., 0., 0.],
                           [1., 1., 1., 0., 0.],
@@ -238,7 +238,7 @@ def test_adjust_shape_last_column():
 def test_adjust_feature_shape_several_columns():
     desired_shape = (3,4,5)
     input_data = np.ones((3,3,3))
-    input_adjusted = pyst.feats.adjust_shape(input_data, 
+    input_adjusted = pyso.feats.adjust_shape(input_data, 
                                            desired_shape = desired_shape)
     expected = np.array([[[1., 1., 1., 0., 0.],
                           [1., 1., 1., 0., 0.],
@@ -258,7 +258,7 @@ def test_adjust_feature_shape_several_columns():
 def test_adjust_feature_shape_smaller():
     desired_shape = (3,3,2)
     input_data = np.ones((3,3,3))
-    input_adjusted = pyst.feats.adjust_shape(input_data, 
+    input_adjusted = pyso.feats.adjust_shape(input_data, 
                                            desired_shape = desired_shape)
     expected = np.array([[[1., 1.],
                           [1., 1.],
@@ -275,7 +275,7 @@ def test_adjust_feature_shape_smaller():
 def test_adjust_feature_shape_tuple_smaller():
     desired_shape = (3,2,2)
     input_data = np.ones((3,3,3))
-    input_adjusted = pyst.feats.adjust_shape(input_data, 
+    input_adjusted = pyso.feats.adjust_shape(input_data, 
                                            desired_shape = desired_shape)
     expected = np.array([[[1., 1.],
                           [1., 1.]],
@@ -290,13 +290,13 @@ def test_adjust_feature_shape_mismatch_dims_error():
     desired_shape = (3,2,2)
     input_data = np.ones((3,3,3,3))
     with pytest.raises(ValueError):
-        input_adjusted = pyst.feats.adjust_shape(input_data, 
+        input_adjusted = pyso.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
 
 def test_adjust_feature_shape_2dims():
     desired_shape = (3,4)
     input_data = np.ones((3,3))
-    input_adjusted = pyst.feats.adjust_shape(input_data, 
+    input_adjusted = pyso.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
     expected = np.array([[1., 1., 1., 0.],[1., 1., 1., 0.],[1., 1., 1., 0.]])
     assert np.array_equal(input_adjusted, expected)
@@ -305,7 +305,7 @@ def test_adjust_feature_shape_2dims():
 def test_adjust_feature_shape_1dim_zeropad():
     desired_shape = (4,)
     input_data = np.ones((3,))
-    input_adjusted = pyst.feats.adjust_shape(input_data, 
+    input_adjusted = pyso.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
     expected = np.array([1., 1., 1., 0.])
     assert np.array_equal(input_adjusted, expected)
@@ -314,7 +314,7 @@ def test_adjust_feature_shape_1dim_zeropad():
 def test_adjust_feature_shape_1dim_limit():
     desired_shape = (2,)
     input_data = np.ones((3,))
-    input_adjusted = pyst.feats.adjust_shape(input_data, 
+    input_adjusted = pyso.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
     expected = np.array([1., 1.])
     assert np.array_equal(input_adjusted, expected)
@@ -324,7 +324,7 @@ def test_adjust_feature_shape_adding_extra_dimensions():
     desired_shape = (3,2,2,1)
     input_data = np.ones((3,3,3))
     with pytest.raises(ValueError):
-        input_adjusted = pyst.feats.adjust_shape(input_data, 
+        input_adjusted = pyso.feats.adjust_shape(input_data, 
                                             desired_shape = desired_shape)
 
 def test_audio2datasets_seed0_error():
@@ -339,7 +339,7 @@ def test_audio2datasets_seed0_error():
                            '11.aiff','12.aiff','13.aiff','14.aiff',
                            '15.aiff',])])
     with pytest.raises(ValueError):
-        dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=0)
+        dataset_tuple = pyso.datasets.audio2datasets(dict_input, seed=0)
 
 def test_audio2datasets_labeledaudio_dict():
     dict_input = dict([(0,['1.wav','2.wav','3.wav','4.wav','5.wav',
@@ -352,7 +352,7 @@ def test_audio2datasets_labeledaudio_dict():
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
                            '11.aiff','12.aiff','13.aiff','14.aiff',
                            '15.aiff',])])
-    dataset_tuple = pyst.datasets.audio2datasets(dict_input, perc_train=0.7, seed=40)
+    dataset_tuple = pyso.datasets.audio2datasets(dict_input, perc_train=0.7, seed=40)
     expected_train = [(1, '7.ogg'), (0, '9.wav'), (1, '11.ogg'), (1, '12.ogg'), 
                       (2, '11.aiff'), (2, '1.aiff'), (2, '7.aiff'), (0, '3.wav'), 
                       (1, '10.ogg'), (1, '13.ogg'), (0, '4.wav'), (2, '3.aiff'), 
@@ -387,10 +387,10 @@ def test_audio2datasets_labeledaudio_loaddict():
     saved_dict_path = 'testtest.csv'
     if os.path.exists(saved_dict_path):
         os.remove(saved_dict_path)
-    saved_dict_path = pyst.utils.save_dict(
+    saved_dict_path = pyso.utils.save_dict(
         dict2save = dict_input,
         filename = saved_dict_path)
-    dataset_tuple = pyst.datasets.audio2datasets(saved_dict_path, perc_train=0.7, seed=40)
+    dataset_tuple = pyso.datasets.audio2datasets(saved_dict_path, perc_train=0.7, seed=40)
     for i, dataset in enumerate(dataset_tuple):
         print(i)
         print(dataset)
@@ -426,10 +426,10 @@ def test_audio2datasets_labeledaudio_loaddict_1label():
     saved_dict_path = 'testtest.csv'
     if os.path.exists(saved_dict_path):
         os.remove(saved_dict_path)
-    saved_dict_path = pyst.utils.save_dict(
+    saved_dict_path = pyso.utils.save_dict(
         dict2save = dict_input,
         filename = saved_dict_path)
-    dataset_tuple = pyst.datasets.audio2datasets(saved_dict_path, seed=40)
+    dataset_tuple = pyso.datasets.audio2datasets(saved_dict_path, seed=40)
     for i, dataset in enumerate(dataset_tuple):
         print(i)
         print(dataset)
@@ -458,7 +458,7 @@ def test_audio2datasets_audio_1label_dict():
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
                            '11.aiff','12.aiff','13.aiff','14.aiff',
                            '15.aiff',])])
-    dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=40)
+    dataset_tuple = pyso.datasets.audio2datasets(dict_input, seed=40)
     expected_train =['8.ogg', '14.ogg', '1.aiff', '4.ogg', '4.wav', '5.wav', 
                      '5.ogg', '2.wav', '12.aiff', '12.ogg', '11.wav', '8.wav',
                      '15.wav', '6.aiff', '5.aiff', '15.aiff', '9.wav', '6.wav',
@@ -485,7 +485,7 @@ def test_audio2datasets_audio_list():
                            '1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
                            '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff']
-    dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=40)
+    dataset_tuple = pyso.datasets.audio2datasets(dict_input, seed=40)
     expected_train = ['8.ogg', '14.ogg', '1.aiff', '4.ogg', '4.wav', '5.wav', 
                       '5.ogg', '2.wav', '12.aiff', '12.ogg', '11.wav', '8.wav',
                       '15.wav', '6.aiff', '5.aiff', '15.aiff', '9.wav',
@@ -512,7 +512,7 @@ def test_audio2datasets_audio_set():
                            '1.aiff','2.aiff','3.aiff','4.aiff','5.aiff',
                            '6.aiff','7.aiff','8.aiff','9.aiff','10.aiff',
                            '11.aiff','12.aiff','13.aiff','14.aiff','15.aiff'])
-    dataset_tuple = pyst.datasets.audio2datasets(dict_input, seed=40)
+    dataset_tuple = pyso.datasets.audio2datasets(dict_input, seed=40)
     expected_train = ['8.ogg', '14.ogg', '1.aiff', '4.ogg', '4.wav', '5.wav',
                       '5.ogg', '2.wav', '12.aiff', '12.ogg', '11.wav', '8.wav',
                       '15.wav', '6.aiff', '5.aiff', '15.aiff', '9.wav',
@@ -561,8 +561,8 @@ def test_audio2datasets_noisy_clean_datasets_match():
                         '7_noisy.aiff','8_noisy.aiff','9_noisy.aiff',
                         '10_noisy.aiff','11_noisy.aiff','12_noisy.aiff',
                         '13_noisy.aiff','14_noisy.aiff','15_noisy.aiff']
-    dataset_tuple_clean = pyst.datasets.audio2datasets(dict_input_clean, seed=40)
-    dataset_tuple_noisy = pyst.datasets.audio2datasets(dict_input_noisy, seed=40)
+    dataset_tuple_clean = pyso.datasets.audio2datasets(dict_input_clean, seed=40)
+    dataset_tuple_noisy = pyso.datasets.audio2datasets(dict_input_noisy, seed=40)
     expected_train_clean = ['8_clean.ogg', '15_clean.ogg', '10_clean.aiff', 
                             '4_clean.ogg', '4_clean.wav', '5_clean.wav',
                             '5_clean.ogg', '2_clean.wav', '13_clean.aiff',

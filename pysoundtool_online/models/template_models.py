@@ -17,7 +17,7 @@ currentdir = os.path.dirname(os.path.abspath(
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
-import pysoundtool_online as pyst
+import pysoundtool_online as pyso
 
 ###############################################################################
 

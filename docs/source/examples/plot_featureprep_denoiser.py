@@ -23,7 +23,7 @@ os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyst;
+import pysoundtool as pyso;
 import IPython.display as ipd
 
 
@@ -72,7 +72,7 @@ frames_per_sample = 11
 
 # (Although, you can set this under the parameter `data_features_dir`)
 perc_train = 0.6
-extraction_dir = pyst.denoiser_feats(data_clean_dir = data_clean_dir, 
+extraction_dir = pyso.denoiser_feats(data_clean_dir = data_clean_dir, 
                                      data_noisy_dir = data_noisy_dir,
                                      feature_type = feature_type, 
                                      dur_sec = dur_sec,
@@ -98,19 +98,19 @@ print(extraction_dir)
 
 ######################################################
 # create unique directory for feature extraction session:
-feat_extraction_dir = 'features_'+feature_type + '_' + pyst.utils.get_date()
+feat_extraction_dir = 'features_'+feature_type + '_' + pyso.utils.get_date()
 
 ######################################################
 # Ensure clean and noisy data directories exist 
 # and turn into pathlib.PosixPath objects:
-audio_clean_path = pyst.utils.check_dir(data_clean_dir, make=False)
-audio_noisy_path = pyst.utils.check_dir(data_noisy_dir, make=False)
+audio_clean_path = pyso.utils.check_dir(data_clean_dir, make=False)
+audio_noisy_path = pyso.utils.check_dir(data_noisy_dir, make=False)
 
 ######################################################
 # create directory for what we need to save:
-denoise_data_path = pyst.utils.check_dir(data_features_dir, make=True)
+denoise_data_path = pyso.utils.check_dir(data_features_dir, make=True)
 feat_extraction_dir = denoise_data_path.joinpath(feat_extraction_dir)
-feat_extraction_dir = pyst.utils.check_dir(feat_extraction_dir, make=True)
+feat_extraction_dir = pyso.utils.check_dir(feat_extraction_dir, make=True)
 
 ##########################################################
 # create paths to save noisy train, val, and test datasets
@@ -141,7 +141,7 @@ data_test_clean_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('
 
 ##########################################################
 # noisy data
-noisyaudio = pyst.files.collect_audiofiles(audio_noisy_path, 
+noisyaudio = pyso.files.collect_audiofiles(audio_noisy_path, 
                                                 hidden_files = False,
                                                 wav_only = False,
                                                 recursive = False)
@@ -151,7 +151,7 @@ print(noisyaudio[:5])
 
 ##########################################################
 # clean data
-cleanaudio = pyst.files.collect_audiofiles(audio_clean_path, 
+cleanaudio = pyso.files.collect_audiofiles(audio_clean_path, 
                                                 hidden_files = False,
                                                 wav_only = False,
                                                 recursive = False)
@@ -161,7 +161,7 @@ print(cleanaudio[:5])
 ############################################################################
 # Check if they match up: (expects clean file name to be in noisy file name)
 for i, audiofile in enumerate(noisyaudio):
-    if not pyst.utils.check_noisy_clean_match(audiofile, cleanaudio[i]):
+    if not pyso.utils.check_noisy_clean_match(audiofile, cleanaudio[i]):
         raise ValueError('The noisy and clean audio datasets do not appear to match.')
 
 ######################################################################
@@ -174,13 +174,13 @@ clean_audio_dict = dict([('clean', cleanaudio)])
 
 ##########################################################
 # Noisy data (lower percent train due to small dataset)
-train_noisy, val_noisy, test_noisy = pyst.datasets.audio2datasets(noisy_audio_dict,
+train_noisy, val_noisy, test_noisy = pyso.datasets.audio2datasets(noisy_audio_dict,
                                                               perc_train = perc_train,
                                                               seed=40)
 
 ##########################################################
 # Clean data 
-train_clean, val_clean, test_clean = pyst.datasets.audio2datasets(clean_audio_dict,
+train_clean, val_clean, test_clean = pyso.datasets.audio2datasets(clean_audio_dict,
                                                               perc_train = perc_train,
                                                               seed=40)
 
@@ -208,7 +208,7 @@ dataset_paths_clean_dict = dict([('train',data_train_clean_path),
 # Ensure the noisy and clean audio match up:
 for key, value in dataset_dict_noisy.items():
     for j, audiofile in enumerate(value):
-        if not pyst.utils.check_noisy_clean_match(audiofile,
+        if not pyso.utils.check_noisy_clean_match(audiofile,
                                                 dataset_dict_clean[key][j]):
             raise ValueError('There is a mismatch between noisy and clean audio. '+\
                 '\nThe noisy file:\n{}'.format(dataset_dict_noisy[key][i])+\
@@ -225,20 +225,20 @@ for key, value in dataset_dict_noisy.items():
 
 ######################################################################
 # Noisy speech sample in its raw signal
-pyst.plotsound(noisyaudio[0], feature_type='signal')
+pyso.plotsound(noisyaudio[0], feature_type='signal')
 
 ######################################################################
 # What does this sound like?
-samps, sr = pyst.loadsound(noisyaudio[0])
+samps, sr = pyso.loadsound(noisyaudio[0])
 ipd.Audio(samps,rate=sr)
 
 ######################################################################
 # Clean speech sample in its raw signal
-pyst.plotsound(cleanaudio[0], feature_type='signal')
+pyso.plotsound(cleanaudio[0], feature_type='signal')
 
 ######################################################################
 # What does this sound like?
-samps, sr = pyst.loadsound(cleanaudio[0])
+samps, sr = pyso.loadsound(cleanaudio[0])
 ipd.Audio(samps,rate=sr)
 
 #####################################################################
@@ -246,11 +246,11 @@ ipd.Audio(samps,rate=sr)
 
 ######################################################
 # Noisy speech sample
-pyst.plotsound(noisyaudio[0], feature_type=feature_type, energy_scale='power_to_db')
+pyso.plotsound(noisyaudio[0], feature_type=feature_type, energy_scale='power_to_db')
 
 ######################################################################
 # Clean speech sample
-pyst.plotsound(cleanaudio[0], feature_type=feature_type, energy_scale='power_to_db')
+pyso.plotsound(cleanaudio[0], feature_type=feature_type, energy_scale='power_to_db')
 
 ######################################################
 # Extract and Save Features
@@ -260,7 +260,7 @@ start = time.time()
 
 ##########################################################
 # Extract and save clean data features
-dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets(
+dataset_dict_clean, dataset_paths_clean_dict = pyso.feats.save_features_datasets(
     datasets_dict = dataset_dict_clean,
     datasets_path2save_dict = dataset_paths_clean_dict,
     feature_type = feature_type + ' clean',
@@ -272,7 +272,7 @@ dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets
     
 ##########################################################
 # Extract and save noisy data data features
-dataset_dict_noisy, dataset_paths_noisy_dict = pyst.feats.save_features_datasets(
+dataset_dict_noisy, dataset_paths_noisy_dict = pyso.feats.save_features_datasets(
     datasets_dict = dataset_dict_noisy,
     datasets_path2save_dict = dataset_paths_noisy_dict,
     feature_type = feature_type + ' noisy',
@@ -284,7 +284,7 @@ dataset_dict_noisy, dataset_paths_noisy_dict = pyst.feats.save_features_datasets
 end = time.time()
 
 total_dur_sec = round(end-start,2)
-total_dur, units = pyst.utils.adjust_time_units(total_dur_sec)
+total_dur, units = pyso.utils.adjust_time_units(total_dur_sec)
 print('\nFinished! Total duration: {} {}.'.format(total_dur, units))
 print('\nFeatures can be found here:')
 print(feat_extraction_dir)
@@ -301,12 +301,12 @@ print(feat_extraction_dir)
 # assigned to each dataset file, you can save this information
 # so:
 filename = feat_extraction_dir.joinpath('Noisy_Dataset_Assignments.csv')
-noisy_datasets_dict_paths = pyst.utils.save_dict(
+noisy_datasets_dict_paths = pyso.utils.save_dict(
     dict2save = dataset_dict_noisy, 
     filename = filename)
 
 filename = feat_extraction_dir.joinpath('Clean_Dataset_Assignments.csv')
-clean_datasets_dict_paths = pyst.utils.save_dict(
+clean_datasets_dict_paths = pyso.utils.save_dict(
     dict2save = dataset_dict_clean, 
     filename = filename)
 
@@ -345,7 +345,7 @@ for key, value in dataset_dict_clean.items():
 # If you have very large amounts of audio you would like to process, you can 
 # divide the datasets into smaller sections:
 
-dataset_dict_clean, dataset_paths_clean_dict = pyst.feats.save_features_datasets(
+dataset_dict_clean, dataset_paths_clean_dict = pyso.feats.save_features_datasets(
     datasets_dict = dataset_dict_clean,
     datasets_path2save_dict = dataset_paths_clean_dict,
     feature_type = feature_type + ' clean',

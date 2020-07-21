@@ -13,7 +13,7 @@ currentdir = os.path.dirname(os.path.abspath(
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
-import pysoundtool_online as pyst
+import pysoundtool_online as pyso
 
 ###############################################################################
 
@@ -345,7 +345,7 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed = None,
         waves = audiodata
     else:
         # it is a string or pathlib.PosixPath
-        waves = pyst.utils.load_dict(audiodata)
+        waves = pyso.utils.load_dict(audiodata)
     if isinstance(waves, list) or isinstance(waves,set) or len(waves) == 1:
         multiple_labels = False
     else:
@@ -358,10 +358,10 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed = None,
     if multiple_labels:
         for key, value in waves.items():
             if isinstance(value, str):
-                audiolist = pyst.utils.restore_dictvalue(value)
+                audiolist = pyso.utils.restore_dictvalue(value)
                 if audio_only:
                     # check to make sure all audiofiles and none were lost
-                    audiolist = pyst.files.ensure_only_audiofiles(audiolist)
+                    audiolist = pyso.files.ensure_only_audiofiles(audiolist)
                 key = int(key)
             else:
                 audiolist = value
@@ -382,9 +382,9 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed = None,
                 audiolist = waves[key]
                 if isinstance(audiolist, str):
                     # check to make sure all audiofiles and none were lost
-                    audiolist = pyst.utils.restore_dictvalue(audiolist)
+                    audiolist = pyso.utils.restore_dictvalue(audiolist)
                     if audio_only:
-                        audiolist = pyst.files.ensure_only_audiofiles(audiolist)
+                        audiolist = pyso.files.ensure_only_audiofiles(audiolist)
         else:
             audiolist = waves
         # sort to ensure a consistent order of audio; otherwise cannot control randomization
@@ -418,7 +418,7 @@ def audio2datasets(audiodata, perc_train=0.8, limit=None, seed = None,
     # esure the number of training data is 80% of all available audiodata:
     if len(train_list) < math.ceil((len(train_list)+len(val_list)+len(test_list))*perc_train):
         print('perc train', perc_train)
-        raise pyst.errors.notsufficientdata_error(len(train_list),
+        raise pyso.errors.notsufficientdata_error(len(train_list),
                                       len(val_list),
                                       len(test_list),
                                       math.ceil(

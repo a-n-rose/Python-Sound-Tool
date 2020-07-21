@@ -17,7 +17,7 @@ currentdir = os.path.dirname(os.path.abspath(
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
-import pysoundtool as pyst
+import pysoundtool as pyso
 
 
 
@@ -94,7 +94,7 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
         sr2, data = read(filename)
         if sr:
             if sr2 != sr:
-                data, sr2 = pyst.dsp.resample_audio(data, 
+                data, sr2 = pyso.dsp.resample_audio(data, 
                                           sr_original = sr2, 
                                           sr_desired = sr)
                 assert sr2 == sr
@@ -103,7 +103,7 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
     except ValueError:
         print("Converting {} to wavfile".format(filename))
         try:
-            filename = pyst.files.convert_audiofile(filename, overwrite=False)
+            filename = pyso.files.convert_audiofile(filename, overwrite=False)
         except RuntimeError as e:
             raise RuntimeError('Try setting `use_scipy` to False in pysoundtool.loadsound().')
         try:
@@ -111,19 +111,19 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
             print("File saved as {}".format(filename))
         except ValueError:
             print("Ensure bitdepth is compatible with scipy library")
-            filename = pyst.files.newbitdepth(filename, overwrite=False)
+            filename = pyso.files.newbitdepth(filename, overwrite=False)
             data, sr = loadsound(filename, sr=sr, mono=mono, dur_sec=dur_sec)
     
     # scipy loads data in shape (num_samples, num_channels)
     # don't need to transpose as for librosa
     if mono and len(data.shape) > 1:
         if data.shape[1] > 1:
-            data = pyst.dsp.stereo2mono(data)
+            data = pyso.dsp.stereo2mono(data)
     # scale samples to be between -1 and 1
-    data = pyst.dsp.scalesound(data, max_val= 1, min_val=-1)
+    data = pyso.dsp.scalesound(data, max_val= 1, min_val=-1)
     if dur_sec:
         numsamps = int(dur_sec * sr)
-        data = pyst.dsp.set_signal_length(data, numsamps)
+        data = pyso.dsp.set_signal_length(data, numsamps)
     return data, sr
 
 def savesound(audiofile_name, signal_values, sr, overwrite=False, use_scipy=False,
@@ -154,12 +154,12 @@ def savesound(audiofile_name, signal_values, sr, overwrite=False, use_scipy=Fals
     pysoundtool.files.conversion_formats
         Lists the possible formats to save audio files if `use_scipy` is False.
     """
-    audiofile_name = pyst.utils.string2pathlib(audiofile_name)
+    audiofile_name = pyso.utils.string2pathlib(audiofile_name)
     if os.path.exists(audiofile_name) and overwrite is False:
         raise FileExistsError('Filename {} already exists.'.format(audiofile_name)+\
             '\nSet `overwrite` to True in function savesound() to overwrite.')
     directory = audiofile_name.parent
-    directory = pyst.utils.check_dir(directory, make=True)
+    directory = pyso.utils.check_dir(directory, make=True)
     if use_scipy:
         write(audiofile_name, sr, signal_values)
     else: 
@@ -215,7 +215,7 @@ def audiofiles_present(directory, recursive=False):
     bool 
         True if audio is present; otherwise False.
     '''
-    directory = pyst.utils.string2pathlib(directory)
+    directory = pyso.utils.string2pathlib(directory)
 
 def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursive=False):
     '''Collects all files within a given directory.
@@ -254,7 +254,7 @@ def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursiv
     if not hidden_files:
         paths_list = [x for x in paths_list if x.stem[0] != '.']
     # ensure only audiofiles:
-    paths_list = pyst.files.ensure_only_audiofiles(paths_list)
+    paths_list = pyso.files.ensure_only_audiofiles(paths_list)
     return paths_list
 
 
@@ -297,7 +297,7 @@ def collect_zipfiles(directory, hidden_files = False, ext='tgz', recursive=False
     return paths_list
     
 def ensure_only_audiofiles(audiolist):
-    possible_extensions = pyst.files.list_possibleformats(use_scipy=False)
+    possible_extensions = pyso.files.list_possibleformats(use_scipy=False)
     audiolist_checked = [x for x in audiolist if pathlib.Path(x).suffix in possible_extensions]
     if len(audiolist_checked) < len(audiolist):
         import warnings
@@ -411,16 +411,16 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
     --------
     >>> audiofile = './example/audio.wav'
     # in same directory
-    >>> audiofile_flac = pyst.files.convert_audiofile(audiofile, format_type='flac')
+    >>> audiofile_flac = pyso.files.convert_audiofile(audiofile, format_type='flac')
     >>> audiofile_flac
     PosixPath('example/audio.flac')
     # in new directory
-    >>> audiofile_flac = pyst.files.convert_audiofile(audiofile, format_type='flac', 
+    >>> audiofile_flac = pyso.files.convert_audiofile(audiofile, format_type='flac', 
                                                      new_dir = './examples2/')
     >>> audiofile_flac
     PosixPath('examples2/audio.flac')
     >>> # can establish desired conversion format in `new_dir`
-    >>> audiofile_ogg = pyst.files.convert_audiofile(audiofile,
+    >>> audiofile_ogg = pyso.files.convert_audiofile(audiofile,
                                                      new_dir = './examples2/audio.ogg')
     >>> audiofile_ogg
     PosixPath('audiodata2/audio.ogg')
@@ -443,7 +443,7 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
     if not f.suffix:
         raise TypeError('Function convert_audiofile expected a path with an '+\
             'audio extension, not input: \n', filename)
-    if not f.suffix in pyst.files.list_possibleformats(use_scipy=False):
+    if not f.suffix in pyso.files.list_possibleformats(use_scipy=False):
         raise TypeError('This software cannot process audio in {}'.format(f.suffix)+\
             ' format. We apologize for the inconvenience.')
     # ensure filename exists:
@@ -481,7 +481,7 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
             # change filename to new directory
             new_filename = new_dir.joinpath(new_f.name)
         # check to make sure new_dir exists
-        new_dir = pyst.utils.check_dir(new_dir, make=True)
+        new_dir = pyso.utils.check_dir(new_dir, make=True)
     else:
         new_filename = replace_ext(f, format_type.lower())
         
@@ -501,7 +501,7 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
     if not use_scipy:
         format = format_type.upper()
         
-    new_filename = pyst.savesound(new_filename, data, sr, 
+    new_filename = pyso.savesound(new_filename, data, sr, 
                                   overwrite=overwrite, use_scipy=use_scipy,
                                   format=format)
     return new_filename
@@ -635,7 +635,7 @@ def delete_dir_contents(directory, remove_dir = False):
     '''
     https://stackoverflow.com/a/28834214
     '''
-    d = pyst.utils.string2pathlib(directory)
+    d = pyso.utils.string2pathlib(directory)
     for sub in d.iterdir():
         if sub.is_dir():
             delete_dir_contents(sub)
@@ -677,7 +677,7 @@ def matching_filenames(list1, list_of_lists):
     contanimated_files = []
     for item in list1_files:
         if isinstance(item, str):
-            item = pyst.string2pathlib(item)
+            item = pyso.string2pathlib(item)
         fname = item.stem
         fname_parts = fname.split('-')
         fname_head = fname_parts[:-1]

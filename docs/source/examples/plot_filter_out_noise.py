@@ -23,7 +23,7 @@ os.chdir(package_dir)
 
 #####################################################################
 # Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyst;
+import pysoundtool as pyso;
 import IPython.display as ipd
 
 
@@ -37,14 +37,14 @@ import IPython.display as ipd
 ##########################################################
 # Noise sample:
 noise = '{}audiodata/background_samples/traffic.wav'.format(package_dir)
-noise = pyst.string2pathlib(noise)
+noise = pyso.string2pathlib(noise)
 
 speech = '{}audiodata/python.wav'.format(package_dir)
-speech = pyst.utils.string2pathlib(speech)
+speech = pyso.utils.string2pathlib(speech)
 
 # For filtering, we will set the sample rate to be quite high:
 sr = 48000
-noisy, snr_measured = pyst.dsp.add_backgroundsound(speech, noise, sr = sr, 
+noisy, snr_measured = pyso.dsp.add_backgroundsound(speech, noise, sr = sr, 
                                                  snr = 10, 
                                                  total_len_sec = 3, 
                                                  delay_mainsound_sec = 1)
@@ -56,16 +56,16 @@ noisy, snr_measured = pyst.dsp.add_backgroundsound(speech, noise, sr = sr,
 ipd.Audio(noisy,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy, sr=sr, feature_type='signal', title='Noisy Speech')
+pyso.plotsound(noisy, sr=sr, feature_type='signal', title='Noisy Speech')
 
 
 ##########################################################
 # The same for the clean speech:
-s, sr = pyst.loadsound(speech, sr=sr)
+s, sr = pyso.loadsound(speech, sr=sr)
 ipd.Audio(s,rate=sr)
 
 ##########################################################
-pyst.plotsound(s, sr=sr, feature_type='signal', title='Clean Speech')
+pyso.plotsound(s, sr=sr, feature_type='signal', title='Clean Speech')
 
 
 ##########################################################
@@ -74,7 +74,7 @@ pyst.plotsound(s, sr=sr, feature_type='signal', title='Clean Speech')
 
 ##########################################################
 # Let's filter with a Wiener filter:
-noisy_wf, sr = pyst.filtersignal(noisy,
+noisy_wf, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type='wiener') # default
 
@@ -86,12 +86,12 @@ noisy_wf, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_wf,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_wf, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_wf, sr=sr, feature_type='signal', 
                title='Noisy Speech: Wiener Filter')
 
 ##########################################################
 # Let's filter with a Wiener filter and postfilter
-noisy_wfpf, sr = pyst.filtersignal(noisy,
+noisy_wfpf, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type='wiener',
                                  apply_postfilter = True) 
@@ -104,13 +104,13 @@ noisy_wfpf, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_wfpf,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_wfpf, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_wfpf, sr=sr, feature_type='signal', 
                title='Noisy Speech: Wiener Filter with Postfilter')
 
 
 ##########################################################
 # Let's filter using band spectral subtraction
-noisy_bs, sr = pyst.filtersignal(noisy,
+noisy_bs, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type='bandspec') 
 
@@ -122,14 +122,14 @@ noisy_bs, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_bs,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_bs, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_bs, sr=sr, feature_type='signal', 
                title='Noisy Speech: Band Spectral Subtraction')
 
 
 
 #########################################################################
 # Finally, let's filter using band spectral subtraction with a postfilter
-noisy_bspf, sr = pyst.filtersignal(noisy,
+noisy_bspf, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type='bandspec', 
                                  apply_postfilter = True) 
@@ -142,7 +142,7 @@ noisy_bspf, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_bspf,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_bspf, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_bspf, sr=sr, feature_type='signal', 
                title='Noisy Speech: Band Spectral Subtraction with Postfilter')
 
 
@@ -153,7 +153,7 @@ pyst.plotsound(noisy_bspf, sr=sr, feature_type='signal',
 ##########################################################
 # Let's filter with a Wiener filter:
 filter_scale = 5
-noisy_wf, sr = pyst.filtersignal(noisy,
+noisy_wf, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type='wiener',
                                  filter_scale = filter_scale)
@@ -166,12 +166,12 @@ noisy_wf, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_wf,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_wf, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_wf, sr=sr, feature_type='signal', 
                title='Noisy Speech: Wiener Filter Scale {}'.format(filter_scale))
 
 ##########################################################
 # Let's filter with a Wiener filter and postfilter
-noisy_wfpf, sr = pyst.filtersignal(noisy,
+noisy_wfpf, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type='wiener',
                                  apply_postfilter = True,
@@ -185,13 +185,13 @@ noisy_wfpf, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_wfpf,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_wfpf, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_wfpf, sr=sr, feature_type='signal', 
                title='Noisy Speech: Wiener Filter with Postfilter Scale {}'.format(filter_scale))
 
 
 ##########################################################
 # Let's filter using band spectral subtraction at higher scale
-noisy_bs, sr = pyst.filtersignal(noisy,
+noisy_bs, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type = 'bandspec',
                                  filter_scale = filter_scale) 
@@ -205,14 +205,14 @@ noisy_bs, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_bs,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_bs, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_bs, sr=sr, feature_type='signal', 
                title='Noisy Speech: Band Spectral Subtraction Scale {}'.format(filter_scale))
 
 
 
 #########################################################################
 # Let's filter using band spectral subtraction with a postfilter
-noisy_bspf, sr = pyst.filtersignal(noisy,
+noisy_bspf, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type = 'bandspec', 
                                  apply_postfilter = True,
@@ -226,7 +226,7 @@ noisy_bspf, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_bspf,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_bspf, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_bspf, sr=sr, feature_type='signal', 
                title='Noisy Speech: Band Spectral Subtraction with Postfilter Scale {}'.format(
                    filter_scale))
 
@@ -237,7 +237,7 @@ pyst.plotsound(noisy_bspf, sr=sr, feature_type='signal',
 #########################################################################
 # Let's alter the number of bands for band spectral subtraction
 num_bands = 10
-noisy_bs, sr = pyst.filtersignal(noisy,
+noisy_bs, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type = 'bandspec', 
                                  num_bands = num_bands) # default 6 
@@ -250,7 +250,7 @@ noisy_bs, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_bs,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_bs, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_bs, sr=sr, feature_type='signal', 
                title='Noisy Speech: Band Spectral Subtraction: {} Bands'.format(
                    num_bands))
                
@@ -258,7 +258,7 @@ pyst.plotsound(noisy_bs, sr=sr, feature_type='signal',
 
 #########################################################################
 # Let's alter the number of bands for band spectral subtraction
-noisy_bspf, sr = pyst.filtersignal(noisy,
+noisy_bspf, sr = pyso.filtersignal(noisy,
                                  sr=sr,
                                  filter_type = 'bandspec', 
                                  apply_postfilter = True,
@@ -272,6 +272,6 @@ noisy_bspf, sr = pyst.filtersignal(noisy,
 ipd.Audio(noisy_bspf,rate=sr)
 
 ##########################################################
-pyst.plotsound(noisy_bspf, sr=sr, feature_type='signal', 
+pyso.plotsound(noisy_bspf, sr=sr, feature_type='signal', 
                title='Noisy Speech: Band Spectral Subtraction with Postfilter: {} Bands'.format(
                    num_bands))
