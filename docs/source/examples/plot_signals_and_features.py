@@ -14,15 +14,16 @@ To see how PySoundTool implements this, see `pysoundtool.dsp.generate_sound`,
 ###############################################################################################
 #  
 
-##########################################################
-# Ignore this snippet of code: it is only for this example
-import os
-package_dir = '../../../'
-os.chdir(package_dir)
-
 #####################################################################
-# Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyso;
+# Let's import pysoundtool
+import pysoundtool as pyso
+
+
+##########################################################
+# Designate path relevant for accessting audiodata
+pyso_dir = '../../../'
+
+
 
 ###########################################################################
 # Create a Signal

@@ -15,15 +15,14 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.envclassifier_f
 # 
 
 
-##########################################################
-# Ignore this snippet of code: it is only for this example
-import os
-package_dir = '../../../'
-os.chdir(package_dir)
-
 #####################################################################
-# Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyso;
+# Let's import pysoundtool
+import pysoundtool as pyso
+
+##########################################################
+# Designate path relevant for accessting audiodata
+pyso_dir = '../../../'
+
 
 
 ######################################################
@@ -34,12 +33,12 @@ import pysoundtool as pyso;
 # I will use a sample data set:
 
 # Example data:
-# data_dir = '{}../mini-audio-datasets/background_noise/'.format(package_dir)
+# data_dir = '{}../mini-audio-datasets/background_noise/'.format(pyso_dir)
 
 ###########################################################
 # There is also a small speech dataset you can try instead:
 
-data_dir = '{}../mini-audio-datasets/speech_commands/'.format(package_dir)
+data_dir = '{}../mini-audio-datasets/speech_commands/'.format(pyso_dir)
 
 ######################################################
 # Which type of feature:

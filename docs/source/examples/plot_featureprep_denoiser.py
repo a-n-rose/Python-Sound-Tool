@@ -14,18 +14,14 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_feats`
 ###############################################################################################
 # 
 
-
-##########################################################
-# Ignore this snippet of code: it is only for this example
-import os
-package_dir = '../../../'
-os.chdir(package_dir)
-
 #####################################################################
-# Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyso;
+# Let's import pysoundtool, and ipd for playing audio data
+import pysoundtool as pyso
 import IPython.display as ipd
 
+##########################################################
+# Designate path relevant for accessting audiodata
+pyso_dir = '../../../'
 
 ######################################################
 # Prepare for Extraction: Data Organization
@@ -35,9 +31,9 @@ import IPython.display as ipd
 # I will use a mini denoising dataset as an example
 
 # Example noisy data:
-data_noisy_dir = '{}../mini-audio-datasets/denoise/noisy/'.format(package_dir)
+data_noisy_dir = '{}../mini-audio-datasets/denoise/noisy/'.format(pyso_dir)
 # Example clean data:
-data_clean_dir = '{}../mini-audio-datasets/denoise/clean/'.format(package_dir)
+data_clean_dir = '{}../mini-audio-datasets/denoise/clean/'.format(pyso_dir)
 # Where to save extracted features:
 data_features_dir = './audiodata/example_feats_models/denoiser/'
 

@@ -12,15 +12,13 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.envclassifier_t
 ###############################################################################################
 #
 
-##########################################################
-# Ignore this snippet of code: it is only for this example
-import os
-package_dir = '../../../'
-os.chdir(package_dir)
-
 #####################################################################
-# Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyso;
+# Let's import pysoundtool
+import pysoundtool as pyso
+
+##########################################################
+# Set path relevant for audio data for this example
+pyso_dir = '../../../'
 
 ######################################################
 # Prepare for Training: Data Organization
@@ -28,7 +26,7 @@ import pysoundtool as pyso;
 
 ######################################################
 # I will load previously extracted features (sample data)
-feature_extraction_dir = '{}audiodata2/example_feats_models/'.format(package_dir)+\
+feature_extraction_dir = '{}audiodata2/example_feats_models/'.format(pyso_dir)+\
     'envclassifier/example_feats_fbank/'
 
 #########################################################

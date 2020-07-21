@@ -17,23 +17,21 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.dataset_logger`
 # ^^^^^^^^^^^^^^^^^^^
 
 
-##########################################################
-# Ignore this snippet of code: it is only for this example
-import matplotlib.pyplot as plt
-import os
-package_dir = '../../../'
-os.chdir(package_dir)
-
-
 #####################################################################
-# Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyso;
+# Let's import pysoundtool 
+import pysoundtool as pyso
+
+##########################################################
+# Designate path relevant for accessting audiodata
+pyso_dir = '../../../'
+
+
 
 
 ##########################################################
 # I will explore files in a small dataset on my computer
-dataset_path = '{}audiodata2/'.format(package_dir)
-dataset_info_dict = pyso.builtin.dataset_logger('{}audiodata2/'.format(package_dir));
+dataset_path = '{}audiodata2/'.format(pyso_dir)
+dataset_info_dict = pyso.builtin.dataset_logger('{}audiodata2/'.format(pyso_dir));
 
 #########################################################################
 # This returns our data in a dictionary, perfect for exploring via Pandas

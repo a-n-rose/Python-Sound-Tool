@@ -14,15 +14,16 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_train`
 ###############################################################################################
 # 
 
-##########################################################
-# Ignore this snippet of code: it is only for this example
-import os
-package_dir = '../../../'
-os.chdir(package_dir)
 
 #####################################################################
-# Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyso;
+# Let's import pysoundtool
+import pysoundtool as pyso
+
+
+##########################################################
+# Designate path relevant for accessting audiodata
+pyso_dir = '../../../'
+
 
 
 
@@ -32,7 +33,7 @@ import pysoundtool as pyso;
 
 ######################################################
 # I will load previously extracted features (sample data)
-feature_extraction_dir = '{}audiodata2/example_feats_models/'.format(package_dir)+\
+feature_extraction_dir = '{}audiodata2/example_feats_models/'.format(pyso_dir)+\
     'denoiser/example_feats_fbank/'
 
 #########################################################

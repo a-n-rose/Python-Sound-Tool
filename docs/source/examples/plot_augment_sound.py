@@ -15,16 +15,15 @@ To see how PySoundTool implements this, see `pysoundtool.augment`.
 # 
 
 
-##########################################################
-# Ignore this snippet of code: it is only for this example
-import os
-package_dir = '../../../'
-os.chdir(package_dir)
-
 #####################################################################
-# Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyso;
+# Let's import pysoundtool, and ipd for playing audio data
+import pysoundtool as pyso
 import IPython.display as ipd
+
+##########################################################
+# Designate path relevant for accessting audiodata
+pyso_dir = '../../../'
+
 
 
 #############################################
@@ -33,10 +32,10 @@ import IPython.display as ipd
 
 ##########################################################
 # Speech sample:
-speech = '{}audiodata/python.wav'.format(package_dir)
+speech = '{}audiodata/python.wav'.format(pyso_dir)
 speech = pyso.utils.string2pathlib(speech)
 # Car horn sample:
-honk = '{}audiodata/car_horn.wav'.format(package_dir)
+honk = '{}audiodata/car_horn.wav'.format(pyso_dir)
 honk = pyso.utils.string2pathlib(honk)
 
 

@@ -13,19 +13,15 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_run`.
 ############################################################################################
 # 
 
-##########################################################
-# Ignore this snippet of code: it is only for this example
-import os
-package_dir = '../../../'
-os.chdir(package_dir)
-
 #####################################################################
-# Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyso;
+# Let's import pysoundtool
+import pysoundtool as pyso
 # for playing audio in this notebook:
 import IPython.display as ipd
-import keras
 
+##########################################################
+# Set path relevant for audio data for this example
+pyso_dir = '../../../'
 
 ######################################################
 # Prepare for Implementation: Data Organization
@@ -39,7 +35,7 @@ import keras
 
 ######################################################
 # PySoundTool offers pre-trained models. Let's use one.
-model = '{}audiodata/models/'.format(package_dir)+\
+model = '{}audiodata/models/'.format(pyso_dir)+\
     'denoiser/example_denoiser_stft.h5'
 # ensure is a pathlib.PosixPath object
 print(model)
@@ -84,7 +80,7 @@ sr = feat_settings['sr']
 
 #########################################################
 # We'll use the sample speech sample:
-speech = pyso.string2pathlib('{}audiodata/python.wav'.format(package_dir))
+speech = pyso.string2pathlib('{}audiodata/python.wav'.format(pyso_dir))
 s, sr = pyso.loadsound(speech, sr=sr)
 
 #########################################################

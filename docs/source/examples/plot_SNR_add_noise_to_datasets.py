@@ -15,16 +15,16 @@ To see how PySoundTool implements this, see `pysoundtool.dsp.add_backgroundsound
 # 
 
 
-##########################################################
-# Ignore this snippet of code: it is only for this example
-import os
-package_dir = '../../../'
-os.chdir(package_dir)
-
 #####################################################################
-# Let's import pysoundtool, assuming it is in your working directory:
-import pysoundtool as pyso;
+# Let's import pysoundtool, and ipd for playing audio data
+import pysoundtool as pyso
 import IPython.display as ipd
+
+##########################################################
+# Designate path relevant for accessting audiodata
+pyso_dir = '../../../'
+
+
 
 
 ######################################################
@@ -36,7 +36,7 @@ import IPython.display as ipd
 
 ##########################################################
 # Speech sample:
-speech_sample = '{}../mini-audio-datasets/speech_commands/zero/c7aaad67_nohash_0.wav'.format(package_dir)
+speech_sample = '{}../mini-audio-datasets/speech_commands/zero/c7aaad67_nohash_0.wav'.format(pyso_dir)
 speech_sample = pyso.utils.string2pathlib(speech_sample)
 print(speech_sample)
 # as pathlib object, can do the following: 
@@ -45,7 +45,7 @@ word
 
 ##########################################################
 # noise sample: (this comes with PySoundTool)
-noise_sample = '{}audiodata/background_samples/cafe.wav'.format(package_dir)
+noise_sample = '{}audiodata/background_samples/cafe.wav'.format(pyso_dir)
 print(noise_sample)
 noise_sample = pyso.utils.string2pathlib(noise_sample)
 # as pathlib object, can do the following: 
