@@ -4,7 +4,7 @@
 Implement a Denoising Autoencoder
 =================================
 
-Use PySoundTool to train a denoising autoencoder with clean and noisy acoustic features.
+Implement denoising autoencoder to denoise a noisy speech signal.
 
 To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_run`.
 """
@@ -14,18 +14,19 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_run`.
 # 
 
 #####################################################################
-# Let's import pysoundtool
+# Let's import pysoundtool and other packages
 import pysoundtool as pyso
+import numpy as np
 # for playing audio in this notebook:
 import IPython.display as ipd
-
-##########################################################
-# Set path relevant for audio data for this example
-pyso_dir = '../../../'
 
 ######################################################
 # Prepare for Implementation: Data Organization
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+##########################################################
+# Set path relevant for audio data for this example
+pyso_dir = '../../../'
 
 ######################################################
 # Set model pathway
@@ -34,7 +35,7 @@ pyso_dir = '../../../'
 # (See `model` below)
 
 ######################################################
-# PySoundTool offers pre-trained models. Let's use one.
+# The PySoundTool repo offers a pre-trained denoiser, which we'll use.
 model = '{}audiodata/models/'.format(pyso_dir)+\
     'denoiser/example_denoiser_stft.h5'
 # ensure is a pathlib.PosixPath object
@@ -55,7 +56,7 @@ for f in files:
 #########################################################
 # If PySoundTool extracts features for you, a 'log_extraction_settings.csv' 
 # file will be saved, which includes relevant feature settings for implementing 
-# the model. See pysoundtool.feats.save_features_datasets
+# the model; see `pysoundtool.feats.save_features_datasets`
 feat_settings = pyso.utils.load_dict(
     model_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
@@ -79,7 +80,7 @@ sr = feat_settings['sr']
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #########################################################
-# We'll use the sample speech sample:
+# We'll use sample speech from the PySoundTool repo:
 speech = pyso.string2pathlib('{}audiodata/python.wav'.format(pyso_dir))
 s, sr = pyso.loadsound(speech, sr=sr)
 
@@ -127,13 +128,13 @@ ipd.Audio(y,rate=sr)
 pyso.plotsound(y, sr=sr, feature_type = 'signal')
 
 ##########################################################
-# How do they all compare?
-# ~~~~~~~~~~~~~~~~~~~~~~~~
+# How do the features compare?
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ##########################################################
-# STFT features of the noisy version of the audio:
+# STFT features of the noisy input speech:
 pyso.plotsound(s_n, sr=sr, feature_type = 'stft', energy_scale = 'power_to_db',
-               title = 'Noisy input audiofile: STFT features')
+               title = 'Noisy input: STFT features')
 
 ##########################################################
 # STFT features of the output
@@ -143,9 +144,9 @@ pyso.plotsound(y, sr=sr, feature_type = 'stft', energy_scale = 'power_to_db',
 ##########################################################
 # STFT features of the clean version of the audio:
 pyso.plotsound(s, sr=sr, feature_type = 'stft', energy_scale = 'power_to_db',
-               title = 'Clean "target" audiofile: STFT features')
+               title = 'Clean "target" audio: STFT features')
 
 
 ##########################################################
-# It's not perfect but for a very simple implementation, the noise is gone
+# It's not perfect but for a pretty simple implementation, the noise is gone
 # and you can hear the person speaking. Pretty cool! 

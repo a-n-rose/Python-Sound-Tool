@@ -4,7 +4,7 @@
 Train a Denoising Autoencoder
 =============================
 
-Use PySoundTool to train a denoising autoencoder with clean and noisy acoustic features.
+Train a denoising autoencoder with clean and noisy acoustic features.
 
 To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_train`, 
 `pysoundtool.builtin.denoiser_feats` and `pysoundtool.builtin.create_denoise_data`.
@@ -20,19 +20,17 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_train`
 import pysoundtool as pyso
 
 
-##########################################################
-# Designate path relevant for accessting audiodata
-pyso_dir = '../../../'
-
-
-
-
 ######################################################
 # Prepare for Training: Data Organization
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+##########################################################
+# Designate path relevant for accessing audiodata
+pyso_dir = '../../../'
+
+
 ######################################################
-# I will load previously extracted features (sample data)
+# I will load previously extracted features (sample data), see `pysoundtool.feats.save_features_datasets` or `pysoundtool.builtin.denoiser_feats`
 feature_extraction_dir = '{}audiodata2/example_feats_models/'.format(pyso_dir)+\
     'denoiser/example_feats_fbank/'
 
@@ -51,7 +49,7 @@ for f in files:
     print(f.name)
   
 #########################################################
-# The .csv files contain information about where the features came from.
+# The .csv files contain information about how the features were extracted
 files = list(feature_extraction_dir.glob('*.csv'))
 for f in files:
     print(f.name)
@@ -81,13 +79,14 @@ for key, value in audio_datasets.items():
 #############################################################
 # Built-In Functionality: PySoundTool does everything for you
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# For more about this, see `pysoundtool.builtin.denoiser_train`.
 
 #############################################################
 model_dir, history = pyso.denoiser_train(feature_extraction_dir = feature_extraction_dir,
                                          epochs = 10)
 
 #########################################################
-# For more about this function, see `pysoundtool.train_models.denoiser_train`.
+
 
 #############################################################
 # Where the model and logs are located:

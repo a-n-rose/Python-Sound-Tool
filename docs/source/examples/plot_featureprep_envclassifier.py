@@ -4,7 +4,7 @@
 Feature Extraction for Classification
 =====================================
 
-Use PySoundTool to extract acoustic features from labeled data for 
+Extract acoustic features from labeled data for 
 training an environment or speech classifier.
 
 To see how PySoundTool implements this, see `pysoundtool.builtin.envclassifier_feats`.
@@ -16,57 +16,46 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.envclassifier_f
 
 
 #####################################################################
-# Let's import pysoundtool
 import pysoundtool as pyso
-
-##########################################################
-# Designate path relevant for accessting audiodata
-pyso_dir = '../../../'
-
-
 
 ######################################################
 # Prepare for Extraction: Data Organization
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
-# I will use a sample data set:
+# I will use a sample speech commands data set:
 
-# Example data:
-# data_dir = '{}../mini-audio-datasets/background_noise/'.format(pyso_dir)
-
-###########################################################
-# There is also a small speech dataset you can try instead:
-
-data_dir = '{}../mini-audio-datasets/speech_commands/'.format(pyso_dir)
+##########################################################
+# Designate path relevant for accessing audiodata
+data_dir = '../../../../mini-audio-datasets/speech_commands/'
 
 ######################################################
-# Which type of feature:
-
-# We can extract 'mfcc', 'fbank', 'powspec', and 'stft'
-
+# Choose Feature Type 
+# ~~~~~~~~~~~~~~~~~~~
+# We can extract 'mfcc', 'fbank', 'powspec', and 'stft'.
 # if you are working with speech, I suggest 'fbank', 'powspec', or 'stft'.
 
 feature_type = 'stft'
 
 ######################################################
-# how much audio in seconds used from each audio file:
-
+# Set Duration of Audio 
+# ~~~~~~~~~~~~~~~~~~~~~
+# How much audio in seconds used from each audio file.
 # The example noise and speech files are only 1 second long
 dur_sec = 1
 
 
 #############################################################
-# Built-In Functionality: PySoundTool does everything for you
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Option 1: Built-In Functionality - PySoundTool extracts the features for you
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ############################################################
 # Define which data to use and which features to extract
-
 # Everything else is based on defaults. A feature folder with
 # the feature data will be created in the current working directory.
-
 # (Although, you can set this under the parameter `data_features_dir`)
+# `visualize` saves periodic images of the features extracted.
+# This is useful if you want to know what's going on during the process.
 extraction_dir = pyso.envclassifier_feats(data_dir, 
                                           feature_type=feature_type, 
                                           dur_sec=dur_sec,
@@ -76,22 +65,22 @@ extraction_dir = pyso.envclassifier_feats(data_dir,
 # The extracted features, extraction settings applied, and 
 # which audio files were assigned to which datasets
 # will be saved in the following directory:
-print(extraction_dir)
+extraction_dir
 
 ############################################################
 # And that's it!
 
 
 ############################################################
-# A bit more hands-on (PySoundTool does a bit for you)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Option 2: A bit more hands-on (PySoundTool does a bit for you)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
 # Where to save extracted features:
 data_features_dir = './audiodata/example_feats_models/classifier/'
 
 ######################################################
-# create unique directory for feature extraction session:
+# create unique directory for feature extraction session (so important files won't get overwritten)
 feat_extraction_dir = 'features_'+feature_type + '_' + pyso.utils.get_date()
 
 ######################################################
@@ -308,7 +297,6 @@ for key, value in dataset_dict.items():
     count +=1
     if count > 5:
         break
-
 
 ###################################################################
 count = 0

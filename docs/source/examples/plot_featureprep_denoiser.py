@@ -4,7 +4,7 @@
 Feature Extraction for Denoising: Clean and Noisy Audio
 =======================================================
 
-Use PySoundTool to extract acoustic features from clean and noisy datasets for 
+Extract acoustic features from clean and noisy datasets for 
 training a denoising model, e.g. a denoising autoencoder.
 
 To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_feats`.
@@ -15,13 +15,8 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_feats`
 # 
 
 #####################################################################
-# Let's import pysoundtool, and ipd for playing audio data
 import pysoundtool as pyso
 import IPython.display as ipd
-
-##########################################################
-# Designate path relevant for accessting audiodata
-pyso_dir = '../../../'
 
 ######################################################
 # Prepare for Extraction: Data Organization
@@ -31,33 +26,38 @@ pyso_dir = '../../../'
 # I will use a mini denoising dataset as an example
 
 # Example noisy data:
-data_noisy_dir = '{}../mini-audio-datasets/denoise/noisy/'.format(pyso_dir)
+data_noisy_dir = '../../../../mini-audio-datasets/denoise/noisy/'
 # Example clean data:
-data_clean_dir = '{}../mini-audio-datasets/denoise/clean/'.format(pyso_dir)
+data_clean_dir = '../../../../mini-audio-datasets/denoise/clean/'
 # Where to save extracted features:
 data_features_dir = './audiodata/example_feats_models/denoiser/'
 
 ######################################################
-# Which type of feature:
+# Choose Feature Type 
+# ~~~~~~~~~~~~~~~~~~~
+# We can extract 'mfcc', 'fbank', 'powspec', and 'stft'.
+# if you are working with speech, I suggest 'fbank', 'powspec', or 'stft'.
 
-# We can extract 'mfcc', 'fbank', 'powspec', and 'stft'
-# These are in order of simplest to most complex. 
 feature_type = 'fbank'
 
 ######################################################
-# how much audio in seconds used from each audio file:
+# Set Duration of Audio 
+# ~~~~~~~~~~~~~~~~~~~~~
+# How much audio in seconds used from each audio file.
 # the speech samples are about 3 seconds long.
 dur_sec = 3
 
 ######################################################
+# Set Context Window / Number of Frames
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # How many sections should each sample be broken into? (optional)
 # Some research papers include a 'context window' or the like, 
 # which this refers to.
 frames_per_sample = 11
 
-#############################################################
-# Built-In Functionality: PySoundTool does everything for you
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#######################################################################
+# Option 1: Built-In Functionality: PySoundTool does everything for you
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ############################################################
 # Define which data to use and which features to extract. 
@@ -65,17 +65,19 @@ frames_per_sample = 11
 # `perc_train` to a lower level than 0.8. (Otherwise, will raise error)
 # Everything else is based on defaults. A feature folder with
 # the feature data will be created in the current working directory.
-
 # (Although, you can set this under the parameter `data_features_dir`)
-perc_train = 0.6
-extraction_dir = pyso.denoiser_feats(data_clean_dir = data_clean_dir, 
-                                     data_noisy_dir = data_noisy_dir,
-                                     feature_type = feature_type, 
-                                     dur_sec = dur_sec,
-                                     frames_per_sample = frames_per_sample,
-                                     perc_train = perc_train,
-                                     visualize=True);
-print(extraction_dir)
+# `visualize` saves periodic images of the features extracted.
+# This is useful if you want to know what's going on during the process.
+perc_train = 0.6 # with larger datasets this would be around 0.8
+extraction_dir = pyso.denoiser_feats(
+    data_clean_dir = data_clean_dir, 
+    data_noisy_dir = data_noisy_dir,
+    feature_type = feature_type, 
+    dur_sec = dur_sec,
+    frames_per_sample = frames_per_sample,
+    perc_train = perc_train,
+    visualize=True);
+extraction_dir
 
 ################################################################
 # The extracted features, extraction settings applied, and 
@@ -88,8 +90,8 @@ print(extraction_dir)
 
 
 ############################################################
-# A bit more hands-on (PySoundTool does a bit for you)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Option 2: A bit more hands-on (PySoundTool does a bit for you)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 ######################################################
@@ -309,10 +311,12 @@ clean_datasets_dict_paths = pyso.utils.save_dict(
 ###########################################################################
 # Examining what info is logged
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# The following dataset assignments as well as additional feature extraction settings 
+# (e.g. `feature_type`, `dur_sec`)will be saved in the `feat_extraction_dir`
 
 ################################################################
-# Dataset assigned to noisy audio files and their labels (0, 1, or 2):
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Dataset assigned to noisy audio files:
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 count = 0
 for key, value in dataset_dict_noisy.items():
     print(key, ' --> ', value)
@@ -322,18 +326,14 @@ for key, value in dataset_dict_noisy.items():
 
 
 ###################################################################
-# Dataset assigned to clean audio files and their labels (0, 1, or 2):
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Datasets assigned to clean audio files:
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 count = 0
 for key, value in dataset_dict_clean.items():
     print(key, ' --> ', value)
     count +=1
     if count > 5:
         break
-
-#########################################################
-# You will find these files in the `feat_extraction_dir`.
-
 
 ######################################################
 # Large Datasets

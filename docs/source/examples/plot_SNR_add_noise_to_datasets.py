@@ -5,7 +5,7 @@
 Add Noise to Speech at Specific SNR Levels
 ==========================================
 
-Use PySoundTool to add noise at specific SNR levels to speech signals.
+Add noise to speech at specific signal-to-noise ratio levels.
 
 To see how PySoundTool implements this, see `pysoundtool.dsp.add_backgroundsound`.
 """
@@ -20,118 +20,143 @@ To see how PySoundTool implements this, see `pysoundtool.dsp.add_backgroundsound
 import pysoundtool as pyso
 import IPython.display as ipd
 
-##########################################################
-# Designate path relevant for accessting audiodata
-pyso_dir = '../../../'
-
-
-
 
 ######################################################
 # Define the speech and noise data samples
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
-# I will use speech data from a mini dataset on my computer.
+# I will use speech and noise data from the PySoundTool repo.
+
+##########################################################
+# Designate path relevant for accessing audiodata
+pyso_dir = '../../../'
 
 ##########################################################
 # Speech sample:
-speech_sample = '{}../mini-audio-datasets/speech_commands/zero/c7aaad67_nohash_0.wav'.format(pyso_dir)
+speech_sample = '{}audiodata/python.wav'.format(pyso_dir)
 speech_sample = pyso.utils.string2pathlib(speech_sample)
-print(speech_sample)
 # as pathlib object, can do the following: 
-word = speech_sample.parent.stem
+word = speech_sample.stem
 word
 
 ##########################################################
-# noise sample: (this comes with PySoundTool)
+# Noise sample:
 noise_sample = '{}audiodata/background_samples/cafe.wav'.format(pyso_dir)
-print(noise_sample)
 noise_sample = pyso.utils.string2pathlib(noise_sample)
 # as pathlib object, can do the following: 
 noise = noise_sample.stem
 noise
 
-##########################################################
-# Hear and see what the speech looks like with SNR level of 20
-sr = 16000
-noisyspeech_20snr, snr20 = pyso.dsp.add_backgroundsound(speech_sample,
-                                           noise_sample,
-                                           sr = sr,
-                                           snr = 20)
-ipd.Audio(noisyspeech_20snr,rate=sr)
 
 ##########################################################
-# Hear and see what the speech looks like with SNR level of 5
-noisyspeech_5snr, snr5 = pyso.dsp.add_backgroundsound(speech_sample,
-                                           noise_sample,
-                                           sr = sr,
-                                           snr = 5)
+# Hear Clean Speech
+# ~~~~~~~~~~~~~~~~~
+sr = 16000
+s, sr = pyso.loadsound(speech_sample, sr = sr)
+ipd.Audio(s,rate=sr)
+
+
+##########################################################
+# Hear Noise
+# ~~~~~~~~~~
+n, sr = pyso.loadsound(noise_sample, sr = sr)
+ipd.Audio(n,rate=sr)
+
+
+##########################################################
+# Hear Signal-to-Noise Ratio 20
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+noisyspeech_20snr, snr20 = pyso.dsp.add_backgroundsound(
+    speech_sample,
+    noise_sample,
+    sr = sr,
+    snr = 20)
+ipd.Audio(noisyspeech_20snr,rate=sr)
+
+########################################################
+# `snr20` is simply the measured SNR post adjustment fo the noise signal.
+# This is useful to check that the indicated snr is at least close
+# to the resulting snr.
+snr20
+
+##########################################################
+# Hear Signal-to-Noise Ratio 5
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+noisyspeech_5snr, snr5 = pyso.dsp.add_backgroundsound(
+    speech_sample,
+    noise_sample,
+    sr = sr,
+    snr = 5)
 ipd.Audio(noisyspeech_5snr,rate=sr)
+
+#########################################################
+snr5
 
 ######################################################################
 # Visualize the Audio Samples
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################################
-# Speech audio sample in its raw signal
+# See Clean Speech (raw signal)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pyso.plotsound(speech_sample, feature_type='signal', 
-               title = 'Speech: ' + word.upper())
+               sr = sr, title = 'Speech: ' + word.upper())
 
 ######################################################################
-# Noise audio sample in its raw signal
+# See Clean Speech (stft)
+# ~~~~~~~~~~~~~~~~~~~~~~~
+pyso.plotsound(speech_sample, feature_type='stft', 
+               sr = sr, title = 'Speech: ' + word.upper())
+
+###################################################################### See Noise (raw signal)
+# ~~~~~~~~~~~~~~~~~~~~~~
 pyso.plotsound(noise_sample, feature_type='signal',
                title = 'Noise: ' + noise.upper())
 
-##########################################################
-# The sounds added together at SNR level 20
+###################################################################### See Noise (stft)
+# ~~~~~~~~~~~~~~~~
+pyso.plotsound(noise_sample, feature_type='stft',
+               title = 'Noise: ' + noise.upper())
+
+######################################################################
+# See Noisy Speech: SNR 20 (raw signal)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pyso.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'signal',
                title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
 
-##########################################################
-# The sounds added together at SNR level 5
+######################################################################
+# See Noisy Speech: SNR 20 (stft)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pyso.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'stft',
+               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
+
+######################################################################
+# See Noisy Speech: SNR 5 (raw signal)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pyso.plotsound(noisyspeech_5snr, sr = sr, feature_type = 'signal',
                title = '"{}" with {} noise at SNR 5'.format(word.upper(), noise.upper()))
 
-##########################################################
-# Let's visualize the power spectrum: pure speech
-pyso.plotsound(speech_sample, sr = sr, feature_type = 'powspec',
-               title = 'Clean speech: {}'.format(word),
-               energy_scale = 'power_to_db')
-
-
-##########################################################
-# Let's visualize the power spectrum: SNR 20
-pyso.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'powspec',
-               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()),
-               energy_scale = 'power_to_db')
-
-
-##########################################################
-# Let's visualize the power spectrum: SNR 5
-pyso.plotsound(noisyspeech_5snr,sr = sr, feature_type = 'powspec',
-               title = '"{}" with {} noise at SNR 5'.format(word.upper(), noise.upper()),
-               energy_scale = 'power_to_db')
+######################################################################
+# See Noisy Speech: SNR 5 (stft)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pyso.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'stft',
+               title = '"{}" with {} noise at SNR 5'.format(word.upper(), noise.upper()))
 
 ######################################################################
-# More Functionality
-# ^^^^^^^^^^^^^^^^^^
-
-######################################################################
-# Make longer and shorter
-# ~~~~~~~~~~~~~~~~~~~~~~~
+# Make Combined Sound Longer
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ##########################################################
-# Hear and see what the speech looks like:
-
-##########################################################
-# Delay the speech and lengthen the total signal
-noisyspeech_20snr, snr20 = pyso.dsp.add_backgroundsound(speech_sample,
-                                           noise_sample,
-                                           sr = sr,
-                                           snr = 20,
-                                           delay_mainsound_sec = 1,
-                                           total_len_sec = 4)
+# Delay Speech Onset and Set Total Length 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+noisyspeech_20snr, snr20 = pyso.dsp.add_backgroundsound(
+    speech_sample,
+    noise_sample,
+    sr = sr,
+    snr = 20,
+    delay_mainsound_sec = 1,
+    total_len_sec = 4)
 
 ##########################################################
 ipd.Audio(noisyspeech_20snr,rate=sr)
@@ -141,13 +166,19 @@ pyso.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'signal',
                title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
 
 
+######################################################################
+# Make Combined Sound Shorter
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 ##########################################################
-# Shorten the total signal
-noisyspeech_20snr, snr20 = pyso.dsp.add_backgroundsound(speech_sample,
-                                           noise_sample,
-                                           sr = sr,
-                                           snr = 20,
-                                           total_len_sec = 0.5)
+# Set Total Length
+# ~~~~~~~~~~~~~~~~
+noisyspeech_20snr, snr20 = pyso.dsp.add_backgroundsound(
+    speech_sample,
+    noise_sample,
+    sr = sr,
+    snr = 20,
+    total_len_sec = 0.5)
 
 ##########################################################
 ipd.Audio(noisyspeech_20snr,rate=sr)

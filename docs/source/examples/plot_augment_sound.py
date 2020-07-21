@@ -1,47 +1,49 @@
 
 # coding: utf-8
 """
-========================
-Augment Speech and Sound
-========================
+======================================================
+Augment Speech and Sound for Machine and Deep Learning
+======================================================
 
-Use PySoundTool to augment audio signals. 
+Augment audio to expanding datasets and train resilient models.
 
-To see how PySoundTool implements this, see `pysoundtool.augment`.
+To see how PySoundTool implements this, see the module `pysoundtool.augment`.
+
+
+Note:
+~~~~~
+Consideration of what type of sound one is working with must be taken when performing augmentation. Not all speech and non-speech sounds should be handled the same. For example, you may want to augment speech differently if you are training a speech recognition model versus an emotion recognition model. Additionally, not all non-speech sounds behave the same, for example stationary (white noise) vs non-stationary (car horn) sounds.
+
+In sum, awareness of how your sound data behave and what features of the sound are relevant for training models are important factors for sound data augmentation. 
+
+Below are a few augmentation techniques I have seen implemented in sound research; this is in no way a complete list of augmentation techniques.
 """
-
 
 ###############################################################################################
 # 
 
 
 #####################################################################
-# Let's import pysoundtool, and ipd for playing audio data
 import pysoundtool as pyso
 import IPython.display as ipd
 
-##########################################################
-# Designate path relevant for accessting audiodata
-pyso_dir = '../../../'
-
-
-
 #############################################
-# Let's work with speech and sound (car horn)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Augmenting Speech
+# ^^^^^^^^^^^^^^^^^
+
+##########################################################
+# Designate the path relevant for accessing audiodata
+# Note: the speech and sound come with the PySoundTool repo.
+pyso_dir = '../../../'
 
 ##########################################################
 # Speech sample:
 speech = '{}audiodata/python.wav'.format(pyso_dir)
 speech = pyso.utils.string2pathlib(speech)
-# Car horn sample:
-honk = '{}audiodata/car_horn.wav'.format(pyso_dir)
-honk = pyso.utils.string2pathlib(honk)
-
 
 ################################################################
-# Hear and see speech (later we'll examine the non-speech sound)
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Hear and see speech
+# ~~~~~~~~~~~~~~~~~~~
 
 sr = 16000
 f, sr = pyso.loadsound(speech, sr=sr)
@@ -49,11 +51,6 @@ ipd.Audio(f,rate=sr)
 
 ##########################################################
 pyso.plotsound(f, sr=sr, feature_type='stft', title='Female Speech')
-
-
-##########################################################
-# Augmentation appropriate for speech signals 
-# -------------------------------------------
 
 ##########################################################
 # Change Speed
@@ -190,16 +187,17 @@ pyso.feats.plot(vtlp_stft, sr=sr, feature_type='stft',
                title='VTLP (factor {})'.format(a))
 
 
-##########################################################
-# Augmentation appropriate for non-speech signals 
-# -----------------------------------------------
+#############################################
+# Augmenting non-speech signals
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+# Car horn sample:
+honk = '{}audiodata/car_horn.wav'.format(pyso_dir)
+honk = pyso.utils.string2pathlib(honk)
 
 ##########################################################
 # Hear and see sound signal 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
-
-sr = 16000
 h, sr = pyso.loadsound(honk, sr=sr)
 ipd.Audio(h,rate=sr)
 
@@ -207,6 +205,90 @@ ipd.Audio(h,rate=sr)
 pyso.plotsound(h, sr=sr, feature_type='stft', 
                title='Car Horn Sound')
 
+##########################################################
+# Change Speed
+# ~~~~~~~~~~~~
+
+##########################################################
+# Let's increase the speed by 15%:
+
+fast = pyso.augment.speed_increase(h, sr=sr, perc = 0.15) 
+
+##########################################################
+ipd.Audio(fast,rate=sr)
+
+##########################################################
+pyso.plotsound(fast, sr=sr, feature_type='stft', 
+               title='Car horn: 15%  faster')
+
+##########################################################
+# Let's decrease the speed by 15%:
+
+slow = pyso.augment.speed_decrease(h, sr=sr, perc = 0.15) 
+
+##########################################################
+ipd.Audio(slow,rate=sr)
+
+##########################################################
+pyso.plotsound(slow, sr=sr, feature_type='stft', 
+               title='Car horn: 15%  slower')
+
+##########################################################
+# Add Noise
+# ~~~~~~~~~
+
+##########################################################
+# Add white noise 
+h_noisy = pyso.augment.add_white_noise(h, sr=sr, snr = 10)
+
+##########################################################
+ipd.Audio(h_noisy,rate=sr)
+
+##########################################################
+pyso.plotsound(h_noisy, sr=sr, feature_type='stft', 
+               title='Car horn with white noise (10 SNR)')
+
+##########################################################
+# Harmonic Distortion
+# ~~~~~~~~~~~~~~~~~~~
+
+hd = pyso.augment.harmonic_distortion(h, sr=sr) 
+
+##########################################################
+ipd.Audio(hd,rate=sr)
+
+##########################################################
+pyso.plotsound(hd, sr=sr, feature_type='stft', 
+               title='Car horn with harmonic distortion')
+
+
+##########################################################
+# Pitch Shift
+# ~~~~~~~~~~~
+
+##########################################################
+# Pitch shift increase
+
+psi = pyso.augment.pitch_increase(h, sr=sr, num_semitones = 2) 
+
+##########################################################
+ipd.Audio(psi,rate=sr)
+
+##########################################################
+pyso.plotsound(psi, sr=sr, feature_type='stft', 
+               title='Car horn with pitch shift increase')
+
+##########################################################
+# Pitch shift decrease
+
+psd = pyso.augment.pitch_decrease(h, sr=sr, num_semitones = 2) 
+
+##########################################################
+ipd.Audio(psd,rate=sr)
+
+##########################################################
+pyso.plotsound(psd, sr=sr, feature_type='stft', 
+               title='Car horn with pitch shift decrease')
 
 ##########################################################
 # Time Shift
@@ -240,17 +322,15 @@ pyso.plotsound(h_shuffle, sr=sr, feature_type='stft',
 
 
 ##########################################################
-# Add Noise
-# ~~~~~~~~~
+# Just for kicks let's do the same to speech and see how 
+# that influences the signal:
+
+h_shuffle = pyso.augment.shufflesound(f, sr=sr,
+                                      num_subsections = 5)
 
 ##########################################################
-# Add white noise 
-h_noisy = pyso.augment.add_white_noise(h, sr=sr, snr = 10)
+ipd.Audio(h_shuffle,rate=sr)
 
 ##########################################################
-ipd.Audio(h_noisy,rate=sr)
-
-##########################################################
-pyso.plotsound(h_noisy, sr=sr, feature_type='stft', 
-               title='Car horn with white noise (10 SNR)')
-
+pyso.plotsound(h_shuffle, sr=sr, feature_type='stft', 
+               title='Speech: shuffled')
