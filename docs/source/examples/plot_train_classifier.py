@@ -25,7 +25,7 @@ import pysoundtool as pyso
 pyso_dir = '../../../'
 
 ######################################################
-# I will load previously extracted features (sample data), see `pysoundtool.feats.save_features_datasets` or 'pysoundtool.builtin.envclassifier_feats'
+# I will load previously extracted features (sample data), see `pysoundtool.feats.save_features_datasets` or `pysoundtool.builtin.envclassifier_feats`
 feature_extraction_dir = '{}audiodata2/example_feats_models/'.format(pyso_dir)+\
     'envclassifier/example_feats_fbank/'
 
@@ -84,20 +84,9 @@ model_dir, history = pyso.envclassifier_train(feature_extraction_dir = feature_e
 # Where the model and logs are located:
 model_dir
 
-
 #############################################################
 # Let's plot how the model performed (on this mini dataset)
-
 import matplotlib.pyplot as plt
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'val'], loc='upper right')
-plt.show()
-
-#############################################################
 plt.clf()
 plt.plot(history.history['accuracy'])
 plt.plot(history.history['val_accuracy'])
