@@ -52,13 +52,13 @@ $ source env/bin/activate
 (env)..$
 ```
 
-## pip
+## Install via pip
 
 ```
 (env)..$ pip install pysoundtool
 ```
 
-## Clone github repo
+## Install via cloning this repo
 
 Clone this repository. Set the working directory where you clone this repository.
 
