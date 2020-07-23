@@ -187,8 +187,9 @@ class GeneratorFeatExtraction:
     def __init__(self, datalist, datalist2 = None, model_name = None,  
                  normalize = True, apply_log = False, randomize = False, random_seed = 40,
                  context_window = None, input_shape = None, batch_size = 1,
-                 add_tensor_last = True, gray2color = False, visualize = False,
-                 vis_every_n_items = 50, save_visuals_path = None, **kwargs):
+                 add_tensor_last = True, add_tensor_first = False,
+                 gray2color = False, visualize = False,
+                 vis_every_n_items = 50, decode_dict = None, dataset='train', **kwargs):
         '''
         Do not add extra tensor dimensions to expected input_shape.
         
@@ -207,7 +208,7 @@ class GeneratorFeatExtraction:
         **kwargs : additional keyword arguments
             Keyword arguments for pysoundtool.feats.get_feats
         '''
-        if sample_length is None and input_shape is None and 'dur_sec' not in kwargs.keys():
+        if input_shape is None and 'dur_sec' not in kwargs.keys():
             raise ValueError('No information pertaining to amount of audio data '+\
                 'to be extracted is supplied. Please specify `sample_length`, '+\
                     '`input_shape`, or `dur_sec`.')
@@ -223,7 +224,9 @@ class GeneratorFeatExtraction:
                         'a `random_seed` is necessary to ensure they still match '+\
                             'post randomization.')
                 random.shuffle(datalist2)
-                
+        
+        self.dataset = dataset
+        self.model_name = model_name
         self.batch_size = batch_size
         self.samples_per_epoch = len(datalist)
         self.number_of_batches = self.samples_per_epoch//batch_size
@@ -231,11 +234,14 @@ class GeneratorFeatExtraction:
         self.audiolist = datalist
         self.audiolist2 = datalist2
         self.normalize = normalize
+        self.apply_log = apply_log
         self.input_shape = input_shape
         self.add_tensor_last = add_tensor_last
+        self.add_tensor_first = add_tensor_first
         self.gray2color = gray2color
         self.visualize = visualize
         self.vis_every_n_items = vis_every_n_items
+        self.decode_dict = decode_dict
         self.kwargs = kwargs
         
         # Ensure `feature_type` and `sr` are provided in **kwargs
@@ -262,153 +268,163 @@ class GeneratorFeatExtraction:
         except KeyError:
             kwargs['percent_overlap'] = None
         
-        def generator(self):
-            '''Extracts features and feeds them to model according to `input_shape`.
-            '''
-            while 1:
-                audioinfo = self.audiolist[self.counter]
-                # does the list contain label audiofile pairs?
-                if isinstance(audioinfo, tuple):
-                    if len(tuple) != 2:
-                        raise ValueError('Expected tuple containing audio file path and label. '+\
-                            'Instead received tuple of length: \n{}'.format(len(tuple)))
-                    # if label is a string digit, int, or float - turn to int
-                    if isinstance(tuple[0], int) or isinstance(tuple[0], float) or \
-                        isinstance(tuple[0], str) and tuple[0].isdigit():
-                        label = int(tuple[0])
-                        audiopath = tuple[1]
-                    elif isinstance(tuple[1], int) or isinstance(tuple[1], float) or \
-                        isinstance(tuple[1], str) and tuple[1].isdigit():
-                        label = int(tuple[1])
-                        audiopath = tuple[1]
-                    else:
-                        raise ValueError('Expected tuple to contain an integer label '+\
-                            'and audio pathway. Received instead tuple with types '+\
-                                '{} and {}.'.format(type(tuple[0]), type(tuple[1])))
-                # otherwise list of audiofiles
+    def generator(self):
+        '''Extracts features and feeds them to model according to `input_shape`.
+        '''
+        while 1:
+            audioinfo = self.audiolist[self.counter]
+            # does the list contain label audiofile pairs?
+            if isinstance(audioinfo, tuple):
+                if len(audioinfo) != 2:
+                    raise ValueError('Expected tuple containing audio file path and label. '+\
+                        'Instead received tuple of length: \n{}'.format(len(audioinfo)))
+                # if label is a string digit, int, or float - turn to int
+                if isinstance(audioinfo[0], int) or isinstance(audioinfo[0], float) or \
+                    isinstance(audioinfo[0], str) and audioinfo[0].isdigit():
+                    label = int(audioinfo[0])
+                    audiopath = audioinfo[1]
+                elif isinstance(audioinfo[1], int) or isinstance(audioinfo[1], float) or \
+                    isinstance(audioinfo[1], str) and audioinfo[1].isdigit():
+                    label = int(audioinfo[1])
+                    audiopath = audioinfo[1]
                 else:
-                    audiopath = audioinfo
-                    label = None
-                if self.audiolist2 is not None:
-                    # expects audiolist2 to be either integer labels or audiofile pathways
-                    audioinfo2 = self.audiolist2[self.counter]
-                    if isinstance(audioinfo2, int) or isinstance(audioinfo2, str) and \
-                        audioinfo2.isdigit():
-                            if label is None:
-                                label = audioinfo2
-                            else:
-                                if label == int(audioinfo2):
-                                    pass
-                                else:
-                                    raise ValueError('Provided conflicting labels for '+\
-                                        'current audiofile: {}.'.format(audiopath) +\
-                                            '\nReceived both label {} and {} .'.format(
-                                                label, int(audioinfo2)))
-                    else:
-                        audiopath2 = audioinfo2
-                if label is not None:
-                    labeled_data = True
-                else:
-                    labeled_data = False
-                
-                # extract features
-                # will be shape (num_frames, num_features)
-                feats = pyso.feats.get_feats(audiopath, self.kwargs)
-                if apply_log:
-                    # TODO test
-                    if feats[0].any() < 0:
-                            feats = np.abs(feats)
-                    feats = np.log(feats)
-                if normalize:
-                    feats = pyso.feats.normalize(feats)
-                if not labeled_data and self.audiolist2 is not None:
-                    feats2 = pyso.feats.get_feats(audiopath2, self.kwargs)
-                    if apply_log:
-                        # TODO test
-                        if feats2[0].any() < 0:
-                                feats2 = np.abs(feats2)
-                        feats2 = np.log(feats2)
-                    if normalize:
-                        feats2 = pyso.feats.normalize(feats2)
-                else:
-                    feats2 = None
-                    
-                # Save visuals if desired
-                if visualize:
-                    if self.counter % self.vis_every_n_items == 0:
-                        if save_visuals_path is None:
-                            save_visuals_path = './images_label{}_training_{}_{}.png'.format(
-                                label, model_name, pyso.utils.get_date())
-                        feature_type = kwargs['feature_type']
-                        sr = kwargs['sr']
-                        win_size_ms = kwargs['win_size_ms']
-                        percent_overlap = kwargs['percent_overlap']
-                        if 'stft' in feature_type or 'powspec' in feature_type or 'fbank' \
-                            in feature_type:
-                                energy_scale = 'power_to_db'
+                    raise ValueError('Expected tuple to contain an integer label '+\
+                        'and audio pathway. Received instead tuple with types '+\
+                            '{} and {}.'.format(type(audioinfo[0]), type(audioinfo[1])))
+            # otherwise list of audiofiles
+            else:
+                audiopath = audioinfo
+                label = None
+            if self.audiolist2 is not None:
+                # expects audiolist2 to be either integer labels or audiofile pathways
+                audioinfo2 = self.audiolist2[self.counter]
+                if isinstance(audioinfo2, int) or isinstance(audioinfo2, str) and \
+                    audioinfo2.isdigit():
+                        if label is None:
+                            label = audioinfo2
                         else:
-                            energy_scale = None
-                        pyso.feats.plot(feats, feature_type, sr = sr, 
+                            if label == int(audioinfo2):
+                                pass
+                            else:
+                                raise ValueError('Provided conflicting labels for '+\
+                                    'current audiofile: {}.'.format(audiopath) +\
+                                        '\nReceived both label {} and {} .'.format(
+                                            label, int(audioinfo2)))
+                else:
+                    audiopath2 = audioinfo2
+            if label is not None:
+                labeled_data = True
+                if self.decode_dict is not None:
+                    label_pic = self.decode_dict[label].upper()
+                else:
+                    label_pic = label
+            else:
+                labeled_data = False
+                label_pic = None
+            
+            # extract features
+            # will be shape (num_frames, num_features)
+            feats = pyso.feats.get_feats(audiopath, **self.kwargs)
+            if self.dataset == 'val':
+                pyso.feats.plot(feats, feature_type = 'fbank')
+            if self.apply_log:
+                # TODO test
+                if feats[0].any() < 0:
+                        feats = np.abs(feats)
+                feats = np.log(feats)
+            if self.normalize:
+                feats = pyso.feats.normalize(feats)
+            if not labeled_data and self.audiolist2 is not None:
+                feats2 = pyso.feats.get_feats(audiopath2, **self.kwargs)
+                if self.apply_log:
+                    # TODO test
+                    if feats2[0].any() < 0:
+                            feats2 = np.abs(feats2)
+                    feats2 = np.log(feats2)
+                if self.normalize:
+                    feats2 = pyso.feats.normalize(feats2)
+            else:
+                feats2 = None
+                
+            # Save visuals if desired
+            if self.visualize:
+                if self.counter % self.vis_every_n_items == 0:
+                    save_visuals_path = './images/{}_label{}_training_{}_{}.png'.format(self.dataset,
+                        label, self.model_name, pyso.utils.get_date())
+                    save_visuals_path = pyso.string2pathlib(save_visuals_path)
+                    save_visuals_dir = pyso.check_dir(save_visuals_path.parent, make=True)
+                    feature_type = self.kwargs['feature_type']
+                    sr = self.kwargs['sr']
+                    win_size_ms = self.kwargs['win_size_ms']
+                    percent_overlap = self.kwargs['percent_overlap']
+                    if 'stft' in feature_type or 'powspec' in feature_type or 'fbank' \
+                        in feature_type:
+                            energy_scale = 'power_to_db'
+                    else:
+                        energy_scale = None
+                    pyso.feats.plot(feats, feature_type, sr = sr, 
+                                    win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                                    energy_scale = energy_scale, save_pic = True, 
+                                    name4pic = save_visuals_path,
+                                    title = 'Label {} {} features \n'.format(label_pic, feature_type)+\
+                                        '(item {})'.format(self.counter))
+                    if feats2 is not None:
+                        # add '_2' to pathway
+                        p = pyso.utils.string2pathlib(save_visuals_path)
+                        p2 = p.name.stem
+                        save_visuals_path2 = p.parent.joinpath(p2+'_2'+p.name.suffix)
+                        pyso.feats.plot(feats2, feature_type, sr = sr, 
                                         win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                                         energy_scale = energy_scale, save_pic = True, 
-                                        name4pic = save_visuals_path,
-                                        title = 'Label {} {} features \n'.format(label, feature_type)+\
+                                        name4pic = save_visuals_path2,
+                                        title = 'Output {} features \n'.format(
+                                            label_pic, feature_type)+\
                                             '(item {})'.format(self.counter))
-                        if feats2 is not None:
-                            # add '_2' to pathway
-                            p = pyso.utils.string2pathlib(save_visuals_path)
-                            p2 = p.name.stem
-                            save_visuals_path2 = p.parent.joinpath(p2+'_2'+p.name.suffix)
-                            pyso.feats.plot(feats2, feature_type, sr = sr, 
-                                            win_size_ms = win_size_ms, percent_overlap = percent_overlap,
-                                            energy_scale = energy_scale, save_pic = True, 
-                                            name4pic = save_visuals_path2,
-                                            title = 'Output {} features \n'.format(
-                                                label, feature_type)+\
-                                                '(item {})'.format(self.counter))
-                                            
-                # reshape to input shape. Will be zeropadded or limited to this shape.
-                if self.input_shape is not None:
-                    if len(input_shape) != len(feats.shape):
-                        change_dims = True
-                    else:
-                        change_dims = False
-                    feats = pyso.feats.adjust_shape(feats, input_shape, change_dims = change_dims)
-                    if feats2 is not None:
-                        feats2 = pyso.feats.adjust_shape(feats2, input_shape, change_dims = change_dims)
-                        
-                # grayscale 2 color 
-                # assumes already zeropadded with new channels, channels last
-                if self.gray2color:
-                    feats = pyso.feats.grayscale2color(feats, colorscale = feats.shape[-1])
-                    if feats2 is not None:
-                        feats2 = pyso.feats.grayscale2color(feats2, colorscale = feats2.shape[-1])
-                
-                # prepare data to be fed to network:
-                X_batch = feats
-                if labeled_data:
-                    y_batch = np.array(label)
-                elif feats2 is not None:
-                    y_batch = feats2
+                                        
+            # reshape to input shape. Will be zeropadded or limited to this shape.
+            if self.input_shape is not None:
+                if len(self.input_shape) != len(feats.shape):
+                    change_dims = True
                 else:
-                    raise ValueError('No independent variable provided.')
-                
-                # add tensor dimension
-                if self.add_tensor_last is True:
-                    # e.g. for some conv model
-                    X_batch = X_batch.reshape(X_batch.shape+(1,))
-                    y_batch = y_batch.reshape(y_batch.shape+(1,))
-                elif self.add_tensor_last is False:
-                    # e.g. for some lstm models
-                    X_batch = X_batch.reshape((1,)+X_batch.shape)
-                    y_batch = y_batch.reshape((1,)+y_batch.shape)
-                else:
-                    X_batch = X_batch
-                    y_batch = y_batch
-                
-                self.counter += 1
-                yield X_batch, y_batch 
-                
-                #restart counter to yeild data in the next epoch as well
-                if self.counter >= self.number_of_batches:
-                    self.counter = 0
+                    change_dims = False
+                feats = pyso.feats.adjust_shape(feats, self.input_shape, 
+                                                change_dims = change_dims)
+                if feats2 is not None:
+                    feats2 = pyso.feats.adjust_shape(feats2, self.input_shape, 
+                                                     change_dims = change_dims)
+                    
+            # grayscale 2 color 
+            # assumes already zeropadded with new channels, channels last
+            if self.gray2color:
+                feats = pyso.feats.grayscale2color(feats, colorscale = feats.shape[-1])
+                if feats2 is not None:
+                    feats2 = pyso.feats.grayscale2color(feats2, colorscale = feats2.shape[-1])
+            
+            # prepare data to be fed to network:
+            X_batch = feats
+            if labeled_data:
+                y_batch = np.array(label)
+            elif feats2 is not None:
+                y_batch = feats2
+            else:
+                raise ValueError('No independent variable provided.')
+            
+            # add tensor dimension
+            if self.add_tensor_last is True:
+                # e.g. for some conv model
+                X_batch = X_batch.reshape(X_batch.shape+(1,))
+                y_batch = y_batch.reshape(y_batch.shape+(1,))
+            if self.add_tensor_first is True:
+                # e.g. for some lstm models
+                X_batch = X_batch.reshape((1,)+X_batch.shape)
+                y_batch = y_batch.reshape((1,)+y_batch.shape)
+            if not self.add_tensor_first and not self.add_tensor_last:
+                X_batch = X_batch
+                y_batch = y_batch
+            
+            self.counter += 1
+            yield X_batch, y_batch 
+            
+            #restart counter to yeild data in the next epoch as well
+            if self.counter >= self.number_of_batches:
+                self.counter = 0
