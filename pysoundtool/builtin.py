@@ -812,6 +812,10 @@ def envclassifier_feats(
     labels = []
     data_dir = pyso.utils.string2pathlib(data_dir)
     for label in data_dir.glob('*/'):
+        if label.suffix:
+            # avoid adding unwanted files in the directory
+            # want only directory names
+            continue
         labels.append(label.stem)
     labels = set(labels)
 
@@ -825,7 +829,7 @@ def envclassifier_feats(
     dict_decode_path = feat_extraction_dir.joinpath('dict_decode.csv')
     # dictionary for which audio paths are assigned to which labels:
     dict_encdodedlabel2audio_path = feat_extraction_dir.joinpath('dict_encdodedlabel2audio.csv')
-
+    
     # designate where to save train, val, and test data
     data_train_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('train',
                                                                         feature_type))
