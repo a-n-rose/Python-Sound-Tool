@@ -60,7 +60,7 @@ frames_per_sample = None
 labeled_data = True 
 batch_size = 1
 use_librosa = True 
-center = True 
+center = False 
 mode = 'reflect' 
 log_settings = True 
 num_epochs = 1
@@ -79,21 +79,21 @@ augmentation_vtlp = dict([('vtlp', True)])
 augmentation_all_speedup_pitchup = dict([('add_white_noise',True),
                                          ('speed_increase', True),
                                          ('pitch_increase', True),
-                                         ('time_shift', True),
+                                         ('time_shift', False),
                                          ('harmonic_distortion', True),
                                          ('vtlp', True)
                                          ])
 augmentation_all_speedup_pitchdown = dict([('add_white_noise',True),
                                            ('speed_increase', True),
                                            ('pitch_decrease', True),
-                                           ('time_shift', True),
+                                           ('time_shift', False),
                                            ('harmonic_distortion', True),
                                            ('vtlp', True)
                                            ])
 augmentation_all_speeddown_pitchup = dict([('add_white_noise',True),
                                            ('speed_decrease', True),
                                            ('pitch_increase', True),
-                                           ('time_shift', True),
+                                           ('time_shift', False),
                                            ('harmonic_distortion', True),
                                            ('vtlp', True)
                                            ])
@@ -113,7 +113,7 @@ augmentation_dicts = [augmentation_none, augmentation_noise, augmentation_speedu
                       augmentation_all_speeddown_pitchup,
                       augmentation_all_speeddown_pitchdown
                       ]
-#augmentation_dicts = [augmentation_none, augmentation_noise]
+#augmentation_dicts = [augmentation_noise]
 
 if load_dict is None:
     # collect labels of audio in data dir:
@@ -334,7 +334,7 @@ for i, augmentation_dict in enumerate(augmentation_dicts):
         add_tensor_first = add_tensor_first,
         gray2color = False,
         visualize = True,
-        vis_every_n_items = 50,
+        vis_every_n_items = 1,
         decode_dict = dict_decode,
         dataset = 'train',
         augment_dict = augmentation_dict,

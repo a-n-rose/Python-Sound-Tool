@@ -249,7 +249,6 @@ class GeneratorFeatExtraction:
             augment_dict = dict()
         self.augment_dict = augment_dict
         # if vtlp should be used as stft matrix
-        print(augment_dict)
         if 'vtlp' in augment_dict:
             self.vtlp = augment_dict['vtlp']
         else:
@@ -345,36 +344,7 @@ class GeneratorFeatExtraction:
         
             # ensure audio is valid:
             y, sr = pyso.loadsound(audiopath,self.sr)
-            if not np.isfinite(y).all():
-                print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                print('File {} contains invalid sample data.'.format(audiopath))
-                print('Turning to zeros.')
-                y = np.zeros(len(y))
-                if self.decode_dict is not None:
-                    if not self.ignore_invalid:
-                        label_invalid = len(self.decode_dict)-1
-                        label_pic = self.decode_dict[label_invalid]
-                        if label_pic == 'invalid':
-                            print('Encoded label {} adjusted to {}'.format(label,label_invalid))
-                            label = label_invalid
-                            print('NOTE: If you would like to ignore invalid data, '+\
-                                'set `ignore_invalid` to True.\n')
-                        else:
-                            import Warnings
-                            msg = '\nWARNING: Label dict does not include `invalid` label. '+\
-                                'Invalid audiofile {} will be fed '.format(audiopath)+\
-                                    'to the network under {} label.\n'.format(
-                                        self.decode_dict[label])
-                            Warnings.warn(msg)
-                    else:
-                        print('Invalid data ignored (no `invalid` label applied)')
-                        print('NOTE: If you do not want to ignore invalid data, '+\
-                            'set `ignore_invalid` to False.\n')
-                else:
-                    import Warnings
-                    msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
-                        'No label dictionary with `invalid` label supplied. Therefore '+\
-                            'model will be fed invalid data with label {}\n'.format(label)
+
         
             # augment_data
             if self.augment_dict is not None:
@@ -386,7 +356,7 @@ class GeneratorFeatExtraction:
                     # invalid audio for augmentation
                     print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                     print('File {} contains invalid sample data,'.format(audiopath)+\
-                        ' incompatible with augmentation techniques.')
+                        ' incompatible with augmentation techniques. Trying again.')
                     if self.decode_dict is not None:
                         if not self.ignore_invalid:
                             label_invalid = len(self.decode_dict)-1
@@ -415,8 +385,14 @@ class GeneratorFeatExtraction:
                             'No label dictionary with `invalid` label supplied. Therefore '+\
                                 'model will be fed possibly invalid data with label {}\n'.format(
                                     label)
-                    augmented_data = y
-                    augmentation = ''
+                    y = np.nan_to_num(y)
+                    try:
+                        augmented_data, augmentation = augment_features(y, 
+                                                                self.sr, 
+                                                                **self.augment_dict)
+                    except librosa.util.exceptions.ParameterError:
+                        print('Augmentation failed. No augmentation applied.')
+                        augmented_data, augmentation = y, ''
             else:
                 augmented_data, augmentation = y, ''
             # extract features
@@ -451,7 +427,8 @@ class GeneratorFeatExtraction:
                 # invalid audio for feature_extraction
                 print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                 print('File {} contains invalid sample data,'.format(audiopath)+\
-                    ' incompatible with augmentation techniques. No augmentation applied.')
+                    ' incompatible with augmentation techniques. Removing NAN values.')
+                feats = pyso.feats.get_feats(np.nan_to_num(augmented_data), **self.kwargs)
                 if self.decode_dict is not None:
                     if not self.ignore_invalid:
                         label_invalid = len(self.decode_dict)-1
@@ -480,8 +457,6 @@ class GeneratorFeatExtraction:
                         'No label dictionary with `invalid` label supplied. Therefore '+\
                             'model will be fed possibly invalid data with label {}\n'.format(
                                 label)
-                feats = pyso.feats.get_feats(y, **self.kwargs)
-                augmentation = ''
             if self.apply_log:
                 # TODO test
                 if feats[0].any() < 0:
@@ -517,7 +492,7 @@ class GeneratorFeatExtraction:
                             energy_scale = 'power_to_db'
                     else:
                         energy_scale = None
-                    pyso.feats.plot(feats, feature_type, sr = sr, 
+                    pyso.feats.plot(feats, 'stft', sr = sr, 
                                     win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                                     energy_scale = energy_scale, save_pic = True, 
                                     name4pic = save_visuals_path,
@@ -580,7 +555,7 @@ class GeneratorFeatExtraction:
             self.counter += 1
             yield X_batch, y_batch 
             
-            #restart counter to yeild data in the next epoch as well
+            #restart counter to yield data in the next epoch as well
             if self.counter >= self.number_of_batches:
                 self.counter = 0
 
