@@ -283,6 +283,9 @@ def restore_dictvalue(value_string):
     >>> type(labelaudio_pairs[0][1])
     pathlib.PosixPath
     '''
+    # only works with type string data
+    if not isinstance(value_string, str):
+        return value_string
     try:
         # first use reliable module to turn string into original type
         value_original_type = ast.literal_eval(value_string)
