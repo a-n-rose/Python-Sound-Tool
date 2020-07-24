@@ -350,13 +350,23 @@ def get_feats(sound,
                     fft_bins = fft_bins,
                     window_function = window)
             else:
-                feats = librosa.feature.melspectrogram(
-                    data,
-                    sr = sr,
-                    n_fft = fft_bins,
-                    hop_length = int(win_shift_ms*0.001*sr),
-                    n_mels = num_filters, window=window,
-                    **kwargs).T
+                # if being fed a spectrogram:
+                if data.dtype == np.complex128 or data.dtype == np.complex64:
+                    feats = librosa.feature.melspectrogram(
+                        S=data.T,
+                        sr = sr,
+                        n_fft = fft_bins,
+                        hop_length = int(win_shift_ms*0.001*sr),
+                        n_mels = num_filters, window=window,
+                        **kwargs).T
+                else:
+                    feats = librosa.feature.melspectrogram(
+                        data,
+                        sr = sr,
+                        n_fft = fft_bins,
+                        hop_length = int(win_shift_ms*0.001*sr),
+                        n_mels = num_filters, window=window,
+                        **kwargs).T
         elif 'mfcc' in feature_type:
             if num_mfcc is None:
                 num_mfcc = num_filters
