@@ -257,9 +257,9 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
     max_freq = sr//2
-    # ensure even
-    if not max_freq % 2 == 0:
-        max_freq += 1
+    ## ensure even
+    #if not max_freq % 2 == 0:
+        #max_freq += 1
     if fft_bins is None:
         fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins * oversize_factor
@@ -284,5 +284,5 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
         section_warped = section_warped[:total_rows]
         stft_matrix[frame] = section_warped
         section_start += (frame_length - num_overlap_samples)
-    stft_matrix = stft_matrix[:,:max_freq//2+1]
+    stft_matrix = stft_matrix[:,:max_freq//2//2]
     return stft_matrix, vtlp_a
