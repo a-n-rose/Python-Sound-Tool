@@ -330,6 +330,8 @@ def get_feats(sound,
         data, sr = sound, sr
         if dur_sec:
             data = data[:int(sr*dur_sec)]
+    if not np.isfinite(data).all():
+        raise TypeError('NAN values found in loaded sound samples.')
     # ensure percent overlap is between 0 and 1
     percent_overlap = check_percent_overlap(percent_overlap)
     win_shift_ms = win_size_ms * percent_overlap
