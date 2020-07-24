@@ -353,7 +353,7 @@ def get_feats(sound,
                 # if being fed a spectrogram:
                 if data.dtype == np.complex128 or data.dtype == np.complex64:
                     feats = librosa.feature.melspectrogram(
-                        S=data.T,
+                        S = data.T,
                         sr = sr,
                         n_fft = fft_bins,
                         hop_length = int(win_shift_ms*0.001*sr),
@@ -382,15 +382,28 @@ def get_feats(sound,
                     fft_bins = fft_bins,
                     window_function = window)
             else:
-                feats = librosa.feature.mfcc(
-                    data,
-                    sr = sr,
-                    n_mfcc = num_mfcc,
-                    n_fft = fft_bins,
-                    hop_length = int(win_shift_ms*0.001*sr),
-                    n_mels = num_filters,
-                    window=window,
-                    **kwargs).T
+                # if being fed a spectrogram:
+                if data.dtype == np.complex128 or data.dtype == np.complex64:
+                    feats = librosa.feature.mfcc(
+                        S = data.T,
+                        sr = sr,
+                        n_mfcc = num_mfcc,
+                        n_fft = fft_bins,
+                        hop_length = int(win_shift_ms*0.001*sr),
+                        n_mels = num_filters,
+                        window=window,
+                        **kwargs).T
+                else:
+                    feats = librosa.feature.mfcc(
+                        data,
+                        sr = sr,
+                        n_mfcc = num_mfcc,
+                        n_fft = fft_bins,
+                        hop_length = int(win_shift_ms*0.001*sr),
+                        n_mels = num_filters,
+                        window=window,
+                        **kwargs).T
+
         elif 'stft' in feature_type or 'powspec' in feature_type:
             if use_scipy:
                 feats = pyso.feats.get_stft(
@@ -402,15 +415,31 @@ def get_feats(sound,
                     fft_bins = fft_bins,
                     window = window)
             else:
-                feats = librosa.stft(
-                    data,
-                    n_fft = fft_bins,
-                    hop_length = int(win_shift_ms*0.001*sr),
-                    window=window).T
+                # if being fed a spectrogram:
+                if data.dtype == np.complex128 or data.dtype == np.complex64:
+                    print("Already a STFT matrix. No features extracted.")
+                    feats = data
+                else:
+                    feats = librosa.stft(
+                        data,
+                        n_fft = fft_bins,
+                        hop_length = int(win_shift_ms*0.001*sr),
+                        window=window).T
             if 'powspec' in feature_type:
                 feats = np.abs(feats)**2
         elif 'signal' in feature_type:
-            feats = data
+            # if being fed a spectrogram:
+            if data.dtype == np.complex128 or data.dtype == np.complex64:
+                import Warnings
+                msg = '\nWARNING: real raw signal features are being generated '+\
+                    'from a STFT matrix.'
+                Warnings.warn(msg)
+                feats = pyso.feats.feats2audio(data, feature_type = 'stft',
+                                               sr=sr, 
+                                               win_size_ms = win_size_ms,
+                                               percent_overlap = percent_overlap)
+            else:
+                feats = data
         else:
             raise ValueError('Feature type "{}" not recognized. '.format(feature_type)+\
                 'Please ensure one of the following is included in `feature_type`:\n- '+\
@@ -446,7 +475,7 @@ def get_feats(sound,
 # allows for more control over fft bins / resolution of each iteration.
 def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                 real_signal = False, fft_bins = 1024, 
-                window = 'hamming'):
+                window = 'hann'):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
