@@ -259,6 +259,8 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
     # ensure even
     if not max_freq % 2 == 0:
         max_freq += 1
+    if fft_bins is None:
+        fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins * oversize_factor
     # initialize empty matrix to fill dft values into
     stft_matrix = pyso.dsp.create_empty_matrix((num_subframes,total_rows), complex_vals = True)
