@@ -435,15 +435,49 @@ class GeneratorFeatExtraction:
                     window = pyso.utls.restore_dictvalue(self.kwargs['window'])
                 except KeyError:
                     window = 'hann'
-                feats, alpha = pyso.augment.vtpl(y, self.sr, 
+                feats, alpha = pyso.augment.vtpl(augmented_data, self.sr, 
                                           win_size_ms = win_size_ms,
                                           percent_overlap = percent_overlap, 
                                           fft_bins = fft_bins,
                                           window = window)
             else:
-
-                feats = pyso.feats.get_feats(augmented_data, **self.kwargs)
-                    
+                try:
+                    feats = pyso.feats.get_feats(augmented_data, **self.kwargs)
+                except TypeError:
+                    # invalid audio for feature_extraction
+                    print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    print('File {} contains invalid sample data,'.format(audiopath)+\
+                        ' incompatible with augmentation techniques. No augmentation applied.')
+                    if self.decode_dict is not None:
+                        if not self.ignore_invalid:
+                            label_invalid = len(self.decode_dict)-1
+                            label_pic = self.decode_dict[label_invalid]
+                            if label_pic == 'invalid':
+                                print('Encoded label {} adjusted to {}'.format(label,
+                                                                               label_invalid))
+                                label = label_invalid
+                                print('Label adjusted to `invalid`')
+                                print('NOTE: If you would like to ignore invalid data, '+\
+                                    'set `ignore_invalid` to True.\n')
+                            else:
+                                label_pic = self.decode_dict[label]
+                                import Warnings
+                                msg = '\nWARNING: Label dict does not include `invalid` label. '+\
+                                    'Invalid audiofile {} will be fed '.format(audiopath)+\
+                                        'to the network under {} label.\n'.format(self.decode_dict[label])
+                                Warnings.warn(msg)
+                        else:
+                            print('Invalid data ignored (no `invalid` label applied)')
+                            print('NOTE: If you do not want to ignore invalid data, '+\
+                                'set `ignore_invalid` to False.\n')
+                    else:
+                        import Warnings
+                        msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
+                            'No label dictionary with `invalid` label supplied. Therefore '+\
+                                'model will be fed possibly invalid data with label {}\n'.format(
+                                    label)
+                    feats = pyso.feats.get_feats(y, **self.kwargs)
+                    augmentation = ''
             if self.apply_log:
                 # TODO test
                 if feats[0].any() < 0:
@@ -554,7 +588,7 @@ def augment_features(sound,
                      speed_decrease = False,
                      speed_perc = 0.15,
                      time_shift = False,
-                     shuffle_sound = False,
+                     shufflesound = False,
                      num_subsections = 3,
                      harmonic_distortion = False,
                      pitch_increase = False,
@@ -597,8 +631,8 @@ def augment_features(sound,
         samples_augmented = pyso.augment.time_shift(samples_augmented, 
                                                     sr = sr)
         augmentation += '_randtimeshift'
-    if shuffle_sound:
-        samples_augmented = pyso.augment.time_shift(samples_augmented, 
+    if shufflesound:
+        samples_augmented = pyso.augment.shufflesound(samples_augmented, 
                                                     sr = sr, 
                                                     num_subsections = num_subsections)
         augmentation += '_randshuffle{}sections'.format(num_subsections)

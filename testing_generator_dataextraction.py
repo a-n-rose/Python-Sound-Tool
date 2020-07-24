@@ -63,14 +63,45 @@ use_librosa = True
 center = True 
 mode = 'reflect' 
 log_settings = True 
-num_epochs = 2
+num_epochs = 1
 patience = 15
 
-augmentation_dict1 = dict([('add_white_noise',True)])
-augmentation_dict = dict([('add_white_noise',True),
-                           ('speed_increase', True)])
-augmentation_dict = dict([('add_white_noise',True),
-                           ('speed_decrease', True)])
+augmentation_noise = dict([('add_white_noise',True)])
+augmentation_speedup = dict([('speed_increase', True)])
+augmentation_speeddown = dict([('speed_decrease', True)])
+augmentation_pitchup = dict([('pitch_increase', True)])
+augmentation_pitchdown = dict([('pitch_decrease', True)])
+augmentation_timeshif = dict([('time_shift', True)])
+augmentation_shuffle = dict([('shufflesound', True)])
+augmentation_harmondist = dict([('harmonic_distortion', True)])
+augmentation_vtlp = dict([('vtlp', True)])
+augmentation_all_speedup_pitchup = dict([('add_white_noise',True),
+                                         ('speed_increase', True),
+                                         ('pitch_increase', True),
+                                         ('time_shift', True),
+                                         ('harmonic_distortion', True),
+                                         ('vtlp', True)
+                                         ])
+augmentation_all_speedup_pitchdown = dict([('add_white_noise',True),
+                                           ('speed_increase', True),
+                                           ('pitch_decrease', True),
+                                           ('time_shift', True),
+                                           ('harmonic_distortion', True),
+                                           ('vtlp', True)
+                                           ])
+augmentation_all_speeddown_pitchup = dict([('add_white_noise',True),
+                                           ('speed_decrease', True),
+                                           ('pitch_increase', True),
+                                           ('time_shift', True),
+                                           ('harmonic_distortion', True),
+                                           ('vtlp', True)
+                                           ])
+augmentation_all_speeddown_pitchdown = dict([('add_white_noise',True),
+                                             ('speed_decrease', True),
+                                             ('pitch_decrease', True),
+                                             ('harmonic_distortion', True),
+                                             ('vtlp', True)
+                                             ])
 
 if load_dict is None:
     # collect labels of audio in data dir:
@@ -293,7 +324,7 @@ if use_generator:
         decode_dict = dict_decode,
         dataset = 'train',
         augment_dict = augmentation_dict,
-        ignore_invalid = True,
+        ignore_invalid = False,
         **get_feats_kwargs)
     
     val_generator = pysodl.GeneratorFeatExtraction(           
