@@ -10,6 +10,7 @@ sys.path.insert(0, packagedir)
 import numpy as np
 import random
 import pysoundtool as pyso
+import librosa
 
 
 ###############################################################################
@@ -189,7 +190,8 @@ class GeneratorFeatExtraction:
                  context_window = None, input_shape = None, batch_size = 1,
                  add_tensor_last = True, add_tensor_first = False,
                  gray2color = False, visualize = False,
-                 vis_every_n_items = 50, decode_dict = None, dataset='train', **kwargs):
+                 vis_every_n_items = 50, decode_dict = None, dataset='train', 
+                 augment_dict = None, ignore_invalid=False, **kwargs):
         '''
         Do not add extra tensor dimensions to expected input_shape.
         
@@ -226,6 +228,7 @@ class GeneratorFeatExtraction:
                 random.shuffle(datalist2)
         
         self.dataset = dataset
+        self.ignore_invalid = ignore_invalid
         self.model_name = model_name
         self.batch_size = batch_size
         self.samples_per_epoch = len(datalist)
@@ -242,7 +245,22 @@ class GeneratorFeatExtraction:
         self.visualize = visualize
         self.vis_every_n_items = vis_every_n_items
         self.decode_dict = decode_dict
+        self.augment_dict = augment_dict
+        # if vtpl should be used as stft matrix
+        if 'vtpl' in augment_dict:
+            self.vtpl = augment_dict['vtpl']
+        else:
+            self.vtpl = None
+        # ensure 'sr' is in keyword arguments
+        # if not, set it to 16000
+        if 'sr' in kwargs:
+            self.sr = kwargs['sr']
+        else:
+            self.sr = 16000
+            kwargs['sr'] = self.sr
         self.kwargs = kwargs
+        
+
         
         # Ensure `feature_type` and `sr` are provided in **kwargs
         try:
@@ -321,12 +339,111 @@ class GeneratorFeatExtraction:
             else:
                 labeled_data = False
                 label_pic = None
-            
+        
+            # ensure audio is valid:
+            y, sr = pyso.loadsound(audiopath,self.sr)
+            if not np.isfinite(y).all():
+                print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                print('File {} contains invalid sample data.'.format(audiopath))
+                print('Turning to zeros.')
+                y = np.zeros(len(y))
+                if self.decode_dict is not None:
+                    if not self.ignore_invalid:
+                        label_invalid = len(self.decode_dict)-1
+                        label_pic = self.decode_dict[label_invalid]
+                        if label_pic == 'invalid':
+                            print('Encoded label {} adjusted to {}'.format(label,label_invalid))
+                            label = label_invalid
+                            print('NOTE: If you would like to ignore invalid data, '+\
+                                'set `ignore_invalid` to True.\n')
+                        else:
+                            import Warnings
+                            msg = '\nWARNING: Label dict does not include `invalid` label. '+\
+                                'Invalid audiofile {} will be fed '.format(audiopath)+\
+                                    'to the network under {} label.\n'.format(
+                                        self.decode_dict[label])
+                            Warnings.warn(msg)
+                    else:
+                        print('Invalid data ignored (no `invalid` label applied)')
+                        print('NOTE: If you do not want to ignore invalid data, '+\
+                            'set `ignore_invalid` to False.\n')
+                else:
+                    import Warnings
+                    msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
+                        'No label dictionary with `invalid` label supplied. Therefore '+\
+                            'model will be fed invalid data with label {}\n'.format(label)
+        
+            # augment_data
+            if self.augment_dict is not None:
+                try:
+                    augmented_data, augmentation = augment_features(y, 
+                                                                self.sr, 
+                                                                **self.augment_dict)
+                except librosa.util.exceptions.ParameterError:
+                    # invalid audio for augmentation
+                    print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    print('File {} contains invalid sample data,'.format(audiopath)+\
+                        ' incompatible with augmentation techniques.')
+                    if self.decode_dict is not None:
+                        if not self.ignore_invalid:
+                            label_invalid = len(self.decode_dict)-1
+                            label_pic = self.decode_dict[label_invalid]
+                            if label_pic == 'invalid':
+                                print('Encoded label {} adjusted to {}'.format(label,
+                                                                               label_invalid))
+                                label = label_invalid
+                                print('Label adjusted to `invalid`')
+                                print('NOTE: If you would like to ignore invalid data, '+\
+                                    'set `ignore_invalid` to True.\n')
+                            else:
+                                label_pic = self.decode_dict[label]
+                                import Warnings
+                                msg = '\nWARNING: Label dict does not include `invalid` label. '+\
+                                    'Invalid audiofile {} will be fed '.format(audiopath)+\
+                                        'to the network under {} label.\n'.format(self.decode_dict[label])
+                                Warnings.warn(msg)
+                        else:
+                            print('Invalid data ignored (no `invalid` label applied)')
+                            print('NOTE: If you do not want to ignore invalid data, '+\
+                                'set `ignore_invalid` to False.\n')
+                    else:
+                        import Warnings
+                        msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
+                            'No label dictionary with `invalid` label supplied. Therefore '+\
+                                'model will be fed possibly invalid data with label {}\n'.format(
+                                    label)
+                    augmented_data = y
+                    augmentation = ''
+            else:
+                augmented_data, augmentation = y, ''
             # extract features
             # will be shape (num_frames, num_features)
-            feats = pyso.feats.get_feats(audiopath, **self.kwargs)
-            if self.dataset == 'val':
-                pyso.feats.plot(feats, feature_type = 'fbank')
+            if self.vtpl:
+                try:
+                    win_size_ms = pyso.utls.restore_dictvalue(self.kwargs['win_size_ms'])
+                except KeyError:
+                    raise ValueError('win_size_ms not set for feature extraction.')
+                try:
+                    percent_overlap = pyso.utls.restore_dictvalue(self.kwargs['percent_overlap'])
+                except KeyError:
+                    percent_overlap = 0.5
+                try:
+                    fft_bins =  pyso.utls.restore_dictvalue(self.kwargs['fft_bins'])
+                except KeyError:
+                    fft_bins = None
+                try:
+                    window = pyso.utls.restore_dictvalue(self.kwargs['window'])
+                except KeyError:
+                    window = 'hann'
+                feats, alpha = pyso.augment.vtpl(y, self.sr, 
+                                          win_size_ms = win_size_ms,
+                                          percent_overlap = percent_overlap, 
+                                          fft_bins = fft_bins,
+                                          window = window)
+            else:
+
+                feats = pyso.feats.get_feats(augmented_data, **self.kwargs)
+                    
             if self.apply_log:
                 # TODO test
                 if feats[0].any() < 0:
@@ -349,8 +466,8 @@ class GeneratorFeatExtraction:
             # Save visuals if desired
             if self.visualize:
                 if self.counter % self.vis_every_n_items == 0:
-                    save_visuals_path = './images/{}_label{}_training_{}_{}.png'.format(self.dataset,
-                        label, self.model_name, pyso.utils.get_date())
+                    save_visuals_path = './images/{}_label{}_training_{}_{}_{}.png'.format(self.dataset,
+                        label_pic, self.model_name, augmentation, pyso.utils.get_date())
                     save_visuals_path = pyso.string2pathlib(save_visuals_path)
                     save_visuals_dir = pyso.check_dir(save_visuals_path.parent, make=True)
                     feature_type = self.kwargs['feature_type']
@@ -428,3 +545,81 @@ class GeneratorFeatExtraction:
             #restart counter to yeild data in the next epoch as well
             if self.counter >= self.number_of_batches:
                 self.counter = 0
+
+def augment_features(sound,
+                     sr,
+                     add_white_noise = False, 
+                     snr = [5,10,20],
+                     speed_increase = False,
+                     speed_decrease = False,
+                     speed_perc = 0.15,
+                     time_shift = False,
+                     shuffle_sound = False,
+                     num_subsections = 3,
+                     harmonic_distortion = False,
+                     pitch_increase = False,
+                     pitch_decrease = False,
+                     num_semitones = 2,
+                     vtlp = False,
+                     bilinear_warp = True,
+                     ):
+    if speed_increase and speed_decrease:
+        raise ValueError('Cannot have both speed_increase and speed_decrease'+\
+            ' as augmentation options. Set just one to True.')
+    if pitch_increase and pitch_decrease:
+        raise ValueError('Cannot have both pitch_increase and pitch_decrease'+\
+            ' as augmentation options. Set just one to True.')
+    if isinstance(sound, np.ndarray):
+        data = sound
+    else:
+        data, sr2 = pyso.loadsound(sound, sr=sr)
+        assert sr2 == sr
+    samples = data.copy()
+    samples_augmented = samples.copy()
+    augmentation = ''
+    if add_white_noise:
+        snr_choice = np.random.choice(snr)
+        samples_augmented = pyso.augment.add_white_noise(samples_augmented, 
+                                                         sr = sr,
+                                                         snr = snr_choice)
+        augmentation += '_whitenoise{}SNR'.format(snr_choice)
+    if speed_increase:
+        samples_augmented = pyso.augment.speed_increase(samples_augmented,
+                                                        sr = sr,
+                                                        perc = speed_perc)
+        augmentation += '_speedincrease{}'.format(speed_perc)
+    elif speed_decrease:
+        samples_augmented = pyso.augment.speed_decrease(samples_augmented,
+                                                        sr = sr,
+                                                        perc = speed_perc)
+        augmentation += '_speeddecrease{}'.format(speed_perc)
+    if time_shift:
+        samples_augmented = pyso.augment.time_shift(samples_augmented, 
+                                                    sr = sr)
+        augmentation += '_randtimeshift'
+    if shuffle_sound:
+        samples_augmented = pyso.augment.time_shift(samples_augmented, 
+                                                    sr = sr, 
+                                                    num_subsections = num_subsections)
+        augmentation += '_randshuffle{}sections'.format(num_subsections)
+    if harmonic_distortion: 
+        samples_augmented = pyso.augment.harmonic_distortion(samples_augmented,
+                                                             sr = sr)
+        augmentation += '_harmonicdistortion'
+    if pitch_increase:
+        samples_augmented = pyso.augment.pitch_increase(samples_augmented,
+                                                        sr = sr,
+                                                        num_semitones = num_semitones)
+        augmentation += '_pitchincrease{}semitones'.format(num_semitones)
+    elif pitch_decrease:
+        samples_augmented = pyso.augment.pitch_decrease(samples_augmented,
+                                                        sr = sr,
+                                                        num_semitones = num_semitones)
+        augmentation += '_pitchdecrease{}semitones'.format(num_semitones)
+    # all augmentation techniques return sample data except for vtlp
+    # therefore vtlp will be handled outside of this function (returns stft matrix)
+    if vtlp:
+        augmentation += '_vtlp'
+
+    samples_augmented = pyso.dsp.set_signal_length(samples_augmented, len(samples))
+    return samples_augmented, augmentation
