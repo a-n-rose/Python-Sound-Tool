@@ -245,6 +245,8 @@ class GeneratorFeatExtraction:
         self.visualize = visualize
         self.vis_every_n_items = vis_every_n_items
         self.decode_dict = decode_dict
+        if augment_dict is None:
+            augment_dict = dict()
         self.augment_dict = augment_dict
         # if vtpl should be used as stft matrix
         if 'vtpl' in augment_dict:

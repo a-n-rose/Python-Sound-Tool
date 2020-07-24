@@ -66,12 +66,13 @@ log_settings = True
 num_epochs = 1
 patience = 15
 
+augmentation_none = dict()
 augmentation_noise = dict([('add_white_noise',True)])
 augmentation_speedup = dict([('speed_increase', True)])
 augmentation_speeddown = dict([('speed_decrease', True)])
 augmentation_pitchup = dict([('pitch_increase', True)])
 augmentation_pitchdown = dict([('pitch_decrease', True)])
-augmentation_timeshif = dict([('time_shift', True)])
+augmentation_timeshift = dict([('time_shift', True)])
 augmentation_shuffle = dict([('shufflesound', True)])
 augmentation_harmondist = dict([('harmonic_distortion', True)])
 augmentation_vtlp = dict([('vtlp', True)])
@@ -102,6 +103,17 @@ augmentation_all_speeddown_pitchdown = dict([('add_white_noise',True),
                                              ('harmonic_distortion', True),
                                              ('vtlp', True)
                                              ])
+
+augmentation_dicts = [augmentation_none, augmentation_noise, augmentation_speedup,
+                      augmentation_speeddown, augmentation_pitchup,
+                      augmentation_pitchdown, augmentation_timeshift,
+                      augmentation_shuffle, augmentation_harmondist,
+                      augmentation_vtlp, augmentation_all_speedup_pitchup,
+                      augmentation_all_speedup_pitchdown,
+                      augmentation_all_speeddown_pitchup,
+                      augmentation_all_speeddown_pitchdown
+                      ]
+#augmentation_dicts = [augmentation_none, augmentation_noise]
 
 if load_dict is None:
     # collect labels of audio in data dir:
@@ -183,16 +195,7 @@ else:
 
 # should now be able to feed dictionaries to generator
 
-# designate where to save model and related files
-if feature_type:
-    model_name += '_'+feature_type + '_' + pyso.utils.get_date() 
-else:
-    model_name += '_' + pyso.utils.get_date() 
-model_dir = dataset_path.joinpath(model_name)
-model_dir = pyso.utils.check_dir(model_dir, make=True)
-model_name += '.h5'
-model_path = model_dir.joinpath(model_name)
-num_labels = len(dict_encode) 
+
 
 # figure out shape of data:
 total_samples = pyso.dsp.calc_frame_length(dur_sec*1000, sr=sr)
@@ -268,24 +271,7 @@ if use_librosa:
         raise TypeError('Expected '+', '.join(list_available_features())+\
             ' to be in `feature_type`, not {}'.format(feature_type))
 
-input_shape = input_shape + (1,)
 
-# setup model 
-envclassifier, settings_dict = pysodl.cnn_classifier(
-    input_shape = input_shape,
-    num_labels = num_labels)
-
-if callbacks is None:
-    callbacks = pysodl.setup_callbacks(
-        patience = patience,
-        best_modelname = model_path, 
-        log_filename = model_dir.joinpath('log.csv'))
-optimizer = 'adam'
-loss = 'sparse_categorical_crossentropy'
-metrics = ['accuracy']
-envclassifier.compile(optimizer = optimizer,
-                        loss = loss,
-                        metrics = metrics)
     
 # start training
 start = time.time()
@@ -302,13 +288,41 @@ get_feats_kwargs = dict(sr = sr,
                         subtract_mean = subtract_mean,
                         use_scipy = use_scipy)
 
+input_shape = input_shape + (1,)
 add_tensor_last = False
 add_tensor_first = True
+num_labels = len(dict_encode) 
 
-if use_generator:
+for i, augmentation_dict in enumerate(augmentation_dicts):
+    # designate where to save model and related files
+    model_name = 'audioaugment_'
+    if feature_type:
+        model_name += '_'+feature_type + '_' + str(i)
+    else:
+        model_name += '_' + str(i)
+    model_dir = dataset_path.joinpath(model_name)
+    model_dir = pyso.utils.check_dir(model_dir, make=True)
+    model_name += '.h5'
+    model_path = model_dir.joinpath(model_name)
+    
+    # setup model 
+    envclassifier, settings_dict = pysodl.cnn_classifier(
+        input_shape = input_shape,
+        num_labels = num_labels)
+    callbacks = pysodl.setup_callbacks(
+        patience = patience,
+        best_modelname = model_path, 
+        log_filename = model_dir.joinpath('log.csv'))
+    optimizer = 'adam'
+    loss = 'sparse_categorical_crossentropy'
+    metrics = ['accuracy']
+    envclassifier.compile(optimizer = optimizer,
+                            loss = loss,
+                            metrics = metrics)
+    
     train_generator = pysodl.GeneratorFeatExtraction(
         datalist = dataset_dict['train'],
-        model_name = 'testing_featextraction_gen',
+        model_name = model_name,
         normalize = True,
         apply_log = False,
         randomize = False, 
@@ -326,149 +340,44 @@ if use_generator:
         augment_dict = augmentation_dict,
         ignore_invalid = False,
         **get_feats_kwargs)
-    
-    val_generator = pysodl.GeneratorFeatExtraction(           
-        datalist = dataset_dict['val'],
-        model_name = 'testing_featextraction_gen',
-        normalize = True,
-        apply_log = False,
-        randomize = False, 
-        random_seed = 40,
-        context_window = None,
-        input_shape = input_shape,
-        batch_size = batch_size, 
-        add_tensor_last = add_tensor_last, 
-        add_tensor_first = add_tensor_first,
-        gray2color = False,
-        visualize = True,
-        vis_every_n_items = 50,
-        decode_dict = dict_decode,
-        dataset = 'val',
-        augment_dict = augmentation_dict,
-        **get_feats_kwargs)
-    
-    test_generator = pysodl.GeneratorFeatExtraction(
-        datalist = dataset_dict['test'],
-        model_name = 'testing_featextraction_gen',
-        normalize = True,
-        apply_log = False,
-        randomize = False, 
-        random_seed = 40,
-        context_window = None,
-        input_shape = input_shape,
-        batch_size = batch_size, 
-        add_tensor_last = add_tensor_last, 
-        add_tensor_first = add_tensor_first,
-        gray2color = False,
-        visualize = True,
-        vis_every_n_items = 50,
-        decode_dict = dict_decode,
-        dataset = 'test',
-        augment_dict = augmentation_dict,
-        **get_feats_kwargs)
 
     train_generator.generator()
-    val_generator.generator()
-    test_generator.generator()
+    
+    print('\nTRAINING SESSION ',i+1, ' out of ', len(augmentation_dicts))
+    if augmentation_dict:
+        print('Augmentation(s) applied: ')
+        print(', '.join(augmentation_dict.keys()))
+        print()
+    else:
+        print('No augmentations applied.\n')
+    
     history = envclassifier.fit_generator(
         train_generator.generator(),
         steps_per_epoch = len(dataset_dict['train']),
         callbacks = callbacks,
         epochs = num_epochs,
-        #validation_data = val_generator.generator(),
-        #validation_steps = 1,#len(dataset_dict['val']),
         )
-    
-    ## TODO test how well prediction works. use simple predict instead?
-    #y_predicted = envclassifier.predict_generator(
-        #test_generator.generator(),
-        #steps = len(dataset_dict['test']))
 
-else:
-    # TODO make scaling data optional?
-    # data is separated and shaped for this classifier in scale_X_y..
-    X_train, y_train, scalars = pyso.feats.scale_X_y(data_train,
-                                                        is_train=True)
-    X_val, y_val, __ = pyso.feats.scale_X_y(data_val,
-                                            is_train=False, 
-                                            scalars=scalars)
-    X_test, y_test, __ = pyso.feats.scale_X_y(data_test,
-                                                is_train=False, 
-                                                scalars=scalars)
-    
-    history = envclassifier.fit(X_train, y_train, 
-                                callbacks = callbacks, 
-                                validation_data = (X_val, y_val),
-                                **kwargs)
-    
-    envclassifier.evaluate(X_test, y_test)
-    y_predicted = envclassifier.predict(X_test)
-    # which category did the model predict?
-    
+    model_features_dict = dict(model_path = model_path,
+                            dataset_dict = dataset_dict,
+                            augmentation_dict = augmentation_dict)
+    model_features_dict.update(settings_dict)
+    end = time.time()
+    total_duration_seconds = round(end-start,2)
+    time_dict = dict(total_duration_seconds=total_duration_seconds)
+    model_features_dict.update(time_dict)
 
-#y_pred = np.argmax(y_predicted, axis=1)
-#if len(y_pred.shape) > len(y_test.shape):
-    #y_test = np.expand_dims(y_test, axis=1)
-#elif len(y_pred.shape) < len(y_test.shape):
-    #y_pred = np.expand_dims(y_pred, axis=1)
-#try:
-    #assert y_pred.shape == y_test.shape
-#except AssertionError:
-    #raise ValueError('The shape of prediction data {}'.format(y_pred.shape) +\
-        #' does not match the `y_test` dataset {}'.format(y_test.shape) +\
-            #'\nThe shapes much match in order to measure accuracy.')
+    model_features_dict_path = model_dir.joinpath('info_{}.csv'.format(
+        model_name))
+    model_features_dict_path = pyso.utils.save_dict(
+        filename = model_features_dict_path,
+        dict2save = model_features_dict)
+    print('\nFinished training the model. The model and associated files can be '+\
+        'found here: \n{}'.format(model_dir))
+finished_time = time.time()
+total_total_duration = finished_time - start
+time_new_units, units = pyso.utils.adjust_time_units(total_total_duration)
+print('\nEntire program took {} {}.\n\n'.format(time_new_units, units))
+print('-'*79)
+    
         
-#match = sum(y_test == y_pred)
-#if len(match.shape) == 1:
-    #match = match[0]
-#test_accuracy = round(match/len(y_test),4)
-#print('\nModel reached accuracy of {}%'.format(test_accuracy*100))
-
-model_features_dict = dict(model_path = model_path,
-                        dataset_dict = dataset_dict,
-                        use_generator = use_generator)
-model_features_dict.update(settings_dict)
-end = time.time()
-total_duration_seconds = round(end-start,2)
-time_dict = dict(total_duration_seconds=total_duration_seconds)
-model_features_dict.update(time_dict)
-
-model_features_dict_path = model_dir.joinpath('info_{}.csv'.format(
-    model_name))
-model_features_dict_path = pyso.utils.save_dict(
-    filename = model_features_dict_path,
-    dict2save = model_features_dict)
-print('\nFinished training the model. The model and associated files can be '+\
-    'found here: \n{}'.format(model_dir))
-  
-    
-
-
-
-#model_dir, history = train_model(
-            #load_dict= dataset_dict,
-            #feature_type = feature_type,
-            #num_feats = num_feats,
-            #mono = mono,
-            #rate_of_change = rate_of_change,
-            #rate_of_acceleration = rate_of_acceleration,
-            #subtract_mean = subtract_mean,
-            #use_scipy = use_scipy,
-            #dur_sec = dur_sec,
-            #win_size_ms = win_size_ms,
-            #percent_overlap = percent_overlap,
-            #sr = sr,
-            #fft_bins = fft_bins,
-            #frames_per_sample = frames_per_sample, 
-            #labeled_data = labeled_data, 
-            #batch_size = batch_size,
-            #use_librosa = use_librosa, 
-            #center = center, 
-            #mode = mode, 
-            #log_settings = log_settings, 
-            #epoch = epoch,
-            #patience = patience,
-            #augmentation_dict = augmentation_dict
-            #)
-    
-    
