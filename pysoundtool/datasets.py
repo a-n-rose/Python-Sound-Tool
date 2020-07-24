@@ -109,7 +109,7 @@ PosixPath('data/audio/vacuum/vacuum2.wav')]), \
         raise ValueError('No matching labels found in paths list.')
     return label_waves_dict
 
-def create_dicts_labelsencoded(labels_class):
+def create_dicts_labelsencoded(labels_class, add_invalid_label=False):
     '''Encodes audio class labels and saves in dictionaries.
 
     The labels are alphabetized and encoded under their index.
@@ -118,6 +118,8 @@ def create_dicts_labelsencoded(labels_class):
     ----------
     labels_class : set, list
         Set or list containing the labels of all audio classes.
+    add_invalid_label : bool 
+        If True, 'invalid' label added to label invalid training data.
 
     Returns
     -------
@@ -147,6 +149,9 @@ def create_dicts_labelsencoded(labels_class):
     for i, label in enumerate(labels_sorted):
         dict_label2int[label] = i
         dict_int2label[i] = label
+    if add_invalid_label:
+        dict_label2int['invalid'] = i + 1
+        dict_int2label[i+1] = 'invalid'
     return dict_label2int, dict_int2label
 
 # TODO change name to audiolist2dataset?
