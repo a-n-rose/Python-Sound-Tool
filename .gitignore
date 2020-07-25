@@ -2,6 +2,9 @@ env/
 ve/
 __pycache__/
 saved_features_and_models/
+audiodata/
+images/
+images_1/
 audiodata2/
 audiodata3/
 .ipynb_checkpoints/
@@ -16,3 +19,7 @@ docs/source/examples/
 example_dir/
 tests/testing_pypi/
 test_audio/
+compare_augmentations_right/
+compare_augmentations_nine/
+build/
+*.npy
