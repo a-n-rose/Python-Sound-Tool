@@ -1723,20 +1723,29 @@ def denoiser_run(model, new_audio, feat_settings_dict):
     pysoundtool.feats.feats2audio
         How features are transformed back tino audio samples.
     '''
-    
-    feature_type = feat_settings_dict['feature_type']
-    win_size_ms = feat_settings_dict['win_size_ms']
-    sr = feat_settings_dict['sr']
-    percent_overlap = feat_settings_dict['percent_overlap']
+    # if values saved as strings, restore them to original type
+    feature_type = pyso.utils.restore_dictvalue(
+        feat_settings_dict['feature_type'])
+    win_size_ms = pyso.utils.restore_dictvalue(
+        feat_settings_dict['win_size_ms'])
+    sr = pyso.utils.restore_dictvalue(
+        feat_settings_dict['sr'])
+    percent_overlap = pyso.utils.restore_dictvalue(
+        feat_settings_dict['percent_overlap'])
     try:
-        window = feat_settings_dict['window']
+        window = pyso.utils.restore_dictvalue(feat_settings_dict['window'])
     except KeyError:
         window = None
-    frames_per_sample = feat_settings_dict['frames_per_sample']
-    input_shape = feat_settings_dict['input_shape']
-    dur_sec = feat_settings_dict['dur_sec']
-    num_feats = feat_settings_dict['num_feats']
-    desired_shape = feat_settings_dict['desired_shape']
+    frames_per_sample = pyso.utils.restore_dictvalue(
+        feat_settings_dict['frames_per_sample'])
+    input_shape = pyso.utils.restore_dictvalue(
+        feat_settings_dict['input_shape'])
+    dur_sec = pyso.utils.restore_dictvalue(
+        feat_settings_dict['dur_sec'])
+    num_feats = pyso.utils.restore_dictvalue(
+        feat_settings_dict['num_feats'])
+    desired_shape = pyso.utils.restore_dictvalue(
+        feat_settings_dict['desired_shape'])
     
     feats = pyso.feats.get_feats(new_audio, sr=sr, 
                                 feature_type = feature_type,
