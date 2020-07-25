@@ -1381,6 +1381,7 @@ def get_vad_snr(target_samples, noise_samples, sr):
     snr = np.mean(snr)
     return snr
 
+# not working well
 def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0, 
                     percent_vad = 0.75, use_beg_ms = 120):
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
@@ -1392,38 +1393,20 @@ def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0,
     
     samples_matrix = pyso.dsp.create_empty_matrix((len(data)),
                                                 complex_vals = False)
+    vad_matrix, e, f, sfm = pyso.dsp.vad(data, sr, win_size_ms = win_size_ms,
+                              percent_overlap = percent_overlap, use_beg_ms = use_beg_ms)
     section_start = 0
     extra_rows = 0
     row = 0
-    e_min = None
-    f_min = None
-    sfm_min = None
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section_vad, e, f, sfm = pyso.dsp.vad(section, 
-                                     sr=sr, 
-                                     win_size_ms = 10, 
-                                     percent_overlap = 0.5,
-                                     use_beg_ms = use_beg_ms,
-                                     min_energy = e_min, 
-                                     min_freq = f_min, 
-                                     min_sfm = sfm_min)
-        if e_min is None or e < e_min:
-            e_min = e
-        if f_min is None or f < f_min:
-            f_min = f
-        if sfm_min is None or sfm < sfm_min:
-            sfm_min = sfm
-        if len(section_vad) == 0:
-            break
-        elif sum(section_vad)/len(section_vad) < percent_vad:
-            # start over with the loop
-            extra_rows += len(section)
-            section_start += (frame_length - num_overlap_samples)
-            continue
-        else:
+        vad = vad_matrix[frame]
+        if vad > 0:
             samples_matrix[row:row+len(section)] = section
             row += len(section)
+            section_start += (frame_length - num_overlap_samples)
+        else:
+            extra_rows += len(section)
             section_start += (frame_length - num_overlap_samples)
     samples_matrix = samples_matrix[:-extra_rows]
     return samples_matrix
@@ -2159,7 +2142,7 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     
 def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
-                          window = 'hann', percent_vad = .75):
+                          window = 'hann', percent_vad = .75, use_beg_ms = 120):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
@@ -2187,6 +2170,7 @@ def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                                      sr=sr, 
                                      win_size_ms = 10, 
                                      percent_overlap = 0.5,
+                                     use_beg_ms = use_beg_ms,
                                      min_energy = e_min, 
                                      min_freq = f_min, 
                                      min_sfm = sfm_min)
