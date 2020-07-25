@@ -507,7 +507,14 @@ def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     
     return stft_matrix[:,:fft_bins//2]
 
-def plot_dom_freq(sound, energy_scale = 'power_to_db',**kwargs):
+def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequency', **kwargs):
+    # set matching defaults if not in kwargs
+    if 'sr' not in kwargs:
+        kwargs['sr'] = 16000
+    if 'win_size_ms' not in kwargs:
+        kwargs['win_size_ms'] = 20
+    if 'percent_overlap' not in kwargs:
+        kwargs['percent_overlap'] = 0.5
     stft_matrix = pyso.feats.get_stft(sound, **kwargs)
     pitch = pyso.dsp.get_pitch(sound, **kwargs)
     stft_matrix = librosa.power_to_db(stft_matrix)
@@ -517,7 +524,14 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db',**kwargs):
     plt.plot(pitch, 'ro', color=color)
     plt.show()
     
-def plot_vad(sound, energy_scale = 'power_to_db',**kwargs):
+def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity', **kwargs):
+    # set matching defaults if not in kwargs
+    if 'sr' not in kwargs:
+        kwargs['sr'] = 16000
+    if 'win_size_ms' not in kwargs:
+        kwargs['win_size_ms'] = 20
+    if 'percent_overlap' not in kwargs:
+        kwargs['percent_overlap'] = 0.5
     stft_matrix = pyso.feats.get_stft(sound, **kwargs)
     vad, x,y,z = pyso.dsp.vad(sound, **kwargs)
     stft_matrix = librosa.power_to_db(stft_matrix)
@@ -527,6 +541,8 @@ def plot_vad(sound, energy_scale = 'power_to_db',**kwargs):
     color = 'yellow'
     linestyle = ':'
     plt.plot(vad, 'ro', color=color)
+    if title:
+        plt.title(title)
     plt.show()
 
 def get_change_acceleration_rate(spectro_data):
