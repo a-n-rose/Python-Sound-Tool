@@ -109,17 +109,22 @@ PosixPath('data/audio/vacuum/vacuum2.wav')]), \
         raise ValueError('No matching labels found in paths list.')
     return label_waves_dict
 
-def create_dicts_labelsencoded(labels_class, add_invalid_label=False):
+def create_dicts_labelsencoded(labels_class, add_extra_label = False, extra_label='silence'):
     '''Encodes audio class labels and saves in dictionaries.
 
-    The labels are alphabetized and encoded under their index.
+    The labels are alphabetized and encoded under their index. If `add_extra_label`,
+    the `extra_label` is added as the last entry in the dictionary. 
+    This is useful if performing voice activity and want to label 
+    non-voice activated sections as silent rather than as some speech label.
 
     Parameters
     ----------
     labels_class : set, list
         Set or list containing the labels of all audio classes.
-    add_invalid_label : bool 
-        If True, 'invalid' label added to label invalid training data.
+    add_extra_label : bool 
+        If True, `extra_label` added to dictionary.
+    extra_label : str 
+        The extra label to add. (default 'silence'). 
 
     Returns
     -------
@@ -149,9 +154,9 @@ def create_dicts_labelsencoded(labels_class, add_invalid_label=False):
     for i, label in enumerate(labels_sorted):
         dict_label2int[label] = i
         dict_int2label[i] = label
-    if add_invalid_label:
-        dict_label2int['invalid'] = i + 1
-        dict_int2label[i+1] = 'invalid'
+    if add_extra_label:
+        dict_label2int[extra_label] = i + 1
+        dict_int2label[i+1] = extra_label
     return dict_label2int, dict_int2label
 
 # TODO change name to audiolist2dataset?
