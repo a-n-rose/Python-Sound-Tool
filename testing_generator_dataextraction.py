@@ -113,7 +113,7 @@ augmentation_dicts = [augmentation_none, augmentation_noise, augmentation_speedu
                       augmentation_all_speeddown_pitchup,
                       augmentation_all_speeddown_pitchdown
                       ]
-#augmentation_dicts = [augmentation_noise]
+augmentation_dicts = [augmentation_all_speedup_pitchup]
 
 if load_dict is None:
     # collect labels of audio in data dir:
@@ -141,7 +141,10 @@ if load_dict is None:
     # create encoding and decoding dictionaries of labels:
     dict_encode, dict_decode = pyso.datasets.create_dicts_labelsencoded(
         labels,
-        add_invalid_label=True)
+        add_extra_label=True,
+        extra_label = 'silence')
+    
+    print(dict_decode)
 
     # save labels and their encodings
     dict_encode_path = dataset_path.joinpath('dict_encode.csv')
@@ -338,7 +341,7 @@ for i, augmentation_dict in enumerate(augmentation_dicts):
         decode_dict = dict_decode,
         dataset = 'train',
         augment_dict = augmentation_dict,
-        ignore_invalid = False,
+        label_silence = True,
         **get_feats_kwargs)
 
     train_generator.generator()
