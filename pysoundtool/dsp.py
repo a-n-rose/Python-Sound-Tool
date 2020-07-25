@@ -2301,7 +2301,7 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
 def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5, 
         real_signal = False, fft_bins = None, window = 'hann',
         energy_thresh = 40, freq_thresh = 185, sfm_thresh = 5,
-        min_energy = None, min_freq = None, min_sfm = None):
+        min_energy = None, min_freq = None, min_sfm = None, use_beg_ms = 120):
     '''
     Warning: this VAD function does not perform well on snr levels lower than 20.
     
@@ -2344,6 +2344,12 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
+    # limit number of beginning frames to measure background noise:
+    measure_noise_samples = pyso.dsp.calc_frame_length(use_beg_ms, sr)
+    measure_noise_frames = pyso.dsp.calc_num_subframes(measure_noise_samples,
+                                                       frame_length = frame_length,
+                                                       overlap_samples = num_overlap_samples,
+                                                       zeropad = True)
     # initialize empty matrix to vad values into
     vad_matrix = pyso.dsp.create_empty_matrix((num_subframes,),
                                               complex_vals = False)
@@ -2366,23 +2372,23 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
         if min_energy is None and frame == 0:
             min_energy = pyso.dsp.short_term_energy(samples)
         ste = pyso.dsp.short_term_energy(samples)
-        if ste < min_energy and frame < 10:
+        if ste < min_energy and frame < measure_noise_frames:
             min_energy = ste
             
         if min_freq is None and frame == 0:
             min_freq = pyso.dsp.get_dom_freq(section_power)
         f = pyso.dsp.get_dom_freq(section_power)
-        if f < min_freq and frame < 10:
+        if f < min_freq and frame < measure_noise_frames:
             min_freq = f
         
         if min_sfm is None and frame == 0:
             min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
         sfm = pyso.dsp.spectral_flatness_measure(section_power)
-        if sfm < min_sfm  and frame < 10:
+        if sfm < min_sfm  and frame < measure_noise_frames:
             min_sfm = sfm         
         # decide if speech or silence 
         # not finding this helpful
-        if frame == 0:
+        if frame < measure_noise_frames:
             thresh_e = energy_thresh * np.log(min_energy)
         
         counter = 0
@@ -2406,14 +2412,14 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
             # update min energy and silence count
             silence += 1
             # not finding this helpful
-            if frame < 10:
+            if frame < measure_noise_frames:
                 min_energy = ((silence * min_energy) + ste) / \
                     silence + 1
             # if silence has been longer than 10 frames, set speech to 0
             if silence > 10:
                 speech = 0
         # not finding this helpful
-        if frame < 10:
+        if frame < measure_noise_frames:
             thresh_e = energy_thresh * np.log(min_energy)
         #if frame % 50 == 0:
             #print('\nFrame: ', frame)

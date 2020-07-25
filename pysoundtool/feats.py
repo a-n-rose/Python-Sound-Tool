@@ -524,7 +524,8 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequen
     plt.plot(pitch, 'ro', color=color)
     plt.show()
     
-def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity', **kwargs):
+def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity', 
+             use_beg_ms = 120, **kwargs):
     # set matching defaults if not in kwargs
     if 'sr' not in kwargs:
         kwargs['sr'] = 16000
@@ -533,7 +534,7 @@ def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity', **kw
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
     stft_matrix = pyso.feats.get_stft(sound, **kwargs)
-    vad, x,y,z = pyso.dsp.vad(sound, **kwargs)
+    vad, x,y,z = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
     stft_matrix = librosa.power_to_db(stft_matrix)
     y_axis = stft_matrix.shape[1]
     vad = pyso.dsp.scalesound(vad, max_val = y_axis, min_val = 0)
