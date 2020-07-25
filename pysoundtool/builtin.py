@@ -130,6 +130,8 @@ def filtersignal(audiofile,
     
     C Loizou, P. (2013). Speech Enhancement: Theory and Practice. 
     """
+    if sr is None:
+        sr = 48000
     if 'wiener' in filter_type:
         if sr == 22050:
             import warnings
