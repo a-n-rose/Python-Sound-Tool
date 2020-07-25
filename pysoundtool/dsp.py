@@ -1382,7 +1382,7 @@ def get_vad_snr(target_samples, noise_samples, sr):
     return snr
 
 def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0, 
-                    percent_vad = 0.75, **kwargs):
+                    percent_vad = 0.75, use_beg_ms = 120):
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
@@ -1404,6 +1404,7 @@ def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0,
                                      sr=sr, 
                                      win_size_ms = 10, 
                                      percent_overlap = 0.5,
+                                     use_beg_ms = use_beg_ms,
                                      min_energy = e_min, 
                                      min_freq = f_min, 
                                      min_sfm = sfm_min)
