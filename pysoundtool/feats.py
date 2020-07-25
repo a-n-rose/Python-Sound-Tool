@@ -468,7 +468,7 @@ def get_feats(sound,
                           rate_of_change = rate_of_change,
                           rate_of_acceleration = rate_of_acceleration,
                           subtract_mean = subtract_mean,
-                          use_scipy = use_scipy
+                          use_scipy = use_scipy,
                           **kwargs)
     return feats
 
