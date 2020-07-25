@@ -468,11 +468,21 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
             num_channels = 1
         sound2add = apply_num_channels(sound2add, num_channels)
     target_stft = pyso.dsp.get_vad_stft(target, sr)
+    if not target_stft.any():
+        import warnings
+        msg = '\nNo voice activity detected in target signal.'
+        warnings.warn(msg)
+        target_stft = pyso.feats.get_stft(target,sr)
     if stationary_noise:
         noise_stft = pyso.feats.get_stft(sound2add, sr)
     else:
         # get energy of noise when active (e.g. car honking)
         noise_stft = pyso.dsp.get_vad_stft(sound2add, sr)
+        if not noise_stft.any():
+            noise_stft = pyso.feats.get_stft(sound2add, sr)
+        
+    # TODO fix issue here if nan values - errors/warnings happening here.
+    # numpy/core/fromnumeric.py:3257: RuntimeWarning: Mean of empty slice.
     target_power = np.abs(target_stft)**2
     noise_power = np.abs(noise_stft)**2
     target_energy = np.mean(target_power)
@@ -480,7 +490,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
     
     if snr is not None:
         # see pysoundtool.dsp.snr_adjustnoiselevel
-        adjust_sound = (np.sqrt(target_energy/noise_energy / (10**(snr/10))))
+        adjust_sound = (np.sqrt(target_energy/(noise_energy+1e-6) / (10**(snr/10))))
         sound2add *= adjust_sound
     
     new_snr = pyso.dsp.get_vad_snr(target, sound2add, sr=sr)
@@ -1358,7 +1368,12 @@ def get_vad_snr(target_samples, noise_samples, sr):
     '''
     # get target power with only high energy values (vad)
     vad_stft = pyso.dsp.get_vad_stft(target_samples, 
-                                       sr=sr, percent_vad = 0.75)
+                                       sr=sr, percent_vad = 0.9)
+    if not vad_stft.any():
+        import warnings
+        msg = '\nNo voice activity found in target signal.'
+        vad_stft = pyso.feats.get_stft(target_samples, 
+                                       sr=sr)
     target_power = np.abs(vad_stft)**2
             
     noise_stft = pyso.feats.get_stft(noise_samples, sr=sr)
@@ -2144,7 +2159,7 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     
 def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
-                          window = 'hann', percent_vad = .75):
+                          window = 'hann', percent_vad = .9):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
