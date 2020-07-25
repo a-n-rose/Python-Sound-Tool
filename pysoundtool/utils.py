@@ -295,6 +295,9 @@ def restore_dictvalue(value_string):
         value_original_type = str(value_string)
     # this handles a list of audio files
     except ValueError:
+        if not 'Path' in value_string:
+            # not handling a pathlib object, just a string.
+            return value_string
         # ast doesn't handle lists of pathlib.PosixPath objects
         # TODO further testing
         # remove the string brackets '[' and ']'
