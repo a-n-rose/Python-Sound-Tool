@@ -369,7 +369,8 @@ def stereo2mono(data):
 
 def add_backgroundsound(audio_main, audio_background, sr, snr=None, 
                         delay_mainsound_sec = None, total_len_sec=None,
-                        wrap = False, stationary_noise = True, **kwargs):
+                        wrap = False, stationary_noise = True, 
+                        random_seed = None, **kwargs):
     '''Adds a sound (i.e. background noise) to a target signal.
     
     If the sample rates of the two audio samples do not match, the sample
@@ -419,9 +420,6 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
     -------
     combined : numpy.ndarray
         The samples of the sounds added together
-    
-    sr : int 
-        The sample rate of the samples
     
     snr : int, float 
         The updated signal-to-noise ratio. Due to the non-stationary state of speech and sound in general, 
@@ -515,7 +513,8 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
         # otherwise, choose random selection of noise
         sound2add = pyso.dsp.random_selection_samples(sound2add,
                                                       total_samps,
-                                                      wrap=wrap)
+                                                      wrap = wrap, 
+                                                      seed = random_seed)
     # separate samples to add to the target signal
     target_sound = sound2add[int(sr*delay_mainsound_sec):len(target)+int(sr*delay_mainsound_sec)]
     # If target is longer than indicated length, shorten it
@@ -2367,26 +2366,27 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
         if min_energy is None and frame == 0:
             min_energy = pyso.dsp.short_term_energy(samples)
         ste = pyso.dsp.short_term_energy(samples)
-        if ste < min_energy:
+        if ste < min_energy and frame < 10:
             min_energy = ste
             
         if min_freq is None and frame == 0:
             min_freq = pyso.dsp.get_dom_freq(section_power)
         f = pyso.dsp.get_dom_freq(section_power)
-        if f < min_freq:
+        if f < min_freq and frame < 10:
             min_freq = f
         
         if min_sfm is None and frame == 0:
             min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
         sfm = pyso.dsp.spectral_flatness_measure(section_power)
-        if sfm < min_sfm:
+        if sfm < min_sfm  and frame < 10:
             min_sfm = sfm         
         # decide if speech or silence 
         # not finding this helpful
-        #thresh_e = energy_thresh * np.log(min_energy)
+        if frame == 0:
+            thresh_e = energy_thresh * np.log(min_energy)
         
         counter = 0
-        if ste - min_energy > energy_thresh:
+        if ste - min_energy > thresh_e:
             counter += 1
         if f - min_freq > freq_thresh:
             counter += 1
@@ -2406,13 +2406,19 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
             # update min energy and silence count
             silence += 1
             # not finding this helpful
-            #min_energy = ((silence * min_energy) + ste) / \
-                #silence + 1
+            if frame < 10:
+                min_energy = ((silence * min_energy) + ste) / \
+                    silence + 1
             # if silence has been longer than 10 frames, set speech to 0
             if silence > 10:
                 speech = 0
         # not finding this helpful
-        #thresh_e = energy_thresh * np.log(min_energy)
+        if frame < 10:
+            thresh_e = energy_thresh * np.log(min_energy)
+        #if frame % 50 == 0:
+            #print('\nFrame: ', frame)
+            #print('min energy: ', min_energy)
+            #print('thresh_e: ', thresh_e)
         section_start += (frame_length - num_overlap_samples)
     return vad_matrix, min_energy, min_freq, min_sfm
 
