@@ -1383,7 +1383,7 @@ def get_vad_snr(target_samples, noise_samples, sr):
     return snr
 
 def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0, 
-                    percent_vad = 0.9, **kwargs):
+                    percent_vad = 0.75, **kwargs):
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
@@ -2159,7 +2159,7 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     
 def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
-                          window = 'hann', percent_vad = .9):
+                          window = 'hann', percent_vad = .75):
     if isinstance(sound, np.ndarray):
         data = sound
     else:

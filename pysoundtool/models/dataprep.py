@@ -352,7 +352,7 @@ class GeneratorFeatExtraction:
             y, sr = pyso.loadsound(audiopath,self.sr)
             if self.label_silence:
                 import time
-                y_stft = pyso.dsp.get_vad_stft(y, sr=sr, percent_vad=0.9)
+                y_stft = pyso.dsp.get_vad_stft(y, sr=sr)
                 if not y_stft.any():
                     label = len(self.decode_dict)-1
                     print('\nNo voice activity detected in {}'.format(audiopath))
