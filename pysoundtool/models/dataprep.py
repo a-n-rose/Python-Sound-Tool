@@ -191,7 +191,7 @@ class GeneratorFeatExtraction:
                  add_tensor_last = True, add_tensor_first = False,
                  gray2color = False, visualize = False,
                  vis_every_n_items = 50, decode_dict = None, dataset='train', 
-                 augment_dict = None, ignore_invalid=False, **kwargs):
+                 augment_dict = None, label_silence = False, **kwargs):
         '''
         Do not add extra tensor dimensions to expected input_shape.
         
@@ -228,7 +228,7 @@ class GeneratorFeatExtraction:
                 random.shuffle(datalist2)
         
         self.dataset = dataset
-        self.ignore_invalid = ignore_invalid
+        self.label_silence = label_silence
         self.model_name = model_name
         self.batch_size = batch_size
         self.samples_per_epoch = len(datalist)
@@ -244,7 +244,13 @@ class GeneratorFeatExtraction:
         self.gray2color = gray2color
         self.visualize = visualize
         self.vis_every_n_items = vis_every_n_items
+        if decode_dict is None:
+            decode_dict = dict()
         self.decode_dict = decode_dict
+        if label_silence:
+            if 'silence' not in decode_dict.values():
+                raise ValueError('Cannot apply `silence` label if not included in '+\
+                    '`decode_dict`.')
         if augment_dict is None:
             augment_dict = dict()
         self.augment_dict = augment_dict
@@ -344,8 +350,14 @@ class GeneratorFeatExtraction:
         
             # ensure audio is valid:
             y, sr = pyso.loadsound(audiopath,self.sr)
-
-        
+            if self.label_silence:
+                import time
+                y_stft = pyso.dsp.get_vad_stft(y, sr=sr, percent_vad=0.9)
+                if not y_stft.any():
+                    label = len(self.decode_dict)-1
+                    print('\nNo voice activity detected in {}'.format(audiopath))
+                    print('Label {} adjusted to {}.'.format(label_pic,self.decode_dict[label]))
+                    label_pic = self.decode_dict[label]
             # augment_data
             if self.augment_dict is not None:
                 try:
@@ -391,8 +403,16 @@ class GeneratorFeatExtraction:
                                                                 self.sr, 
                                                                 **self.augment_dict)
                     except librosa.util.exceptions.ParameterError:
+                        print('Augmentation: ', augmentation)
                         print('Augmentation failed. No augmentation applied.')
-                        augmented_data, augmentation = y, ''
+                        if not self.ignore_invalid:
+                            print('Setting samples to zero.')
+                            augmented_data, augmentation = np.zeros(len(y)), ''
+                        else:
+                            print('Caution: invalid data is ignored. Label unchanged.'+\
+                                ' To label such data as '+\
+                                '`invalid`, set `ignore_invalid` to False.')
+                            augmented_data, augmentation = y, ''
             else:
                 augmented_data, augmentation = y, ''
             # extract features
@@ -559,6 +579,14 @@ class GeneratorFeatExtraction:
             if self.counter >= self.number_of_batches:
                 self.counter = 0
 
+
+def check4na(numpyarray):
+    if not np.isfinite(numpyarray).all():
+        print('NAN present.')
+        return True
+    else:
+        return False
+
 def augment_features(sound,
                      sr,
                      add_white_noise = False, 
@@ -596,43 +624,74 @@ def augment_features(sound,
                                                          sr = sr,
                                                          snr = snr_choice)
         augmentation += '_whitenoise{}SNR'.format(snr_choice)
+        na_present = check4na(samples_augmented)
     if speed_increase:
         samples_augmented = pyso.augment.speed_increase(samples_augmented,
                                                         sr = sr,
                                                         perc = speed_perc)
         augmentation += '_speedincrease{}'.format(speed_perc)
+        na_present = check4na(samples_augmented)
+        if na_present:
+            print(augmentation)
     elif speed_decrease:
         samples_augmented = pyso.augment.speed_decrease(samples_augmented,
                                                         sr = sr,
                                                         perc = speed_perc)
         augmentation += '_speeddecrease{}'.format(speed_perc)
+        na_present = check4na(samples_augmented)
+        if na_present:
+            print(augmentation)
     if time_shift:
         samples_augmented = pyso.augment.time_shift(samples_augmented, 
                                                     sr = sr)
         augmentation += '_randtimeshift'
+        na_present = check4na(samples_augmented)
+        if na_present:
+            print(augmentation)
     if shufflesound:
         samples_augmented = pyso.augment.shufflesound(samples_augmented, 
                                                     sr = sr, 
                                                     num_subsections = num_subsections)
         augmentation += '_randshuffle{}sections'.format(num_subsections)
+        na_present = check4na(samples_augmented)
+        if na_present:
+            print(augmentation)
     if harmonic_distortion: 
         samples_augmented = pyso.augment.harmonic_distortion(samples_augmented,
                                                              sr = sr)
         augmentation += '_harmonicdistortion'
+        na_present = check4na(samples_augmented)
+        if na_present:
+            print(augmentation)
     if pitch_increase:
         samples_augmented = pyso.augment.pitch_increase(samples_augmented,
                                                         sr = sr,
                                                         num_semitones = num_semitones)
         augmentation += '_pitchincrease{}semitones'.format(num_semitones)
+        na_present = check4na(samples_augmented)
+        if na_present:
+            print(augmentation)
     elif pitch_decrease:
         samples_augmented = pyso.augment.pitch_decrease(samples_augmented,
                                                         sr = sr,
                                                         num_semitones = num_semitones)
         augmentation += '_pitchdecrease{}semitones'.format(num_semitones)
+        na_present = check4na(samples_augmented)
+        if na_present:
+            print(augmentation)
     # all augmentation techniques return sample data except for vtlp
     # therefore vtlp will be handled outside of this function (returns stft matrix)
     if vtlp:
         augmentation += '_vtlp'
-
+    if add_white_noise:
+        snr_choice = np.random.choice(snr)
+        samples_augmented = pyso.augment.add_white_noise(samples_augmented, 
+                                                         sr = sr,
+                                                         snr = snr_choice)
+        augmentation += '_whitenoise{}SNR'.format(snr_choice)
+        na_present = check4na(samples_augmented)
     samples_augmented = pyso.dsp.set_signal_length(samples_augmented, len(samples))
+    na_present = check4na(samples_augmented)
+    if na_present:
+        print(augmentation)
     return samples_augmented, augmentation
