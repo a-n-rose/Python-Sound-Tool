@@ -115,7 +115,7 @@ def plot(feature_matrix, feature_type,
                 # overlay the channel data
                 plt.plot(data)
                 ##display.waveplot(data,sr=sr)
-        x_axis_label += ' across {} channel(s)'.format(channel+1)
+        x_axis_label += ' across {} channel(s)'.format(feature_matrix.shape[1])
     else:
         plt.pcolormesh(feature_matrix.T)
         ## display.specshow(feature_matrix.T, sr=sr)
@@ -530,7 +530,7 @@ def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity',
     if 'sr' not in kwargs:
         kwargs['sr'] = 16000
     if 'win_size_ms' not in kwargs:
-        kwargs['win_size_ms'] = 20
+        kwargs['win_size_ms'] = 10
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
     stft_matrix = pyso.feats.get_stft(sound, **kwargs)
