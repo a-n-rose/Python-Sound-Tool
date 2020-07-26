@@ -1383,7 +1383,7 @@ def get_vad_snr(target_samples, noise_samples, sr):
 
 # not working well
 def get_vad_samples(sound, sr, win_size_ms = 50, percent_overlap = 0, 
-                    percent_vad = 0.75, use_beg_ms = 120):
+                    percent_vad = 0.75, use_beg_ms = 120, extend_window_ms=0):
     # resample data if sr < 44100
     if isinstance(sound, np.ndarray):
         data = sound
@@ -1404,23 +1404,48 @@ def get_vad_samples(sound, sr, win_size_ms = 50, percent_overlap = 0,
             sr = 44100
         data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
+        
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = True)
+    # set number of subframes for extending window
+    extwin_num_samples = pyso.dsp.calc_frame_length(extend_window_ms, sr)
+    num_win_subframes = pyso.dsp.calc_num_subframes(extwin_num_samples,
+                                                    frame_length = frame_length,
+                                                    overlap_samples = num_overlap_samples,
+                                                    zeropad = True)
     
     samples_matrix = pyso.dsp.create_empty_matrix((len(data)),
                                                 complex_vals = False)
-    vad_matrix, (sr, e, f, sfm) = pyso.dsp.vad(data, sr, win_size_ms = win_size_ms,
-                              percent_overlap = percent_overlap, use_beg_ms = use_beg_ms)
+    vad_matrix, (sr, e, f, sfm) = pyso.dsp.vad(data, sr, 
+                                               win_size_ms = win_size_ms,
+                                               percent_overlap = percent_overlap, 
+                                               use_beg_ms = use_beg_ms)
+    vad_matrix_extwin = vad_matrix.copy()
+    # extend VAD windows with 1s
+    if extend_window_ms > 0:
+        for i, row in enumerate(vad_matrix):
+            if row > 0:
+                # label samples before VAD as VAD
+                if i > num_win_subframes:
+                    vad_matrix_extwin[i-num_win_subframes:i] = 1
+                else:
+                    vad_matrix_extwin[:i] = 1
+                # label samples before VAD as VAD
+                if i + num_win_subframes < len(vad_matrix):
+                    vad_matrix_extwin[i:num_win_subframes+i] = 1
+                else:
+                    vad_matrix_extwin[i:] = 1
+            
     section_start = 0
     extra_rows = 0
     row = 0
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        vad = vad_matrix[frame]
+        vad = vad_matrix_extwin[frame]
         if vad > 0:
             samples_matrix[row:row+len(section)] = section
             row += len(section)
@@ -1500,6 +1525,7 @@ def snr_adjustnoiselevel(target_samples, noise_samples, sr, snr):
     print(noise_px)
     #% we need to scale the noise segment samples to obtain the desired snr= 10*
     #% log10( Px/ (sf^2 * Pn))
+    # Just used this within pysoundtool.dsp.add_backgroundsound
     scale_factor = (np.sqrt(target_px/noise_px / (10**(snr/10))))
     return scale_factor
 
@@ -2314,10 +2340,9 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
 
 
 # TODO: finicky 
-# once speech is recognized, doesn't recognize silence as well, especially
-# for female voices in 10-20 snr noise; 
-# but recognizes more speech in clean signals with female 
-# voices than male voices (comparing just two samples)
+# once speech is recognized, doesn't recognize silence as well
+# update: this has improved w the `use_beg_ms` parameter, limiting when min levels
+# are updated.
 def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5, 
         real_signal = False, fft_bins = None, window = 'hann',
         energy_thresh = 40, freq_thresh = 185, sfm_thresh = 5,
