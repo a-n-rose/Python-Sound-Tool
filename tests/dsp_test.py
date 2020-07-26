@@ -12,14 +12,18 @@ import librosa
 import pysoundtool as pyso
 
 
-
-test_audiofile = './test_audio/audio2channels.wav'
+test_dir = 'test_audio/'
+test_audiofile = '{}audio2channels.wav'.format(test_dir)
+test_traffic = '{}traffic.wav'.format(test_dir)
+test_python = '{}python.wav'.format(test_dir)
+test_horn = '{}car_horn.wav'.format(test_dir)
 
 samples_48000, sr_48000 = librosa.load(test_audiofile, sr=48000)
 samples_44100, sr_44100 = librosa.load(test_audiofile, sr=44100)
 samples_22050, sr_22050 = librosa.load(test_audiofile, sr=22050)
 samples_16000, sr_16000 = librosa.load(test_audiofile, sr=16000)
 samples_8000, sr_8000 = librosa.load(test_audiofile, sr=8000)
+
 
 def test_shape_samps_channels_mono():
     input_data = np.array([1,2,3,4,5])
@@ -346,3 +350,41 @@ def test_zeropad_stereo_targetlen_5():
     data_zeropadded = pyso.dsp.zeropad_sound(data, sr=3, target_len=5)
     expected = np.array([[0., 1.],[1., 2.],[2., 3.],[0., 0.],[0., 0.]])
     assert np.array_equal(data_zeropadded, expected)
+    
+def test_vad_clean_speech_percent_vad_75():
+    pass
+
+def test_vad_noisy_speech_percent_vad_75():
+    pass
+
+def test_vad_noise_stationary_percent_vad_75():
+    pass
+
+def test_vad_noise_nonstationary_percent_vad_75():
+    pass
+
+def test_get_vad_samples_stft_consistency():
+    sr = 48000
+    win_size_ms = 25
+    percent_overlap = 0
+    snr = 20
+    speech, sr = pyso.loadsound(test_python, sr = sr)
+    noise = pyso.generate_noise(len(speech), random_seed = 40)
+    speech_snr, snr_measured = pyso.dsp.add_backgroundsound(speech,
+                                                noise,
+                                                sr = sr,
+                                                snr = snr,
+                                                delay_mainsound_sec = 1,
+                                                total_len_sec = 3,
+                                                random_seed = 40)
+    vad_samples, sr = pyso.dsp.get_vad_samples(speech_snr, 
+                                           sr = sr,
+                                           win_size_ms = win_size_ms,
+                                           percent_overlap = percent_overlap)
+    vad_stft, sr = pyso.dsp.get_vad_stft(speech_snr, 
+                                     sr = sr,
+                                     win_size_ms = win_size_ms,
+                                     percent_overlap = percent_overlap)
+    vad_samples_ms = len(vad_samples) / sr / 0.001
+    vad_stft_ms = len(vad_stft) * win_size_ms
+    assert vad_samples_ms == vad_stft_ms
