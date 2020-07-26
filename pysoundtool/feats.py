@@ -510,6 +510,178 @@ def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     
     return stft_matrix[:,:fft_bins//2]
 
+def get_vad_stft(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
+                          real_signal = False, fft_bins = 1024, 
+                          window = 'hann', use_beg_ms = 120,
+                          extend_window_ms = 0):
+    # resample data if sr < 44100
+    if isinstance(sound, np.ndarray):
+        data = sound
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(sr)
+            warnings.warn(msg)
+            data, sr = pyso.dsp.resample_audio(data, sr, 44100)
+    else:
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(sr)
+            warnings.warn(msg)
+            sr = 44100
+        data, sr2 = pyso.loadsound(sound, sr=sr)
+        assert sr2 == sr
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
+    if percent_overlap > 0:
+        import warnings
+        msg = 'For VAD calculation, no overlap applied. '+\
+            'Therefore, `percent_overlap` set to 0.'
+        warnings.warn(msg)
+        percent_overlap = 0
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = pyso.dsp.calc_num_subframes(len(data),
+                                                frame_length = frame_length,
+                                                overlap_samples = num_overlap_samples,
+                                                zeropad = True)
+    
+    # set number of subframes for extending window
+    extwin_num_samples = pyso.dsp.calc_frame_length(extend_window_ms, sr)
+    num_win_subframes = pyso.dsp.calc_num_subframes(extwin_num_samples,
+                                                    frame_length = frame_length,
+                                                    overlap_samples = num_overlap_samples,
+                                                    zeropad = True)
+    
+    total_rows = fft_bins
+    stft_matrix = pyso.dsp.create_empty_matrix((num_subframes, total_rows),
+                                              complex_vals = True)
+    
+    vad_matrix, (sr, e, f, sfm) = pyso.dsp.vad(data, sr, 
+                                               win_size_ms = win_size_ms,
+                                               percent_overlap = percent_overlap, 
+                                               use_beg_ms = use_beg_ms)
+    vad_matrix_extwin = vad_matrix.copy()
+    
+    # extend VAD windows with 1s
+    if extend_window_ms > 0:
+        for i, row in enumerate(vad_matrix):
+            if row > 0:
+                # label samples before VAD as VAD
+                if i > num_win_subframes:
+                    vad_matrix_extwin[i-num_win_subframes:i] = 1
+                else:
+                    vad_matrix_extwin[:i] = 1
+                # label samples before VAD as VAD
+                if i + num_win_subframes < len(vad_matrix):
+                    vad_matrix_extwin[i:num_win_subframes+i] = 1
+                else:
+                    vad_matrix_extwin[i:] = 1
+                    
+    section_start = 0
+    extra_rows = 0
+    window_frame = pyso.dsp.create_window(window, frame_length)
+    row = 0
+    for frame in range(num_subframes):
+        vad = vad_matrix_extwin[frame]
+        if vad > 0:
+            section = data[section_start:section_start+frame_length]
+            section = pyso.dsp.apply_window(section, 
+                                            window_frame, 
+                                            zeropad = True)
+            section_fft = pyso.dsp.calc_fft(section, 
+                                            real_signal = real_signal,
+                                            fft_bins = total_rows,
+                                            )
+            stft_matrix[row] = section_fft
+            row += 1
+        else:
+            extra_rows += 1
+        section_start += (frame_length - num_overlap_samples)
+    stft_matrix = stft_matrix[:-extra_rows]
+    return stft_matrix[:,:fft_bins//2], sr
+
+def get_vad_samples(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
+                    use_beg_ms = 120, extend_window_ms=0):
+    # resample data if sr < 44100
+    if isinstance(sound, np.ndarray):
+        data = sound
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates at or above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(sr)
+            warnings.warn(msg)
+            data, sr = pyso.dsp.resample_audio(data, sr, 44100)
+    else:
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates at or above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(sr)
+            warnings.warn(msg)
+            sr = 44100
+        data, sr2 = pyso.loadsound(sound, sr=sr)
+        assert sr2 == sr
+        
+    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
+    if percent_overlap > 0:
+        import warnings
+        msg = 'For VAD calculation, no overlap applied. '+\
+            'Therefore, `percent_overlap` set to 0.'
+        warnings.warn(msg)
+        percent_overlap = 0
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = pyso.dsp.calc_num_subframes(len(data),
+                                                frame_length = frame_length,
+                                                overlap_samples = num_overlap_samples,
+                                                zeropad = True)
+    # set number of subframes for extending window
+    extwin_num_samples = pyso.dsp.calc_frame_length(extend_window_ms, sr)
+    num_win_subframes = pyso.dsp.calc_num_subframes(extwin_num_samples,
+                                                    frame_length = frame_length,
+                                                    overlap_samples = num_overlap_samples,
+                                                    zeropad = True)
+    
+    samples_matrix = pyso.dsp.create_empty_matrix((len(data)),
+                                                complex_vals = False)
+    vad_matrix, (sr, e, f, sfm) = pyso.dsp.vad(data, sr, 
+                                               win_size_ms = win_size_ms,
+                                               percent_overlap = percent_overlap, 
+                                               use_beg_ms = use_beg_ms)
+    vad_matrix_extwin = vad_matrix.copy()
+    # extend VAD windows with 1s
+    if extend_window_ms > 0:
+        for i, row in enumerate(vad_matrix):
+            if row > 0:
+                # label samples before VAD as VAD
+                if i > num_win_subframes:
+                    vad_matrix_extwin[i-num_win_subframes:i] = 1
+                else:
+                    vad_matrix_extwin[:i] = 1
+                # label samples before VAD as VAD
+                if i + num_win_subframes < len(vad_matrix):
+                    vad_matrix_extwin[i:num_win_subframes+i] = 1
+                else:
+                    vad_matrix_extwin[i:] = 1
+            
+    section_start = 0
+    extra_rows = 0
+    row = 0
+    for frame in range(num_subframes):
+        vad = vad_matrix_extwin[frame]
+        if vad > 0:
+            section = data[section_start:section_start+frame_length]
+            samples_matrix[row:row+len(section)] = section
+            row += len(section)
+        else:
+            extra_rows += frame_length
+        section_start += (frame_length - num_overlap_samples)
+    samples_matrix = samples_matrix[:-extra_rows]
+    return samples_matrix, sr
+
+
 def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequency', **kwargs):
     # set matching defaults if not in kwargs
     if 'sr' not in kwargs:

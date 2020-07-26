@@ -184,9 +184,9 @@ pyso.feats.plot_vad(y_snr05_wf, sr = sr,  use_beg_ms = use_beg_ms,
 ######################################################
 # Speech Only (SNR 20)
 # ~~~~~~~~~~~~~~~~~~~~
-y_snr20_speech, sr = pyso.dsp.get_vad_samples(y_snr20, sr=sr, 
+y_snr20_speech, sr = pyso.feats.get_vad_samples(y_snr20, sr=sr, 
                                           use_beg_ms = use_beg_ms)
-y_snr20_speech_ew, sr = pyso.dsp.get_vad_samples(y_snr20, sr=sr, 
+y_snr20_speech_ew, sr = pyso.feats.get_vad_samples(y_snr20, sr=sr, 
                                           use_beg_ms = use_beg_ms,
                                           extend_window_ms = extend_window_ms)
 
@@ -203,9 +203,9 @@ ipd.Audio(y_snr20_speech_ew,rate=sr)
 ######################################################
 # Speech Only (SNR 5)
 # ~~~~~~~~~~~~~~~~~~~
-y_snr05_speech, sr = pyso.dsp.get_vad_samples(y_snr05, sr=sr, 
+y_snr05_speech, sr = pyso.feats.get_vad_samples(y_snr05, sr=sr, 
                                          use_beg_ms = use_beg_ms)
-y_snr05_speech_ew, sr = pyso.dsp.get_vad_samples(y_snr05, sr=sr, 
+y_snr05_speech_ew, sr = pyso.feats.get_vad_samples(y_snr05, sr=sr, 
                                          use_beg_ms = use_beg_ms,
                                          extend_window_ms = extend_window_ms)
 
@@ -228,10 +228,10 @@ ipd.Audio(y_snr05_speech_ew,rate=sr)
 ######################################################
 # Speech Only (SNR 20 with Filter)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-y_snr20_speech_wf, sr = pyso.dsp.get_vad_samples(y_snr20_wf, sr=sr, 
+y_snr20_speech_wf, sr = pyso.feats.get_vad_samples(y_snr20_wf, sr=sr, 
                                              use_beg_ms = use_beg_ms)
 
-y_snr20_speech_wf_ew, sr = pyso.dsp.get_vad_samples(y_snr20_wf, sr=sr, 
+y_snr20_speech_wf_ew, sr = pyso.feats.get_vad_samples(y_snr20_wf, sr=sr, 
                                              use_beg_ms = use_beg_ms,
                                                 extend_window_ms=extend_window_ms)
 
@@ -248,10 +248,10 @@ ipd.Audio(y_snr20_speech_wf_ew,rate=sr)
 ######################################################
 # Speech Only (SNR 5 with Filter)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-y_snr05_speech_wf, sr = pyso.dsp.get_vad_samples(y_snr05_wf, sr=sr, 
+y_snr05_speech_wf, sr = pyso.feats.get_vad_samples(y_snr05_wf, sr=sr, 
                                             use_beg_ms = use_beg_ms)
 
-y_snr05_speech_wf_ew, sr = pyso.dsp.get_vad_samples(y_snr05_wf, sr=sr, 
+y_snr05_speech_wf_ew, sr = pyso.feats.get_vad_samples(y_snr05_wf, sr=sr, 
                                             use_beg_ms = use_beg_ms,
                                             extend_window_ms=extend_window_ms)
 

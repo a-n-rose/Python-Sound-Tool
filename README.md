@@ -43,7 +43,8 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 - add `use_beg_ms` parameter: improved VAD recognition of silences post speech.
 - resample audio data lower than 44100 Hz to 44100 Hz. VAD seems to fail at lower sample rates.
 
-### pysoundtool.dsp.get_vad_samples() and pysoundtool.dsp.get_vad_stft()
+### pysoundtool.feats.get_vad_samples() and pysoundtool.feats.get_vad_stft()
+- moved from dsp module to the feats module
 - add `extend_window_ms` paremeter: can extend VAD window if desired. Useful in higher SNR environments.
 - resample audio data lower than 44100 Hz to 44100 Hz. VAD seems to fail at lower sample rates.
 
