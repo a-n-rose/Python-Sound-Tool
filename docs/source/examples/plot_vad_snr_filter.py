@@ -103,7 +103,7 @@ ipd.Audio(y_snr05,rate=sr)
 # Set amount of time VAD should be extended in milliseconds.
 # This may be useful if the one wants to capture more speech, 
 # despite noise.
-extend_window_ms = 300
+extend_window_ms = 400
 
 ######################################################
 # Set background noise reference
