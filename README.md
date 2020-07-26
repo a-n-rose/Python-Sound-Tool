@@ -26,7 +26,7 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 - extract features: raw signal, stft, powspec, fbank, mfcc
 - augment audio: speed, pitch, add noise, time shift, shuffle, vtlp, harmonic distortion
 - filter noise (e.g. wiener filter)
-- denoise signal (e.g. with pretrained denosier model)
+- denoise signal (e.g. with pretrained denoiser model)
 - remove non-speech from signal
 - identify voice activity in signal
 - measure dominant and basic frequencies in signal
@@ -34,7 +34,7 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 ### Train and Implement Deep Neural Networks
 - cnn model (e.g. sound classifier)
 - cnn+lstm model (e.g. speech recognition)
-- autoencoder model (e.g. denoser model)
+- autoencoder model (e.g. denoiser model)
 - pretrained ResNet50 model (e.g. language classifier)
 
 ## Updates of newest release:
