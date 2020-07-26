@@ -536,7 +536,7 @@ def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity',
     else:
         if kwargs['sr'] < 44100:
             import warnings
-            msg = '\nWarning: VAD works best with sample rates above '+\
+            msg = '\nWarning: VAD works best with sample rates at or above '+\
                 '44100 Hz. Therefore, audio will be sampled / resampled from '+\
                     ' {} to 44100 Hz.'.format(kwargs['sr'])
             warnings.warn(msg)
@@ -547,12 +547,12 @@ def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity',
                 kwargs['sr'] = 44100
     # set matching defaults if not in kwargs
     if 'win_size_ms' not in kwargs:
-        kwargs['win_size_ms'] = 10
+        kwargs['win_size_ms'] = 50
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0
     if kwargs['percent_overlap'] > 0:
         import warnings
-        msg = '\nVAD does not use overlap. `percent_overlap` set to 0.'
+        msg = '\nVAD does not currently use overlap. `percent_overlap` set to 0.'
         kwargs['percent_overlap'] = 0
     stft_matrix = pyso.feats.get_stft(sound, **kwargs)
     vad_matrix, __ = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
