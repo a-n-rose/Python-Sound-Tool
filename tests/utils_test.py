@@ -124,3 +124,82 @@ def test_string2list_loaddict():
     assert audiofiles ==  audiofiles_checked
     os.remove(test_dict_path)
     
+def test_restore_dictvalue_list_of_tuples():
+    pass
+
+def test_restore_dictvalue_regular_string():
+    expected = 'hann'
+    got = pyso.utils.restore_dictvalue(expected)
+    assert expected == got
+
+def test_restore_dictvalue_None():
+    expected = None 
+    string_val = str(expected)
+    got = pyso.utils.restore_dictvalue(string_val)
+    assert expected == got
+
+def test_restore_dictvalue_True():
+    expected = True
+    string_val = str(expected)
+    got = pyso.utils.restore_dictvalue(string_val)
+    assert expected == got
+    
+def test_restore_dictvalue_False():
+    expected = False 
+    string_val = str(expected)
+    got = pyso.utils.restore_dictvalue(string_val)
+    assert expected == got
+
+def test_restore_dictvalue_int():
+    expected = 1
+    string_val = str(expected)
+    got = pyso.utils.restore_dictvalue(string_val)
+    assert expected == got
+
+def test_restore_dictvalue_float():
+    expected = 1.0
+    string_val = str(expected)
+    got = pyso.utils.restore_dictvalue(string_val)
+    assert expected == got
+
+def test_restore_dictvalue_tuple():
+    expected = (3,4)
+    string_val = str(expected)
+    got = pyso.utils.restore_dictvalue(string_val)
+    assert expected == got
+    
+def test_restore_dictvalue_list_of_pathwaystrings():
+    expected = ['audio1.wav','audio2.wav','audio3.wav']
+    string_list = str(expected)
+    got = pyso.utils.restore_dictvalue(string_list)
+    assert expected == got
+    
+def test_restore_dictvalue_list_of_pathlib_ojbect_strings():
+    expected = [pathlib.Path('audio1.wav'),pathlib.Path('audio2.wav'),pathlib.Path('audio3.wav')]
+    string_list = str(expected)
+    got = pyso.utils.restore_dictvalue(string_list)
+    assert expected == got
+    
+def test_restore_dictvalue_list_of_pathwaystrings_nested():
+    expected = [['audio1.wav','audio2.wav'],['audio3.wav']]
+    string_list = str(expected)
+    got = pyso.utils.restore_dictvalue(string_list)
+    assert expected == got
+    
+def test_restore_dictvalue_list_of_pathlib_ojbect_strings_nested():
+    expected = [[pathlib.Path('audio1.wav'),pathlib.Path('audio2.wav')],[pathlib.Path('audio3.wav')]]
+    string_list = str(expected)
+    with pytest.raises(ValueError):
+        got = pyso.utils.restore_dictvalue(string_list)
+    
+def test_restore_dictvalue_tuple_labeledpaths():
+    expected = [(1, 'audio1.wav'),(2, 'audio2.wav'),(3, 'audio3.wav')]
+    string_list = str(expected)
+    got = pyso.utils.restore_dictvalue(string_list)
+    assert expected == got
+    
+def test_restore_dictvalue_tuple_labeled_pathlibojbects():
+    expected = [(1, pathlib.Path('audio1.wav')),(2, pathlib.Path('audio2.wav')),(3, pathlib.Path('audio3.wav'))]
+    string_list = str(expected)
+    got = pyso.utils.restore_dictvalue(string_list)
+    assert expected == got

@@ -253,6 +253,10 @@ def restore_dictvalue(value_string):
     -------
     value_original_type : list, int, tuple, string, float, etc.
         The value converted back to its original type.
+        
+    Raises
+    ------
+    ValueError : If passed a nested list of pathlib.PosixPath objects.
 
     Examples
     --------
@@ -311,6 +315,9 @@ def restore_dictvalue(value_string):
         else:
             tuple_string = None
         if tuple_string is not None:
+            if tuple_string[0][0] == '[':
+                raise ValueError('Nested lists of pathlib.PosixPath objects '+\
+                    'not supported.')
             tuple_list = [tuple(x.split(', ') for x in tuple_string)]
             list_paths = []
             for item in tuple_list:
