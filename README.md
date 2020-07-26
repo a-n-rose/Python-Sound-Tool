@@ -12,6 +12,44 @@ PySoundTool is an experimental framework for exploring sound as well as machine 
 
 For examples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>. 
 
+## Main Uses:
+
+### Visualization
+- pre and post filtering
+- during feature extraction process 
+- various feature types: raw signal vs stft vs fbank vs mfcc
+- voice activity in signal
+- dominant frequency in signal
+
+### Audio Prep / Manipulation
+- convert audiofiles 
+- extract features: raw signal, stft, powspec, fbank, mfcc
+- augment audio: speed, pitch, add noise, time shift, shuffle, vtlp, harmonic distortion
+- filter noise (e.g. wiener filter)
+- denoise signal (e.g. with pretrained denosier model)
+- remove non-speech from signal
+- identify voice activity in signal
+- measure dominant and basic frequencies in signal
+
+### Train and Implement Deep Neural Networks
+- cnn model (e.g. sound classifier)
+- cnn+lstm model (e.g. speech recognition)
+- autoencoder model (e.g. denoser model)
+- pretrained ResNet50 model (e.g. language classifier)
+
+## Updates of newest release:
+
+### pysoundtool.dsp.vad()
+- add `use_beg_ms` parameter: improved VAD recognition of silences post speech.
+- resample audio data lower than 44100 Hz to 44100 Hz. VAD seems to fail at lower sample rates.
+
+### pysoundtool.dsp.get_vad_samples() and pysoundtool.dsp.get_vad_stft()
+- add `extend_window_ms` paremeter: can extend VAD window if desired. Useful in higher SNR environments.
+- resample audio data lower than 44100 Hz to 44100 Hz. VAD seems to fail at lower sample rates.
+
+### pysoundtool.models.dataprep.GeneratorFeatExtraction 
+- can extract and augment features from audio files as each audio file fed to model. (Validation data not yet implemented. Must be extracted already.)
+
 ## About
 
 Note: as is, PySoundTool is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility. 
