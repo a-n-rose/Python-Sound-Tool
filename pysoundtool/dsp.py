@@ -2280,7 +2280,7 @@ def get_vad_stft(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
             stft_matrix[row] = section_fft
             row += 1
         else:
-            extra_rows += frame_length
+            extra_rows += 1
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:-extra_rows]
     return stft_matrix[:,:fft_bins//2], sr
