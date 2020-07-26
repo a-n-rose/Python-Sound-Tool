@@ -37,7 +37,7 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 - autoencoder model (e.g. denoiser model)
 - pretrained ResNet50 model (e.g. language classifier)
 
-## Updates of newest release:
+## Updates of upcoming release:
 
 ### pysoundtool.dsp.vad()
 - add `use_beg_ms` parameter: improved VAD recognition of silences post speech.
