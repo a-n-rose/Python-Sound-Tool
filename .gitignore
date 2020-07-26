@@ -15,7 +15,7 @@ docs/doc_layout.md
 docs/Makefile
 docs/make.bat
 docs/source/auto_examples/
-docs/source/examples/
+#docs/source/examples/
 example_dir/
 tests/testing_pypi/
 test_audio/
@@ -23,3 +23,4 @@ compare_augmentations_right/
 compare_augmentations_nine/
 build/
 *.npy
+dev_env/
