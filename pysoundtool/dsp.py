@@ -1384,8 +1384,8 @@ def get_vad_snr(target_samples, noise_samples, sr, extend_window_ms = 0):
     return snr
 
 # not working well
-def get_vad_samples(sound, sr=44100, win_size_ms = 50, percent_overlap = 0, 
-                    percent_vad = 0.75, use_beg_ms = 120, extend_window_ms=0):
+def get_vad_samples(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
+                    use_beg_ms = 120, extend_window_ms=0):
     # resample data if sr < 44100
     if isinstance(sound, np.ndarray):
         data = sound
@@ -2195,7 +2195,7 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     
 def get_vad_stft(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
                           real_signal = False, fft_bins = 1024, 
-                          window = 'hann', percent_vad = .75, use_beg_ms = 120,
+                          window = 'hann', use_beg_ms = 120,
                           extend_window_ms = 0):
     # resample data if sr < 44100
     if isinstance(sound, np.ndarray):
@@ -2266,9 +2266,6 @@ def get_vad_stft(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
     extra_rows = 0
     window_frame = pyso.dsp.create_window(window, frame_length)
     row = 0
-    e_min = None
-    f_min = None
-    sfm_min = None
     for frame in range(num_subframes):
         vad = vad_matrix_extwin[frame]
         if vad > 0:
