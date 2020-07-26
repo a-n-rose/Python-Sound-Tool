@@ -334,7 +334,10 @@ def get_feats(sound,
         raise TypeError('NAN values found in loaded sound samples.')
     # ensure percent overlap is between 0 and 1
     percent_overlap = check_percent_overlap(percent_overlap)
-    win_shift_ms = win_size_ms * percent_overlap
+    win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
+    if win_shift_ms <= 0:
+        raise ValueError('`percent_overlap` {} is too high. '.format(percent_overlap)+\
+            'The signal cannot be processed with 0 or negative window shift / hop length.')
     try:
         if fft_bins is None:
             fft_bins = int(win_size_ms * sr // 1000)
