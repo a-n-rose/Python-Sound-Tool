@@ -526,15 +526,29 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequen
     
 def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity', 
              use_beg_ms = 120, **kwargs):
-    # set matching defaults if not in kwargs
+    # ensure sr is at least 44100
+    # vad does not work well with lower sample rates
     if 'sr' not in kwargs:
-        kwargs['sr'] = 16000
+        kwargs['sr'] = 44100
+    else:
+        if kwargs['sr'] < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(kwargs['sr'])
+            warnings.warn(msg)
+            if isinstance(sound, np.ndarray):
+                sound, sr = pyso.dsp.resample_audio(sound, kwargs['sr'], 44100)
+                kwargs['sr'] = sr
+            else:
+                kwargs['sr'] = 44100
+    # set matching defaults if not in kwargs
     if 'win_size_ms' not in kwargs:
         kwargs['win_size_ms'] = 10
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
     stft_matrix = pyso.feats.get_stft(sound, **kwargs)
-    vad, x,y,z = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
+    vad, __ = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
     stft_matrix = librosa.power_to_db(stft_matrix)
     y_axis = stft_matrix.shape[1]
     vad = pyso.dsp.scalesound(vad, max_val = y_axis, min_val = 0)

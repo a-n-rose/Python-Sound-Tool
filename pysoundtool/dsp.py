@@ -465,7 +465,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
         else:
             num_channels = 1
         sound2add = apply_num_channels(sound2add, num_channels)
-    target_stft = pyso.dsp.get_vad_stft(target, sr)
+    target_stft, __ = pyso.dsp.get_vad_stft(target, sr)
     if not target_stft.any():
         import warnings
         msg = '\nNo voice activity detected in target signal.'
@@ -475,7 +475,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr=None,
         noise_stft = pyso.feats.get_stft(sound2add, sr)
     else:
         # get energy of noise when active (e.g. car honking)
-        noise_stft = pyso.dsp.get_vad_stft(sound2add, sr)
+        noise_stft, __ = pyso.dsp.get_vad_stft(sound2add, sr)
         if not noise_stft.any():
             noise_stft = pyso.feats.get_stft(sound2add, sr)
         
@@ -1366,7 +1366,7 @@ def get_vad_snr(target_samples, noise_samples, sr):
     https://www.who.int/occupational_health/publications/noise1.pdf
     '''
     # get target power with only high energy values (vad)
-    vad_stft = pyso.dsp.get_vad_stft(target_samples, 
+    vad_stft, __ = pyso.dsp.get_vad_stft(target_samples, 
                                        sr=sr, percent_vad = 0.9)
     if not vad_stft.any():
         import warnings
@@ -1382,8 +1382,28 @@ def get_vad_snr(target_samples, noise_samples, sr):
     return snr
 
 # not working well
-def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0, 
+def get_vad_samples(sound, sr, win_size_ms = 50, percent_overlap = 0, 
                     percent_vad = 0.75, use_beg_ms = 120):
+    # resample data if sr < 44100
+    if isinstance(sound, np.ndarray):
+        data = sound
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(sr)
+            warnings.warn(msg)
+            data, sr = pyso.dsp.resample_audio(data, sr, 44100)
+    else:
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(sr)
+            warnings.warn(msg)
+            sr = 44100
+        data, sr2 = pyso.loadsound(sound, sr=sr)
+        assert sr2 == sr
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
@@ -1393,7 +1413,7 @@ def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0,
     
     samples_matrix = pyso.dsp.create_empty_matrix((len(data)),
                                                 complex_vals = False)
-    vad_matrix, e, f, sfm = pyso.dsp.vad(data, sr, win_size_ms = win_size_ms,
+    vad_matrix, (sr, e, f, sfm) = pyso.dsp.vad(data, sr, win_size_ms = win_size_ms,
                               percent_overlap = percent_overlap, use_beg_ms = use_beg_ms)
     section_start = 0
     extra_rows = 0
@@ -1409,7 +1429,7 @@ def get_vad_samples(data, sr, win_size_ms = 50, percent_overlap = 0,
             extra_rows += len(section)
             section_start += (frame_length - num_overlap_samples)
     samples_matrix = samples_matrix[:-extra_rows]
-    return samples_matrix
+    return samples_matrix, sr
 
 # Not having success with this
 def snr_adjustnoiselevel(target_samples, noise_samples, sr, snr):
@@ -2140,12 +2160,27 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
         section_start += (frame_length - num_overlap_samples)
     return freq_matrix
     
-def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
+def get_vad_stft(sound, sr=44100, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', percent_vad = .75, use_beg_ms = 120):
+    # resample data if sr < 44100
     if isinstance(sound, np.ndarray):
         data = sound
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(sr)
+            warnings.warn(msg)
+            data, sr = pyso.dsp.resample_audio(data, sr, 44100)
     else:
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(sr)
+            warnings.warn(msg)
+            sr = 44100
         data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
@@ -2166,7 +2201,7 @@ def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     sfm_min = None
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section_vad, e, f, sfm = pyso.dsp.vad(section, 
+        section_vad, (sr, e, f, sfm) = pyso.dsp.vad(section, 
                                      sr=sr, 
                                      win_size_ms = 10, 
                                      percent_overlap = 0.5,
@@ -2198,7 +2233,7 @@ def get_vad_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
         row += 1
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:-extra_rows]
-    return stft_matrix[:,:fft_bins//2]
+    return stft_matrix[:,:fft_bins//2], sr
 
     
 def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
@@ -2288,7 +2323,7 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
         energy_thresh = 40, freq_thresh = 185, sfm_thresh = 5,
         min_energy = None, min_freq = None, min_sfm = None, use_beg_ms = 120):
     '''
-    Warning: this VAD function does not perform well on snr levels lower than 20.
+    Warning: this VAD works best with sample rates above 44100 Hz.
     
     Parameters
     ----------
@@ -2318,7 +2353,22 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
         max_freq += 1
     if isinstance(sound, np.ndarray):
         data = sound
+        # resample audio if sr is lower than 44100
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(kwargs['sr'])
+            warnings.warn(msg)
+            data, sr = pyso.dsp.resample_audio(data, sr, 44100)
     else:
+        if sr < 44100:
+            import warnings
+            msg = '\nWarning: VAD works best with sample rates above '+\
+                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
+                    ' {} to 44100 Hz.'.format(kwargs['sr'])
+            warnings.warn(msg)
+            sr = 44100
         data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
     # first scale samples to be between -1 and 1
@@ -2411,7 +2461,7 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
             #print('min energy: ', min_energy)
             #print('thresh_e: ', thresh_e)
         section_start += (frame_length - num_overlap_samples)
-    return vad_matrix, min_energy, min_freq, min_sfm
+    return vad_matrix, (sr, min_energy, min_freq, min_sfm)
 
 # TODO test
 def spectral_flatness_measure(spectrum):
