@@ -1391,7 +1391,7 @@ def get_vad_samples(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
         data = sound
         if sr < 44100:
             import warnings
-            msg = '\nWarning: VAD works best with sample rates above '+\
+            msg = '\nWarning: VAD works best with sample rates at or above '+\
                 '44100 Hz. Therefore, audio will be sampled / resampled from '+\
                     ' {} to 44100 Hz.'.format(sr)
             warnings.warn(msg)
@@ -1399,7 +1399,7 @@ def get_vad_samples(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
     else:
         if sr < 44100:
             import warnings
-            msg = '\nWarning: VAD works best with sample rates above '+\
+            msg = '\nWarning: VAD works best with sample rates at or above '+\
                 '44100 Hz. Therefore, audio will be sampled / resampled from '+\
                     ' {} to 44100 Hz.'.format(sr)
             warnings.warn(msg)
