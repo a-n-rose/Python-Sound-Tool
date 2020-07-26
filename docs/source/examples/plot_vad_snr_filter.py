@@ -8,7 +8,7 @@ Voice Activity Detection (upcoming release)
 Plot the VAD in signals and remove silences.
 
 To see how PySoundTool implements this, see `pysoundtool.dsp.vad`, 
-`pysoundtool.dsp.get_vad_samples`, `pysoundtool.dsp.get_vad_stft`, 
+`pysoundtool.feats.get_vad_samples`, `pysoundtool.feats.get_vad_stft`, 
 and `pysoundtool.feats.plot_vad`.
 
 This is scheduled to release with the next pypi package release in August/ September 2020.

@@ -415,7 +415,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         (default False)
         
     stationary_noise : bool 
-        If False, `pysoundtool.dsp.get_vad_stft` will be applied to noise to get 
+        If False, `pysoundtool.feats.get_vad_stft` will be applied to noise to get 
         energy of the active noise in the signal. Otherwise energy will be 
         collected via `pysoundtool.dsp.get_stft`. (default True)
         
