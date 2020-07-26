@@ -525,7 +525,7 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequen
     plt.show()
     
 def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity', 
-             use_beg_ms = 120, **kwargs):
+             use_beg_ms = 120, extend_window_ms=0, **kwargs):
     # ensure sr is at least 44100
     # vad does not work well with lower sample rates
     if 'sr' not in kwargs:
@@ -546,16 +546,47 @@ def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity',
     if 'win_size_ms' not in kwargs:
         kwargs['win_size_ms'] = 10
     if 'percent_overlap' not in kwargs:
-        kwargs['percent_overlap'] = 0.5
+        kwargs['percent_overlap'] = 0
+    if kwargs['percent_overlap'] > 0:
+        import warnings
+        msg = '\nVAD does not use overlap. `percent_overlap` set to 0.'
+        kwargs['percent_overlap'] = 0
     stft_matrix = pyso.feats.get_stft(sound, **kwargs)
-    vad, __ = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
+    vad_matrix, __ = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
+    
+    # extend window of VAD if desired
+    if extend_window_ms > 0:
+        frame_length = pyso.dsp.calc_frame_length(kwargs['win_size_ms'],
+                                                  kwargs['sr'])
+        num_overlap_samples = int(frame_length * kwargs['percent_overlap'])
+        # set number of subframes for extending window
+        extwin_num_samples = pyso.dsp.calc_frame_length(extend_window_ms, kwargs['sr'])
+        num_win_subframes = pyso.dsp.calc_num_subframes(extwin_num_samples,
+                                                        frame_length = frame_length,
+                                                        overlap_samples = num_overlap_samples,
+                                                        zeropad = True)
+        vad_matrix_extwin = vad_matrix.copy()
+        for i, row in enumerate(vad_matrix):
+            if row > 0:
+                # label samples before VAD as VAD
+                if i > num_win_subframes:
+                    vad_matrix_extwin[i-num_win_subframes:i] = 1
+                else:
+                    vad_matrix_extwin[:i] = 1
+                # label samples before VAD as VAD
+                if i + num_win_subframes < len(vad_matrix):
+                    vad_matrix_extwin[i:num_win_subframes+i] = 1
+                else:
+                    vad_matrix_extwin[i:] = 1
+        
+        vad_matrix = vad_matrix_extwin
     stft_matrix = librosa.power_to_db(stft_matrix)
     y_axis = stft_matrix.shape[1]
-    vad = pyso.dsp.scalesound(vad, max_val = y_axis, min_val = 0)
+    vad_matrix = pyso.dsp.scalesound(vad_matrix, max_val = y_axis, min_val = 0)
     plt.pcolormesh(stft_matrix.T)
     color = 'yellow'
     linestyle = ':'
-    plt.plot(vad, 'ro', color=color)
+    plt.plot(vad_matrix, 'ro', color=color)
     if title:
         plt.title(title)
     plt.show()
