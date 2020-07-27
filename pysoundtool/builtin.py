@@ -729,15 +729,28 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
         clean_stem = wavefile.stem
         noise_stem = noise.stem
         # load clean data to get duration
+        if 'sr' not in kwargs:
+            # set at high sr for measuring noise in signals, 
+            # necessary in applying noise at specific SNR level
+            kwargs['sr'] = 44100
+        else: 
+            if int(kwargs['sr']) < 44100:
+                import warnings
+                msg = 'The measuring of signal to noise ratio is '+\
+                    'improved if the sample rate is at or above 44100 Hz.'+\
+                        '\nConsider changing sr = {} to sr = 44100.'.format(
+                            kwargs['sr'])
+                warnings.warn(msg)
         clean_data, sr = pyso.loadsound(wavefile, **kwargs)
-        clean_seconds = len(clean_data)/sr
-        noisy_data, sr, snr_appx = pyso.dsp.add_backgroundsound(audio_main = wavefile, 
-                                                      audio_background = noise, 
-                                                      snr = snr, 
-                                                      delay_mainsound_sec=delay_mainsound_sec, 
-                                                      total_len_sec = clean_seconds,
-                                                      wrap = True,
-                                                      **kwargs)
+        #clean_seconds = len(clean_data)/sr
+        noisy_data, snr_appx = pyso.dsp.add_backgroundsound(
+            audio_main = wavefile, 
+            audio_background = noise, 
+            snr = snr, 
+            delay_mainsound_sec=delay_mainsound_sec, 
+            #total_len_sec = clean_seconds,
+            wrap = True,
+            **kwargs)
         # ensure both noisy and clean files have same beginning to filename (i.e. clean filename)
         noisydata_filename = newdata_noisy_dir.joinpath(clean_stem+'_'+noise_stem\
             +'_snr'+str(snr)+'.wav')
