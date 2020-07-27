@@ -610,7 +610,7 @@ def dataset_formatter(audiodirectory=None, recursive=False, new_dir=None, sr=Non
 # TODO speed this up, e.g. preload noise data?
 # TODO randomize sections of noise applied
 def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=None,
-                            snr_levels = None, delay_mainsound_sec = None, seed = None,
+                            snr_levels = None, pad_mainsound_sec = None, random_seed = None,
                             overwrite = False, **kwargs):
     '''Applies noise to clean audio; saves clean and noisy audio to `traingingdata_dir`.
 
@@ -627,11 +627,12 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
     snr_levels : list of ints, optional
         List of varying signal-to-noise ratios to apply to noise levels.
         (default None)
-    delay_mainsound_sec : int, float, optional
-        Amount in seconds the main sound should be delayed. In other words, in seconds how
-        long the background sound should play before the clean / main / target audio starts.
+    pad_mainsound_sec : int, float, optional
+        Amount in seconds the main sound should be padded. In other words, in seconds how
+        long the background sound should play before the clean / main / target audio starts. 
+        The same amount of noise will be appended at the end.
         (default None)
-    seed : int 
+    random_seed : int 
         A value to allow random order of audiofiles to be predictable. 
         (default None). If None, the order of audiofiles will not be predictable.
     overwrite : bool 
@@ -703,8 +704,8 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
                                                       wav_only = False,
                                                       recursive = False))
     
-    if seed is not None:
-        random.seed(seed)
+    if random_seed is not None:
+        random.seed(random_seed)
     random.shuffle(cleanaudio)
     
     if limit is not None:
@@ -747,10 +748,12 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
             audio_main = wavefile, 
             audio_background = noise, 
             snr = snr, 
-            delay_mainsound_sec=delay_mainsound_sec, 
+            pad_mainsound_sec = pad_mainsound_sec, 
             #total_len_sec = clean_seconds,
             wrap = True,
             **kwargs)
+        # pad clean the same way as noisy so they are the same length
+        
         # ensure both noisy and clean files have same beginning to filename (i.e. clean filename)
         noisydata_filename = newdata_noisy_dir.joinpath(clean_stem+'_'+noise_stem\
             +'_snr'+str(snr)+'.wav')
