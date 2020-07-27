@@ -244,55 +244,6 @@ def shape_samps_channels(data):
     assert data.shape[0] > data.shape[1] 
     return data
 
-def normalize(data, max_val=None, min_val=None):
-    '''Normalizes data.
-    
-    This is usefule if you have predetermined max and min values you want to normalize
-    new data with. Should work with stereo sound: TODO test for stereo sound.
-    
-    Parameters
-    ----------
-    data : np.ndarray
-        Data to be normalized
-    
-    max_val : int or float, optional
-        Predetermined maximum value. If None, will use max value
-        from `data`.
-    
-    min_val : int or float, optional
-        Predetermined minimum value. If None, will use min value
-        from `data`.
-    
-    
-    Returns
-    -------
-    normed_data : np.ndarray [size = (num_samples,)]
-    
-    
-    Examples
-    --------
-    >>> # using the min and max of a previous dataset:
-    >>> import numpy as np
-    >>> np.random.seed(0)
-    >>> input_samples = np.random.random_sample((5,))
-    >>> input_samples
-    array([0.5488135 , 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
-    >>> np.random.seed(40)
-    >>> previous_samples = np.random.random_sample((5,))
-    >>> previous_samples
-    array([0.40768703, 0.05536604, 0.78853488, 0.28730518, 0.45035059])
-    >>> max_prev = np.max(previous_samples)
-    >>> min_prev = np.min(previous_samples)
-    >>> output_samples = normalize(input_samples, min_val = min_prev, max_val = max_prev)
-    >>> output_samples
-    array([0.67303388, 0.89996095, 0.74661839, 0.66767314, 0.50232462])
-    '''
-    if max_val is None:
-         normed_data = (data - np.min(data)) / (np.max(data) - np.min(data))
-    else:
-        normed_data = (data - min_val) / (max_val - min_val)
-    return normed_data
-
 def resample_audio(samples, sr_original, sr_desired):
     '''Allows audio samples to be resampled to desired sample rate.
     
@@ -368,7 +319,7 @@ def stereo2mono(data):
     return data_mono
 
 def add_backgroundsound(audio_main, audio_background, sr, snr = None, 
-                        delay_mainsound_sec = None, total_len_sec=None,
+                        pad_mainsound_sec = None, total_len_sec=None,
                         wrap = False, stationary_noise = True, 
                         random_seed = None, extend_window_ms = 0, **kwargs):
     '''Adds a sound (i.e. background noise) to a target signal.
@@ -398,15 +349,16 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         used as an official measurement of snr. If no SNR provided, signals 
         will be added together as-is. (default None)
     
-    delay_mainsound_sec : int or float, optional
-        Length of time in seconds the main sound will be delayed. For example, 
-        if `delay_mainsound_sec` is set to 1, one second of the
-        `audio_background` will be played before `audio_main` starts. 
+    pad_mainsound_sec : int or float, optional
+        Length of time in seconds the background sound will pad the main sound.
+        For example, if `pad_mainsound_sec` is set to 1, one second of the
+        `audio_background` will be played before `audio_main` starts as well as 
+        after the `main audio` stops.
         (default None)
     
     total_len_sec : int or float, optional
         Total length of combined sound in seconds. If none, the sound will end
-        after target sound ends (default None).
+        after the (padded) target sound ends (default None).
         
     wrap : bool
         If False, the random selection of sound will be limited to end before 
@@ -493,6 +445,10 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         else:
             num_channels = 1
         sound2add = apply_num_channels(sound2add, num_channels)
+    
+    target = pyso.dsp.scalesound(target, max_val = np.max(target))
+    sound2add = pyso.dsp.scalesound(sound2add, max_val = np.max(sound2add))
+    
     target_stft, __ = pyso.feats.get_vad_stft(target, sr, 
                                             extend_window_ms = extend_window_ms)
     if not target_stft.any():
@@ -521,17 +477,19 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         adjust_sound = (np.sqrt(target_energy/(noise_energy+1e-6) / (10**(snr/10))))
         sound2add *= adjust_sound
     
+    # get SNR where voice activity is detected.
     new_snr = pyso.dsp.get_vad_snr(target, sound2add, sr=sr)
-    if delay_mainsound_sec is None:
-        delay_mainsound_sec = 0
+    if pad_mainsound_sec is None:
+        pad_mainsound_sec = 0
+    num_padding_samples = int(sr*pad_mainsound_sec)*2 #pad on both sides of sound
     if total_len_sec is not None:
         total_samps = int(sr*total_len_sec)
     else:
-        total_samps = len(target) + int(sr*delay_mainsound_sec)
-    if total_samps < len(target) + delay_mainsound_sec:
-        diff = len(target) + delay_mainsound_sec - total_samps
+        total_samps = len(target) + num_padding_samples
+    if total_samps < len(target) + num_padding_samples:
+        diff = len(target) + num_padding_samples  - total_samps
         import warnings
-        warnings.warn('The length of `audio_main` and `delay_mainsound_sec `'+\
+        warnings.warn('The length of `audio_main` and `pad_mainsound_sec `'+\
             'exceeds `total_len_sec`. {} samples from '.format(diff)+\
                 '`audio_main` will be cut off in '+\
                 'the `combined` audio signal.')
@@ -546,19 +504,24 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
                                                       wrap = wrap, 
                                                       seed = random_seed)
     # separate samples to add to the target signal
-    target_sound = sound2add[int(sr*delay_mainsound_sec):len(target)+int(sr*delay_mainsound_sec)]
+    target_sound = sound2add[num_padding_samples//2:len(target) \
+        + num_padding_samples//2]
     # If target is longer than indicated length, shorten it
     if len(target_sound) < len(target):
         target = target[:len(target_sound)]
     combined = target_sound + target
-    if delay_mainsound_sec:
+    if pad_mainsound_sec:
         # set aside samples for beginning delay (if there is one)
-        beginning_sound = sound2add[:int(sr*delay_mainsound_sec)]
-        combined = np.concatenate((beginning_sound,combined))
+        beginning_pad = sound2add[:num_padding_samples//2]
+        ending_pad = sound2add[num_padding_samples//2+len(target):]
+        combined = np.concatenate((beginning_pad, combined, ending_pad))
     if total_len_sec:
         # set aside ending samples for ending (if sound is extended)
-        ending_sound = sound2add[len(target)+int(sr*delay_mainsound_sec):total_samps]
+        ending_sound = sound2add[len(target)+num_padding_samples:total_samps]
         combined = np.concatenate((combined, ending_sound))
+        
+    combined = pyso.feats.normalize(combined)
+    combined = pyso.dsp.scalesound(combined, max_val = np.max(combined))
     return combined, new_snr
 
 def apply_num_channels(sound_data, num_channels):

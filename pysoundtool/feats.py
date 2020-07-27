@@ -17,7 +17,8 @@ import librosa
 from scipy.signal import hann, hamming
 import pathlib
 from python_speech_features import fbank, mfcc
-from sklearn.preprocessing import StandardScaler, normalize
+from sklearn.preprocessing import StandardScaler
+from sklearn import preprocessing
 import matplotlib.pyplot as plt
 import pysoundtool as pyso
 
@@ -681,6 +682,59 @@ def get_vad_samples(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
     samples_matrix = samples_matrix[:-extra_rows]
     return samples_matrix, sr
 
+def normalize(data, max_val=None, min_val=None):
+    '''Normalizes data.
+    
+    This is usefule if you have predetermined max and min values you want to normalize
+    new data with. Should work with stereo sound: TODO test for stereo sound.
+    
+    Parameters
+    ----------
+    data : np.ndarray
+        Data to be normalized
+    
+    max_val : int or float, optional
+        Predetermined maximum value. If None, will use max value
+        from `data`.
+    
+    min_val : int or float, optional
+        Predetermined minimum value. If None, will use min value
+        from `data`.
+    
+    
+    Returns
+    -------
+    normed_data : np.ndarray [size = (num_samples,)]
+    
+    
+    Examples
+    --------
+    >>> # using the min and max of a previous dataset:
+    >>> import numpy as np
+    >>> np.random.seed(0)
+    >>> input_samples = np.random.random_sample((5,))
+    >>> input_samples
+    array([0.5488135 , 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
+    >>> np.random.seed(40)
+    >>> previous_samples = np.random.random_sample((5,))
+    >>> previous_samples
+    array([0.40768703, 0.05536604, 0.78853488, 0.28730518, 0.45035059])
+    >>> max_prev = np.max(previous_samples)
+    >>> min_prev = np.min(previous_samples)
+    >>> output_samples = normalize(input_samples, min_val = min_prev, max_val = max_prev)
+    >>> output_samples
+    array([0.67303388, 0.89996095, 0.74661839, 0.66767314, 0.50232462])
+    '''
+    if data.dtype == np.complex_:
+        # take power of absoulte value of stft
+        data = np.abs(data)**2
+    # add epsilon to avoid division by zero error
+    eps = 2**-52
+    if max_val is None:
+         normed_data = (data - np.min(data)) / (np.max(data) - np.min(data) + eps)
+    else:
+        normed_data = (data - min_val) / (max_val - min_val + eps)
+    return normed_data
 
 def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequency', **kwargs):
     # set matching defaults if not in kwargs
@@ -1182,24 +1236,11 @@ def scale_X_y(matrix, is_train=True, scalars=None):
             X[:, :, j] = scalars[j].fit_transform(X[:, :, j])
         else:
             X[:, :, j] = scalars[j].transform(X[:, :, j])
-        X[:, :, j] = normalize(X[:, :, j])
+        X[:, :, j] = preprocessing.normalize(X[:, :, j])
     # Keras needs an extra dimension as a tensor / holder of data
     X = pyso.feats.add_tensor(X)
     y = pyso.feats.add_tensor(y)
     return X, y, scalars
-
-# TODO move to data module??
-# TODO test
-def normalize(data):
-    # need to take power - complex values in stft
-    if data.dtype == np.complex_:
-        # take power of absoulte value of stft
-        data = np.abs(data)**2
-    # add epsilon to avoid division by zero error
-    eps = 2**-52
-    data = (data - np.min(data)) / \
-        ((np.max(data) - np.min(data)) + eps)
-    return data
 
 # TODO test for all these features:
 def list_available_features():
