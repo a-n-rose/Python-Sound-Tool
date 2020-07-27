@@ -51,6 +51,12 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 ### pysoundtool.models.dataprep.GeneratorFeatExtraction 
 - can extract and augment features from audio files as each audio file fed to model. (Validation data not yet implemented. Must be extracted already.)
 
+### pysoundtool.dsp.add_backgroundsound()
+- improvements in the smoothness of the added signal.
+
+### pysoundtool.feats.normalize 
+- can use it: pysoundtool.normalize (don't need to remember dsp or feats)
+
 ## About
 
 Note: as is, PySoundTool is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility. 
