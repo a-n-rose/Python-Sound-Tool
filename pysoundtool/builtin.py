@@ -686,7 +686,7 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
                                                      append = False)
         except FileExistsError:
             raise FileExistsError('Datasets already exist at this location. Set '+\
-                '`append` to True or designate a new directory.')
+                '`overwrite` to True or designate a new directory.')
         except FileNotFoundError:
             pass
     
