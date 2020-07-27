@@ -361,7 +361,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         after the (padded) target sound ends (default None).
         
     wrap : bool
-        If False, the random selection of sound will be limited to end before 
+        If False, the random selection of sound will be limited to end by 
         the end of the audio file. If True, the random selection will wrap to 
         beginning of the audio file if extends beyond the end of the audio file.
         (default False)
@@ -520,19 +520,25 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         # set aside ending samples for ending (if sound is extended)
         ending_sound = sound2add[len(target)+num_padding_samples:total_samps]
         combined = np.concatenate((combined, ending_sound))
-        
-    #combined = pyso.feats.normalize(combined)
-    #combined = pyso.dsp.remove_dc_bias(combined)
     return combined, new_snr
 
-def remove_dc_bias(samples):
+def remove_dc_bias(samples, samp_win = None):
     '''
     understanding-digital-signal-processing-third-edition-by-richard-g-lyons
     13.23 DC Removal
+    
+    Seems to work best without samp_win.
     '''
     samps = samples.copy()
-    ave = np.mean(samps)
-    samps -= ave 
+    if samp_win is not None:
+        subframes = math.ceil(len(samples) / samp_win)
+        for frame in range(subframes):
+            section = samps[frame * samp_win : frame * samp_win + samp_win]
+            ave = np.mean(section)
+            samps[frame * samp_win : frame * samp_win + samp_win] -= ave
+    else:
+        ave = np.mean(samps)
+        samps -= ave
     return samps
 
 def apply_num_channels(sound_data, num_channels):
