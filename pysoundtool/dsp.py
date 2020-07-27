@@ -446,8 +446,8 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
             num_channels = 1
         sound2add = apply_num_channels(sound2add, num_channels)
     
-    target = pyso.dsp.scalesound(target, max_val = np.max(target))
-    sound2add = pyso.dsp.scalesound(sound2add, max_val = np.max(sound2add))
+    target = pyso.dsp.remove_dc_bias(target)
+    sound2add = pyso.dsp.remove_dc_bias(sound2add)
     
     target_stft, __ = pyso.feats.get_vad_stft(target, sr, 
                                             extend_window_ms = extend_window_ms)
@@ -510,6 +510,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
     if len(target_sound) < len(target):
         target = target[:len(target_sound)]
     combined = target_sound + target
+    combined = pyso.dsp.remove_dc_bias(combined)
     if pad_mainsound_sec:
         # set aside samples for beginning delay (if there is one)
         beginning_pad = sound2add[:num_padding_samples//2]
@@ -520,9 +521,19 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         ending_sound = sound2add[len(target)+num_padding_samples:total_samps]
         combined = np.concatenate((combined, ending_sound))
         
-    combined = pyso.feats.normalize(combined)
-    combined = pyso.dsp.scalesound(combined, max_val = np.max(combined))
+    #combined = pyso.feats.normalize(combined)
+    #combined = pyso.dsp.remove_dc_bias(combined)
     return combined, new_snr
+
+def remove_dc_bias(samples):
+    '''
+    understanding-digital-signal-processing-third-edition-by-richard-g-lyons
+    13.23 DC Removal
+    '''
+    samps = samples.copy()
+    ave = np.mean(samps)
+    samps -= ave 
+    return samps
 
 def apply_num_channels(sound_data, num_channels):
     '''Ensures `data` has indicated `num_channels`. 
