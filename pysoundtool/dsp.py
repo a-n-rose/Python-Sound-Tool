@@ -447,7 +447,9 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         sound2add = apply_num_channels(sound2add, num_channels)
     
     target = pyso.dsp.remove_dc_bias(target)
+    target = pyso.dsp.clip_at_zero(target, samp_win = 10)
     sound2add = pyso.dsp.remove_dc_bias(sound2add)
+    sound2add = pyso.dsp.clip_at_zero(sound2add, samp_win = 10)
     
     target_stft, __ = pyso.feats.get_vad_stft(target, sr, 
                                             extend_window_ms = extend_window_ms)
@@ -522,12 +524,57 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         combined = np.concatenate((combined, ending_sound))
     return combined, new_snr
 
+def clip_at_zero(samples, samp_win = None):
+    '''
+    Allows for a smoother transition of audio.
+    
+    `samp_win` is useful for audio clips that have clicks at beginning and/or end of signal:
+    within the `samp_win` find the most adjacent zero crossing and clip the 
+    signal there.
+    '''
+    samps = samples.copy()
+    if samp_win is not None:
+        samps_beg = samps[:samp_win]
+        samps_end = samps[-samp_win:]
+        # find last instance of zero within window at beginning of singal 
+        f_0 = np.argmax(np.flip(samps_beg)==0)
+        # find first instance of zero within window at end of signal 
+        l_0 = np.argmax(samps_end==0)
+        l_0 = len(samples) - samp_win + l_0 
+        # did not find zeros
+        if f_0 == 0 and l_0 == 0:
+            return samps
+        # translate index of flipped array to non-flipped array
+        f_0 = len(samps_beg) - 1 - f_0 
+    else:
+        # find first instance of zero:
+        f_0 = np.argmax(samps == 0)
+        l_0 = np.argmax(np.flip(samps) == 0)
+        # did not find zeros
+        if f_0 == 0 and l_0 == 0:
+            return samps
+        # translate index of flipped array to non-flipped array
+        l_0 = len(samples) - 1 - l_0 
+    
+    assert round(samples[f_0]) == 0
+    assert round(samples[l_0]) == 0
+    
+    
+    if l_0 == f_0:
+        samps = samps[f_0:]
+    else:
+        samps = samps[f_0:l_0+1]
+    return samps
+    
+
 def remove_dc_bias(samples, samp_win = None):
     '''
     understanding-digital-signal-processing-third-edition-by-richard-g-lyons
     13.23 DC Removal
     
     Seems to work best without samp_win.
+    
+    # TODO add moving average?
     '''
     samps = samples.copy()
     if samp_win is not None:
