@@ -219,7 +219,7 @@ for key, value in dataset_dict_noisy.items():
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################
-# For fun, let's visualize the first audio samples:
+# For fun, let's visualize and listen to the first audio samples:
 
 ######################################################################
 # Noisy speech sample in its raw signal

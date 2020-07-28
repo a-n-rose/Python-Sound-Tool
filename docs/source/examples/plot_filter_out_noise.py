@@ -50,7 +50,7 @@ noisy, snr_measured = pyso.dsp.add_backgroundsound(
     sr = sr, 
     snr = 10, 
     total_len_sec = 3, 
-    delay_mainsound_sec = 1)
+    pad_mainsound_sec = 1)
 
 ##########################################################
 # Hear and see the noisy speech 
@@ -60,7 +60,7 @@ ipd.Audio(noisy,rate=sr)
 
 ##########################################################
 pyso.plotsound(noisy, sr=sr, feature_type='signal', 
-               title='Noisy Speech')
+               title='Noisy Speech ')
 
 
 ##########################################################
@@ -71,7 +71,7 @@ ipd.Audio(s,rate=sr)
 
 ##########################################################
 pyso.plotsound(s, sr=sr, feature_type='signal', 
-               title='Clean Speech')
+               title='Clean Speech ')
 
 
 ##########################################################

@@ -52,7 +52,9 @@ noise
 ##########################################################
 # Hear Clean Speech
 # ~~~~~~~~~~~~~~~~~
-sr = 16000
+# I'm using a higher sample rate here as calculating SNR 
+# performs best upwards of 44100 Hz.
+sr = 48000
 s, sr = pyso.loadsound(speech_sample, sr = sr)
 ipd.Audio(s,rate=sr)
 
@@ -148,14 +150,14 @@ pyso.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'stft',
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ##########################################################
-# Delay Speech Onset and Set Total Length 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Pad Speech and Set Total Length 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 noisyspeech_20snr, snr20 = pyso.dsp.add_backgroundsound(
     speech_sample,
     noise_sample,
     sr = sr,
     snr = 20,
-    delay_mainsound_sec = 1,
+    pad_mainsound_sec = 1,
     total_len_sec = 4)
 
 ##########################################################

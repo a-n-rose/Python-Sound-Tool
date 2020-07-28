@@ -60,7 +60,7 @@ white_noise = pyso.dsp.generate_noise(len(y), random_seed = 40)
 # Speech and Noise SNR 20
 # ~~~~~~~~~~~~~~~~~~~~~~~
 y_snr20, snr20 = pyso.dsp.add_backgroundsound(y, white_noise, sr=sr, snr = 20,
-                                           delay_mainsound_sec = 1,
+                                           pad_mainsound_sec = 1,
                                            total_len_sec = 3,
                                            wrap = True, 
                                            random_seed = 40)
