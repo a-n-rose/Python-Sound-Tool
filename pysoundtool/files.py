@@ -302,7 +302,7 @@ def ensure_only_audiofiles(audiolist):
     if len(audiolist_checked) < len(audiolist):
         import warnings
         message = 'Some files did not match those acceptable by this program. '+\
-            '(i.e. non-audio files) The number of files removed: '+\
+            '(i.e. non-audio files) The number of files not included: '+\
                 '{}'.format(len(audiolist)-len(audiolist_checked))
         warnings.warn(message)
     return audiolist_checked
