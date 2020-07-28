@@ -321,12 +321,14 @@ def stereo2mono(data):
 def add_backgroundsound(audio_main, audio_background, sr, snr = None, 
                         pad_mainsound_sec = None, total_len_sec=None,
                         wrap = False, stationary_noise = True, 
-                        random_seed = None, extend_window_ms = 0, **kwargs):
+                        random_seed = None, extend_window_ms = 0, 
+                        remove_dc = False, **kwargs):
     '''Adds a sound (i.e. background noise) to a target signal.
     
     If the sample rates of the two audio samples do not match, the sample
     rate of `audio_main` will be applied. (i.e. the `audio_background` will
-    be resampled)
+    be resampled). If you have issues with clicks at the beginning or end of 
+    signals, see `pysoundtool.dsp.clip_at_zero`.
     
     Parameters
     ----------
@@ -379,6 +381,11 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         The number of milliseconds the voice activity detected should be padded with.
         This might be useful to ensure sufficient amount of activity is calculated.
         (default 0) 
+    
+    remove_dc : bool 
+        If the dc bias should be removed. This aids in the removal of clicks.
+        See `pysoundtool.dsp.remove_dc_bias`.
+        (default False)
     
     **kwargs : additional keyword arguments
         The keyword arguments for pysoundtool.files.loadsound (Note: )
@@ -446,10 +453,9 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
             num_channels = 1
         sound2add = apply_num_channels(sound2add, num_channels)
     
-    target = pyso.dsp.remove_dc_bias(target)
-    target = pyso.dsp.clip_at_zero(target, samp_win = 10)
-    sound2add = pyso.dsp.remove_dc_bias(sound2add)
-    sound2add = pyso.dsp.clip_at_zero(sound2add, samp_win = 10)
+    if remove_dc:
+        target = pyso.dsp.remove_dc_bias(target)
+        sound2add = pyso.dsp.remove_dc_bias(sound2add)
     
     target_stft, __ = pyso.feats.get_vad_stft(target, sr, 
                                             extend_window_ms = extend_window_ms)
@@ -512,7 +518,8 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
     if len(target_sound) < len(target):
         target = target[:len(target_sound)]
     combined = target_sound + target
-    combined = pyso.dsp.remove_dc_bias(combined)
+    if remove_dc:
+        combined = pyso.dsp.remove_dc_bias(combined)
     if pad_mainsound_sec:
         # set aside samples for beginning delay (if there is one)
         beginning_pad = sound2add[:num_padding_samples//2]
