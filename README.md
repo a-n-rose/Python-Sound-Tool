@@ -57,6 +57,18 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 ### pysoundtool.feats.normalize 
 - can use it: pysoundtool.normalize (don't need to remember dsp or feats)
 
+### pysoundtool.dsp.remove_dc_bias() 
+- implemented in pysoundtool.files.loadsound() and pysoundtool.files.savesound()
+- vastly improves the ability to work with and combine signals.
+
+### pysoundtool.dsp.clip_at_zero()
+- clips beginning and ending audio at zero crossings (at negative to positive zero crossings)
+- useful when concatenating signals
+- useful for removing clicks at beginning or ending of audio signals
+
+### pysoundtool.dsp.apply_sample_length()
+- can now mirror the sound as a form of sound extention with parameter `mirror_sound`.
+
 ## About
 
 Note: as is, PySoundTool is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility. 
