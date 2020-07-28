@@ -226,7 +226,7 @@ def pitch_decrease(sound, sr = 16000, num_semitones = 2, **kwargs):
     return y_d
       
 # TODO pad similarly to librosa?
-def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
+def vtlp(sound, sr = 44100, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = False, fft_bins = 1024, window = 'hann'):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
@@ -284,5 +284,5 @@ def vtlp(sound, sr = 16000, a = (0.8,1.2), random_seed = None,
         section_warped = section_warped[:total_rows]
         stft_matrix[frame] = section_warped
         section_start += (frame_length - num_overlap_samples)
-    stft_matrix = stft_matrix[:,:max_freq//2//2]
+    stft_matrix = stft_matrix[:,:max_freq]
     return stft_matrix, vtlp_a
