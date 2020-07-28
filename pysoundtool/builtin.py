@@ -750,7 +750,7 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
             snr = snr, 
             pad_mainsound_sec = pad_mainsound_sec, 
             #total_len_sec = clean_seconds,
-            wrap = True,
+            wrap = False,
             **kwargs)
         # pad clean the same way as noisy so they are the same length
         
