@@ -21,21 +21,30 @@ import pysoundtool as pyso
 
 
 
-def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
+def loadsound(filename, sr=None, mono=True, dur_sec = None, 
+              remove_dc_bias = True, use_scipy=False):
     '''Loads sound file with scipy.io.wavfile.read or librosa.load (default librosa)
     
     Parameters
     ----------
     filename : str
         The filename of the sound to be loaded
+    
     sr : int, optional
         The desired sample rate of the audio samples. If None, 
         the sample rate of the audio file will be used.
+
     mono : bool
         If True, the samples will be loaded in mono sound. If False,
         if the samples are in stereo, they will be loaded in stereo sound.
+
     dur_sec : int, float, optional
         The length in seconds of the audio signal.
+
+    remove_dc_bias : bool
+        If True, the mean is subtracted from the signal. This has shown to be
+        very helpful when working with audio data. (default True)
+
     use_scipy : bool 
         If False, librosa will be used to load the audiofile. If True, 
         scipy.io.wavfile and/or soundfile will be used. If the sound file 
@@ -74,7 +83,9 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
     scipy.io.wavfile.read
         The package used to load sound if `use_scipy` is set to True.
         See `scipy`.
-        
+
+    pysoundtool.dsp.remove_dc_bias
+        Removes the 'direct current' bias from the signal.
         
     Todo
     ----
@@ -89,6 +100,8 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
             if data.shape[0] < data.shape[1]:
                 # change shape from (channels, samples) to (samples, channels)
                 data = data.T
+        if remove_dc_bias:
+            data = pyso.dsp.remove_dc_bias(data)
         return data, sr
     try:
         sr2, data = read(filename)
@@ -124,20 +137,36 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None, use_scipy=False):
     if dur_sec:
         numsamps = int(dur_sec * sr)
         data = pyso.dsp.set_signal_length(data, numsamps)
+    if remove_dc_bias:
+        data = pyso.dsp.remove_dc_bias(data)
     return data, sr
 
-def savesound(audiofile_name, signal_values, sr, overwrite=False, use_scipy=False,
-              **kwargs):
+def savesound(audiofile_name, signal_values, sr, remove_dc_bias=True, 
+              overwrite=False, use_scipy=False, **kwargs):
     """saves the wave at designated path
 
     Parameters
     ----------
     audiofile_name : str or pathlib.PosixPath
         path and name the audio is to be saved under. (.wav format)
+    
     signal_values : ndarray
         values of real signal to be saved
+    
     sr : int 
         sample rate of the audio samples.
+    
+    remove_dc_bias : bool 
+        If True, the mean is subtracted from the signal. (default True)
+    
+    overwrite : bool
+        If True, audio with the same naem will be overwritten. (default False)
+        
+    use_scipy : bool
+        If True, scipy.io.wavfile.write will be used. However, file conversion is 
+        limited. Can only save .wav files. Otherwise soundfile.write will be used, 
+        which can save audio under more audio fomats.
+    
     **kwargs : additional keyword arguments
         The keyword arguments for soundfile.write:
         https://pysoundfile.readthedocs.io/en/latest/index.html?highlight=write#soundfile.write
@@ -153,6 +182,9 @@ def savesound(audiofile_name, signal_values, sr, overwrite=False, use_scipy=Fals
     
     pysoundtool.files.conversion_formats
         Lists the possible formats to save audio files if `use_scipy` is False.
+        
+    pysoundtool.dsp.remove_dc_bias
+        Removes the 'direct current' bias from the signal.
     """
     audiofile_name = pyso.utils.string2pathlib(audiofile_name)
     if os.path.exists(audiofile_name) and overwrite is False:
@@ -160,6 +192,8 @@ def savesound(audiofile_name, signal_values, sr, overwrite=False, use_scipy=Fals
             '\nSet `overwrite` to True in function savesound() to overwrite.')
     directory = audiofile_name.parent
     directory = pyso.utils.check_dir(directory, make=True)
+    if remove_dc_bias:
+        signal_values = pyso.dsp.remove_dc_bias(signal_values)
     if use_scipy:
         write(audiofile_name, sr, signal_values)
     else: 
