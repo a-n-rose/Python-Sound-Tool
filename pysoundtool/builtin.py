@@ -608,10 +608,9 @@ def dataset_formatter(audiodirectory=None, recursive=False, new_dir=None, sr=Non
  
 
 # TODO speed this up, e.g. preload noise data?
-# TODO randomize sections of noise applied
 def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=None,
-                            snr_levels = None, pad_mainsound_sec = None, random_seed = None,
-                            overwrite = False, **kwargs):
+                            snr_levels = None, pad_mainsound_sec = None, 
+                            random_seed = None, overwrite = False, **kwargs):
     '''Applies noise to clean audio; saves clean and noisy audio to `traingingdata_dir`.
 
     Parameters
@@ -743,28 +742,44 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
                             kwargs['sr'])
                 warnings.warn(msg)
         clean_data, sr = pyso.loadsound(wavefile, **kwargs)
-        #clean_seconds = len(clean_data)/sr
+        noise_data, sr = pyso.loadsound(noise, **kwargs)
+        
+        # makes adding of sounds smoother:
+        clean_data = pyso.dsp.remove_dc_bias(clean_data)
+        noise_data = pyso.dsp.remove_dc_bias(noise_data)
+        
+        # incase any weird clicks at beginning / end of signals:
+        clean_data = pyso.dsp.clip_at_zero(clean_data, samp_win = 10)
+        noise_data = pyso.dsp.clip_at_zero(noise_data, samp_win = 10)
+        
         noisy_data, snr_appx = pyso.dsp.add_backgroundsound(
-            audio_main = wavefile, 
-            audio_background = noise, 
+            audio_main = clean_data, 
+            audio_background = noise_data, 
             snr = snr, 
             pad_mainsound_sec = pad_mainsound_sec, 
-            #total_len_sec = clean_seconds,
             wrap = False,
             **kwargs)
-        # pad clean the same way as noisy so they are the same length
+        if pad_mainsound_sec:
+            # pad clean the same way as noisy so they are the same length
+            num_pad_samps = pyso.dsp.calc_frame_length(pad_mainsound_sec * 1000, sr)
+            padding = np.zeros(num_pad_samps)
+            clean_data = np.concatenate((padding, clean_data, padding))
+        
+        # ensure length of clean and noisy data match
+        assert len(clean_data) == len(noisy_data)
         
         # ensure both noisy and clean files have same beginning to filename (i.e. clean filename)
         noisydata_filename = newdata_noisy_dir.joinpath(clean_stem+'_'+noise_stem\
             +'_snr'+str(snr)+'.wav')
-        cleandata_filename = newdata_clean_dir.joinpath(clean_stem+'.wav')     
-        write(noisydata_filename, sr, noisy_data)
-        write(cleandata_filename, sr, clean_data)
+        cleandata_filename = newdata_clean_dir.joinpath(clean_stem+'.wav')  
+        
+        write(noisydata_filename, sr_down, noisy_data)
+        write(cleandata_filename, sr_down, clean_data)
 
     end = time.time()
     total_time, units = pyso.utils.adjust_time_units(end-start)
     print('Data creation took a total of {} {}.'.format(
-        round(total_time,2), 
+        round(total_time, 2), 
         units))
 
     return newdata_noisy_dir, newdata_clean_dir
