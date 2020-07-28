@@ -484,7 +484,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         # see pysoundtool.dsp.snr_adjustnoiselevel
         adjust_sound = (np.sqrt(target_energy/(noise_energy+1e-6) / (10**(snr/10))))
         sound2add *= adjust_sound
-    
+        
     # get SNR where voice activity is detected.
     new_snr = pyso.dsp.get_vad_snr(target, sound2add, sr=sr)
     if pad_mainsound_sec is None:
@@ -538,33 +538,84 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
     return combined, new_snr
 
 def clip_at_zero(samples, samp_win = None):
-    '''
-    Allows for a smoother transition of audio.
+    '''Clips the signal at samples close to zero.
     
-    `samp_win` is useful for audio clips that have clicks at beginning and/or end of signal:
-    within the `samp_win` find the most adjacent zero crossing and clip the 
-    signal there.
+    The samples where clipping occurs crosses the zero line from negative to positive. This 
+    clipping process allows for a smoother transition of audio, especially if concatenating audio.
+    
+    Parameters
+    ----------
+    samples : np.ndarray [shape = (num_samples, )]
+        The array containing sample data
+        
+    samp_win : int, optional
+        The window of samples to apply when clipping at zero crossings. The zero 
+        crossings adjacent to the main signal will be used. This is useful to remove
+        already existing clicks within the signal, often found at the beginning and / or 
+        end of signals.
+    
+    Warning 
+    -------
+    If only one or no zeros found. Original samples are returned of no zeros found or if more than
+    half the signal would be removed. 
+    
+    Examples
+    --------
+    >>> import numpy as np
+    >>> # create sin wave with offset of 1
+    >>> w = np.sin(np.arange(1000)+1)
+    >>> w[:4]
+    array([ 0.84147098,  0.90929743,  0.14112001, -0.7568025])
+    >>> round(w[0], 2) # start isn't zero
+    0.84
+    >>> w[-4:]
+    array([-0.89796748, -0.85547315, -0.02646075,  0.82687954])
+    >>> round(w[-1], 2) # end isn't zero
+    0.83
+    >>> # clip the sin wave to start and end with samples very close to the zero
+    >>> b = clip_at_zero(w)
+    >>> b[:4]
+    array([-0.00882117,  0.83667215,  0.91293295,  0.14984741])
+    >>> round(b[0], 2) # starts with zero
+    -0.01
+    >>> b[-4:]
+    array([-1.41179693e-01, -9.09322514e-01, -8.41438409e-01,  6.02887067e-05])
+    >>> round(b[-1], 2) # ends with zero
+    0.0
+    >>> # ensure the zero crossings go from negative to positive
+    >>> b[1] > 0 # after the starting zero, values are positive
+    True
+    >>> b[-2] > 0 # before the last zero, values are negative
+    False
     '''
     samps = samples.copy()
     if samp_win is not None:
         samps_beg = samps[:samp_win]
         samps_end = samps[-samp_win:]
         # find last instance of zero within window at beginning of singal 
-        f_0 = np.argmax(np.flip(samps_beg)==0)
+        f_0 = np.argmax(np.abs(np.flip(samps_beg)) <= 0 + 1e-2)
         # find first instance of zero within window at end of signal 
-        l_0 = np.argmax(samps_end==0)
+        l_0 = np.argmax(np.abs(samps_end) <= 0+1e-2)
         l_0 = len(samples) - samp_win + l_0 
         # did not find zeros
         if f_0 == 0 and l_0 == 0:
+            import warnings
+            msg = '\nWarning: `pysoundtool.dsp.clip_at_zero` found no samples close to zero.'+\
+                ' Original samples returned.\n'
+            warnings.warn(msg)
             return samps
         # translate index of flipped array to non-flipped array
         f_0 = len(samps_beg) - 1 - f_0 
     else:
         # find first instance of zero:
-        f_0 = np.argmax(samps == 0)
-        l_0 = np.argmax(np.flip(samps) == 0)
+        f_0 = np.argmax(np.abs(samps) <= 0+1e-2)
+        l_0 = np.argmax(np.abs(np.flip(samps)) <= 0 + 1e-2)
         # did not find zeros
         if f_0 == 0 and l_0 == 0:
+            import warnings
+            msg = '\nWarning: `pysoundtool.dsp.clip_at_zero` found no samples close to zero.'+\
+                ' Original samples returned.\n'
+            warnings.warn(msg)
             return samps
         # translate index of flipped array to non-flipped array
         l_0 = len(samples) - 1 - l_0 
@@ -572,11 +623,44 @@ def clip_at_zero(samples, samp_win = None):
     assert round(samples[f_0]) == 0
     assert round(samples[l_0]) == 0
     
-    
     if l_0 == f_0:
-        samps = samps[f_0:]
+        import warnings
+        msg = '\n\nWarning: only one zero-crossing sample found. Beginning or ending sample '+\
+            'may not be zero crossing.'
+        samps_test = samps[f_0:]
+        if len(samps_test) / len(samples) < 0.5:
+            msg = '\n\nWARNING: Subfunction `pysoundtool.dsp.clip_at_zero` no longer '+\
+                'implemented as too many samples would be removed. \nThe beginning or ending '+\
+                    'of the signal may not be zero or cross zero from negative to positive. '+\
+                        '\nNote: this function expects data with multiple zero crossings.'+\
+                            '\nData provided does not seem to have enough zero crossings. '+\
+                                'Try removing the DC bias from the signal first with: \n'+\
+                                    'pysoundtool.dsp.remove_dc_bias(<your_data>).\n'
+            warnings.warn(msg)
+            return samps
+        else:
+            warnings.warn(msg)
+            samps = samps_test
+            return samps
     else:
         samps = samps[f_0:l_0+1]
+    # ensure the zero crossings go from negative to positive
+    if samps[1] > 0:
+        if samps[-2] < 0:
+            return samps
+        else:
+            # cut off the last zero and get the next one
+            samps = samps[:-1] 
+            samps = clip_at_zero(samps)
+    else:
+        if samps[-2] < 0:
+            # cut off the first zero and get the next one
+            samps = samps[1:]
+            samps = clip_at_zero(samps)
+        else:
+            # cut off both zeros and get the next ones
+            samps = samps[1:-1]
+            samps = clip_at_zero(samps)
     return samps
     
 
