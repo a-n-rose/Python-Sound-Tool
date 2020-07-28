@@ -733,6 +733,8 @@ def normalize(data, max_val=None, min_val=None):
     if max_val is None:
          normed_data = (data - np.min(data)) / (np.max(data) - np.min(data) + eps)
     else:
+        if min_val is None:
+            min_val = -max_val
         normed_data = (data - min_val) / (max_val - min_val + eps)
     return normed_data
 
