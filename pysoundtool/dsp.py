@@ -322,7 +322,8 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
                         pad_mainsound_sec = None, total_len_sec=None,
                         wrap = False, stationary_noise = True, 
                         random_seed = None, extend_window_ms = 0, 
-                        remove_dc = False, mirror_sound = False, **kwargs):
+                        remove_dc = False, mirror_sound = False, clip_at_zero = True,
+                        **kwargs):
     '''Adds a sound (i.e. background noise) to a target signal.
     
     If the sample rates of the two audio samples do not match, the sample
@@ -505,7 +506,8 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
     if len(sound2add) < total_samps:
         # if shorter than total_samps, extend the noise
         sound2add = pyso.dsp.apply_sample_length(sound2add, total_samps,
-                                                 mirror_sound=mirror_sound)
+                                                 mirror_sound = mirror_sound,
+                                                 clip_at_zero = clip_at_zero)
     else:
         # otherwise, choose random selection of noise
         sound2add = pyso.dsp.clip_at_zero(sound2add)[:-1]
@@ -746,7 +748,7 @@ def apply_num_channels(sound_data, num_channels):
         data = np.append(data, duplicated_data, axis=1)
     return data
 
-def apply_sample_length(data, target_len, mirror_sound = False):
+def apply_sample_length(data, target_len, mirror_sound = False, clip_at_zero = True):
     '''Extends a sound by repeating it until its `target_len`.
     If the `target_len` is shorter than the length of `data`, `data`
     will be shortened to the specificed `target_len`
@@ -800,7 +802,8 @@ def apply_sample_length(data, target_len, mirror_sound = False):
         return new_data
     else:
         while len(data) < target_len:
-            data = pyso.dsp.clip_at_zero(data)[:-1] # get rid of last zero
+            if clip_at_zero:
+                data = pyso.dsp.clip_at_zero(data)[:-1] # get rid of last zero
             if mirror_sound:
                 data = np.concatenate((data, np.flip(data[1:])))
             else:
@@ -2263,7 +2266,10 @@ def random_selection_samples(samples, len_section_samps, wrap=False, random_seed
             return total_section
     else:
         max_index_start = len(samples) - len_section_samps + 1
-        start_index = np.random.choice(range(max_index_start))
+        if max_index_start > 0:
+            start_index = np.random.choice(range(max_index_start))
+        else:
+            start_index = 0
         total_section = samples[start_index:start_index+len_section_samps]
         return total_section
 
@@ -2436,7 +2442,7 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
             import warnings
             msg = '\nWarning: VAD works best with sample rates above '+\
                 '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(kwargs['sr'])
+                    ' {} to 44100 Hz.'.format(sr)
             warnings.warn(msg)
             data, sr = pyso.dsp.resample_audio(data, sr, 44100)
     else:
@@ -2444,7 +2450,7 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
             import warnings
             msg = '\nWarning: VAD works best with sample rates above '+\
                 '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(kwargs['sr'])
+                    ' {} to 44100 Hz.'.format(sr)
             warnings.warn(msg)
             sr = 44100
         data, sr2 = pyso.loadsound(sound, sr=sr)
