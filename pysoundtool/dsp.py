@@ -322,7 +322,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
                         pad_mainsound_sec = None, total_len_sec=None,
                         wrap = False, stationary_noise = True, 
                         random_seed = None, extend_window_ms = 0, 
-                        remove_dc = False, **kwargs):
+                        remove_dc = False, mirror_sound = False, **kwargs):
     '''Adds a sound (i.e. background noise) to a target signal.
     
     If the sample rates of the two audio samples do not match, the sample
@@ -451,7 +451,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
             num_channels = target.shape[1]
         else:
             num_channels = 1
-        sound2add = apply_num_channels(sound2add, num_channels)
+        sound2add = pyso.dsp.apply_num_channels(sound2add, num_channels)
     
     if remove_dc:
         target = pyso.dsp.remove_dc_bias(target)
@@ -504,13 +504,17 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
     # make the background sound match the length of total samples
     if len(sound2add) < total_samps:
         # if shorter than total_samps, extend the noise
-        sound2add = pyso.dsp.apply_sample_length(sound2add, total_samps)
+        sound2add = pyso.dsp.apply_sample_length(sound2add, total_samps,
+                                                 mirror_sound=mirror_sound)
     else:
         # otherwise, choose random selection of noise
+        sound2add = pyso.dsp.clip_at_zero(sound2add)[:-1]
+            
+            
         sound2add = pyso.dsp.random_selection_samples(sound2add,
                                                       total_samps,
                                                       wrap = wrap, 
-                                                      seed = random_seed)
+                                                      random_seed = random_seed)
     # separate samples to add to the target signal
     target_sound = sound2add[num_padding_samples//2:len(target) \
         + num_padding_samples//2]
@@ -525,7 +529,9 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         beginning_pad = sound2add[:num_padding_samples//2]
         ending_pad = sound2add[num_padding_samples//2+len(target):]
         combined = np.concatenate((beginning_pad, combined, ending_pad))
-    if total_len_sec:
+    if len(combined) > total_samps:
+        combined = combined[:total_samps]
+    elif len(combined) < total_samps:
         # set aside ending samples for ending (if sound is extended)
         ending_sound = sound2add[len(target)+num_padding_samples:total_samps]
         combined = np.concatenate((combined, ending_sound))
@@ -650,7 +656,7 @@ def apply_num_channels(sound_data, num_channels):
         data = np.append(data, duplicated_data, axis=1)
     return data
 
-def apply_sample_length(data, target_len):
+def apply_sample_length(data, target_len, mirror_sound = False):
     '''Extends a sound by repeating it until its `target_len`.
     If the `target_len` is shorter than the length of `data`, `data`
     will be shortened to the specificed `target_len`
@@ -700,6 +706,15 @@ def apply_sample_length(data, target_len):
     elif len(data) == target_len:
         new_data = data
         return new_data
+    else:
+        while len(data) < target_len:
+            data = pyso.dsp.clip_at_zero(data)[:-1] # get rid of last zero
+            if mirror_sound:
+                data = np.concatenate((data, np.flip(data[1:])))
+            else:
+                data = np.concatenate((data, data))
+            if len(data) >= target_len:
+                break
     if len(data.shape) > 1:
         # ensure stereo in correct format (num_samples, num_channels)
         data = pyso.dsp.shape_samps_channels(data)
@@ -2105,13 +2120,44 @@ def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
             stop = start+frame_length
     return new_signal
 
-def random_selection_samples(samples, len_section_samps, wrap=False, seed=None, axis=0):
+def random_selection_samples(samples, len_section_samps, wrap=False, random_seed=None, axis=0):
     '''Selects a section of samples, starting at random. 
+    
+    Parameters
+    ----------
+    samples : np.ndarray [shape = (num_samples, )]
+        The array of sample data 
+    
+    len_section_samps : int 
+        How many samples should be randomly selected
+        
+    wrap : bool 
+        If False, the selected noise will not be wrapped from end to beginning; 
+        if True, the random selected may take sound sample that is wrapped 
+        from the end to the beginning. See examples below. (default False)
+        
+    random_seed : int, optional 
+        If replicated randomization desired. (default None)
+    
+    Examples
+    --------
+    >>> import numpy as np
+    >>> # no wrap:
+    >>> x = np.array([1,2,3,4,5,6,7,8,9,10])
+    >>> n = pyso.dsp.random_selection_samples(x, len_section_samps = 7, 
+    ...                                     wrap = False, random_seed = 40)
+    >>> n 
+    array([3, 4, 5, 6, 7, 8, 9])
+    >>> # with wrap:
+    >>> n = pyso.dsp.random_selection_samples(x, len_section_samps = 7, 
+    ...                                     wrap = True, random_seed = 40)
+    >>> n 
+    array([ 7,  8,  9, 10,  1,  2,  3])
     '''
     if not isinstance(samples, np.ndarray):
         samples = np.array(samples)
-    if seed is not None and seed is not False:
-        np.random.seed(seed)
+    if random_seed is not None and random_seed is not False:
+        np.random.seed(random_seed)
     if wrap:
         start_index = np.random.choice(range(len(samples)))
         if start_index + len_section_samps > len(samples):
