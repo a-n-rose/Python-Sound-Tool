@@ -589,6 +589,12 @@ def clip_at_zero(samples, samp_win = None):
     False
     '''
     samps = samples.copy()
+    #if len(samps.shape) > 1 and samps.shape[1] > 1:
+        #import warnings
+        #msg = 'pysoundtool.dsp.clip_at_zero does not yet support stereo data.'+\
+            #' Original data returned without clipping.'
+        #warnings.warn(msg)
+        #return samps
     if samp_win is not None:
         samps_beg = samps[:samp_win]
         samps_end = samps[-samp_win:]
@@ -630,7 +636,7 @@ def clip_at_zero(samples, samp_win = None):
         samps_test = samps[f_0:]
         if len(samps_test) / len(samples) < 0.5:
             msg = '\n\nWARNING: Subfunction `pysoundtool.dsp.clip_at_zero` no longer '+\
-                'implemented as too many samples would be removed. \nThe beginning or ending '+\
+                'implemented as too many samples would be removed.\nThe beginning or ending '+\
                     'of the signal may not be zero or cross zero from negative to positive. '+\
                         '\nNote: this function expects data with multiple zero crossings.'+\
                             '\nData provided does not seem to have enough zero crossings. '+\
@@ -784,6 +790,8 @@ def apply_sample_length(data, target_len, mirror_sound = False):
            [0., 1.],
            [1., 2.]])
     '''
+    if len(data.shape) > 2:
+        raise ValueError('Too many dimensions.')
     if len(data) > target_len:
         new_data = data[:target_len]
         return new_data

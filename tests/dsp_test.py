@@ -227,7 +227,7 @@ def test_scalesound_min_minuspoint25_maxpoint25():
 def test_normalize_default():
     np.random.seed(0)
     input_samples = np.random.random_sample((5,))
-    output_samples = pyso.dsp.normalize(input_samples)
+    output_samples = pyso.feats.normalize(input_samples)
     expected = np.array([0.42931, 1., 0.6143648, 0.41582851, 0.])
     assert np.allclose(output_samples, expected)
     
@@ -238,7 +238,7 @@ def test_normalize_min_max():
     previous_samples = np.random.random_sample((5,))
     min_val = np.min(previous_samples)
     max_val = np.max(previous_samples)
-    output_samples = pyso.dsp.normalize(input_samples, 
+    output_samples = pyso.feats.normalize(input_samples, 
                                         max_val = max_val, min_val = min_val)
     expected = np.array([0.67303388, 0.89996095, 0.74661839, 0.66767314, 0.50232462])
     assert np.allclose(output_samples, expected)
@@ -351,16 +351,25 @@ def test_zeropad_stereo_targetlen_5():
     expected = np.array([[0., 1.],[1., 2.],[2., 3.],[0., 0.],[0., 0.]])
     assert np.array_equal(data_zeropadded, expected)
     
-def test_vad_clean_speech_percent_vad_75():
-    pass
+def test_random_selection_samples_wrap():
+    x = np.array([1,2,3,4,5,6,7,8,9,10])
+    expected = np.array([ 7,  8,  9, 10,  1,  2,  3])
+    got = pyso.dsp.random_selection_samples(x, len_section_samps = 7, 
+                                            wrap = True, random_seed = 40)
+    assert expected.all() == got.all()
+    
+def test_random_selection_samples_nowrap():
+    x = np.array([1,2,3,4,5,6,7,8,9,10])
+    expected = np.array([3, 4, 5, 6, 7, 8, 9])
+    got = pyso.dsp.random_selection_samples(x, len_section_samps = 7, 
+                                            wrap = False, random_seed = 40)
+    assert expected.all() == got.all()
 
-def test_vad_noisy_speech_percent_vad_75():
-    pass
-
-def test_vad_noise_stationary_percent_vad_75():
-    pass
-
-def test_vad_noise_nonstationary_percent_vad_75():
-    pass
-
-
+def test_clip_at_zero_negative_to_positive_transition():
+    w = np.sin(np.arange(400)+0.7) 
+    b = pyso.dsp.clip_at_zero(w)
+    assert round(b[0],1) == 0
+    assert round(b[-1],1) == 0
+    assert b[1] > 0
+    assert b[-2] < 0
+    
