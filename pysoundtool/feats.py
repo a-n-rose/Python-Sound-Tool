@@ -477,7 +477,7 @@ def get_feats(sound,
     return feats
 
 # allows for more control over fft bins / resolution of each iteration.
-def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
+def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                 real_signal = False, fft_bins = 1024, 
                 window = 'hann'):
     if isinstance(sound, np.ndarray):
@@ -511,28 +511,19 @@ def get_stft(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     
     return stft_matrix[:,:fft_bins//2]
 
-def get_vad_stft(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
+def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', use_beg_ms = 120,
                           extend_window_ms = 0):
-    # resample data if sr < 44100
+    # raise warnings if sample rate lower than 44100 Hz
+    if sr < 44100:
+        import warnings
+        msg = '\nWarning: voice-activity-detection works best with sample '+\
+            'rates above 44100 Hz. Current `sr` set at {}.'.format(sr)
+        warnings.warn(msg)
     if isinstance(sound, np.ndarray):
         data = sound
-        if sr < 44100:
-            import warnings
-            msg = '\nWarning: VAD works best with sample rates above '+\
-                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(sr)
-            warnings.warn(msg)
-            data, sr = pyso.dsp.resample_audio(data, sr, 44100)
     else:
-        if sr < 44100:
-            import warnings
-            msg = '\nWarning: VAD works best with sample rates above '+\
-                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(sr)
-            warnings.warn(msg)
-            sr = 44100
         data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
@@ -603,26 +594,17 @@ def get_vad_stft(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
     stft_matrix = stft_matrix[:-extra_rows]
     return stft_matrix[:,:fft_bins//2], sr
 
-def get_vad_samples(sound, sr=44100, win_size_ms = 50, percent_overlap = 0,
+def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                     use_beg_ms = 120, extend_window_ms=0):
-    # resample data if sr < 44100
+    # raise warnings if sample rate lower than 44100 Hz
+    if sr < 44100:
+        import warnings
+        msg = '\nWarning: voice-activity-detection works best with sample '+\
+            'rates above 44100 Hz. Current `sr` set at {}.'.format(sr)
+        warnings.warn(msg)
     if isinstance(sound, np.ndarray):
         data = sound
-        if sr < 44100:
-            import warnings
-            msg = '\nWarning: VAD works best with sample rates at or above '+\
-                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(sr)
-            warnings.warn(msg)
-            data, sr = pyso.dsp.resample_audio(data, sr, 44100)
     else:
-        if sr < 44100:
-            import warnings
-            msg = '\nWarning: VAD works best with sample rates at or above '+\
-                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(sr)
-            warnings.warn(msg)
-            sr = 44100
         data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
         
