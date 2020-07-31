@@ -37,6 +37,21 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 - autoencoder model (e.g. denoiser model)
 - pretrained ResNet50 model (e.g. language classifier)
 
+## Requirements
+
+Python 3.6
+
+### For Linux users:
+
+In order to use all functionality (i.e. `pysoundtool` and not `pysoundtool_online` you must 
+have `libsndfile1` installed in your system. <a href="https://pypi.org/project/SoundFile/">Soundfile</a> uses this library.
+
+```
+$ sudo apt-get install libsndfile1
+```
+
+(This should automatically get installed for other operating systems during `pip install soundfile`).
+
 ## Updates of upcoming release:
 
 ### pysoundtool.dsp.vad()
