@@ -63,7 +63,7 @@ use_librosa = True
 center = False 
 mode = 'reflect' 
 log_settings = True 
-num_epochs = 50
+epochs = 50
 patience = 15
 
 augmentation_none = dict()
@@ -113,7 +113,17 @@ augmentation_dicts = [augmentation_none, augmentation_noise, augmentation_speedu
                       augmentation_all_speeddown_pitchup,
                       augmentation_all_speeddown_pitchdown
                       ]
-augmentation_dicts = [augmentation_all_speedup_pitchup]
+augmentation_dicts = [augmentation_all_speeddown_pitchdown]
+
+aug_settings_dict = {}
+for aug_dict in augmentation_dicts:
+    for key, value in aug_dict.items():
+        if value:
+            aug_settings_dict[key] = pyso.augment.get_augmentation_settings_dict(key)
+            
+# reset values if desired.
+# Note: these will over ride the default values of the generator
+aug_settings_dict['add_white_noise']['snr'] = [5,10,20]  
 
 if load_dict is None:
     # collect labels of audio in data dir:
@@ -141,11 +151,9 @@ if load_dict is None:
     # create encoding and decoding dictionaries of labels:
     dict_encode, dict_decode = pyso.datasets.create_dicts_labelsencoded(
         labels,
-        add_extra_label=True,
+        add_extra_label = False,
         extra_label = 'silence')
     
-    print(dict_decode)
-
     # save labels and their encodings
     dict_encode_path = dataset_path.joinpath('dict_encode.csv')
     dict_decode_path = dataset_path.joinpath('dict_decode.csv')
@@ -287,7 +295,8 @@ get_feats_kwargs = dict(sr = sr,
                         rate_of_change = rate_of_change,
                         rate_of_acceleration = rate_of_acceleration,
                         subtract_mean = subtract_mean,
-                        use_scipy = use_scipy)
+                        use_scipy = use_scipy, 
+                        center = center)
 
 # extract the validation data
 val_dict = dict([('val',dataset_dict['val'])])
@@ -354,12 +363,12 @@ for i, augmentation_dict in enumerate(augmentation_dicts):
         add_tensor_last = add_tensor_last, 
         add_tensor_first = add_tensor_first,
         gray2color = False,
-        visualize = True,
+        visualize = False,
         vis_every_n_items = 1,
         decode_dict = dict_decode,
         dataset = 'train',
         augment_dict = augmentation_dict,
-        label_silence = True,
+        label_silence = False,
         **get_feats_kwargs)
     
     
@@ -381,7 +390,7 @@ for i, augmentation_dict in enumerate(augmentation_dicts):
         train_generator.generator(),
         steps_per_epoch = len(dataset_dict['train']),
         callbacks = callbacks,
-        epochs = num_epochs,
+        epochs = epochs,
         validation_data = val_generator.generator(),
         validation_steps = val_data.shape[0]
         )
