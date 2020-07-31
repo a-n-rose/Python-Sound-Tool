@@ -721,12 +721,6 @@ def augment_features(sound,
     # therefore vtlp will be handled outside of this function (returns stft matrix)
     if vtlp:
         augmentation += '_vtlp'
-    if add_white_noise:
-        snr_choice = np.random.choice(snr)
-        samples_augmented = pyso.augment.add_white_noise(samples_augmented, 
-                                                         sr = sr,
-                                                         snr = snr_choice)
-        augmentation += '_whitenoise{}SNR'.format(snr_choice)
 
     samples_augmented = pyso.dsp.set_signal_length(samples_augmented, len(samples))
 
