@@ -42,6 +42,7 @@ def filtersignal(audiofile,
                  output_filename=None,
                  overwrite=False,
                  use_scipy=False,
+                 remove_dc=True,
                  **kwargs):
     """Apply Wiener or band spectral subtraction filter to signal using noise. 
     
@@ -109,6 +110,9 @@ def filtersignal(audiofile,
     use_scipy : bool 
         If False, audiofiles will be loaded using librosa. Otherwise, scipy.io.wavfile.
         (default False)
+    remove_dc : bool
+        It True, the DC bias ('direct current' bias) will be removed. In other words, the 
+        mean amplitude will be made to equal 0.
     **kwargs : additional keyword arguments
         Keyword arguments for `pysoundtool.filters.WienerFilter` or 
         'pysoundtool.filters.BandSubtraction` (depending on `filter_type`).
@@ -153,9 +157,12 @@ def filtersignal(audiofile,
 
     # load signal (to be filtered)
     if not isinstance(audiofile, np.ndarray):
-        samples_orig, sr = pyso.loadsound(audiofile, fil.sr, dur_sec=None, use_scipy=use_scipy)
+        samples_orig, sr = pyso.loadsound(audiofile, fil.sr, dur_sec=None,
+                                          use_scipy=use_scipy, remove_dc=remove_dc)
     else:
         samples_orig, sr = audiofile, sr
+        if remove_dc:
+            samples_orig = pyso.dsp.remove_dc_bias(samples_orig)
     if sr != fil.sr:
         samples_orig, sr = pyso.dsp.resample_audio(samples_orig, 
                                                    sr_original = sr, 
@@ -174,6 +181,8 @@ def filtersignal(audiofile,
         if isinstance(noise_file, tuple):
             # tuple must contain samples and sampling rate
             samples_noise, sr_noise = noise_file
+            if remove_dc:
+                samples_noise = pyso.dsp.remove_dc_bias(samples_noise)
             if sr_noise != fil.sr:
                 samples_noise, sr_noise = pyso.dsp.resample_audio(samples_noise,
                                                                   sr_noise,
@@ -202,7 +211,8 @@ def filtersignal(audiofile,
                 samples_noise, sr_noise = pyso.loadsound(noise_file, 
                                                          fil.sr, 
                                                          dur_sec=dur_sec,
-                                                         use_scipy=use_scipy)
+                                                         use_scipy=use_scipy,
+                                                         remove_dc = remove_dc)
                 assert sr_noise == fil.sr
         if samples_noise is None and noise_power is None:
             raise TypeError('Expected one of the following: '+\
@@ -337,7 +347,8 @@ def filtersignal(audiofile,
         saved_filename = pyso.savesound(str(output_filename), 
                                         enhanced_signal,
                                         sr=fil.sr,
-                                        overwrite=overwrite)
+                                        overwrite=overwrite,
+                                        remove_dc=remove_dc)
     return enhanced_signal, fil.sr
 
 def dataset_logger(audiofile_dir = None, recursive=True):
@@ -1722,7 +1733,7 @@ def envclassifier_train(feature_extraction_dir,
     return model_dir, history
 
 
-def denoiser_run(model, new_audio, feat_settings_dict):
+def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     '''Implements a pre-trained denoiser
     
     Parameters
@@ -1852,7 +1863,7 @@ def denoiser_run(model, new_audio, feat_settings_dict):
                                            percent_overlap = percent_overlap,
                                            phase = original_phase)
     if not isinstance(new_audio, np.ndarray):
-        noisy_audio, __ = pyso.loadsound(new_audio, sr=sr)
+        noisy_audio, __ = pyso.loadsound(new_audio, sr=sr, remove_dc=remove_dc)
     else:
         noisy_audio = new_audio
     if len(cleaned_audio) > len(noisy_audio):

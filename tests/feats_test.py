@@ -119,11 +119,11 @@ def test_get_vad_samples_40SNR_50percentVAD_length_threshold():
     win_size_ms = 50
     percent_overlap = 0
     snr = 40
-    speech, sr = pyso.loadsound(test_python, sr = sr)
+    speech, sr = pyso.loadsound(test_python, sr = sr, remove_dc=False)
     # get just speech segment, no surrounding silence:
     # goal VAD
     speech_only, sr = pyso.loadsound('{}python_speech_only.wav'.format(test_dir), 
-                                     sr = sr)
+                                     sr = sr, remove_dc=False)
     noise = pyso.generate_noise(len(speech), random_seed = 40)
     speech_snr, snr_measured = pyso.dsp.add_backgroundsound(speech,
                                                 noise,
@@ -131,7 +131,8 @@ def test_get_vad_samples_40SNR_50percentVAD_length_threshold():
                                                 snr = snr,
                                                 delay_mainsound_sec = 1,
                                                 total_len_sec = 3,
-                                                random_seed = snr)
+                                                random_seed = snr,
+                                                remove_dc = False)
     vad_samples, sr = pyso.feats.get_vad_samples(speech_snr, 
                                            sr = sr,
                                            win_size_ms = win_size_ms,

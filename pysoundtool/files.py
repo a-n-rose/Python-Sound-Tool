@@ -22,7 +22,7 @@ import pysoundtool as pyso
 
 
 def loadsound(filename, sr=None, mono=True, dur_sec = None, 
-              remove_dc_bias = True, use_scipy=False):
+              remove_dc = True, use_scipy=False):
     '''Loads sound file with scipy.io.wavfile.read or librosa.load (default librosa)
     
     Parameters
@@ -100,7 +100,7 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None,
             if data.shape[0] < data.shape[1]:
                 # change shape from (channels, samples) to (samples, channels)
                 data = data.T
-        if remove_dc_bias:
+        if remove_dc:
             data = pyso.dsp.remove_dc_bias(data)
         return data, sr
     try:
@@ -137,11 +137,11 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None,
     if dur_sec:
         numsamps = int(dur_sec * sr)
         data = pyso.dsp.set_signal_length(data, numsamps)
-    if remove_dc_bias:
+    if remove_dc:
         data = pyso.dsp.remove_dc_bias(data)
     return data, sr
 
-def savesound(audiofile_name, signal_values, sr, remove_dc_bias=True, 
+def savesound(audiofile_name, signal_values, sr, remove_dc=True, 
               overwrite=False, use_scipy=False, **kwargs):
     """saves the wave at designated path
 
@@ -156,7 +156,7 @@ def savesound(audiofile_name, signal_values, sr, remove_dc_bias=True,
     sr : int 
         sample rate of the audio samples.
     
-    remove_dc_bias : bool 
+    remove_dc : bool 
         If True, the mean is subtracted from the signal. (default True)
     
     overwrite : bool
@@ -192,7 +192,7 @@ def savesound(audiofile_name, signal_values, sr, remove_dc_bias=True,
             '\nSet `overwrite` to True in function savesound() to overwrite.')
     directory = audiofile_name.parent
     directory = pyso.utils.check_dir(directory, make=True)
-    if remove_dc_bias:
+    if remove_dc:
         signal_values = pyso.dsp.remove_dc_bias(signal_values)
     if use_scipy:
         write(audiofile_name, sr, signal_values)

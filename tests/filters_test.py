@@ -316,21 +316,21 @@ def test_filtersettings_getsamples_sr8000_bandsubtraction():
     
 def test_filtersignal_wiener_simple_doesitrun_uselibrosa_False():
     signal, sr = pyso.filtersignal(test_noisyfile, filter_type = 'wiener',
-                                   use_scipy=True)
+                                   use_scipy=True, remove_dc=False)
     sig_expected, sr_expected = librosa.load(test_filtered_wiener, sr=sr)
     assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
 
 def test_filtersignal_wiener_posfilter_simple_doesitrun_uselibrosa_False():
     signal, sr = pyso.filtersignal(test_noisyfile, filter_type = 'wiener_pf',
-                                   use_scipy=True)
+                                   use_scipy=True, remove_dc=False)
     sig_expected, sr_expected = librosa.load(test_filtered_wiener_postfilter, sr=sr)
     assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
     
 def test_filtersignal_bandsubtraction_simple_doesitrun_uselibrosa_False():
     signal, sr = pyso.filtersignal(test_noisyfile, filter_type = 'bandsubtraction',
-                                   use_scipy=True)
+                                   use_scipy=True, remove_dc=False)
     sig_expected, sr_expected = librosa.load(test_filtered_bandsub,sr=sr)
     assert np.allclose(signal, sig_expected)
     assert sr == sr_expected

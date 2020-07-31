@@ -433,11 +433,13 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
     input_type_main = pyso.utils.path_or_samples(audio_main)
     input_type_background = pyso.utils.path_or_samples(audio_background)
     if 'path' in input_type_main:
-        target, sr = pyso.loadsound(audio_main, sr = sr, **kwargs)
+        target, sr = pyso.loadsound(audio_main, sr = sr, 
+                                    remove_dc = remove_dc,**kwargs)
     elif 'samples' in input_type_main:
         target, sr = audio_main, sr
     if 'path' in input_type_background:
-        sound2add, sr2 = pyso.loadsound(audio_background, sr = sr, **kwargs)
+        sound2add, sr2 = pyso.loadsound(audio_background, sr = sr, 
+                                        remove_dc = remove_dc,**kwargs)
     elif 'samples' in input_type_background:
         sound2add, sr2 = audio_background, sr
     if sr != sr2:

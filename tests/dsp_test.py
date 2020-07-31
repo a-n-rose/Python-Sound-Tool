@@ -298,7 +298,7 @@ def test_apply_sample_length_stereo_longer():
     data[:,0] = np.array([0,1,2])
     data[:,1] = np.array([1,2,3])
     num_samps = 5
-    new_data = pyso.dsp.apply_sample_length(data,num_samps)
+    new_data = pyso.dsp.apply_sample_length(data,num_samps, clip_at_zero=False)
     assert len(new_data) == num_samps
     assert len(new_data.shape) == len(data.shape)
     assert new_data.shape[1] == data.shape[1]

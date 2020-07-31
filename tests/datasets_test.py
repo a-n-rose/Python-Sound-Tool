@@ -25,7 +25,8 @@ test_mp3 = '{}244287__kleinhirn2000__toast-glas-langsam.mp3'.format(audiodir)
 test_ogg = '{}240674__zajo__you-have-been-denied.ogg'.format(audiodir)
 
 def test_loadsound_mono_uselibrosa_False():
-    samples, sr = pyso.loadsound(test_wav_stereo,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo,use_scipy=True, 
+                                 remove_dc=False)
     expected = np.array([0.06140351, 0.06140351, 0.06140351, 0.06140351,
                          0.06140351])
     expected_shape = (len(expected),)
@@ -35,7 +36,8 @@ def test_loadsound_mono_uselibrosa_False():
     assert expected_sr == sr
     
 def test_loadsound_mono_dur1_uselibrosa_False():
-    samples, sr = pyso.loadsound(test_wav_stereo, dur_sec=1,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, dur_sec=1,
+                                 use_scipy=True, remove_dc=False)
     expected = np.array([0.06140351, 0.06140351, 0.06140351, 0.06140351,
                          0.06140351])
     expected_shape = (len(expected),)
@@ -45,7 +47,8 @@ def test_loadsound_mono_dur1_uselibrosa_False():
     assert len(samples) == expected_sr
     
 def test_loadsound_stereo_uselibrosa_False():
-    samples, sr = pyso.loadsound(test_wav_stereo, mono=False,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, mono=False,
+                                 use_scipy=True, remove_dc=False)
     expected = np.array([[0.06140351, 0.06140351],[0.06140351, 0.06140351],
                          [0.06140351, 0.06140351]])
     expected_shape = expected.shape
@@ -55,7 +58,8 @@ def test_loadsound_stereo_uselibrosa_False():
     assert expected_sr == sr
     
 def test_loadsound_stereo_dur1_uselibrosa_False():
-    samples, sr = pyso.loadsound(test_wav_stereo, mono=False, dur_sec=1,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, mono=False, 
+                                 dur_sec=1,use_scipy=True, remove_dc=False)
     expected = np.array([[0.06140351, 0.06140351],[0.06140351, 0.06140351],
                          [0.06140351, 0.06140351]])
     expected_shape = expected.shape
@@ -66,7 +70,8 @@ def test_loadsound_stereo_dur1_uselibrosa_False():
     assert len(samples) == expected_sr
     
 def test_loadsound_mono_sr48000_uselibrosa_False():
-    samples, sr = pyso.loadsound(test_wav_stereo, mono=True, sr=48000,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, mono=True, sr=48000,
+                                 use_scipy=True, remove_dc=False)
     expected = np.array([0.07632732, 0.07633357, 0.07633357, 0.07632732,
                          0.07632107])
     expected_sr = 48000
@@ -74,7 +79,8 @@ def test_loadsound_mono_sr48000_uselibrosa_False():
     assert sr == expected_sr
     
 def test_loadsound_stereo_sr48000_uselibrosa_False():
-    samples, sr = pyso.loadsound(test_wav_stereo, sr=48000, mono=False,use_scipy=True)
+    samples, sr = pyso.loadsound(test_wav_stereo, sr=48000, mono=False,
+                                 use_scipy=True, remove_dc=False)
     expected = np.array([[0.07632732, 0.07632732],[0.07633357, 0.07628564],
                          [0.07633357, 0.07628563]])
     expected_shape = expected.shape
@@ -109,9 +115,10 @@ def test_loadsound_ogg2wav_sr22050_uselibrosa_False():
     
 def test_loadsound_librosa_wav():
     # use librosa to load file
-    samples, sr = pyso.loadsound(test_wav_stereo, use_scipy=False)
+    samples, sr = pyso.loadsound(test_wav_stereo, use_scipy=False,
+                                 remove_dc=False)
     # use scipy.io.wavfile to load the file
-    samples2, sr2 = pyso.loadsound(test_wav_stereo)
+    samples2, sr2 = pyso.loadsound(test_wav_stereo, remove_dc=False)
     assert np.allclose(samples[:5], np.array([0., 0., 0., 0., 0.]))
     assert sr==16000
     print('IF ERROR: Librosa and Scipy.io.wavfile load data a little differently.')
@@ -128,7 +135,8 @@ def test_loadsound_scipy_sr_None():
     
 def test_loadsound_librosa_wav_dur1_sr22050():
     # use librosa to load file
-    samples, sr = pyso.loadsound(test_wav_stereo, dur_sec=1, sr=22050, use_scipy=False)
+    samples, sr = pyso.loadsound(test_wav_stereo, dur_sec=1, sr=22050, 
+                                 use_scipy=False, remove_dc=False)
 
     assert np.allclose(samples[:5], np.array([0., 0., 0., 0., 0.]))
     assert sr==22050
@@ -137,48 +145,50 @@ def test_loadsound_librosa_wav_dur1_sr22050():
 def test_loadsound_librosa_wav_dur1_sr22050_stereo():
     # use librosa to load file
     samples, sr = pyso.loadsound(test_wav_stereo, mono=False, dur_sec=1, 
-                                 sr=22050, use_scipy=False)
+                                 sr=22050, use_scipy=False, remove_dc=False)
     expected = np.array([[0.,0.],[0.,0.],[0.,0.]])
     assert np.allclose(samples[:3], expected)
     assert sr==22050
     assert samples.shape == (22050,2)
     
 def test_loadsound_librosa_aiff():
-    samples, sr = pyso.loadsound(test_aiff, use_scipy=False)
+    samples, sr = pyso.loadsound(test_aiff, use_scipy=False,
+                                remove_dc=False)
     expected = np.array([0.09291077, 0.06417847, 0.04179382, 0.02642822, 
                          0.01808167])
     assert np.allclose(samples[:5], expected)
     assert sr==48000
     
 def test_loadsound_librosa_aiff_sr16000():
-    samples, sr = pyso.loadsound(test_aiff, sr=16000, use_scipy=False)
+    samples, sr = pyso.loadsound(test_aiff, sr=16000, use_scipy=False, 
+                                 remove_dc=False)
     expected = np.array([ 0.05152914,0.03653815, -0.0083929,
                          -0.0207656,-0.03038501])
     assert np.allclose(samples[:5], expected)
     assert sr==16000
     
 def test_loadsound_librosa_flac():
-    samples, sr = pyso.loadsound(test_flac, use_scipy=False)
+    samples, sr = pyso.loadsound(test_flac, use_scipy=False, remove_dc=False)
     expected = np.array([ 0.0000000e+00,0.0000000e+00, 0.0000000e+00,
                          0.0000000e+00,-3.0517578e-05])
     assert np.allclose(samples[:5], expected)
     assert sr==44100
     
 def test_loadsound_librosa_ogg():
-    samples, sr = pyso.loadsound(test_ogg, use_scipy=False)
+    samples, sr = pyso.loadsound(test_ogg, use_scipy=False, remove_dc=False)
     expected = np.array([-0.00639889, -0.00722905, -0.00864992, 
                          -0.00878596, -0.00894831])
     assert np.allclose(samples[:5], expected)
     assert sr==44100
     
 def test_loadsound_librosa_m4a():
-    samples, sr = pyso.loadsound(test_m4a, use_scipy=False)
+    samples, sr = pyso.loadsound(test_m4a, use_scipy=False, remove_dc=False)
     expected = np.array([0. ,0. ,0. ,0. ,0.])
     assert np.allclose(samples[:5], expected)
     assert sr==48000
     
 def test_loadsound_librosa_mp3():
-    samples, sr = pyso.loadsound(test_mp3, use_scipy=False)
+    samples, sr = pyso.loadsound(test_mp3, use_scipy=False, remove_dc=False)
     expected = np.array([ 0.000e+00, -1.5258789e-05,  0.000e+00, 
                          0.00e+00,0.0000000e+00])
     assert np.allclose(samples[:5], expected)
