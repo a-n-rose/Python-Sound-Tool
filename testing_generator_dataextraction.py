@@ -73,36 +73,36 @@ augmentation_all_speeddown_pitchdown = dict([('add_white_noise',True),
 
 
 audiodata_path = '../mini-audio-datasets/speech_commands/'
-augment_dict_list = [augmentation_all_speeddown_pitchup]
+augment_dict_list = [augmentation_pitchup, augmentation_pitchdown]
 labeled_data = True 
 batch_size = 1
 use_librosa = True 
 frames_per_sample = None 
 log_settings = True 
-epochs = 50
+epochs = 5
 patience = 15
 
-# if want to change augmentation settings:
+# get defaults dict of all augmentations:
 aug_settings_dict = {}
-for aug_dict in augmentation_dicts:
-    for key, value in aug_dict.items():
-        if value:
-            aug_settings_dict[key] = pyso.augment.get_augmentation_settings_dict(key)
-# reset values if desired.
-# Note: these will over ride the default values of the generator
-aug_settings_dict['add_white_noise']['snr'] = [5,10,20]  
+for key in pyso.augment.get_augmentation_dict().keys():
+    aug_settings_dict[key] = pyso.augment.get_augmentation_settings_dict(key)
+# if want to change augmentation settings:
+# Note: these changes will over-ride the default values of the generator
+aug_settings_dict['pitch_increase']['num_semitones'] = 1 
 
 model_dir, history = pyso.envclassifier_extract_train(
     model_name = 'testing_augment_buildin',
     audiodata_path = audiodata_path,
     augment_dict_list = augment_dict_list,
+    augment_settings_dict = aug_settings_dict,
     labeled_data = labeled_data,
     batch_size = batch_size,
     use_librosa = use_librosa,
     frames_per_sample = frames_per_sample,
-    log_settings = True,
     epochs = epochs, 
     patience = patience,
+    visualize = True,
+    vis_every_n_items = 50,
     **get_feats_kwargs)
 
 plt.clf()
