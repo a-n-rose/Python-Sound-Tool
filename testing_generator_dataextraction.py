@@ -73,7 +73,8 @@ augmentation_all_speeddown_pitchdown = dict([('add_white_noise',True),
 
 
 audiodata_path = '../mini-audio-datasets/speech_commands/'
-augment_dict_list = [augmentation_pitchup, augmentation_pitchdown]
+augment_dict_list = [augmentation_pitchup, augmentation_pitchdown,
+                     augmentation_all_speeddown_pitchup]
 labeled_data = True 
 batch_size = 1
 use_librosa = True 
@@ -89,6 +90,8 @@ for key in pyso.augment.get_augmentation_dict().keys():
 # if want to change augmentation settings:
 # Note: these changes will over-ride the default values of the generator
 aug_settings_dict['pitch_increase']['num_semitones'] = 1 
+aug_settings_dict['add_white_noise']['snr'] = [10,15,20]
+aug_settings_dict['speed_decrease']['perc'] = 0.1
 
 model_dir, history = pyso.envclassifier_extract_train(
     model_name = 'testing_augment_buildin',
