@@ -2618,14 +2618,7 @@ def envclassifier_extract_train(
 
     if augment_dict_list is None:
         augment_dict_list = [dict()]
-    # Print how many epochs possible if several augmentations
-    
-    if len(augment_dict_list) > 1:
-        print('~'*79)
-        print('\nNOTE: due to several augmentations, total epochs possible:' + \
-              '\n{} epochs\n'.format(len(augment_dict_list * epochs)))
-        print('~'*79)
-        print()
+
     for i, augment_dict in enumerate(augment_dict_list):
         # designate where to save model and related files
         model_name = 'audioaugment_'
@@ -2683,7 +2676,14 @@ def envclassifier_extract_train(
             add_tensor_last = True,
             adjust_shape = input_shape[:-1])
         
-        
+        if i == 0:
+            # Print how many epochs possible if several augmentations
+            if len(augment_dict_list) > 1:
+                print('~'*79)
+                print('\nNOTE: due to several augmentations, total epochs possible:' + \
+                    '\n{} epochs\n'.format(len(augment_dict_list * epochs)))
+                print('~'*79)
+                print()
         print('-'*79)
         print('\nTRAINING SESSION ',i+1, ' out of ', len(augment_dict_list))
         if augment_dict:
