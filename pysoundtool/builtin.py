@@ -2438,11 +2438,12 @@ def envclassifier_extract_train(
     use_librosa = True, 
     center = True, 
     mode = 'reflect', 
-    log_settings = True,
     epochs = 5,
     patience = 15,
     callbacks = None,
     random_seed = None,
+    visualize = False,
+    vis_every_n_items = 50,
     **kwargs):
     '''Extract and augment features during training of a scene/environment/speech classifier
     
@@ -2617,6 +2618,14 @@ def envclassifier_extract_train(
 
     if augment_dict_list is None:
         augment_dict_list = [dict()]
+    # Print how many epochs possible if several augmentations
+    
+    if len(augment_dict_list) > 1:
+        print('~'*79)
+        print('\nNOTE: due to several augmentations, total epochs possible:' + \
+              '\n{} epochs\n'.format(len(augment_dict_list * epochs)))
+        print('~'*79)
+        print()
     for i, augment_dict in enumerate(augment_dict_list):
         # designate where to save model and related files
         model_name = 'audioaugment_'
@@ -2658,8 +2667,9 @@ def envclassifier_extract_train(
             add_tensor_last = add_tensor_last, 
             add_tensor_first = add_tensor_first,
             gray2color = False,
-            visualize = False,
-            vis_every_n_items = 1,
+            visualize = visualize,
+            vis_every_n_items = vis_every_n_items,
+            visuals_dir = model_dir.joinpath('images'),
             decode_dict = dict_decode,
             dataset = 'train',
             augment_dict = augment_dict,
@@ -2674,16 +2684,19 @@ def envclassifier_extract_train(
             adjust_shape = input_shape[:-1])
         
         
+        print('-'*79)
         print('\nTRAINING SESSION ',i+1, ' out of ', len(augment_dict_list))
-        if augment_dict_list:
+        if augment_dict:
             print('Augmentation(s) applied: ')
-            for j, aug_dict in enumerate(augment_dict_list):
-                if aug_dict:
-                    print('Training session {}'.format(j+1))
-                    print(', '.join(aug_dict.keys()))
-                    print()
-                else:
-                    print('No augmentations applied.\n')
+            for key in augment_dict.keys():
+                print('{}'.format(key).upper())
+                if augment_settings_dict:
+                    settings = augment_settings_dict[key]
+                    print('- Settings: {}'.format(settings))
+            print()
+        else:
+            print('\nNo augmentations applied.\n')
+        print('-'*79)
         
         history = envclassifier.fit_generator(
             train_generator.generator(),
