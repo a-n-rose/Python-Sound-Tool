@@ -191,7 +191,8 @@ class GeneratorFeatExtraction:
                  add_tensor_last = True, add_tensor_first = False,
                  gray2color = False, visualize = False,
                  vis_every_n_items = 50, decode_dict = None, dataset='train', 
-                 augment_dict = None, label_silence = False, **kwargs):
+                 augment_dict = None, augment_settings_dict = None, 
+                 label_silence = False, **kwargs):
         '''
         Do not add extra tensor dimensions to expected input_shape.
         
@@ -254,6 +255,9 @@ class GeneratorFeatExtraction:
         if augment_dict is None:
             augment_dict = dict()
         self.augment_dict = augment_dict
+        if augment_settings_dict is None:
+            augment_settings_dict = dict()
+        self.augment_settings_dict = augment_settings_dict
         # if vtlp should be used as stft matrix
         if 'vtlp' in augment_dict:
             self.vtlp = augment_dict['vtlp']
@@ -399,9 +403,11 @@ class GeneratorFeatExtraction:
                                     label)
                     y = np.nan_to_num(y)
                     try:
-                        augmented_data, augmentation = augment_features(y, 
-                                                                self.sr, 
-                                                                **self.augment_dict)
+                        augmented_data, augmentation = augment_features(
+                            y, 
+                            self.sr, 
+                            augment_settings_dict = self.augment_settings_dict,
+                            **self.augment_dict)
                     except librosa.util.exceptions.ParameterError:
                         print('Augmentation: ', augmentation)
                         print('Augmentation failed. No augmentation applied.')
@@ -603,6 +609,7 @@ def augment_features(sound,
                      num_semitones = 2,
                      vtlp = False,
                      bilinear_warp = True,
+                     augment_settings_dict = None,
                      ):
     if speed_increase and speed_decrease:
         raise ValueError('Cannot have both speed_increase and speed_decrease'+\
@@ -619,66 +626,88 @@ def augment_features(sound,
     samples_augmented = samples.copy()
     augmentation = ''
     if add_white_noise:
-        snr_choice = np.random.choice(snr)
+        # allow default settings to be used/overwritten
+        if augment_settings_dict is not None and 'add_white_noise' in augment_settings_dict:
+            kwargs_aug = augment_settings_dict['add_white_noise']
+            if isinstance(kwargs_aug['snr'], str):
+                kwargs_aug['snr'] = pyso.utils.restore_dictvalue(kwargs_aug['snr'])
+            # if a list of snr values: choose randomly
+            if isinstance(kwargs_aug['snr'], list):
+                kwargs_aug['snr'] = np.random.choice(kwargs_aug['snr'])
+        else:
+            kwargs_aug = dict([('sr', sr),
+                               ('snr', np.random.choice(snr))])
         samples_augmented = pyso.augment.add_white_noise(samples_augmented, 
-                                                         sr = sr,
-                                                         snr = snr_choice)
-        augmentation += '_whitenoise{}SNR'.format(snr_choice)
-        na_present = check4na(samples_augmented)
+                                                         **kwargs_aug)
+        augmentation += '_whitenoise{}SNR'.format(kwargs_aug['snr'])
+        
     if speed_increase:
+        if augment_settings_dict is not None and 'speed_increase' in augment_settings_dict:
+            kwargs_aug = augment_settings_dict['speed_increase']
+        else:
+            kwargs_aug = dict([('sr', sr),
+                               ('perc', speed_perc)])
         samples_augmented = pyso.augment.speed_increase(samples_augmented,
-                                                        sr = sr,
-                                                        perc = speed_perc)
-        augmentation += '_speedincrease{}'.format(speed_perc)
-        na_present = check4na(samples_augmented)
-        if na_present:
-            print(augmentation)
+                                                        **kwargs_aug)
+        augmentation += '_speedincrease{}'.format(kwargs_aug['perc'])
+
+
     elif speed_decrease:
+        if augment_settings_dict is not None and 'speed_decrease' in augment_settings_dict:
+            kwargs_aug = augment_settings_dict['speed_decrease']
+        else:
+            kwargs_aug = dict([('sr', sr),
+                               ('perc', speed_perc)])
         samples_augmented = pyso.augment.speed_decrease(samples_augmented,
-                                                        sr = sr,
-                                                        perc = speed_perc)
-        augmentation += '_speeddecrease{}'.format(speed_perc)
-        na_present = check4na(samples_augmented)
-        if na_present:
-            print(augmentation)
+                                                        **kwargs_aug)
+        augmentation += '_speeddecrease{}'.format(kwargs_aug['perc'])
+
+
     if time_shift:
         samples_augmented = pyso.augment.time_shift(samples_augmented, 
                                                     sr = sr)
         augmentation += '_randtimeshift'
-        na_present = check4na(samples_augmented)
-        if na_present:
-            print(augmentation)
+
+
     if shufflesound:
+        if augment_settings_dict is not None and 'shufflesound' in augment_settings_dict:
+            kwargs_aug = augment_settings_dict['shufflesound']
+        else:
+            kwargs_aug = dict([('sr', sr),
+                               ('num_subsections', num_subsections)])
         samples_augmented = pyso.augment.shufflesound(samples_augmented, 
-                                                    sr = sr, 
-                                                    num_subsections = num_subsections)
-        augmentation += '_randshuffle{}sections'.format(num_subsections)
-        na_present = check4na(samples_augmented)
-        if na_present:
-            print(augmentation)
+                                                    **kwargs_aug)
+        augmentation += '_randshuffle{}sections'.format(kwargs_aug['num_subsections'])
+
+
     if harmonic_distortion: 
         samples_augmented = pyso.augment.harmonic_distortion(samples_augmented,
                                                              sr = sr)
         augmentation += '_harmonicdistortion'
-        na_present = check4na(samples_augmented)
-        if na_present:
-            print(augmentation)
+
+
     if pitch_increase:
+        if augment_settings_dict is not None and 'pitch_increase' in augment_settings_dict:
+            kwargs_aug = augment_settings_dict['pitch_increase']
+        else:
+            kwargs_aug = dict([('sr', sr),
+                               ('num_semitones', num_semitones)])
         samples_augmented = pyso.augment.pitch_increase(samples_augmented,
-                                                        sr = sr,
-                                                        num_semitones = num_semitones)
-        augmentation += '_pitchincrease{}semitones'.format(num_semitones)
-        na_present = check4na(samples_augmented)
-        if na_present:
-            print(augmentation)
+                                                        **kwargs_aug)
+        augmentation += '_pitchincrease{}semitones'.format(kwargs_aug['num_semitones'])
+
+
     elif pitch_decrease:
+        if augment_settings_dict is not None and 'pitch_decrease' in augment_settings_dict:
+            kwargs_aug = augment_settings_dict['pitch_decrease']
+        else:
+            kwargs_aug = dict([('sr', sr),
+                               ('num_semitones', num_semitones)])
         samples_augmented = pyso.augment.pitch_decrease(samples_augmented,
-                                                        sr = sr,
-                                                        num_semitones = num_semitones)
-        augmentation += '_pitchdecrease{}semitones'.format(num_semitones)
-        na_present = check4na(samples_augmented)
-        if na_present:
-            print(augmentation)
+                                                        **kwargs_aug)
+        augmentation += '_pitchdecrease{}semitones'.format(kwargs_aug['num_semitones'])
+
+
     # all augmentation techniques return sample data except for vtlp
     # therefore vtlp will be handled outside of this function (returns stft matrix)
     if vtlp:
@@ -689,9 +718,119 @@ def augment_features(sound,
                                                          sr = sr,
                                                          snr = snr_choice)
         augmentation += '_whitenoise{}SNR'.format(snr_choice)
-        na_present = check4na(samples_augmented)
+
     samples_augmented = pyso.dsp.set_signal_length(samples_augmented, len(samples))
-    na_present = check4na(samples_augmented)
-    if na_present:
-        print(augmentation)
+
     return samples_augmented, augmentation
+
+# TODO: add default values?
+def get_input_shape(kwargs_get_feats, labeled_data = False,
+                    frames_per_sample = None, use_librosa=True, mode = 'reflect'):
+    # set defaults if not provided
+    try:
+        feature_type = kwargs_get_feats['feature_type']
+    except KeyError:
+        raise ValueError('Missing `feature_type` key and value.')
+    try:
+        dur_sec = kwargs_get_feats['dur_sec']
+    except KeyError:
+        raise ValueError('Missing `dur_sec` key and value.')
+    try:
+        sr = kwargs_get_feats['sr']
+    except KeyError:
+        kwargs_get_feats['sr'] = 441000
+        sr = kwargs_get_feats['sr']
+    try:
+        win_size_ms = kwargs_get_feats['win_size_ms']
+    except KeyError:
+        kwargs_get_feats['win_size_ms'] = 25
+        win_size_ms = kwargs_get_feats['win_size_ms']
+    try:
+        percent_overlap = kwargs_get_feats['percent_overlap']
+    except KeyError:
+        kwargs_get_feats['percent_overlap'] = 0.5
+        percent_overlap = kwargs_get_feats['percent_overlap']
+    try:
+        fft_bins = kwargs_get_feats['fft_bins']
+    except KeyError:
+        kwargs_get_feats['fft_bins'] = None
+        fft_bins = kwargs_get_feats['fft_bins']
+    try:
+        center = kwargs_get_feats['center']
+    except KeyError:
+        kwargs_get_feats['center'] = True
+        center = kwargs_get_feats['center']
+    try:
+        num_filters = kwargs_get_feats['num_filters']
+    except KeyError:
+        raise ValueError('Missing `num_filters` key and value.')
+        num_filters = kwargs_get_feats['num_filters']
+    try:
+        num_mfcc = kwargs_get_feats['num_mfcc']
+    except KeyError:
+        kwargs_get_feats['num_mfcc'] = None
+        num_mfcc = kwargs_get_feats['num_mfcc']
+    # figure out shape of data:
+    total_samples = pyso.dsp.calc_frame_length(dur_sec*1000, sr=sr)
+    if use_librosa:
+        frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
+        win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
+        hop_length = int(win_shift_ms*0.001*sr)
+        if fft_bins is None:
+            fft_bins = frame_length
+        # librosa centers samples by default, sligthly adjusting total 
+        # number of samples
+        if center:
+            y_zeros = np.zeros((total_samples,))
+            y_centered = np.pad(y_zeros, int(fft_bins // 2), mode=mode)
+            total_samples = len(y_centered)
+        # each audio file 
+        if 'signal' in feature_type:
+            # don't apply fft to signal (not sectioned into overlapping windows)
+            total_rows_per_wav = total_samples // frame_length
+        else:
+            # do apply fft to signal (via Librosa) - (will be sectioned into overlapping windows)
+            total_rows_per_wav = int(1 + (total_samples - fft_bins)//hop_length)
+        
+        # set defaults to num_feats if set as None:
+        if num_filters is None:
+            if 'mfcc' in feature_type:
+                if num_mfcc is None:
+                    num_feats = 40
+                else:
+                    num_feats = num_mfcc
+            elif 'fbank' in feature_type:
+                num_feats = 40
+            elif 'powspec' in feature_type or 'stft' in feature_type:
+                num_feats = int(1+fft_bins/2)
+            elif 'signal' in feature_type:
+                num_feats = frame_length
+            else:
+                raise ValueError('Feature type "{}" '.format(feature_type)+\
+                    'not understood.\nMust include one of the following: \n'+\
+                        ', '.join(list_available_features()))
+        else:
+            if 'signal' in feature_type:
+                num_feats = frame_length
+            else:
+                num_feats = num_filters
+            
+        if frames_per_sample is not None:
+            # want smaller windows, e.g. autoencoder denoiser or speech recognition
+            batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
+            if labeled_data:
+                orig_shape = (batch_size, frames_per_sample, num_feats + 1)
+                input_shape = (orig_shape[0] * orig_shape[1], 
+                                    orig_shape[2]-1)
+            else:
+                orig_shape = (batch_size, frames_per_sample, num_feats)
+                input_shape = (orig_shape[0]*orig_shape[1],
+                                    orig_shape[2])
+        else:
+            if labeled_data:
+                orig_shape = (int(total_rows_per_wav), num_feats + 1)
+                input_shape = (orig_shape[0], orig_shape[1]-1)
+            else:
+                orig_shape = (int(total_rows_per_wav), num_feats)
+                input_shape = orig_shape
+    return input_shape

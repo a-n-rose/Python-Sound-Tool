@@ -64,7 +64,22 @@ def path_or_samples(input_value):
         raise TypeError('The input for `path_or_samples` expected a str, '+\
             'pathlib.PosixPath, np.ndarray, or tuple with samples and sample rate, '+\
                 'not type {}'.format(type(input_value)))
-    
+
+def get_default_args(func):
+    '''
+    References
+    ----------
+    stackoverflow answer by mgilson: 
+    link: https://stackoverflow.com/a/12627202
+    license: https://creativecommons.org/licenses/by-sa/3.0/
+    '''
+    signature = inspect.signature(func)
+    return {
+        k: v.default
+        for k, v in signature.parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
+
 def match_dtype(array1, array2):
     '''Match the dtype of the second array to the first.
     
@@ -607,6 +622,9 @@ def load_dict(csv_path):
     Increasing the csv limit helps if loading dicitonaries with very long audio 
     file path lists. For example, see pysoundtool.datasets.audio2datasets function.
     '''
+    # if a dictionary is already loaded, simply return the dictionary
+    if isinstance(csv_path, dict):
+        return csv_path
     try:
         with open(csv_path, mode='r') as infile:
             reader = csv.reader(infile)

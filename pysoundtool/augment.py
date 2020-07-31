@@ -286,3 +286,45 @@ def vtlp(sound, sr = 44100, a = (0.8,1.2), random_seed = None,
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:,:max_freq]
     return stft_matrix, vtlp_a
+
+def get_augmentation_dict():
+    base_dict = dict([('speed_increase', False),
+                      ('speed_decrease', False),
+                      ('time_shift', False),
+                      ('shufflesound', False),
+                      ('add_white_noise', False),
+                      ('harmonic_distortion', False),
+                      ('pitch_increase', False),
+                      ('pitch_decrease', False),
+                      ('vtlp', False),
+                      ])
+    return base_dict
+
+def list_augmentations():
+    augmentation_dict = pyso.augment.get_augmentation_dict()
+    aug_list = ', '.join(str(x) for x in augmentation_dict.keys())
+    augmentations = 'Available augmentations:\n\t'+ aug_list
+    return augmentations
+    
+def get_augmentation_settings_dict(augmentation):
+    if augmentation == 'speed_increase':
+        aug_defaults = pyso.utils.get_default_args(pyso.augment.speed_increase)
+    elif augmentation == 'speed_decrease':
+        aug_defaults = pyso.utils.get_default_args(pyso.augment.speed_decrease)        
+    elif augmentation == 'time_shift':
+        aug_defaults = pyso.utils.get_default_args(pyso.augment.time_shift)
+    elif augmentation == 'shufflesound':
+        aug_defaults = pyso.utils.get_default_args(pyso.augment.shufflesound)
+    elif augmentation == 'add_white_noise':
+        aug_defaults = pyso.utils.get_default_args(pyso.augment.add_white_noise)
+    elif augmentation == 'harmonic_distortion':
+        aug_defaults = pyso.utils.get_default_args(pyso.augment.harmonic_distortion)
+    elif augmentation == 'pitch_increase':
+        aug_defaults = pyso.utils.get_default_args(pyso.augment.pitch_increase)
+    elif augmentation == 'pitch_decrease':
+        aug_defaults = pyso.utils.get_default_args(pyso.augment.pitch_decrease)
+    elif augmentation == 'vtlp':
+        aug_defaults = pyso.utils.get_default_args(pyso.augment.vtlp)
+    return aug_defaults
+    
+    

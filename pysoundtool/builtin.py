@@ -2375,8 +2375,347 @@ def resnet50_train(feature_extraction_dir,
             model.save(model_dir.joinpath('final_not_best_model.h5'))
             return model_dir, history
 
-
-def extract_voxforge():
-    '''This is a function specifically suited for the VoxForge dataset
+def denoiser_extract_train(
+    dataset_dict = None,
+    audiodata_path = None,
+    feature_type = 'fbank',
+    num_feats = None,
+    mono = True,
+    rate_of_change = False,
+    rate_of_acceleration = False,
+    subtract_mean = False,
+    use_scipy = False,
+    dur_sec = 1,
+    win_size_ms = 25,
+    percent_overlap = 0.5,
+    sr = 22050,
+    fft_bins = None,
+    frames_per_sample = None, 
+    labeled_data = False, 
+    batch_size = 10,
+    use_librosa = True, 
+    center = True, 
+    mode = 'reflect', 
+    log_settings = True, 
+    model_name = 'env_classifier',
+    epoch = 5,
+    patience = 15,
+    callbacks = None,
+    use_generator = True,
+    augmentation_dict = None):
+    '''Extract and augment features during training of a denoising model.
     '''
+    if dataset_dict is None:
+        # set up datasets
+        if audiodata_path is None:
+            raise ValueError('Function `denoiser_extract_train` expects either:\n'+\
+                '1) a `dataset_dict` with audiofile pathways assigned to datasets OR'+\
+                    '\n2) a `audiodata_path` indicating where audiofiles for'+\
+                        'training are located.\n**Both cannot be None.')
+        
+        # pyso.check_dir:
+        # raises error if this path doesn't exist (make = False)
+        # if does exist, returns path as pathlib.PosixPath object
+        data_dir = pyso.check_dir(audiodata_path, make = False)
+    
+    else:
+        # use pre-collected dataset dict
+        dataset_dict = dataset_dict
     pass
+
+
+def envclassifier_extract_train(
+    model_name = 'env_classifier',
+    dataset_dict = None,
+    num_labels = None,
+    augment_dict_list = None,
+    augment_settings_dict = None,
+    audiodata_path = None,
+    save_new_files_dir = None,
+    frames_per_sample = None, # images_per_sample, sections_per_sample..? 
+    labeled_data = True,
+    batch_size = 10,
+    use_librosa = True, 
+    center = True, 
+    mode = 'reflect', 
+    log_settings = True,
+    epochs = 5,
+    patience = 15,
+    callbacks = None,
+    random_seed = None,
+    **kwargs):
+    '''Extract and augment features during training of a scene/environment/speech classifier
+    
+    Parameters
+    ----------
+    model_name : str 
+        Name of the model. No extension (will save as .h5 file)
+        
+    dataset_dict : dict, optional
+        A dictionary including datasets as keys, and audio file lists (with or without
+        labels) as values. If None, will be created based on `audiodata_path`.
+        (default None)
+        
+    augment_dict_list : list of dicts, optional
+        List of dictionaries containing keys (e.g. 'add_white_noise'). See 
+        `pysoundtool.augment.list_augmentations`and corresponding True or False
+        values. If the value is True, the key / augmentation gets implemented. 
+        (default None)
+        
+    augment_settings_dict : dict, optional
+        Settings for the augmentations if other than default values desired.
+        Note: these will overwrite the default settings of this local function.
+        (default None)
+    
+    audiodata_path : str, pathlib.PosixPath
+        Where audio data can be found, if no `dataset_dict` provided.
+        (default None)
+        
+    save_new_files_dir : str, pathlib.PosixPath
+        Where new files (logging, model(s), etc.) will be saved. If None, will be 
+        set in a unique directory within the current working directory.
+        (default None)
+        
+    **kwargs : additional keyword arguments 
+        Keyword arguments for `pysoundtool.feats.get_feats`.
+    
+    '''
+    # require 'feature_type' to be indicated
+    if 'feature_type' not in kwargs:
+        raise ValueError('Function `envclassifier_extract_train` expects the '+ \
+            'parameter `feature_type` to be set as one of the following:\n'+ \
+                '- signal\n- stft\n- powspec\n- fbank\n- mfcc\n') 
+    
+    # Set up directory to save new files:
+    # will not raise error if not exists: instead makes the directory
+    if save_new_files_dir is None:
+        save_new_files_dir = './example_feats_models/envclassifer/'
+    dataset_path = pyso.check_dir(save_new_files_dir, make = True)
+    # create unique timestamped directory to save new files
+    # to avoid overwriting issues:
+    dataset_path = dataset_path.joinpath(
+        'features_{}_{}'.format(kwargs['feature_type'], pyso.utils.get_date()))
+    # create that new directory as well
+    dataset_path = pyso.check_dir(dataset_path, make=True)
+    
+    # set up datasets if no dataset_dict provided:
+    if dataset_dict is None:
+        if audiodata_path is None:
+            raise ValueError('Function `denoiser_extract_train` expects either:\n'+\
+                '1) a `dataset_dict` with audiofile pathways assigned to datasets OR'+\
+                    '\n2) a `audiodata_path` indicating where audiofiles for'+\
+                        'training are located.\n**Both cannot be None.')
+        
+        # pyso.check_dir:
+        # raises error if this path doesn't exist (make = False)
+        # if does exist, returns path as pathlib.PosixPath object
+        data_dir = pyso.check_dir(audiodata_path, make = False)
+        
+        # collect labels
+        labels = []
+        for label in data_dir.glob('*/'):
+            if label.suffix:
+                # avoid adding unwanted files in the directory
+                # want only directory names
+                continue
+            labels.append(label.stem)
+        labels = set(labels)
+    
+        # create encoding and decoding dictionaries of labels:
+        dict_encode, dict_decode = pyso.datasets.create_dicts_labelsencoded(
+            labels,
+            add_extra_label = False,
+            extra_label = 'silence')
+    
+        # save labels and their encodings
+        dict_encode_path = dataset_path.joinpath('dict_encode.csv')
+        dict_decode_path = dataset_path.joinpath('dict_decode.csv')
+        pyso.utils.save_dict(dict2save = dict_encode,
+                            filename = dict_encode_path,
+                            overwrite=True)
+        dict_decode_path = pyso.utils.save_dict(dict2save = dict_decode,
+                                                filename = dict_decode_path,
+                                                overwrite=True)
+
+        # get audio pathways and assign them their encoded labels:
+        paths_list = pyso.files.collect_audiofiles(data_dir, recursive=True)
+        paths_list = sorted(paths_list)
+
+        dict_encodedlabel2audio = pyso.datasets.create_encodedlabel2audio_dict(
+            dict_encode,
+            paths_list)
+        # path for saving dict for which audio paths are assigned to which labels:
+        dict_encdodedlabel2audio_path = dataset_path.joinpath(
+            'dict_encdodedlabel2audio.csv')
+
+        pyso.utils.save_dict(dict2save = dict_encodedlabel2audio,
+                            filename = dict_encdodedlabel2audio_path,
+                            overwrite=True)
+
+        # assign audio files int train, validation, and test datasets
+        train, val, test = pyso.datasets.audio2datasets(
+            dict_encdodedlabel2audio_path,
+            perc_train=0.8,
+            limit=None,
+            seed=random_seed)
+        
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(train)
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(val)
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(test)
+
+        # save audiofiles for each dataset to dict and save
+        # for logging purposes
+        dataset_dict = dict([('train', train),
+                                ('val', val),
+                                ('test', test)])
+        dataset_dict_path = dataset_path.joinpath('dataset_audiofiles.csv')
+        dataset_dict_path = pyso.utils.save_dict(
+            dict2save = dataset_dict,
+            filename = dataset_dict_path,
+            overwrite=True)
+        
+    else:
+        if num_labels is None:
+            raise ValueError('Function `denoiser_extract_train` requires '+\
+                '`num_labels` to be provided if a pre-made `dataset_dict` is provided.')
+        # use pre-collected dataset dict
+        dataset_dict = pyso.utils.load_dict(dataset_dict)
+        # don't have the label data available
+        dict_encode, dict_decode = None, None
+        
+    input_shape = pysodl.dataprep.get_input_shape(kwargs, labeled_data = labeled_data,
+                                  frames_per_sample = frames_per_sample,
+                                  use_librosa = use_librosa)
+    
+    # extract validation data (must already be extracted)
+    val_dict = dict([('val',dataset_dict['val'])])
+    val_path = dataset_path.joinpath('val_data.npy')
+    val_path_dict = dict([('val', val_path)])
+
+    val_dict, val_path_dict = pyso.feats.save_features_datasets(
+        val_dict,
+        val_path_dict,
+        labeled_data = labeled_data,
+        **kwargs)
+
+    val_data = np.load(val_path_dict['val'])
+
+
+    # start training
+    start = time.time()
+
+    input_shape = input_shape + (1,)
+    if dict_encode is not None:
+        num_labels = len(dict_encode) 
+    # otherwise should arleady be specified
+
+    if augment_dict_list is None:
+        augment_dict_list = [dict()]
+    for i, augment_dict in enumerate(augment_dict_list):
+        # designate where to save model and related files
+        model_name = 'audioaugment_'
+        model_name += '_' + kwargs['feature_type'] + '_'+ str(i)
+        model_dir = dataset_path.joinpath(model_name)
+        model_dir = pyso.utils.check_dir(model_dir, make=True)
+        model_name += '.h5'
+        model_path = model_dir.joinpath(model_name)
+        
+        # setup model 
+        envclassifier, settings_dict = pysodl.cnn_classifier(
+            input_shape = input_shape,
+            num_labels = num_labels)
+        callbacks = pysodl.setup_callbacks(
+            patience = patience,
+            best_modelname = model_path, 
+            log_filename = model_dir.joinpath('log.csv'))
+        optimizer = 'adam'
+        loss = 'sparse_categorical_crossentropy'
+        metrics = ['accuracy']
+        envclassifier.compile(optimizer = optimizer,
+                                loss = loss,
+                                metrics = metrics)
+        
+        normalize = True
+        add_tensor_last = False
+        add_tensor_first = True
+        
+        train_generator = pysodl.GeneratorFeatExtraction(
+            datalist = dataset_dict['train'],
+            model_name = model_name,
+            normalize = normalize,
+            apply_log = False,
+            randomize = False, 
+            random_seed = 40,
+            context_window = None,
+            input_shape = input_shape,
+            batch_size = batch_size, 
+            add_tensor_last = add_tensor_last, 
+            add_tensor_first = add_tensor_first,
+            gray2color = False,
+            visualize = False,
+            vis_every_n_items = 1,
+            decode_dict = dict_decode,
+            dataset = 'train',
+            augment_dict = augment_dict,
+            augment_settings_dict = augment_settings_dict,
+            label_silence = False,
+            **kwargs)
+        
+        
+        val_generator = pysodl.Generator(
+            data_matrix1 = val_data,
+            add_tensor_last = True,
+            adjust_shape = input_shape[:-1])
+        
+        
+        print('\nTRAINING SESSION ',i+1, ' out of ', len(augment_dict_list))
+        if augment_dict_list:
+            print('Augmentation(s) applied: ')
+            for j, aug_dict in enumerate(augment_dict_list):
+                if aug_dict:
+                    print('Training session {}'.format(j+1))
+                    print(', '.join(aug_dict.keys()))
+                    print()
+                else:
+                    print('No augmentations applied.\n')
+        
+        history = envclassifier.fit_generator(
+            train_generator.generator(),
+            steps_per_epoch = len(dataset_dict['train']),
+            callbacks = callbacks,
+            epochs = epochs,
+            validation_data = val_generator.generator(),
+            validation_steps = val_data.shape[0]
+            )
+
+        model_features_dict = dict(model_path = model_path,
+                                dataset_dict = dataset_dict,
+                                augment_dict = augment_dict)
+        model_features_dict.update(settings_dict)
+        model_features_dict.update(augment_dict)
+        end = time.time()
+        total_duration_seconds = round(end-start,2)
+        time_dict = dict(total_duration_seconds=total_duration_seconds)
+        model_features_dict.update(time_dict)
+
+        model_features_dict_path = model_dir.joinpath('info_{}.csv'.format(
+            model_name))
+        model_features_dict_path = pyso.utils.save_dict(
+            filename = model_features_dict_path,
+            dict2save = model_features_dict)
+        print('\nFinished training the model. The model and associated files can be '+\
+            'found here: \n{}'.format(model_dir))
+    finished_time = time.time()
+    total_total_duration = finished_time - start
+    time_new_units, units = pyso.utils.adjust_time_units(total_total_duration)
+    print('\nEntire program took {} {}.\n\n'.format(time_new_units, units))
+    print('-'*79)
+    
+    return model_dir, history    
+    
