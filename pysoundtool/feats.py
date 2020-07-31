@@ -331,8 +331,13 @@ def get_feats(sound,
         data, sr = sound, sr
         if dur_sec:
             data = data[:int(sr*dur_sec)]
-    if not np.isfinite(data).all():
-        raise TypeError('NAN values found in loaded sound samples.')
+    
+    if isinstance(data, np.ndarray):
+        if not np.isfinite(data).all():
+            raise TypeError('NAN values found in loaded sound samples.')
+    else:
+        raise TypeError('Data is type {} and '.format(type(data))+\
+            'a numpy.ndarray was expected.')
     # ensure percent overlap is between 0 and 1
     percent_overlap = check_percent_overlap(percent_overlap)
     win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
@@ -1338,7 +1343,8 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         # if using Librosa:
         if use_librosa:
             frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
-            hop_length = int(win_size_ms*percent_overlap*0.001*sr)
+            win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
+            hop_length = int(win_shift_ms*0.001*sr)
             if n_fft is None:
                 n_fft = frame_length
             # librosa centers samples by default, sligthly adjusting total 
@@ -1439,18 +1445,26 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                     complex_vals=complex_vals)
                 for j, audiofile in enumerate(value):
                     if labeled_data:
-                        
                         label, audiofile = int(audiofile[0]), audiofile[1]
                     if isinstance(audiofile, str):
                         audiofile = pathlib.PosixPath(audiofile)
+                    # set values in kwargs
+                    if 'sr' not in kwargs:
+                        kwargs['sr'] = sr
+                    if 'feature_type' not in kwargs:
+                        kwargs['feature_type'] = feature_type
+                    if 'win_size_ms' not in kwargs:
+                        kwargs['win_size_ms'] = win_size_ms
+                    if 'percent_overlap' not in kwargs:
+                        kwargs['percent_overlap'] = percent_overlap
+                    if 'num_filters' not in kwargs:
+                        kwargs['num_filters'] = num_feats
+                    if 'num_mfcc' not in kwargs:
+                        kwargs['num_mfcc'] = num_feats
+                    if 'dur_sec' not in kwargs:
+                        kwargs['dur_sec'] = dur_sec
+                    
                     feats = pyso.feats.get_feats(audiofile,
-                                                sr=sr,
-                                                feature_type=feat_type,
-                                                win_size_ms=win_size_ms,
-                                                percent_overlap=percent_overlap,
-                                                num_filters=num_feats,
-                                                num_mfcc=num_feats,
-                                                dur_sec=dur_sec,
                                                 **kwargs)
                     # if power spectrum (remove complex values and squaring features)
                     if 'powspec' in feature_type:
@@ -1703,7 +1717,8 @@ def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict,
         # if using Librosa:
         if use_librosa:
             frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
-            hop_length = int(win_size_ms*percent_overlap*0.001*sr)
+            win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
+            hop_length = int(win_shift_ms*0.001*sr)
             if n_fft is None:
                 n_fft = frame_length
             # librosa centers samples by default, sligthly adjusting total 
@@ -2043,7 +2058,7 @@ def feats2audio(feats, feature_type, sr, win_size_ms,
             raise ValueError('Expected `feats` (shape {})'.format(feats.shape)+\
                 ' and `phase` (shape {}) '.format(phase.shape) +\
                     'to have the same shape: (num_frames, num_features)')
-    window_shift = win_size_ms * percent_overlap
+    win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
     if 'signal' not in feature_type:
         # Will apply Librosa package to feats. Librosa expects data to have
         # shape (num_features, num_frames) not (num_frames, num_features)
@@ -2055,14 +2070,14 @@ def feats2audio(feats, feature_type, sr, win_size_ms,
             feats, 
             sr=sr, 
             n_fft = int(win_size_ms*0.001*sr), 
-            hop_length=int(window_shift*0.001*sr))
+            hop_length=int(win_shift_ms*0.001*sr))
     elif 'mfcc' in feature_type:
         feats = feats[:14,:]
         y = librosa.feature.inverse.mfcc_to_audio(
             feats, 
             sr=sr, 
             n_fft = int(win_size_ms*0.001*sr), 
-            hop_length=int(window_shift*0.001*sr),
+            hop_length=int(win_shift_ms*0.001*sr),
             n_mels=13)
     elif 'stft' in feature_type or 'powspec' in feature_type:
         # can use istft with phase information applied
@@ -2070,13 +2085,13 @@ def feats2audio(feats, feature_type, sr, win_size_ms,
             feats = feats * phase
             y = librosa.istft(
                 feats,
-                hop_length=int(window_shift*0.001*sr),
+                hop_length=int(win_shift_ms*0.001*sr),
                 win_length = int(win_size_ms*0.001*sr))
         # if no phase information available:
         else:
             y = librosa.griffinlim(
                 feats,
-                hop_length=int(window_shift*0.001*sr),
+                hop_length=int(win_shift_ms*0.001*sr),
                 win_length = int(win_size_ms*0.001*sr))
     elif 'signal' in feature_type:
         y = feats.flatten()
