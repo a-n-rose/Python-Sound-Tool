@@ -2687,12 +2687,13 @@ def envclassifier_extract_train(
         print('-'*79)
         print('\nTRAINING SESSION ',i+1, ' out of ', len(augment_dict_list))
         if augment_dict:
-            print('Augmentation(s) applied: ')
-            for key in augment_dict.keys():
-                print('{}'.format(key).upper())
-                if augment_settings_dict:
-                    settings = augment_settings_dict[key]
-                    print('- Settings: {}'.format(settings))
+            print('\nAugmentation(s) applied: \n')
+            for key, value in augment_dict.items():
+                if value:
+                    print('{}'.format(key).upper())
+                    if augment_settings_dict:
+                        settings = augment_settings_dict[key]
+                        print('- Settings: {}'.format(settings))
             print()
         else:
             print('\nNo augmentations applied.\n')
