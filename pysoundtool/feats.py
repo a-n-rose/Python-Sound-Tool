@@ -930,16 +930,12 @@ def zeropad_features(feats, desired_shape, complex_vals = False):
     assert fts.shape == desired_shape
     return fts
 
-def reduce_num_features(feats, desired_shape, complex_vals = False):
+def reduce_num_features(feats, desired_shape):
     '''Limits number features of a copy of feats. 
     '''
     fts = feats.copy()
     if feats.shape != desired_shape:
-        if complex_vals:
-            dtype = np.complex_
-        else:
-            dtype = np.float
-        empty_matrix = np.zeros(desired_shape, dtype = dtype)
+        empty_matrix = np.zeros(desired_shape, dtype = feats.dtype)
         try:
             if len(desired_shape) == 1:
                 empty_matrix += feats[:empty_matrix.shape[0]]
@@ -1463,7 +1459,8 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                         kwargs['num_mfcc'] = num_feats
                     if 'dur_sec' not in kwargs:
                         kwargs['dur_sec'] = dur_sec
-                    
+                    if 'center' not in kwargs:
+                        kwargs['center'] = center
                     feats = pyso.feats.get_feats(audiofile,
                                                 **kwargs)
                     # if power spectrum (remove complex values and squaring features)

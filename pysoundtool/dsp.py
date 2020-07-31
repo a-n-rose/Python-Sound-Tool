@@ -1374,7 +1374,7 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
             band_reduced_noise_matrix.shape[0]))
     if n_fft is None:
         n_fft = len(band_reduced_noise_matrix)
-    if isinstance(band_reduced_noise_matrix[0], np.complex):
+    if np.issubdtype(band_reduced_noise_matrix.dtype, np.complexfloating):
         complex_vals = True
     else:
         complex_vals = False
@@ -2196,6 +2196,10 @@ def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
         raise TypeError('The first dimension of the enhance matrix should '+ \
             'match the frame length. {} does not match frame length {}'.format(
                 enhanced_matrix.shape[0], frame_length))
+    if np.issubdtype(enhanced_matrix.dtype, np.complexfloating):
+        complex_vals = True
+    else:
+        complex_vals = False
     increments = frame_length - overlap
     start= increments
     mid= start + overlap
