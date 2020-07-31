@@ -191,7 +191,7 @@ def harmonic_distortion(sound, sr, **kwargs):
         count += 1
     return data
     
-def pitch_increase(sound, sr = 16000, num_semitones = 2, **kwargs):
+def pitch_increase(sound, sr, num_semitones = 2, **kwargs):
     '''
     
     References
@@ -208,7 +208,7 @@ def pitch_increase(sound, sr = 16000, num_semitones = 2, **kwargs):
     y_i = librosa.effects.pitch_shift(data, sr=sr, n_steps = num_semitones)
     return y_i
 
-def pitch_decrease(sound, sr = 16000, num_semitones = 2, **kwargs):
+def pitch_decrease(sound, sr, num_semitones = 2, **kwargs):
     '''
     
     References
@@ -226,7 +226,7 @@ def pitch_decrease(sound, sr = 16000, num_semitones = 2, **kwargs):
     return y_d
       
 # TODO pad similarly to librosa?
-def vtlp(sound, sr = 44100, a = (0.8,1.2), random_seed = None,
+def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = False, fft_bins = 1024, window = 'hann'):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
@@ -264,7 +264,8 @@ def vtlp(sound, sr = 44100, a = (0.8,1.2), random_seed = None,
         fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins * oversize_factor
     # initialize empty matrix to fill dft values into
-    stft_matrix = pyso.dsp.create_empty_matrix((num_subframes,total_rows), complex_vals = True)
+    stft_matrix = pyso.dsp.create_empty_matrix(
+        (num_subframes,total_rows), complex_vals = True)
     
     section_start = 0
     window_frame = pyso.dsp.create_window(window, frame_length)
