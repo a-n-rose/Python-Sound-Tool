@@ -54,7 +54,7 @@ use_scipy = False
 dur_sec = 1
 win_size_ms = 25
 percent_overlap = 0.5
-sr = 22050
+sr = 48000
 fft_bins = None
 frames_per_sample = None 
 labeled_data = True 
@@ -63,7 +63,7 @@ use_librosa = True
 center = False 
 mode = 'reflect' 
 log_settings = True 
-num_epochs = 1
+num_epochs = 50
 patience = 15
 
 augmentation_none = dict()
@@ -204,7 +204,8 @@ else:
 total_samples = pyso.dsp.calc_frame_length(dur_sec*1000, sr=sr)
 if use_librosa:
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
-    hop_length = int(win_size_ms*percent_overlap*0.001*sr)
+    win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
+    hop_length = int(win_shift_ms*0.001*sr)
     if fft_bins is None:
         fft_bins = frame_length
     # librosa centers samples by default, sligthly adjusting total 
@@ -236,20 +237,20 @@ if use_librosa:
         # want smaller windows, e.g. autoencoder denoiser or speech recognition
         batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
         if labeled_data:
-            input_shape = (batch_size, frames_per_sample, num_feats + 1)
-            desired_shape = (input_shape[0] * input_shape[1], 
-                                input_shape[2]-1)
+            orig_shape = (batch_size, frames_per_sample, num_feats + 1)
+            input_shape = (orig_shape[0] * orig_shape[1], 
+                                orig_shape[2]-1)
         else:
-            input_shape = (batch_size, frames_per_sample, num_feats)
-            desired_shape = (input_shape[0]*input_shape[1],
-                                input_shape[2])
+            orig_shape = (batch_size, frames_per_sample, num_feats)
+            input_shape = (orig_shape[0]*orig_shape[1],
+                                orig_shape[2])
     else:
         if labeled_data:
-            input_shape = (int(total_rows_per_wav), num_feats + 1)
-            desired_shape = (input_shape[0], input_shape[1]-1)
+            orig_shape = (int(total_rows_per_wav), num_feats + 1)
+            input_shape = (orig_shape[0], orig_shape[1]-1)
         else:
-            input_shape = (int(total_rows_per_wav), num_feats)
-            desired_shape = input_shape
+            orig_shape = (int(total_rows_per_wav), num_feats)
+            input_shape = orig_shape
     #input_shape = (,) + input_shape
     # set whether or not features will include complex values:
     if 'stft' in feature_type:
@@ -275,9 +276,6 @@ if use_librosa:
             ' to be in `feature_type`, not {}'.format(feature_type))
 
 
-    
-# start training
-start = time.time()
 get_feats_kwargs = dict(sr = sr,
                         feature_type = feature_type,
                         win_size_ms = win_size_ms,
@@ -291,9 +289,24 @@ get_feats_kwargs = dict(sr = sr,
                         subtract_mean = subtract_mean,
                         use_scipy = use_scipy)
 
+# extract the validation data
+val_dict = dict([('val',dataset_dict['val'])])
+val_path = pyso.check_dir('./example_val/', make=True)
+val_path = val_path.joinpath('val.npy')
+val_path_dict = dict([('val', val_path)])
+
+val_dict, val_path_dict = pyso.feats.save_features_datasets(
+    val_dict,
+    val_path_dict,
+    labeled_data = True,
+    **get_feats_kwargs)
+
+val_data = np.load(val_path_dict['val'])
+
+# start training
+start = time.time()
+
 input_shape = input_shape + (1,)
-add_tensor_last = False
-add_tensor_first = True
 num_labels = len(dict_encode) 
 
 for i, augmentation_dict in enumerate(augmentation_dicts):
@@ -323,10 +336,15 @@ for i, augmentation_dict in enumerate(augmentation_dicts):
                             loss = loss,
                             metrics = metrics)
     
+    
+    normalize = True
+    add_tensor_last = False
+    add_tensor_first = True
+    
     train_generator = pysodl.GeneratorFeatExtraction(
         datalist = dataset_dict['train'],
         model_name = model_name,
-        normalize = True,
+        normalize = normalize,
         apply_log = False,
         randomize = False, 
         random_seed = 40,
@@ -343,8 +361,13 @@ for i, augmentation_dict in enumerate(augmentation_dicts):
         augment_dict = augmentation_dict,
         label_silence = True,
         **get_feats_kwargs)
-
-    train_generator.generator()
+    
+    
+    val_generator = pysodl.Generator(
+        data_matrix1 = val_data,
+        add_tensor_last = True,
+        adjust_shape = input_shape[:-1])
+    
     
     print('\nTRAINING SESSION ',i+1, ' out of ', len(augmentation_dicts))
     if augmentation_dict:
@@ -359,6 +382,8 @@ for i, augmentation_dict in enumerate(augmentation_dicts):
         steps_per_epoch = len(dataset_dict['train']),
         callbacks = callbacks,
         epochs = num_epochs,
+        validation_data = val_generator.generator(),
+        validation_steps = val_data.shape[0]
         )
 
     model_features_dict = dict(model_path = model_path,
