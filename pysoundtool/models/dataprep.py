@@ -190,7 +190,8 @@ class GeneratorFeatExtraction:
                  context_window = None, input_shape = None, batch_size = 1,
                  add_tensor_last = True, add_tensor_first = False,
                  gray2color = False, visualize = False,
-                 vis_every_n_items = 50, decode_dict = None, dataset='train', 
+                 vis_every_n_items = 50, visuals_dir = None,
+                 decode_dict = None, dataset='train', 
                  augment_dict = None, augment_settings_dict = None, 
                  label_silence = False, **kwargs):
         '''
@@ -245,6 +246,7 @@ class GeneratorFeatExtraction:
         self.gray2color = gray2color
         self.visualize = visualize
         self.vis_every_n_items = vis_every_n_items
+        self.visuals_dir = visuals_dir
         if decode_dict is None:
             decode_dict = dict()
         self.decode_dict = decode_dict
@@ -505,10 +507,17 @@ class GeneratorFeatExtraction:
             # Save visuals if desired
             if self.visualize:
                 if self.counter % self.vis_every_n_items == 0:
-                    save_visuals_path = './images/{}_label{}_training_{}_{}_{}.png'.format(self.dataset,
-                        label_pic, self.model_name, augmentation, pyso.utils.get_date())
-                    save_visuals_path = pyso.string2pathlib(save_visuals_path)
-                    save_visuals_dir = pyso.check_dir(save_visuals_path.parent, make=True)
+                    if self.visuals_dir is not None:
+                        save_visuals_path = pyso.check_dir(self.visuals_dir, make=True)
+                    else:
+                        save_visuals_path = pyso.check_dir('./training_images/', make=True)
+                    save_visuals_path = save_visuals_path.joinpath(
+                        '{}_label{}_training_{}_{}_{}.png'.format(
+                            self.dataset,
+                            label_pic, 
+                            self.model_name, 
+                            augmentation, 
+                            pyso.utils.get_date()))
                     feature_type = self.kwargs['feature_type']
                     sr = self.kwargs['sr']
                     win_size_ms = self.kwargs['win_size_ms']
@@ -725,7 +734,7 @@ def augment_features(sound,
 
 # TODO: add default values?
 def get_input_shape(kwargs_get_feats, labeled_data = False,
-                    frames_per_sample = None, use_librosa=True, mode = 'reflect'):
+                    frames_per_sample = None, use_librosa = True, mode = 'reflect'):
     # set defaults if not provided
     try:
         feature_type = kwargs_get_feats['feature_type']
