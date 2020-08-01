@@ -440,8 +440,8 @@ feat_model_dir, history = pyso.envclassifier_extract_train(
     **get_feats_kwargs)
 
 #########################################################
-# Plot Training and Validation Accuracy or Loss
-# ---------------------------------------------
+# Plot Training and Validation Accuracy 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # load the logging settings of all training sessions:
 import csv
 model_log_path = feat_model_dir.joinpath('log.csv')
@@ -464,17 +464,7 @@ with open(model_log_path) as csvDataFile:
         val_accuracy.append(round(float(row[3]),3))
         val_loss.append(round(float(row[4]),3))
         counter += 1
-        
-plt.plot(total_epochs, train_loss)
-plt.plot(total_epochs, val_loss)
-plt.title('model loss across {} training sessions'.format(
-    len(augment_dict_list)))
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'val'], loc='upper right')
-plt.savefig('{}_loss_{}.png'.format(model_name, pyso.utils.get_date()))
 
-plt.clf()
 plt.plot(total_epochs, train_accuracy)
 plt.plot(total_epochs, val_accuracy)
 plt.title('model accuracy across {} training sessions'.format(
@@ -483,3 +473,19 @@ plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'val'], loc='upper right')
 plt.savefig('{}_accuracy_{}.png'.format(model_name, pyso.utils.get_date()))
+
+
+#########################################################
+# Plot Training and Validation Loss 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Can you tell where each of the training sessions started?
+
+plt.clf()
+plt.plot(total_epochs, train_loss)
+plt.plot(total_epochs, val_loss)
+plt.title('model loss across {} training sessions'.format(
+    len(augment_dict_list)))
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'val'], loc='upper right')
+plt.savefig('{}_loss_{}.png'.format(model_name, pyso.utils.get_date()))
