@@ -78,7 +78,8 @@ for key, value in audio_datasets.items():
 
 #############################################################
 model_dir, history = pyso.envclassifier_train(feature_extraction_dir = feature_extraction_dir,
-                                         epochs = 10)
+                                         epochs = 50,
+                                         patience =25)
 
 #############################################################
 # Where the model and logs are located:

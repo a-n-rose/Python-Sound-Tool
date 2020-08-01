@@ -75,7 +75,8 @@ sig_noisy, snr = pyso.dsp.add_backgroundsound(
     audio_main = sig3, 
     audio_background = noise, 
     sr = sr,
-    snr = 40)
+    snr = 40,
+    clip_at_zero = False)
 
 # keep energy between 1 and -1 
 sig_noisy = pyso.dsp.scalesound(sig_noisy, max_val=1)

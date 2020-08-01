@@ -62,7 +62,6 @@ white_noise = pyso.dsp.generate_noise(len(y), random_seed = 40)
 y_snr20, snr20 = pyso.dsp.add_backgroundsound(y, white_noise, sr=sr, snr = 20,
                                            pad_mainsound_sec = 1,
                                            total_len_sec = 3,
-                                           wrap = True, 
                                            random_seed = 40)
 # round the measured snr:
 snr20 = int(round(snr20))
@@ -77,9 +76,8 @@ ipd.Audio(y_snr20,rate=sr)
 # Speech and Noise SNR 5
 # ~~~~~~~~~~~~~~~~~~~~~~
 y_snr05, snr05 = pyso.dsp.add_backgroundsound(y, white_noise, sr=sr, snr = 5,
-                                           delay_mainsound_sec = 1,
+                                           pad_mainsound_sec = 1,
                                            total_len_sec = 3,
-                                           wrap = True, 
                                            random_seed = 40)
 # round the measured snr:
 snr05 = int(round(snr05))

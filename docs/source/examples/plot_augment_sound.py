@@ -145,7 +145,7 @@ pyso.plotsound(psd, sr=sr, feature_type='stft',
 ##########################################################
 # Vocal Tract Length Perturbation
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+# Note: this is still experimental.
 ##########################################################
 # Vocal tract length perturbation (by factor 0.8 to 1.2)
 

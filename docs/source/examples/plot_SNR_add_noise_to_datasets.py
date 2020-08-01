@@ -188,3 +188,23 @@ ipd.Audio(noisyspeech_20snr,rate=sr)
 ##########################################################
 pyso.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'signal',
                title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
+
+######################################################################
+# Wrap the Background Sound
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
+noisyspeech_20snr, snr20 = pyso.dsp.add_backgroundsound(
+    speech_sample,
+    noise_sample,
+    sr = sr,
+    snr = 20,
+    wrap = True,
+    pad_mainsound_sec = 2,
+    total_len_sec = 5)
+
+##########################################################
+ipd.Audio(noisyspeech_20snr,rate=sr)
+
+##########################################################
+pyso.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'signal',
+               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
+

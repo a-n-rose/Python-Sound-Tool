@@ -83,7 +83,7 @@ for key, value in audio_datasets.items():
 
 #############################################################
 model_dir, history = pyso.denoiser_train(feature_extraction_dir = feature_extraction_dir,
-                                         epochs = 10)
+                                         epochs = 100)
 
 #########################################################
 
