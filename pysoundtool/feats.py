@@ -4,6 +4,9 @@ to features for analysis, filtering, machine learning, or visualization.
 
 
 ###############################################################################
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import os, sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(
@@ -19,7 +22,6 @@ import pathlib
 from python_speech_features import fbank, mfcc
 from sklearn.preprocessing import StandardScaler
 from sklearn import preprocessing
-import matplotlib.pyplot as plt
 import pysoundtool as pyso
 
 
