@@ -2630,7 +2630,8 @@ def envclassifier_extract_train(
         callbacks = pysodl.setup_callbacks(
             patience = patience,
             best_modelname = model_path, 
-            log_filename = model_dir.joinpath('log.csv'))
+            log_filename = model_dir.parent.joinpath('log.csv'),
+            append = True)
         optimizer = 'adam'
         loss = 'sparse_categorical_crossentropy'
         metrics = ['accuracy']
@@ -2723,5 +2724,5 @@ def envclassifier_extract_train(
     print('\nEntire program took {} {}.\n\n'.format(time_new_units, units))
     print('-'*79)
     
-    return model_dir, history    
+    return model_dir.parent, history    
     
