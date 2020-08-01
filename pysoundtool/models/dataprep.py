@@ -192,8 +192,7 @@ class GeneratorFeatExtraction:
                  gray2color = False, visualize = False,
                  vis_every_n_items = 50, visuals_dir = None,
                  decode_dict = None, dataset='train', 
-                 augment_dict = None, augment_settings_dict = None, 
-                 label_silence = False, **kwargs):
+                 augment_dict = None, label_silence = False, **kwargs):
         '''
         Do not add extra tensor dimensions to expected input_shape.
         
@@ -257,10 +256,6 @@ class GeneratorFeatExtraction:
         if augment_dict is None:
             augment_dict = dict()
         self.augment_dict = augment_dict
-        #if augment_settings_dict is None:
-            #augment_settings_dict = dict()
-        self.augment_settings_dict = augment_settings_dict
-        print(self.augment_settings_dict)
         # if vtlp should be used as stft matrix
         if 'vtlp' in augment_dict:
             self.vtlp = augment_dict['vtlp']

@@ -2429,7 +2429,6 @@ def envclassifier_extract_train(
     dataset_dict = None,
     num_labels = None,
     augment_dict_list = None,
-    augment_settings_dict = None,
     audiodata_path = None,
     save_new_files_dir = None,
     frames_per_sample = None, # images_per_sample, sections_per_sample..? 
@@ -2461,11 +2460,6 @@ def envclassifier_extract_train(
         List of dictionaries containing keys (e.g. 'add_white_noise'). See 
         `pysoundtool.augment.list_augmentations`and corresponding True or False
         values. If the value is True, the key / augmentation gets implemented. 
-        (default None)
-        
-    augment_settings_dict : dict, optional
-        Settings for the augmentations if other than default values desired.
-        Note: these will overwrite the default settings of this local function.
         (default None)
     
     audiodata_path : str, pathlib.PosixPath
@@ -2590,6 +2584,7 @@ def envclassifier_extract_train(
         # don't have the label data available
         dict_encode, dict_decode = None, None
         
+
     input_shape = pysodl.dataprep.get_input_shape(kwargs, labeled_data = labeled_data,
                                   frames_per_sample = frames_per_sample,
                                   use_librosa = use_librosa)
@@ -2654,7 +2649,6 @@ def envclassifier_extract_train(
             apply_log = False,
             randomize = False, 
             random_seed = 40,
-            context_window = None,
             input_shape = input_shape,
             batch_size = batch_size, 
             add_tensor_last = add_tensor_last, 
@@ -2666,7 +2660,6 @@ def envclassifier_extract_train(
             decode_dict = dict_decode,
             dataset = 'train',
             augment_dict = augment_dict,
-            augment_settings_dict = augment_settings_dict,
             label_silence = False,
             **kwargs)
         
@@ -2689,11 +2682,10 @@ def envclassifier_extract_train(
         if augment_dict:
             print('\nAugmentation(s) applied: \n')
             for key, value in augment_dict.items():
-                if value:
+                if value == True:
                     print('{}'.format(key).upper())
-                    if augment_settings_dict:
-                        settings = augment_settings_dict[key]
-                        print('- Settings: {}'.format(settings))
+                    settings = augment_dict['augment_settings_dict'][key]
+                    print('- Settings: {}'.format(settings))
             print()
         else:
             print('\nNo augmentations applied.\n')
