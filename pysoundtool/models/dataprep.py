@@ -186,8 +186,8 @@ class Generator:
 
 class GeneratorFeatExtraction:
     def __init__(self, datalist, datalist2 = None, model_name = None,  
-                 normalize = True, apply_log = False, randomize = False, random_seed = 40,
-                 context_window = None, input_shape = None, batch_size = 1,
+                 normalize = True, apply_log = False, randomize = False,
+                 random_seed=None, input_shape = None, batch_size = 1,
                  add_tensor_last = True, add_tensor_first = False,
                  gray2color = False, visualize = False,
                  vis_every_n_items = 50, visuals_dir = None,
@@ -257,9 +257,10 @@ class GeneratorFeatExtraction:
         if augment_dict is None:
             augment_dict = dict()
         self.augment_dict = augment_dict
-        if augment_settings_dict is None:
-            augment_settings_dict = dict()
+        #if augment_settings_dict is None:
+            #augment_settings_dict = dict()
         self.augment_settings_dict = augment_settings_dict
+        print(self.augment_settings_dict)
         # if vtlp should be used as stft matrix
         if 'vtlp' in augment_dict:
             self.vtlp = augment_dict['vtlp']
@@ -270,7 +271,7 @@ class GeneratorFeatExtraction:
         if 'sr' in kwargs:
             self.sr = kwargs['sr']
         else:
-            self.sr = 16000
+            self.sr = 44100
             kwargs['sr'] = self.sr
         self.kwargs = kwargs
         
@@ -408,7 +409,6 @@ class GeneratorFeatExtraction:
                         augmented_data, augmentation = augment_features(
                             y, 
                             self.sr, 
-                            augment_settings_dict = self.augment_settings_dict,
                             **self.augment_dict)
                     except librosa.util.exceptions.ParameterError:
                         print('Augmentation: ', augmentation)
@@ -636,7 +636,7 @@ def augment_features(sound,
     augmentation = ''
     if add_white_noise:
         # allow default settings to be used/overwritten
-        if augment_settings_dict is not None and 'add_white_noise' in augment_settings_dict:
+        if augment_settings_dict is not None:
             kwargs_aug = augment_settings_dict['add_white_noise']
             if isinstance(kwargs_aug['snr'], str):
                 kwargs_aug['snr'] = pyso.utils.restore_dictvalue(kwargs_aug['snr'])
@@ -644,30 +644,30 @@ def augment_features(sound,
             if isinstance(kwargs_aug['snr'], list):
                 kwargs_aug['snr'] = np.random.choice(kwargs_aug['snr'])
         else:
-            kwargs_aug = dict([('sr', sr),
-                               ('snr', np.random.choice(snr))])
+            kwargs_aug = dict([('snr', np.random.choice(snr))])
         samples_augmented = pyso.augment.add_white_noise(samples_augmented, 
+                                                         sr = sr,
                                                          **kwargs_aug)
         augmentation += '_whitenoise{}SNR'.format(kwargs_aug['snr'])
         
     if speed_increase:
-        if augment_settings_dict is not None and 'speed_increase' in augment_settings_dict:
+        if augment_settings_dict is not None:
             kwargs_aug = augment_settings_dict['speed_increase']
         else:
-            kwargs_aug = dict([('sr', sr),
-                               ('perc', speed_perc)])
+            kwargs_aug = dict([('perc', speed_perc)])
         samples_augmented = pyso.augment.speed_increase(samples_augmented,
+                                                        sr = sr,
                                                         **kwargs_aug)
         augmentation += '_speedincrease{}'.format(kwargs_aug['perc'])
 
 
     elif speed_decrease:
-        if augment_settings_dict is not None and 'speed_decrease' in augment_settings_dict:
+        if augment_settings_dict is not None:
             kwargs_aug = augment_settings_dict['speed_decrease']
         else:
-            kwargs_aug = dict([('sr', sr),
-                               ('perc', speed_perc)])
+            kwargs_aug = dict([('perc', speed_perc)])
         samples_augmented = pyso.augment.speed_decrease(samples_augmented,
+                                                        sr = sr,
                                                         **kwargs_aug)
         augmentation += '_speeddecrease{}'.format(kwargs_aug['perc'])
 
@@ -679,12 +679,12 @@ def augment_features(sound,
 
 
     if shufflesound:
-        if augment_settings_dict is not None and 'shufflesound' in augment_settings_dict:
+        if augment_settings_dict is not None:
             kwargs_aug = augment_settings_dict['shufflesound']
         else:
-            kwargs_aug = dict([('sr', sr),
-                               ('num_subsections', num_subsections)])
+            kwargs_aug = dict([('num_subsections', num_subsections)])
         samples_augmented = pyso.augment.shufflesound(samples_augmented, 
+                                                      sr = sr,
                                                     **kwargs_aug)
         augmentation += '_randshuffle{}sections'.format(kwargs_aug['num_subsections'])
 
@@ -696,23 +696,23 @@ def augment_features(sound,
 
 
     if pitch_increase:
-        if augment_settings_dict is not None and 'pitch_increase' in augment_settings_dict:
+        if augment_settings_dict is not None:
             kwargs_aug = augment_settings_dict['pitch_increase']
         else:
-            kwargs_aug = dict([('sr', sr),
-                               ('num_semitones', num_semitones)])
+            kwargs_aug = dict([('num_semitones', num_semitones)])
         samples_augmented = pyso.augment.pitch_increase(samples_augmented,
+                                                        sr = sr,
                                                         **kwargs_aug)
         augmentation += '_pitchincrease{}semitones'.format(kwargs_aug['num_semitones'])
 
 
     elif pitch_decrease:
-        if augment_settings_dict is not None and 'pitch_decrease' in augment_settings_dict:
+        if augment_settings_dict is not None:
             kwargs_aug = augment_settings_dict['pitch_decrease']
         else:
-            kwargs_aug = dict([('sr', sr),
-                               ('num_semitones', num_semitones)])
+            kwargs_aug = dict([('num_semitones', num_semitones)])
         samples_augmented = pyso.augment.pitch_decrease(samples_augmented,
+                                                        sr = sr,
                                                         **kwargs_aug)
         augmentation += '_pitchdecrease{}semitones'.format(kwargs_aug['num_semitones'])
 

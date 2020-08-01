@@ -76,9 +76,19 @@ augmentation_all_speeddown_pitchdown_novtlp = dict([('add_white_noise',True),
                                              ('vtlp', False)
                                              ])
 
-
+# get defaults dict of all augmentations:
+augment_settings_dict = {}
+for key in pyso.augment.get_augmentation_dict().keys():
+    augment_settings_dict[key] = pyso.augment.get_augmentation_settings_dict(key)
+# if want to change augmentation settings:
+# Note: these changes will over-ride the default values of the generator
+augment_settings_dict['pitch_decrease']['num_semitones'] = 1 
+augment_settings_dict['add_white_noise']['snr'] = [10,15,20]
+augment_settings_dict['speed_decrease']['perc'] = 0.1
 
 audiodata_path = '../mini-audio-datasets/speech_commands/'
+augmentation_all_speeddown_pitchdown_novtlp.update(
+    dict(augment_settings_dict=augment_settings_dict))
 augment_dict_list = [augmentation_all_speeddown_pitchdown_novtlp]
 labeled_data = True 
 batch_size = 1
@@ -88,21 +98,23 @@ log_settings = True
 epochs = 5
 patience = 15
 
-# get defaults dict of all augmentations:
-aug_settings_dict = {}
-for key in pyso.augment.get_augmentation_dict().keys():
-    aug_settings_dict[key] = pyso.augment.get_augmentation_settings_dict(key)
-# if want to change augmentation settings:
-# Note: these changes will over-ride the default values of the generator
-aug_settings_dict['pitch_decrease']['num_semitones'] = 1 
-aug_settings_dict['add_white_noise']['snr'] = [10,15,20]
-aug_settings_dict['speed_decrease']['perc'] = 0.1
+
+
+save_new_files_dir = pyso.check_dir('example_feats_models/envclassifer/', make=True)
+#print(aug_settings_dict)
+#aug_settings_dict_path = pyso.utils.save_dict(
+    #filename = save_new_files_dir.joinpath('aug_settings.csv'),
+    #dict2save = aug_settings_dict,
+    #overwrite = True)
+
+
 
 model_dir, history = pyso.envclassifier_extract_train(
     model_name = 'testing_augment_buildin',
     audiodata_path = audiodata_path,
     augment_dict_list = augment_dict_list,
-    augment_settings_dict = aug_settings_dict,
+    save_new_files_dir = save_new_files_dir,
+    #augment_settings_dict = aug_settings_dict_path,
     labeled_data = labeled_data,
     batch_size = batch_size,
     use_librosa = use_librosa,
