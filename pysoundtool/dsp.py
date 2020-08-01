@@ -805,9 +805,11 @@ def apply_sample_length(data, target_len, mirror_sound = False, clip_at_zero = T
     else:
         while len(data) < target_len:
             if clip_at_zero:
-                data = pyso.dsp.clip_at_zero(data)[:-1] # get rid of last zero
+                data_clipped = pyso.dsp.clip_at_zero(data) # get rid of last zero
+                if len(data_clipped) < len(data):
+                    data = data_clipped[:-1]
             if mirror_sound:
-                data = np.concatenate((data, np.flip(data[1:])))
+                data = np.concatenate((data, np.flip(data[:-1])))
             else:
                 data = np.concatenate((data, data))
             if len(data) >= target_len:

@@ -134,6 +134,15 @@ def test_overlap_add():
     expected = np.array([1., 1., 1., 2., 1., 1., 2., 1., 1., 2., 1., 1., 1.])
     assert np.array_equal(expected, sig)
     
+def test_overlap_add_complexvals():
+    enhanced_matrix = np.ones((4, 4),dtype=np.complex)
+    frame_length = 4
+    overlap = 1
+    sig = pyso.dsp.overlap_add(enhanced_matrix, frame_length, overlap)
+    expected = np.array([1.+0.j, 1.+0.j, 1.+0.j, 2.+0.j, 1.+0.j, 1.+0.j, 
+                         2.+0.j, 1.+0.j, 1.+0.j, 2.+0.j,1.+0.j, 1.+0.j, 1.+0.j])
+    assert sig.dtype == expected.dtype
+    
 def test_overlap_add_framelength_mismatch():
     enhanced_matrix = np.ones((4, 4))
     frame_length = 3
@@ -281,6 +290,16 @@ def test_apply_sample_length():
     num_samps = 10
     new_data = pyso.dsp.apply_sample_length(data, num_samps)
     expected = np.array([1,2,3,4,5,1,2,3,4,5])
+    assert np.array_equal(new_data, expected)
+    assert len(new_data) == num_samps
+    assert data.dtype == new_data.dtype
+    
+
+def test_apply_sample_length_mirrored():
+    data = np.array([1,2,3,4,5])
+    num_samps = 10
+    new_data = pyso.dsp.apply_sample_length(data, num_samps, mirror_sound=True)
+    expected = np.array([1,2,3,4,5,4,3,2,1,2])
     assert np.array_equal(new_data, expected)
     assert len(new_data) == num_samps
     assert data.dtype == new_data.dtype
