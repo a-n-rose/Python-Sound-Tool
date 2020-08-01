@@ -69,7 +69,7 @@ get_feats_kwargs = dict(feature_type = feature_type,
 
 ##########################################################
 # Find out which augmentations can be made:
-pyso.augment.list_augmentations()
+print(pyso.augment.list_augmentations())
 
 ##########################################################
 # get a dict with the available augmentations:
@@ -417,7 +417,7 @@ epochs = 15
 # Note: for **each** set of augmentations, this number of epochs will be attempted.
 # With our sets of augmentations, with 15 epochs, this totals to potentially 105 epochs.
 
-patience = 5
+patience = 10
 # This sets when to stop training / apply early stopping:
 # if there is no improvement in validation loss after so many epochs.
 
