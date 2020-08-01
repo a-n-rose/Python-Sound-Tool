@@ -615,8 +615,10 @@ def augment_features(sound,
                      bilinear_warp = True,
                      augment_settings_dict = None,
                      ):
-
-    aug_settings = augment_settings_dict.copy()
+    if augment_settings_dict is not None:
+        aug_settings = dict(augment_settings_dict)
+    else:
+        aug_settings = augment_settings_dict
     if speed_increase and speed_decrease:
         raise ValueError('Cannot have both speed_increase and speed_decrease'+\
             ' as augmentation options. Set just one to True.')
