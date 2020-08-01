@@ -64,10 +64,13 @@ $ sudo apt-get install libsndfile1
 - resample audio data lower than 44100 Hz to 44100 Hz. VAD seems to fail at lower sample rates.
 
 ### pysoundtool.models.dataprep.GeneratorFeatExtraction 
-- can extract and augment features from audio files as each audio file fed to model. (Validation data not yet implemented. Must be extracted already.)
+- can extract and augment features from audio files as each audio file fed to model. 
+- example can be viewed: pysoundtool.builtin.envclassifier_extract_train
 
 ### pysoundtool.dsp.add_backgroundsound()
 - improvements in the smoothness of the added signal.
+- pysoundtool.dsp.clip_at_zero
+- improved pysoundtool.dsp.vad and pysoundtool.feats.get_vad_stft
 
 ### pysoundtool.feats.normalize 
 - can use it: pysoundtool.normalize (don't need to remember dsp or feats)
