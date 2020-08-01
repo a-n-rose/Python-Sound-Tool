@@ -306,7 +306,7 @@ def get_augmentation_dict():
 def list_augmentations():
     augmentation_dict = pyso.augment.get_augmentation_dict()
     aug_list = ', '.join(str(x) for x in augmentation_dict.keys())
-    augmentations = 'Available augmentations:\n\t'+ aug_list
+    augmentations = 'Available augmentations:\n  \t '+ aug_list
     return augmentations
     
 def get_augmentation_settings_dict(augmentation):
