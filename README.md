@@ -56,12 +56,12 @@ $ sudo apt-get install libsndfile1
 
 ### pysoundtool.dsp.vad()
 - add `use_beg_ms` parameter: improved VAD recognition of silences post speech.
-- resample audio data lower than 44100 Hz to 44100 Hz. VAD seems to fail at lower sample rates.
+- raise warning for sample rates lower than 44100 Hz. VAD seems to fail at lower sample rates.
 
 ### pysoundtool.feats.get_vad_samples() and pysoundtool.feats.get_vad_stft()
 - moved from dsp module to the feats module
 - add `extend_window_ms` paremeter: can extend VAD window if desired. Useful in higher SNR environments.
-- resample audio data lower than 44100 Hz to 44100 Hz. VAD seems to fail at lower sample rates.
+- raise warning for sample rates lower than 44100 Hz. VAD seems to fail at lower sample rates.
 
 ### pysoundtool.models.dataprep.GeneratorFeatExtraction 
 - can extract and augment features from audio files as each audio file fed to model. 
