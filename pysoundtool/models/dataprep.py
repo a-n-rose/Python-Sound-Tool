@@ -620,6 +620,8 @@ def augment_features(sound,
                      bilinear_warp = True,
                      augment_settings_dict = None,
                      ):
+
+    aug_settings = augment_settings_dict.copy()
     if speed_increase and speed_decrease:
         raise ValueError('Cannot have both speed_increase and speed_decrease'+\
             ' as augmentation options. Set just one to True.')
@@ -636,23 +638,23 @@ def augment_features(sound,
     augmentation = ''
     if add_white_noise:
         # allow default settings to be used/overwritten
-        if augment_settings_dict is not None:
-            kwargs_aug = augment_settings_dict['add_white_noise']
+        if aug_settings is not None:
+            kwargs_aug = aug_settings['add_white_noise']
             if isinstance(kwargs_aug['snr'], str):
                 kwargs_aug['snr'] = pyso.utils.restore_dictvalue(kwargs_aug['snr'])
             # if a list of snr values: choose randomly
             if isinstance(kwargs_aug['snr'], list):
-                kwargs_aug['snr'] = np.random.choice(kwargs_aug['snr'])
+                snr = np.random.choice(kwargs_aug['snr'])
         else:
-            kwargs_aug = dict([('snr', np.random.choice(snr))])
+            snr = dict([('snr', np.random.choice(snr))])
         samples_augmented = pyso.augment.add_white_noise(samples_augmented, 
                                                          sr = sr,
-                                                         **kwargs_aug)
-        augmentation += '_whitenoise{}SNR'.format(kwargs_aug['snr'])
+                                                         snr = snr)
+        augmentation += '_whitenoise{}SNR'.format(snr)
         
     if speed_increase:
-        if augment_settings_dict is not None:
-            kwargs_aug = augment_settings_dict['speed_increase']
+        if aug_settings is not None:
+            kwargs_aug = aug_settings['speed_increase']
         else:
             kwargs_aug = dict([('perc', speed_perc)])
         samples_augmented = pyso.augment.speed_increase(samples_augmented,
@@ -662,8 +664,8 @@ def augment_features(sound,
 
 
     elif speed_decrease:
-        if augment_settings_dict is not None:
-            kwargs_aug = augment_settings_dict['speed_decrease']
+        if aug_settings is not None:
+            kwargs_aug = aug_settings['speed_decrease']
         else:
             kwargs_aug = dict([('perc', speed_perc)])
         samples_augmented = pyso.augment.speed_decrease(samples_augmented,
@@ -679,8 +681,8 @@ def augment_features(sound,
 
 
     if shufflesound:
-        if augment_settings_dict is not None:
-            kwargs_aug = augment_settings_dict['shufflesound']
+        if aug_settings is not None:
+            kwargs_aug = aug_settings['shufflesound']
         else:
             kwargs_aug = dict([('num_subsections', num_subsections)])
         samples_augmented = pyso.augment.shufflesound(samples_augmented, 
@@ -696,8 +698,8 @@ def augment_features(sound,
 
 
     if pitch_increase:
-        if augment_settings_dict is not None:
-            kwargs_aug = augment_settings_dict['pitch_increase']
+        if aug_settings is not None:
+            kwargs_aug = aug_settings['pitch_increase']
         else:
             kwargs_aug = dict([('num_semitones', num_semitones)])
         samples_augmented = pyso.augment.pitch_increase(samples_augmented,
@@ -707,8 +709,8 @@ def augment_features(sound,
 
 
     elif pitch_decrease:
-        if augment_settings_dict is not None:
-            kwargs_aug = augment_settings_dict['pitch_decrease']
+        if aug_settings is not None:
+            kwargs_aug = aug_settings['pitch_decrease']
         else:
             kwargs_aug = dict([('num_semitones', num_semitones)])
         samples_augmented = pyso.augment.pitch_decrease(samples_augmented,
