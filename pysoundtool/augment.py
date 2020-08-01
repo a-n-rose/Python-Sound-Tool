@@ -167,6 +167,8 @@ def add_white_noise(sound, sr, noise_level=0.01, snr=10, random_seed=None, **kwa
     n = pyso.dsp.generate_noise(num_samples = len(data), 
                                 amplitude=noise_level, 
                                 random_seed=random_seed)
+    if isinstance(snr, list):
+        snr = np.random.choice(snr)
     sound_n, snr = pyso.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, **kwargs)
     return sound_n
 
