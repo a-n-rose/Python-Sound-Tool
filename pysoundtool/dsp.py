@@ -2407,10 +2407,9 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
 
 
 # TODO: finicky 
-# once speech is recognized, doesn't recognize silence as well
-# update: this has improved w the `use_beg_ms` parameter, limiting when min levels
-# are updated.
-def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5, 
+# Seems that removing the dc offset helps, as does having a higher sample rate
+# still exploring influence of window size and percent overlap
+def vad(sound, sr, win_size_ms = 50, percent_overlap = 0, 
         real_signal = False, fft_bins = None, window = 'hann',
         energy_thresh = 40, freq_thresh = 185, sfm_thresh = 5,
         min_energy = None, min_freq = None, min_sfm = None, use_beg_ms = 120):
@@ -2523,10 +2522,7 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
             counter += 1
         if f - min_freq > freq_thresh:
             counter += 1
-        # TODO sfm is too sensitive and resulting in more vad than accurate
-        # especially for female voices
         if sfm - min_sfm > sfm_thresh:
-            #pass
             counter += 1
         if counter >= 1:
             vad_matrix[frame] += 1
@@ -2548,10 +2544,6 @@ def vad(sound, sr, win_size_ms = 10, percent_overlap = 0.5,
         # not finding this helpful
         if frame < measure_noise_frames:
             thresh_e = energy_thresh * np.log(min_energy)
-        #if frame % 50 == 0:
-            #print('\nFrame: ', frame)
-            #print('min energy: ', min_energy)
-            #print('thresh_e: ', thresh_e)
         section_start += (frame_length - num_overlap_samples)
     return vad_matrix, (sr, min_energy, min_freq, min_sfm)
 
