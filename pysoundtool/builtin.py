@@ -2481,6 +2481,10 @@ def envclassifier_extract_train(
             'parameter `feature_type` to be set as one of the following:\n'+ \
                 '- signal\n- stft\n- powspec\n- fbank\n- mfcc\n') 
     
+    # training will fail if patience set to a non-integer type
+    if patience is None:
+        patience = epochs
+    
     # Set up directory to save new files:
     # will not raise error if not exists: instead makes the directory
     if save_new_files_dir is None:
@@ -2614,31 +2618,36 @@ def envclassifier_extract_train(
     if augment_dict_list is None:
         augment_dict_list = [dict()]
 
+
+    # designate where to save model and related files
+    model_name = 'audioaugment_' + kwargs['feature_type']
+    model_dir = dataset_path.joinpath(model_name)
+    model_dir = pyso.utils.check_dir(model_dir, make=True)
+    model_path = model_dir.joinpath(model_name)
+    
+    # setup model 
+    envclassifier, settings_dict = pysodl.cnn_classifier(
+        input_shape = input_shape,
+        num_labels = num_labels)
+    optimizer = 'adam'
+    loss = 'sparse_categorical_crossentropy'
+    metrics = ['accuracy']
+    envclassifier.compile(optimizer = optimizer,
+                            loss = loss,
+                            metrics = metrics)
+
     for i, augment_dict in enumerate(augment_dict_list):
-        # designate where to save model and related files
-        model_name = 'audioaugment_'
-        model_name += '_' + kwargs['feature_type'] + '_'+ str(i)
-        model_dir = dataset_path.joinpath(model_name)
-        model_dir = pyso.utils.check_dir(model_dir, make=True)
-        model_name += '.h5'
-        model_path = model_dir.joinpath(model_name)
-        
-        # setup model 
-        envclassifier, settings_dict = pysodl.cnn_classifier(
-            input_shape = input_shape,
-            num_labels = num_labels)
+
+        # items that need to be called with each iteration:
+        # save best model for each iteration - don't want to be overwritten
+        # with worse model
+        best_modelname = str(model_path) + '_session{}.h5'.format(i)
         callbacks = pysodl.setup_callbacks(
             patience = patience,
-            best_modelname = model_path, 
-            log_filename = model_dir.parent.joinpath('log.csv'),
+            best_modelname = best_modelname, 
+            log_filename = model_dir.joinpath('log.csv'),
             append = True)
-        optimizer = 'adam'
-        loss = 'sparse_categorical_crossentropy'
-        metrics = ['accuracy']
-        envclassifier.compile(optimizer = optimizer,
-                                loss = loss,
-                                metrics = metrics)
-        
+
         normalize = True
         add_tensor_last = False
         add_tensor_first = True
@@ -2663,7 +2672,6 @@ def envclassifier_extract_train(
             augment_dict = augment_dict,
             label_silence = False,
             **kwargs)
-        
         
         val_generator = pysodl.Generator(
             data_matrix1 = val_data,
@@ -2711,8 +2719,8 @@ def envclassifier_extract_train(
         time_dict = dict(total_duration_seconds=total_duration_seconds)
         model_features_dict.update(time_dict)
 
-        model_features_dict_path = model_dir.joinpath('info_{}.csv'.format(
-            model_name))
+        model_features_dict_path = model_dir.joinpath('info_{}_session{}.csv'.format(
+            model_name, i))
         model_features_dict_path = pyso.utils.save_dict(
             filename = model_features_dict_path,
             dict2save = model_features_dict)
@@ -2724,5 +2732,5 @@ def envclassifier_extract_train(
     print('\nEntire program took {} {}.\n\n'.format(time_new_units, units))
     print('-'*79)
     
-    return model_dir.parent, history    
+    return model_dir, history    
     
