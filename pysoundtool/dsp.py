@@ -2505,30 +2505,30 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
         # set minimum values if not yet set
         if min_energy is None and frame == 0:
             min_energy = pyso.dsp.short_term_energy(samples)
-        elif frame < measure_noise_frames:
-            new_min_energy = pyso.dsp.short_term_energy(samples)
-            min_energy_array[frame] = new_min_energy
-            min_energy = np.mean(min_energy_array[:frame+1])
+        #elif frame < measure_noise_frames:
+            #new_min_energy = pyso.dsp.short_term_energy(samples)
+            #min_energy_array[frame] = new_min_energy
+            #min_energy = np.mean(min_energy_array[:frame+1])
         ste = pyso.dsp.short_term_energy(samples)
         if ste < min_energy and frame < measure_noise_frames:
             min_energy = ste
             
         if min_freq is None and frame == 0:
             min_freq = pyso.dsp.get_dom_freq(section_power)
-        elif frame < measure_noise_frames:
-            new_min_freq = pyso.dsp.get_dom_freq(section_power)
-            min_freq_array[frame] = new_min_freq
-            min_freq = np.mean(min_freq_array[:frame+1])
+        #elif frame < measure_noise_frames:
+            #new_min_freq = pyso.dsp.get_dom_freq(section_power)
+            #min_freq_array[frame] = new_min_freq
+            #min_freq = np.mean(min_freq_array[:frame+1])
         f = pyso.dsp.get_dom_freq(section_power)
         if f < min_freq and frame < measure_noise_frames:
             min_freq = f
         
         if min_sfm is None and frame == 0:
             min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
-        elif frame < measure_noise_frames:
-            new_min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
-            min_sfm_array[frame] = new_min_sfm
-            min_sfm= np.mean(min_sfm_array[:frame+1])
+        #elif frame < measure_noise_frames:
+            #new_min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
+            #min_sfm_array[frame] = new_min_sfm
+            #min_sfm= np.mean(min_sfm_array[:frame+1])
         sfm = pyso.dsp.spectral_flatness_measure(section_fft)
         if sfm < min_sfm  and frame < measure_noise_frames:
             min_sfm = sfm         
@@ -2555,15 +2555,15 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
             # update min energy and silence count
             silence += 1
             # not finding this helpful
-            #if frame < measure_noise_frames:
-                #min_energy = ((silence * min_energy) + ste) / \
-                    #silence + 1
+            if frame < measure_noise_frames:
+                min_energy = ((silence * min_energy) + ste) / \
+                    silence + 1
             # if silence has been longer than 10 frames, set speech to 0
             if silence > 10:
                 speech = 0
-        ## not finding this helpful
-        #if frame < measure_noise_frames:
-            #thresh_e = energy_thresh * np.log(min_energy)
+        # not finding this helpful
+        if frame < measure_noise_frames:
+            thresh_e = energy_thresh * np.log(min_energy)
         section_start += (frame_length - num_overlap_samples)
     return vad_matrix, (sr, min_energy, min_freq, min_sfm)
 
@@ -2581,6 +2581,8 @@ def suspended_energy(speech_energy,speech_energy_mean,row,start):
         return False
 
 def sound_index(speech_energy,speech_energy_mean,start = True):
+    '''Identifies the index of where speech or energy starts or ends.
+    '''
     if start == True:
         side = 1
         beg = 0
