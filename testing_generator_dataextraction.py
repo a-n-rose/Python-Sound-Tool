@@ -87,9 +87,9 @@ augment_settings_dict['add_white_noise']['snr'] = [10,15,20]
 augment_settings_dict['speed_decrease']['perc'] = 0.1
 
 audiodata_path = '../mini-audio-datasets/speech_commands/'
-augmentation_all_speeddown_pitchdown_novtlp.update(
+augmentation_harmondist.update(
     dict(augment_settings_dict=augment_settings_dict))
-augment_dict_list = [augmentation_all_speeddown_pitchdown_novtlp]
+augment_dict_list = [augmentation_harmondist]
 labeled_data = True 
 batch_size = 1
 use_librosa = True 
@@ -132,4 +132,4 @@ plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'val'], loc='upper right')
-plt.show()
+plt.savefig('model_{}.png'.format(pyso.utils.get_date()))
