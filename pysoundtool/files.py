@@ -21,8 +21,8 @@ import pysoundtool as pyso
 
 
 
-def loadsound(filename, sr=None, mono=True, dur_sec = None, 
-              remove_dc = True, use_scipy=False):
+def loadsound(filename, sr = None, mono = True, dur_sec = None, 
+              remove_dc = True, use_scipy = False):
     '''Loads sound file with scipy.io.wavfile.read or librosa.load (default librosa)
     
     Parameters
@@ -98,6 +98,11 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None,
         data, sr = librosa.load(filename, sr=sr, mono=mono, duration=dur_sec)
         if mono is False and len(data.shape) > 1: 
             if data.shape[0] < data.shape[1]:
+                import warnings
+                msg = '\nWARNING: Most functionality has not been tested '+\
+                    'with stereo sound. Many functions may fail or not work as '+\
+                        'expected. Apologies for the inconvenience!'
+                warnings.warn(msg)
                 # change shape from (channels, samples) to (samples, channels)
                 data = data.T
         if remove_dc:
@@ -132,6 +137,12 @@ def loadsound(filename, sr=None, mono=True, dur_sec = None,
     if mono and len(data.shape) > 1:
         if data.shape[1] > 1:
             data = pyso.dsp.stereo2mono(data)
+    if not mono and len(data.shape) > 1:
+            import warnings
+            msg = '\nWARNING: Most functionality has not been tested '+\
+                'with stereo sound. Many functions may fail or not work as '+\
+                    'expected. Apologies for the inconvenience!'
+            warnings.warn(msg)
     # scale samples to be between -1 and 1
     data = pyso.dsp.scalesound(data, max_val= 1, min_val=-1)
     if dur_sec:
