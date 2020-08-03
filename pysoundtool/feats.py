@@ -121,11 +121,9 @@ def plot(feature_matrix, feature_type,
                 data = feature_matrix[:,channel]
                 # overlay the channel data
                 plt.plot(data)
-                ##display.waveplot(data,sr=sr)
         x_axis_label += ' across {} channel(s)'.format(feature_matrix.shape[1])
     else:
         plt.pcolormesh(feature_matrix.T)
-        ## display.specshow(feature_matrix.T, sr=sr)
         plt.colorbar(label=energy_label)
     plt.xlabel(x_axis_label)
     plt.ylabel(axis_feature_label)
