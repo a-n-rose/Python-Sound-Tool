@@ -2523,7 +2523,7 @@ def envclassifier_extract_train(
         # create encoding and decoding dictionaries of labels:
         dict_encode, dict_decode = pyso.datasets.create_dicts_labelsencoded(
             labels,
-            add_extra_label = False,
+            add_extra_label = True,
             extra_label = 'silence')
     
         # save labels and their encodings
@@ -2670,7 +2670,7 @@ def envclassifier_extract_train(
             decode_dict = dict_decode,
             dataset = 'train',
             augment_dict = augment_dict,
-            label_silence = False,
+            label_silence = True,
             **kwargs)
         
         val_generator = pysodl.Generator(
