@@ -63,6 +63,7 @@ def plot(feature_matrix, feature_type,
         presented as time in seconds.
     '''
     import matplotlib.pyplot as plt
+    plt.clf()
     # ensure real numbers
     if feature_matrix.dtype == np.complex64 or feature_matrix.dtype == np.complex128:
         feature_matrix = np.abs(feature_matrix)
@@ -523,7 +524,8 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
 def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', use_beg_ms = 120,
-                          extend_window_ms = 0):
+                          extend_window_ms = 0, energy_thresh = 40, 
+                          freq_thresh = 185, sfm_thresh = 5):
     # raise warnings if sample rate lower than 44100 Hz
     if sr < 44100:
         import warnings
@@ -562,7 +564,10 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
     vad_matrix, (sr, e, f, sfm) = pyso.dsp.vad(data, sr, 
                                                win_size_ms = win_size_ms,
                                                percent_overlap = percent_overlap, 
-                                               use_beg_ms = use_beg_ms)
+                                               use_beg_ms = use_beg_ms,
+                                               energy_thresh = energy_thresh, 
+                                               freq_thresh = freq_thresh, 
+                                               sfm_thresh = sfm_thresh)
     vad_matrix_extwin = vad_matrix.copy()
     
     # extend VAD windows with 1s
@@ -603,8 +608,9 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
     stft_matrix = stft_matrix[:-extra_rows]
     return stft_matrix[:,:fft_bins//2], sr
 
-def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
-                    use_beg_ms = 120, extend_window_ms=0):
+def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
+                    use_beg_ms = 120, extend_window_ms = 0, energy_thresh = 40, 
+                    freq_thresh = 185, sfm_thresh = 5):
     # raise warnings if sample rate lower than 44100 Hz
     if sr < 44100:
         import warnings
@@ -618,12 +624,12 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
         assert sr2 == sr
         
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
-    if percent_overlap > 0:
-        import warnings
-        msg = 'For VAD calculation, no overlap applied. '+\
-            'Therefore, `percent_overlap` set to 0.'
-        warnings.warn(msg)
-        percent_overlap = 0
+    #if percent_overlap > 0:
+        #import warnings
+        #msg = 'For VAD calculation, no overlap applied. '+\
+            #'Therefore, `percent_overlap` set to 0.'
+        #warnings.warn(msg)
+        #percent_overlap = 0
     num_overlap_samples = int(frame_length * percent_overlap)
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
@@ -641,7 +647,10 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
     vad_matrix, (sr, e, f, sfm) = pyso.dsp.vad(data, sr, 
                                                win_size_ms = win_size_ms,
                                                percent_overlap = percent_overlap, 
-                                               use_beg_ms = use_beg_ms)
+                                               use_beg_ms = use_beg_ms, 
+                                               energy_thresh = energy_thresh, 
+                                               freq_thresh = freq_thresh, 
+                                               sfm_thresh = sfm_thresh)
     vad_matrix_extwin = vad_matrix.copy()
     # extend VAD windows with 1s
     if extend_window_ms > 0:
