@@ -354,8 +354,9 @@ class GeneratorFeatExtraction:
             y, sr = pyso.loadsound(audiopath,self.sr)
             if self.label_silence:
                 import time
-                y_stft, sr = pyso.feats.get_vad_stft(y, sr=sr, 
-                                                     win_size_ms = 60, use_beg_ms = 200)
+                y_stft, vad = pyso.dsp.get_speech_stft(y, sr=sr, 
+                                                     win_size_ms = 50, 
+                                                     percent_overlap = 0.5)
                 if not y_stft.any():
                     label = len(self.decode_dict)-1
                     print('\nNo voice activity detected in {}'.format(audiopath))
@@ -523,24 +524,30 @@ class GeneratorFeatExtraction:
                             energy_scale = 'power_to_db'
                     else:
                         energy_scale = None
-                    pyso.feats.plot(feats, 'stft', sr = sr, 
-                                    win_size_ms = win_size_ms, percent_overlap = percent_overlap,
-                                    energy_scale = energy_scale, save_pic = True, 
-                                    name4pic = save_visuals_path,
-                                    title = 'Label {} {} features \n'.format(label_pic, feature_type)+\
-                                        '(item {})'.format(self.counter))
+                    pyso.feats.saveplot(
+                        feature_matrix = feats, 
+                        feature_type = feature_type, 
+                        sr = sr, 
+                        win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                        energy_scale = energy_scale, save_pic = True, 
+                        name4pic = save_visuals_path,
+                        title = 'Label {} {} features \n'.format(label_pic, feature_type)+\
+                            '(item {})'.format(self.counter))
                     if feats2 is not None:
                         # add '_2' to pathway
                         p = pyso.utils.string2pathlib(save_visuals_path)
                         p2 = p.name.stem
                         save_visuals_path2 = p.parent.joinpath(p2+'_2'+p.name.suffix)
-                        pyso.feats.plot(feats2, feature_type, sr = sr, 
-                                        win_size_ms = win_size_ms, percent_overlap = percent_overlap,
-                                        energy_scale = energy_scale, save_pic = True, 
-                                        name4pic = save_visuals_path2,
-                                        title = 'Output {} features \n'.format(
-                                            label_pic, feature_type)+\
-                                            '(item {})'.format(self.counter))
+                        pyso.feats.saveplot(
+                            feature_matrix = feats2, 
+                            feature_type = feature_type, 
+                            sr = sr, 
+                            win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                            energy_scale = energy_scale, save_pic = True, 
+                            name4pic = save_visuals_path2,
+                            title = 'Output {} features \n'.format(
+                                label_pic, feature_type)+\
+                                '(item {})'.format(self.counter))
                                         
             # reshape to input shape. Will be zeropadded or limited to this shape.
             if self.input_shape is not None:

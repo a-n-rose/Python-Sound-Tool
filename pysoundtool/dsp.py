@@ -216,9 +216,14 @@ def scalesound(data, max_val = 1, min_val=None):
     if min_val is None:
         min_val = -max_val
     samples = data.copy()
-    samples = np.interp(samples,
-                        (samples.min(), samples.max()),
-                        (min_val, max_val))
+    if isinstance(samples, np.ndarray):
+        samples = np.interp(samples,
+                            (samples.min(), samples.max()),
+                            (min_val, max_val))
+    else:
+        samples = np.interp(samples,
+                            (min(samples), max(samples)),
+                            (min_val, max_val))
     return samples
 
 def shape_samps_channels(data):
@@ -2482,6 +2487,9 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
     section_start = 0
     speech = 0
     silence = 0
+    min_energy_array = np.zeros(measure_noise_frames)
+    min_freq_array = np.zeros(measure_noise_frames)
+    min_sfm_array = np.zeros(measure_noise_frames)
     window_frame = pyso.dsp.create_window(window, frame_length)
     for frame in range(num_subframes):
         samples = data[section_start:section_start+frame_length]
@@ -2497,19 +2505,31 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
         # set minimum values if not yet set
         if min_energy is None and frame == 0:
             min_energy = pyso.dsp.short_term_energy(samples)
+        elif frame < measure_noise_frames:
+            new_min_energy = pyso.dsp.short_term_energy(samples)
+            min_energy_array[frame] = new_min_energy
+            min_energy = np.mean(min_energy_array[:frame+1])
         ste = pyso.dsp.short_term_energy(samples)
         if ste < min_energy and frame < measure_noise_frames:
             min_energy = ste
             
         if min_freq is None and frame == 0:
             min_freq = pyso.dsp.get_dom_freq(section_power)
+        elif frame < measure_noise_frames:
+            new_min_freq = pyso.dsp.get_dom_freq(section_power)
+            min_freq_array[frame] = new_min_freq
+            min_freq = np.mean(min_freq_array[:frame+1])
         f = pyso.dsp.get_dom_freq(section_power)
         if f < min_freq and frame < measure_noise_frames:
             min_freq = f
         
         if min_sfm is None and frame == 0:
             min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
-        sfm = pyso.dsp.spectral_flatness_measure(section_power)
+        elif frame < measure_noise_frames:
+            new_min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
+            min_sfm_array[frame] = new_min_sfm
+            min_sfm= np.mean(min_sfm_array[:frame+1])
+        sfm = pyso.dsp.spectral_flatness_measure(section_fft)
         if sfm < min_sfm  and frame < measure_noise_frames:
             min_sfm = sfm         
         # decide if speech or silence 
@@ -2535,17 +2555,122 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
             # update min energy and silence count
             silence += 1
             # not finding this helpful
-            if frame < measure_noise_frames:
-                min_energy = ((silence * min_energy) + ste) / \
-                    silence + 1
+            #if frame < measure_noise_frames:
+                #min_energy = ((silence * min_energy) + ste) / \
+                    #silence + 1
             # if silence has been longer than 10 frames, set speech to 0
             if silence > 10:
                 speech = 0
-        # not finding this helpful
-        if frame < measure_noise_frames:
-            thresh_e = energy_thresh * np.log(min_energy)
+        ## not finding this helpful
+        #if frame < measure_noise_frames:
+            #thresh_e = energy_thresh * np.log(min_energy)
         section_start += (frame_length - num_overlap_samples)
     return vad_matrix, (sr, min_energy, min_freq, min_sfm)
+
+def suspended_energy(speech_energy,speech_energy_mean,row,start):
+    try:
+        if start == True:
+            if row <= len(speech_energy)-4:
+                if speech_energy[row+1] and speech_energy[row+2] and speech_energy[row+3] > speech_energy_mean:
+                    return True
+        else:
+            if row >= 3:
+                if speech_energy[row-1] and speech_energy[row-2] and speech_energy[row-3] > speech_energy_mean:
+                    return True
+    except IndexError as ie:
+        return False
+
+def sound_index(speech_energy,speech_energy_mean,start = True):
+    if start == True:
+        side = 1
+        beg = 0
+        end = len(speech_energy)
+    else:
+        side = -1
+        beg = len(speech_energy)-1
+        end = -1
+    for row in range(beg,end,side):
+        if speech_energy[row] > speech_energy_mean:
+            if suspended_energy(speech_energy, speech_energy_mean, row,start=start):
+                if start==True:
+                    #to catch plosive sounds
+                    while row >= 0:
+                        row -= 1
+                        row -= 1
+                        if row < 0:
+                            row = 0
+                        break
+                    return row, True
+                else:
+                    #to catch quiet consonant endings
+                    while row <= len(speech_energy):
+                        row += 1
+                        row += 1
+                        if row > len(speech_energy):
+                            row = len(speech_energy)
+                        break
+                    return row, True
+    else:
+        #print("No Speech Detected")
+        pass
+    return beg, False
+
+def get_energy(stft):
+    rms_list = [np.sqrt(sum(np.abs(stft[row])**2)/stft.shape[1]) for row in range(len(stft))]
+    return rms_list
+
+def get_energy_mean(rms_energy):
+    energy_mean = sum(rms_energy)/len(rms_energy)
+    return energy_mean
+   
+def get_speech_samples(samples, sr, win_size_ms = 50, percent_overlap = 0.5):
+
+    stft = pyso.feats.get_stft(samples,sr, 
+                               win_size_ms = win_size_ms, 
+                               percent_overlap = percent_overlap)
+    energy = get_energy(stft)
+    energy_mean = get_energy_mean(energy)
+    beg = sound_index(energy,energy_mean,start=True)
+    end = sound_index(energy,energy_mean,start=False)
+    vad_matrix = np.zeros(len(samples))
+    if beg[1] == False or end[1] == False:
+        import warnings
+        msg = 'No speech detected'
+        warnings.warn(msg)
+        return [], vad_matrix
+    
+    perc_start = beg[0]/len(energy)
+    perc_end = end[0]/len(energy)
+    sample_start = int(perc_start*len(samples))
+    sample_end = int(perc_end*len(samples))
+    if sample_start < sample_end:
+        samples_speech = samples[sample_start:sample_end]
+        vad_matrix[sample_start:sample_end] = 1
+        return samples_speech, vad_matrix
+
+    import warnings
+    msg = 'No speech detected'
+    warnings.warn(msg)
+    return [], vad_matrix
+
+def get_speech_stft(samples, sr, win_size_ms = 50, percent_overlap = 0.5):
+    stft = pyso.feats.get_stft(samples, sr = sr, win_size_ms = win_size_ms, 
+                               percent_overlap = percent_overlap)
+    energy = get_energy(stft)
+    energy_mean = get_energy_mean(energy)
+    beg_index, beg_speech_found = sound_index(energy,energy_mean,start=True)
+    end_index, end_speech_found = sound_index(energy,energy_mean,start=False)
+    vad_matrix = np.zeros(len(stft))
+    if beg_speech_found == False or end_speech_found == False:
+        import warnings
+        msg = '\nNo speech detected'
+        warnings.warn(msg)
+        return [], vad_matrix
+    if beg_index < end_index:
+        stft_speech = stft[beg_index:end_index]
+        vad_matrix[beg_index:end_index] = 1
+        return stft_speech, vad_matrix
+    return [], vad_matrix
 
 # TODO test
 def spectral_flatness_measure(spectrum):
@@ -2553,7 +2678,11 @@ def spectral_flatness_measure(spectrum):
     spectrum = np.abs(spectrum)
     g = scipy.stats.gmean(spectrum)
     a = np.mean(spectrum)
-    sfm = 10 * np.log10(g/a)
+    if not np.isfinite(a).all():
+        raise TypeError(a)
+    elif not np.isfinite(a).any():
+        raise ValueError(a)
+    sfm = 10 * np.log10(g/(a+1e-6))
     return sfm
 
 def get_dom_freq(power_values):

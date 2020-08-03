@@ -101,7 +101,7 @@ ipd.Audio(y_snr05,rate=sr)
 # Set amount of time VAD should be extended in milliseconds.
 # This may be useful if the one wants to capture more speech, 
 # despite noise.
-extend_window_ms = 400
+extend_window_ms = 150
 
 ######################################################
 # Set background noise reference
@@ -182,40 +182,38 @@ pyso.feats.plot_vad(y_snr05_wf, sr = sr,  use_beg_ms = use_beg_ms,
 ######################################################
 # Speech Only (SNR 20)
 # ~~~~~~~~~~~~~~~~~~~~
-y_snr20_speech, sr = pyso.feats.get_vad_samples(y_snr20, sr=sr, 
-                                          use_beg_ms = use_beg_ms)
-y_snr20_speech_ew, sr = pyso.feats.get_vad_samples(y_snr20, sr=sr, 
-                                          use_beg_ms = use_beg_ms,
-                                          extend_window_ms = extend_window_ms)
+y_snr20_speech, vad = pyso.dsp.get_speech_samples(y_snr20, sr=sr)
+#y_snr20_speech_ew, sr = pyso.dsp.get_speech_samples(y_snr20, sr=sr, 
+                                          #use_beg_ms = use_beg_ms,
+                                          #extend_window_ms = extend_window_ms)
 
 ######################################################
 pyso.plotsound(y_snr20_speech, sr=sr, feature_type = 'signal', 
                title = 'Speech Only SNR {}'.format(snr20))
 ipd.Audio(y_snr20_speech,rate=sr)
 
-######################################################
-pyso.plotsound(y_snr20_speech_ew, sr=sr, feature_type = 'signal',
-                    title = 'Speech Only SNR {} (Padded by {} ms)'.format(snr20, extend_window_ms))
-ipd.Audio(y_snr20_speech_ew,rate=sr)
+#######################################################
+#pyso.plotsound(y_snr20_speech_ew, sr=sr, feature_type = 'signal',
+                    #title = 'Speech Only SNR {} (Padded by {} ms)'.format(snr20, extend_window_ms))
+#ipd.Audio(y_snr20_speech_ew,rate=sr)
 
 ######################################################
 # Speech Only (SNR 5)
 # ~~~~~~~~~~~~~~~~~~~
-y_snr05_speech, sr = pyso.feats.get_vad_samples(y_snr05, sr=sr, 
-                                         use_beg_ms = use_beg_ms)
-y_snr05_speech_ew, sr = pyso.feats.get_vad_samples(y_snr05, sr=sr, 
-                                         use_beg_ms = use_beg_ms,
-                                         extend_window_ms = extend_window_ms)
+y_snr05_speech, vad = pyso.dsp.get_speech_samples(y_snr05, sr=sr)
+#y_snr05_speech_ew, sr = pyso.dsp.get_speech_samples(y_snr05, sr=sr, 
+                                         #use_beg_ms = use_beg_ms,
+                                         #extend_window_ms = extend_window_ms)
 
 ######################################################
 pyso.plotsound(y_snr05_speech, sr=sr, feature_type = 'signal', 
                title = 'Speech Only SNR {}'.format(snr05))
 ipd.Audio(y_snr05_speech,rate=sr)
 
-######################################################
-pyso.plotsound(y_snr05_speech_ew, sr=sr, feature_type = 'signal',
-                    title = 'Speech Only SNR {} (Padded by {} ms)'.format(snr05, extend_window_ms))
-ipd.Audio(y_snr05_speech_ew,rate=sr)
+#######################################################
+#pyso.plotsound(y_snr05_speech_ew, sr=sr, feature_type = 'signal',
+                    #title = 'Speech Only SNR {} (Padded by {} ms)'.format(snr05, extend_window_ms))
+#ipd.Audio(y_snr05_speech_ew,rate=sr)
 
 
 ######################################################
@@ -226,39 +224,37 @@ ipd.Audio(y_snr05_speech_ew,rate=sr)
 ######################################################
 # Speech Only (SNR 20 with Filter)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-y_snr20_speech_wf, sr = pyso.feats.get_vad_samples(y_snr20_wf, sr=sr, 
-                                             use_beg_ms = use_beg_ms)
+y_snr20_speech_wf, vad = pyso.dsp.get_speech_samples(y_snr20_wf, sr=sr)
 
-y_snr20_speech_wf_ew, sr = pyso.feats.get_vad_samples(y_snr20_wf, sr=sr, 
-                                             use_beg_ms = use_beg_ms,
-                                                extend_window_ms=extend_window_ms)
+#y_snr20_speech_wf_ew, sr = pyso.dsp.get_speech_samples(y_snr20_wf, sr=sr, 
+                                             #use_beg_ms = use_beg_ms,
+                                                #extend_window_ms=extend_window_ms)
 
 ######################################################
 pyso.plotsound(y_snr20_speech_wf, sr=sr, feature_type = 'signal', 
                title = 'Speech Only SNR {} with Filter'.format(snr20))
 ipd.Audio(y_snr20_speech_wf,rate=sr)
 
-######################################################
-pyso.plotsound(y_snr20_speech_wf_ew, sr=sr, feature_type = 'signal', 
-               title = 'Speech Only SNR {} (Padded by {} ms)\nwith Filter'.format(snr20, extend_window_ms))
-ipd.Audio(y_snr20_speech_wf_ew,rate=sr)
+#######################################################
+#pyso.plotsound(y_snr20_speech_wf_ew, sr=sr, feature_type = 'signal', 
+               #title = 'Speech Only SNR {} (Padded by {} ms)\nwith Filter'.format(snr20, extend_window_ms))
+#ipd.Audio(y_snr20_speech_wf_ew,rate=sr)
 
 ######################################################
 # Speech Only (SNR 5 with Filter)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-y_snr05_speech_wf, sr = pyso.feats.get_vad_samples(y_snr05_wf, sr=sr, 
-                                            use_beg_ms = use_beg_ms)
+y_snr05_speech_wf, vad = pyso.dsp.get_speech_samples(y_snr05_wf, sr=sr)
 
-y_snr05_speech_wf_ew, sr = pyso.feats.get_vad_samples(y_snr05_wf, sr=sr, 
-                                            use_beg_ms = use_beg_ms,
-                                            extend_window_ms=extend_window_ms)
+#y_snr05_speech_wf_ew, sr = pyso.dsp.get_speech_samples(y_snr05_wf, sr=sr, 
+                                            #use_beg_ms = use_beg_ms,
+                                            #extend_window_ms=extend_window_ms)
 
 ######################################################
 pyso.plotsound(y_snr05_speech_wf, sr=sr, feature_type = 'signal', 
                title = 'Speech Only SNR {} with Filter'.format(snr05))
 ipd.Audio(y_snr05_speech_wf,rate=sr)
 
-######################################################
-pyso.plotsound(y_snr05_speech_wf_ew, sr=sr, feature_type = 'signal', 
-               title = 'Speech Only SNR {} (Padded by {} ms)\nwith Filter'.format(snr05, extend_window_ms))
-ipd.Audio(y_snr05_speech_wf_ew,rate=sr)
+#######################################################
+#pyso.plotsound(y_snr05_speech_wf_ew, sr=sr, feature_type = 'signal', 
+               #title = 'Speech Only SNR {} (Padded by {} ms)\nwith Filter'.format(snr05, extend_window_ms))
+#ipd.Audio(y_snr05_speech_wf_ew,rate=sr)

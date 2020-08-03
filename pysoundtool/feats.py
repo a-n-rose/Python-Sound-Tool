@@ -4,9 +4,6 @@ to features for analysis, filtering, machine learning, or visualization.
 
 
 ###############################################################################
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import os, sys
 import inspect
 currentdir = os.path.dirname(os.path.abspath(
@@ -25,6 +22,12 @@ from sklearn import preprocessing
 import pysoundtool as pyso
 
 
+def saveplot(**kwargs):
+    '''Saves plots while training ussing Agg as backend
+    '''
+    import matplotlib
+    matplotlib.use('Agg')
+    pyso.feats.plot(**kwargs)
 
 
 # TODO Clean up   
@@ -59,6 +62,7 @@ def plot(feature_matrix, feature_type,
         Useful for plotting a signal type feature matrix. Allows x-axis to be
         presented as time in seconds.
     '''
+    import matplotlib.pyplot as plt
     # ensure real numbers
     if feature_matrix.dtype == np.complex64 or feature_matrix.dtype == np.complex128:
         feature_matrix = np.abs(feature_matrix)
@@ -534,12 +538,12 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
         data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
-    if percent_overlap > 0:
-        import warnings
-        msg = 'For VAD calculation, no overlap applied. '+\
-            'Therefore, `percent_overlap` set to 0.'
-        warnings.warn(msg)
-        percent_overlap = 0
+    #if percent_overlap > 0:
+        #import warnings
+        #msg = 'For VAD calculation, no overlap applied. '+\
+            #'Therefore, `percent_overlap` set to 0.'
+        #warnings.warn(msg)
+        #percent_overlap = 0
     num_overlap_samples = int(frame_length * percent_overlap)
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
@@ -728,6 +732,7 @@ def normalize(data, max_val=None, min_val=None):
     return normed_data
 
 def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequency', **kwargs):
+    import matplotlib.pyplot as plt
     # set matching defaults if not in kwargs
     if 'sr' not in kwargs:
         kwargs['sr'] = 16000
@@ -745,7 +750,8 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequen
     plt.show()
     
 def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity', 
-             use_beg_ms = 120, extend_window_ms=0, **kwargs):
+             use_beg_ms = 120, extend_window_ms=0, name4pic = None, **kwargs):
+    import matplotlib.pyplot as plt
     # ensure sr is at least 44100
     # vad does not work well with lower sample rates
     if 'sr' not in kwargs:
@@ -767,12 +773,15 @@ def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity',
         kwargs['win_size_ms'] = 50
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0
-    if kwargs['percent_overlap'] > 0:
-        import warnings
-        msg = '\nVAD does not currently use overlap. `percent_overlap` set to 0.'
-        kwargs['percent_overlap'] = 0
+    #if kwargs['percent_overlap'] > 0:
+        #import warnings
+        #msg = '\nVAD does not currently use overlap. `percent_overlap` set to 0.'
+        #kwargs['percent_overlap'] = 0
     stft_matrix = pyso.feats.get_stft(sound, **kwargs)
-    vad_matrix, __ = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
+    #vad_matrix, __ = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
+    
+    stft_vad, vad_matrix = pyso.dsp.get_speech_stft(sound, **kwargs)
+    
     
     # extend window of VAD if desired
     if extend_window_ms > 0:
@@ -802,14 +811,18 @@ def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity',
         vad_matrix = vad_matrix_extwin
     stft_matrix = librosa.power_to_db(stft_matrix)
     y_axis = stft_matrix.shape[1]
-    vad_matrix = pyso.dsp.scalesound(vad_matrix, max_val = y_axis, min_val = 0)
+    if max(vad_matrix) > 0:
+        vad_matrix = pyso.dsp.scalesound(vad_matrix, max_val = y_axis, min_val = 0)
     plt.pcolormesh(stft_matrix.T)
     color = 'yellow'
     linestyle = ':'
     plt.plot(vad_matrix, 'ro', color=color)
     if title:
         plt.title(title)
-    plt.show()
+    if name4pic is None:
+        plt.plot()
+    else:
+        plt.savefig(name4pic)
 
 def get_change_acceleration_rate(spectro_data):
     '''Gets first and second derivatives of spectral data.
