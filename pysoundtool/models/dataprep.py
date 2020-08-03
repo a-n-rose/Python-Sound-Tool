@@ -192,7 +192,8 @@ class GeneratorFeatExtraction:
                  gray2color = False, visualize = False,
                  vis_every_n_items = 50, visuals_dir = None,
                  decode_dict = None, dataset='train', 
-                 augment_dict = None, label_silence = False, **kwargs):
+                 augment_dict = None, label_silence = False,
+                 vad_start_end = False,**kwargs):
         '''
         Do not add extra tensor dimensions to expected input_shape.
         
@@ -207,6 +208,11 @@ class GeneratorFeatExtraction:
             List of audiofile pathways or labels for feature extraction and model training. 
             This list might contain clean versions of `datalist`. These will be assigned 
             as the 'label' or expected output of the input features.
+            
+        vad_start_end : bool 
+            If True, VAD will be applied only to the beginng and end of the signal, to clip off
+            the silences. If False, VAD will be applied to the entire signal; however, this is
+            potentially finicky.
         
         **kwargs : additional keyword arguments
             Keyword arguments for pysoundtool.feats.get_feats
@@ -230,6 +236,7 @@ class GeneratorFeatExtraction:
         
         self.dataset = dataset
         self.label_silence = label_silence
+        self.vad_start_end = vad_start_end
         self.model_name = model_name
         self.batch_size = batch_size
         self.samples_per_epoch = len(datalist)
@@ -353,10 +360,18 @@ class GeneratorFeatExtraction:
             # ensure audio is valid:
             y, sr = pyso.loadsound(audiopath,self.sr)
             if self.label_silence:
-                import time
-                y_stft, vad = pyso.dsp.get_speech_stft(y, sr=sr, 
+                if self.vad_start_end:
+                    y_stft, vad = pyso.dsp.get_speech_stft(y, sr=sr, 
                                                      win_size_ms = 50, 
                                                      percent_overlap = 0.5)
+                else:
+                    y_stft, __ = pyso.feats.get_vad_stft(y, sr=sr,
+                                                        win_size_ms = 60,
+                                                        percent_overlap = 0.4,
+                                                        use_beg_ms = 120,
+                                                        energy_thresh = 40, 
+                                                        freq_thresh = 185, 
+                                                        sfm_thresh = 5)
                 if not y_stft.any():
                     label = len(self.decode_dict)-1
                     print('\nNo voice activity detected in {}'.format(audiopath))
