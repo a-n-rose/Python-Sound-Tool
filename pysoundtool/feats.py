@@ -538,12 +538,6 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
         data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
-    #if percent_overlap > 0:
-        #import warnings
-        #msg = 'For VAD calculation, no overlap applied. '+\
-            #'Therefore, `percent_overlap` set to 0.'
-        #warnings.warn(msg)
-        #percent_overlap = 0
     num_overlap_samples = int(frame_length * percent_overlap)
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
@@ -624,12 +618,6 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
         assert sr2 == sr
         
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
-    #if percent_overlap > 0:
-        #import warnings
-        #msg = 'For VAD calculation, no overlap applied. '+\
-            #'Therefore, `percent_overlap` set to 0.'
-        #warnings.warn(msg)
-        #percent_overlap = 0
     num_overlap_samples = int(frame_length * percent_overlap)
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
