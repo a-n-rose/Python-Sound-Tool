@@ -20,7 +20,7 @@ import pysoundtool as pyso
 
 ######################################################
 # Prepare for Extraction: Data Organization
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# -----------------------------------------
 
 ######################################################
 # I will use a sample speech commands data set:
@@ -47,7 +47,7 @@ dur_sec = 1
 
 #############################################################
 # Option 1: Built-In Functionality - PySoundTool extracts the features for you
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ----------------------------------------------------------------------------
 
 ############################################################
 # Define which data to use and which features to extract
@@ -73,7 +73,7 @@ extraction_dir
 
 ############################################################
 # Option 2: A bit more hands-on (PySoundTool does a bit for you)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# --------------------------------------------------------------
 
 ######################################################
 # Where to save extracted features:
@@ -94,7 +94,9 @@ data_dir = pyso.utils.check_dir(data_dir, make=False)
 # the labels are expected to be the titles of subfolders
 labels = []
 for label in data_dir.glob('*/'):
-    labels.append(label.stem)
+    if not label.suffix:
+        # directory, not filename
+        labels.append(label.stem)
 labels = set(labels)
 print(labels)
 
@@ -198,7 +200,7 @@ datasets_path2save_dict = dict([('train',data_train_path),
 
 ######################################################################
 # Visualize Audio Samples and Features
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ------------------------------------
 
 ######################################################
 # for fun, let's visualize the audio:
@@ -218,7 +220,7 @@ pyso.plotsound(paths_list[0], feature_type=feature_type, energy_scale='power_to_
 
 ######################################################
 # Extract and Save Features
-# ^^^^^^^^^^^^^^^^^^^^^^^^^
+# -------------------------
 import time
 start = time.time()
 
@@ -247,7 +249,7 @@ print(feat_extraction_dir)
 
 ###########################################################################
 # Examining what info is logged
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# -----------------------------
 
 ################################################################
 # Dataset assigned to audio files and their labels (0, 1, or 2):
@@ -272,7 +274,7 @@ for key, value in datasets_path2save_dict.items():
 
 ######################################################
 # Large Datasets
-# ^^^^^^^^^^^^^^
+# --------------
 # If you have very large amounts of audio you would like to process, you can 
 # divide the datasets into smaller sections:
 
@@ -288,7 +290,7 @@ dataset_dict, datasets_path2save_dict = pyso.feats.save_features_datasets(
 
 ###########################################################################
 # Examining what info is logged: Subdividing datasets
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ---------------------------------------------------
 # If you subdivide your data, this will be updated in the dataset_dict
 
 count = 0
