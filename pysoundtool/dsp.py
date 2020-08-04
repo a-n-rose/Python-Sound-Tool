@@ -2452,19 +2452,13 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
         # resample audio if sr is lower than 44100
         if sr < 44100:
             import warnings
-            msg = '\nWarning: VAD works best with sample rates above '+\
-                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(sr)
+            msg = '\nWarning: VAD works best with sample rates above 44100 Hz.'
             warnings.warn(msg)
-            data, sr = pyso.dsp.resample_audio(data, sr, 44100)
     else:
         if sr < 44100:
             import warnings
-            msg = '\nWarning: VAD works best with sample rates above '+\
-                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(sr)
+            msg = '\nWarning: VAD works best with sample rates above 44100 Hz.'
             warnings.warn(msg)
-            sr = 44100
         data, sr2 = pyso.loadsound(sound, sr=sr)
         assert sr2 == sr
     # first scale samples to be between -1 and 1
