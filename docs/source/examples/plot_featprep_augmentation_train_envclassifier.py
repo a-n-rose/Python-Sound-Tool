@@ -35,7 +35,7 @@ pyso_dir = package_dir
 
 #########################################################
 # Prepare for Extraction: Set Feature Extraction Settings
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# =======================================================
 
 #########################################################
 # Choose Feature Type, etc. 
@@ -145,8 +145,6 @@ augmentation_speed_increase_pitch_decrease_white_noise = dict(aug_dict)
 augmentation_speed_increase_pitch_decrease_white_noise['add_white_noise'] = True
 augmentation_speed_increase_pitch_decrease_white_noise['pitch_decrease'] = True
 augmentation_speed_increase_pitch_decrease_white_noise['speed_increase'] = True
-augmentation_speed_increase_pitch_decrease_white_noise.update(
-    dict(augment_settings_dict = augment_settings_dict))
 for key, value in augmentation_speed_increase_pitch_decrease_white_noise.items():
     print(key, ' : ', value)
 
@@ -306,7 +304,7 @@ ipd.Audio(y_comb,rate=sr)
 
 #######################################################################
 # Prepare for PySoundTool
-# ^^^^^^^^^^^^^^^^^^^^^^^
+# =======================
 # PySoundTool works a lot with dictionaries. We will organize the augmentations 
 # and settings in a list of dictionaries for PySoundTool to access during training.
 
@@ -332,6 +330,7 @@ for key, value in augmentation_noise.items():
         print(key, ':')
         for k, v in value.items():
             print('\t ',k,' : ',v)
+
 
 ##########################################################
 # Update Pitch Decrease
@@ -388,6 +387,21 @@ for key, value in augmentation_speed_increase.items():
         for k, v in value.items():
             print('\t ',k,' : ',v)
 
+
+##########################################################
+# Update Combinations
+# ~~~~~~~~~~~~~~~~~~~
+augmentation_speed_increase_pitch_decrease_white_noise.update(
+    dict(augment_settings_dict = augment_settings_dict))
+for key, value in augmentation_speed_increase_pitch_decrease_white_noise.items():
+    if isinstance(value, bool):
+        print(key, ' : ', value)
+    elif isinstance(value, dict):
+        print(key, ':')
+        for k, v in value.items():
+            print('\t ',k,' : ',v)
+
+
 #######################################################################
 # Put All Augmentation Setting Dicts Into List
 # ---------------------------------------------------------------------
@@ -400,9 +414,10 @@ augment_dict_list = [
     augmentation_speed_increase,
     augmentation_speed_increase_pitch_decrease_white_noise]
 
+
 #########################################################
 # Set Model Parameters
-# ^^^^^^^^^^^^^^^^^^^^
+# --------------------
 # This includes if it should expect labeled data (in this case yes), number of 
 # epochs etc.
 model_name = 'docs_augment_speech_commands'
@@ -426,7 +441,7 @@ data_dir = '../../../../mini-audio-datasets/speech_commands/'
 
 #########################################################
 # Get the Training Started!
-# ^^^^^^^^^^^^^^^^^^^^^^^^^
+# =========================
 
 feat_model_dir, history = pyso.envclassifier_extract_train(
     model_name = model_name,
@@ -441,7 +456,7 @@ feat_model_dir, history = pyso.envclassifier_extract_train(
 
 #########################################################
 # Plot Training and Validation Accuracy 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# -------------------------------------
 # load the logging settings of all training sessions:
 import csv
 model_log_path = feat_model_dir.joinpath('log.csv')
@@ -477,7 +492,7 @@ plt.savefig('{}_accuracy_{}.png'.format(model_name, pyso.utils.get_date()))
 
 #########################################################
 # Plot Training and Validation Loss 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ---------------------------------
 # Can you tell where each of the training sessions started?
 
 plt.clf()
