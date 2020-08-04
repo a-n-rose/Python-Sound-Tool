@@ -489,7 +489,14 @@ def get_feats(sound,
 # allows for more control over fft bins / resolution of each iteration.
 def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                 real_signal = False, fft_bins = 1024, 
-                window = 'hann'):
+                window = 'hann', zeropad = True):
+    '''Returns STFT matrix.
+    
+    This function allows more flexibility in number of `fft_bins` and `real_signal`
+    settings. Additionally, this does not require the package librosa, making it 
+    a bit easier to manipulate if desired. For an example, see
+    `pysoundtool.augment.vtlp`.
+    '''
     if isinstance(sound, np.ndarray):
         data = sound
     else:
@@ -500,7 +507,7 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
-                                                zeropad = True)
+                                                zeropad = zeropad)
     total_rows = fft_bins
     stft_matrix = pyso.dsp.create_empty_matrix((num_subframes, total_rows),
                                               complex_vals = True)
@@ -510,7 +517,7 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
         section = data[section_start:section_start+frame_length]
         section = pyso.dsp.apply_window(section, 
                                         window_frame, 
-                                        zeropad = True)
+                                        zeropad = zeropad)
         
         section_fft = pyso.dsp.calc_fft(section, 
                                         real_signal = real_signal,
@@ -526,6 +533,8 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           window = 'hann', use_beg_ms = 120,
                           extend_window_ms = 0, energy_thresh = 40, 
                           freq_thresh = 185, sfm_thresh = 5):
+    '''Returns STFT matrix and VAD matrix. STFT matrix contains only VAD sections.
+    '''
     # raise warnings if sample rate lower than 44100 Hz
     if sr < 44100:
         import warnings
@@ -600,11 +609,37 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
             extra_rows += 1
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:-extra_rows]
-    return stft_matrix[:,:fft_bins//2], sr
+    return stft_matrix[:,:fft_bins//2], vad_matrix_extwin
+
+def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5):
+    '''Returns STFT matrix and VAD matrix with beginning and ending silence removed.
+    '''
+    stft = pyso.feats.get_stft(samples, sr = sr, 
+                               win_size_ms = win_size_ms, 
+                               percent_overlap = percent_overlap)
+    energy = pyso.dsp.get_energy(stft)
+    energy_mean = pyso.dsp.get_energy_mean(energy)
+    beg_index, beg_speech_found = pyso.dsp.sound_index(
+        energy,energy_mean,start=True)
+    end_index, end_speech_found = pyso.dsp.sound_index(
+        energy,energy_mean,start=False)
+    vad_matrix = np.zeros(len(stft))
+    if beg_speech_found == False or end_speech_found == False:
+        import warnings
+        msg = '\nNo speech detected'
+        warnings.warn(msg)
+        return [], vad_matrix
+    if beg_index < end_index:
+        stft_speech = stft[beg_index:end_index]
+        vad_matrix[beg_index:end_index] = 1
+        return stft_speech, vad_matrix
+    return [], vad_matrix
 
 def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                     use_beg_ms = 120, extend_window_ms = 0, energy_thresh = 40, 
                     freq_thresh = 185, sfm_thresh = 5):
+    '''Returns samples and VAD matrix. Only samples where with VAD are returned.
+    '''
     # raise warnings if sample rate lower than 44100 Hz
     if sr < 44100:
         import warnings
@@ -654,7 +689,7 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                     vad_matrix_extwin[i:num_win_subframes+i] = 1
                 else:
                     vad_matrix_extwin[i:] = 1
-            
+                    
     section_start = 0
     extra_rows = 0
     row = 0
@@ -665,10 +700,45 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
             samples_matrix[row:row+len(section)] = section
             row += len(section)
         else:
-            extra_rows += frame_length
+            extra_rows += frame_length - num_overlap_samples
         section_start += (frame_length - num_overlap_samples)
     samples_matrix = samples_matrix[:-extra_rows]
-    return samples_matrix, sr
+    return samples_matrix, vad_matrix_extwin
+
+def get_samples_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
+                        window = 'hann', zeropad = True):
+    '''Returns samples and VAD matrix with beginning and ending silence removed.
+    '''
+    if not isinstance(samples, np.ndarray):
+        samples, sr = pyso.loadsound(samples, sr=sr)
+    stft = pyso.feats.get_stft(samples,sr, 
+                               win_size_ms = win_size_ms, 
+                               percent_overlap = percent_overlap,
+                               window = window, zeropad = zeropad)
+    energy = pyso.dsp.get_energy(stft)
+    energy_mean = pyso.dsp.get_energy_mean(energy)
+    beg = pyso.dsp.sound_index(energy,energy_mean,start=True)
+    end = pyso.dsp.sound_index(energy,energy_mean,start=False)
+    vad_matrix = np.zeros(len(samples))
+    if beg[1] == False or end[1] == False:
+        import warnings
+        msg = 'No speech detected'
+        warnings.warn(msg)
+        return [], vad_matrix
+    
+    perc_start = beg[0]/len(energy)
+    perc_end = end[0]/len(energy)
+    sample_start = int(perc_start*len(samples))
+    sample_end = int(perc_end*len(samples))
+    if sample_start < sample_end:
+        samples_speech = samples[sample_start:sample_end]
+        vad_matrix[sample_start:sample_end] = 1
+        return samples_speech, vad_matrix
+
+    import warnings
+    msg = 'No speech detected'
+    warnings.warn(msg)
+    return [], vad_matrix
 
 def normalize(data, max_val=None, min_val=None):
     '''Normalizes data.
@@ -744,8 +814,55 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequen
     plt.plot(pitch, 'ro', color=color)
     plt.show()
     
-def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity', 
-             use_beg_ms = 120, extend_window_ms=0, name4pic = None, **kwargs):
+def plot_vad(sound, energy_scale = 'power_to_db', 
+             title = 'Voice Activity', 
+             use_beg_ms = 120, extend_window_ms=0, 
+             beg_end_clipped = True, name4pic = None, **kwargs):
+    '''Plots where voice (sound) activity detected on STFT plot.
+    
+    This either plots immediately or saves the plot at `name4pic`.
+    
+    Parameters
+    ----------
+    sound : np.ndarray [shape=(num_samples,)], str, pathlib.PosixPath
+        The sound to plot the VAD of.
+    
+    energy_scale : str 
+        If plotting STFT or power spectrum, will plot it in decibels. 
+        (default 'power_to_db')
+        
+    title : str 
+        The title of the plot (default 'Voice Activity')
+        
+    use_beg_ms : int 
+        The amount of noise to use at the beginning of the signal to measuer VAD. This
+        is only applied if `beg_end_silence` is set to False.
+        
+    extend_window_ms : int 
+        The number of milliseconds VAD should be padded. This is useful if one wants to 
+        encompass more speech if the VAD is not including all the speech / desired sound. 
+        However, this may capture more noise. (default 0)
+        
+    beg_end_silence : bool 
+        If True, just the silences at the beginning and end of the sample will be cut off.
+        If False, VAD will be checked throughout the sample, not just the beginning and 
+        end. NOTE: Both options have strengths and weaknesses. Sometimes the VAD checking 
+        the entire signal is unreliable (e.i. when `beg_end_silence is set to False`), 
+        not recognizing speech in speech filled samples. And when set to True, some speech
+        sounds tend to get ignored ('s', 'x' and other fricatives).
+        
+    name4pic : str 
+        The full pathway and filename to save the picture (as .png file). A file
+        extension is expected. (default None)
+        
+    **kwargs : keyword arguments
+        Additional keyword arguments for `pysoundtool.feats.get_speech_stft` or 
+        `pysoundtool.dsp.vad`.
+        
+    Returns
+    -------
+    None
+    '''
     import matplotlib.pyplot as plt
     # ensure sr is at least 44100
     # vad does not work well with lower sample rates
@@ -767,16 +884,17 @@ def plot_vad(sound, energy_scale = 'power_to_db', title = 'Voice Activity',
     if 'win_size_ms' not in kwargs:
         kwargs['win_size_ms'] = 50
     if 'percent_overlap' not in kwargs:
-        kwargs['percent_overlap'] = 0
-    #if kwargs['percent_overlap'] > 0:
-        #import warnings
-        #msg = '\nVAD does not currently use overlap. `percent_overlap` set to 0.'
-        #kwargs['percent_overlap'] = 0
+        kwargs['percent_overlap'] = 0.5
     stft_matrix = pyso.feats.get_stft(sound, **kwargs)
-    #vad_matrix, __ = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
     
-    stft_vad, vad_matrix = pyso.dsp.get_speech_stft(sound, **kwargs)
-    
+    if beg_end_clipped:
+        stft_vad, vad_matrix = pyso.feats.get_stft_clipped(sound,
+                                                        **kwargs)
+    else:
+        #vad_matrix, __ = pyso.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
+        stft_vad, vad_matrix = pyso.feats.get_vad_stft(sound,
+                                                       use_beg_ms = use_beg_ms,
+                                                       **kwargs)
     
     # extend window of VAD if desired
     if extend_window_ms > 0:
@@ -848,7 +966,7 @@ def get_change_acceleration_rate(spectro_data):
 def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
                      percent_overlap=0.5, num_filters=40, num_mfcc=40,
                      fft_bins = None, window_function = None, zeropad = True, **kwargs):
-    '''Collects fbank or mfcc features via python speech features.
+    '''Collects fbank or mfcc features via python-speech-features (rather than librosa).
     '''
     if not window_function:
         # default for python_speech_features:
@@ -941,7 +1059,10 @@ def zeropad_features(feats, desired_shape, complex_vals = False):
     return fts
 
 def reduce_num_features(feats, desired_shape):
-    '''Limits number features of a copy of feats. 
+    '''Limits number features of a copy of feats.
+    
+    This is useful if you want the features to be a certain size, for 
+    training models for example.
     '''
     fts = feats.copy()
     if feats.shape != desired_shape:
