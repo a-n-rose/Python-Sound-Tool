@@ -2670,7 +2670,7 @@ def envclassifier_extract_train(
             decode_dict = dict_decode,
             dataset = 'train',
             augment_dict = augment_dict,
-            label_silence = True,
+            label_silence = False,
             **kwargs)
         
         val_generator = pysodl.Generator(
