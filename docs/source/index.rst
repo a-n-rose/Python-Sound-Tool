@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-PySoundTool - 0.1.0a2
-=====================
+PySoundTool v0.1.0a2
+====================  
 
 Welcome to the docs!
 --------------------
