@@ -351,14 +351,14 @@ ipd.Audio(vad_samples, rate = sr)
 # ------
 # We can see from the above examples that the first option (clipping beginning 
 # and ending silences) works pretty well at higher SNRs and with filtering. 
-# It identfied pretty well when the speech began and ended.
+# It identified pretty well when the speech began and ended.
 
 #######################################################
-# The second option (VAD through the signal) was perhaps better able 
+# The second option (VAD throughout the signal) was perhaps better able 
 # to identify the existence of speech despite noise (without filtering); 
 # however, it only recognized a very small portion of it. 
 
 #######################################################
 # Despite these functions being a work in progress, I have found them 
-# to be quite useful when exploring audio data for deep learning and 
+# to be quite useful when working with audio data for deep learning and 
 # other sound related projects.
