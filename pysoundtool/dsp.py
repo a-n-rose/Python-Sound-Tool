@@ -2523,13 +2523,25 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
         if f < min_freq and frame < measure_noise_frames:
             min_freq = f
         
+        # TODO fix when NAN value
         if min_sfm is None and frame == 0:
-            min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
+            try:
+                min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
+            except TypeError:
+                min_sfm = 0
         #elif frame < measure_noise_frames:
             #new_min_sfm = pyso.dsp.spectral_flatness_measure(section_fft)
             #min_sfm_array[frame] = new_min_sfm
             #min_sfm= np.mean(min_sfm_array[:frame+1])
-        sfm = pyso.dsp.spectral_flatness_measure(section_fft)
+        
+        # TODO fix when NAN value
+        try:
+            sfm = pyso.dsp.spectral_flatness_measure(section_fft)
+        except TypeError:
+            if frame == 0:
+                sfm = 0
+            else:
+                pass # it should already be defined
         if sfm < min_sfm  and frame < measure_noise_frames:
             min_sfm = sfm         
         # decide if speech or silence 
