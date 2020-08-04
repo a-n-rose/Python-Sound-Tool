@@ -637,7 +637,7 @@ def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5):
 
 def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                     use_beg_ms = 120, extend_window_ms = 0, energy_thresh = 40, 
-                    freq_thresh = 185, sfm_thresh = 5):
+                    freq_thresh = 185, sfm_thresh = 5, window = 'hann', zeropad = True):
     '''Returns samples and VAD matrix. Only samples where with VAD are returned.
     '''
     # raise warnings if sample rate lower than 44100 Hz
@@ -657,13 +657,13 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
-                                                zeropad = True)
+                                                zeropad = zeropad)
     # set number of subframes for extending window
     extwin_num_samples = pyso.dsp.calc_frame_length(extend_window_ms, sr)
     num_win_subframes = pyso.dsp.calc_num_subframes(extwin_num_samples,
                                                     frame_length = frame_length,
                                                     overlap_samples = num_overlap_samples,
-                                                    zeropad = True)
+                                                    zeropad = zeropad)
     
     samples_matrix = pyso.dsp.create_empty_matrix((len(data)),
                                                 complex_vals = False)
@@ -693,12 +693,18 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
     section_start = 0
     extra_rows = 0
     row = 0
+    window_frame = pyso.dsp.create_window(window, frame_length)
     for frame in range(num_subframes):
         vad = vad_matrix_extwin[frame]
         if vad > 0:
-            section = data[section_start:section_start+frame_length]
-            samples_matrix[row:row+len(section)] = section
-            row += len(section)
+            section = data[section_start : section_start + frame_length]
+            if percent_overlap > 0:
+                # apply overlap add to signal
+                section_windowed = pyso.dsp.apply_window(section, window_frame, zeropad = zeropad)
+                samples_matrix[row : row + frame_length] += section_windowed
+            else:
+                samples_matrix[row : row + frame_length] += section
+            row += (frame_length - num_overlap_samples)
         else:
             extra_rows += frame_length - num_overlap_samples
         section_start += (frame_length - num_overlap_samples)
