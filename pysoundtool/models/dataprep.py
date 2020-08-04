@@ -361,13 +361,13 @@ class GeneratorFeatExtraction:
             y, sr = pyso.loadsound(audiopath,self.sr)
             if self.label_silence:
                 if self.vad_start_end:
-                    y_stft, vad = pyso.dsp.get_speech_stft(y, sr=sr, 
+                    y_stft, vad = pyso.dsp.get_stft_clipped(y, sr=sr, 
                                                      win_size_ms = 50, 
                                                      percent_overlap = 0.5)
                 else:
                     y_stft, __ = pyso.feats.get_vad_stft(y, sr=sr,
-                                                        win_size_ms = 60,
-                                                        percent_overlap = 0.4,
+                                                        win_size_ms = 50,
+                                                        percent_overlap = 0.5,
                                                         use_beg_ms = 120,
                                                         energy_thresh = 40, 
                                                         freq_thresh = 185, 
