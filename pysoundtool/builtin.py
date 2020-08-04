@@ -337,7 +337,7 @@ def filtersignal(audiofile,
                 rows,cols,)))**2,
             'stft', title='Final filtered signal power spectrum'.upper()+'\n{}: {}'.format(filter_type,frame_subtitle), energy_scale='power_to_db')
         pyso.feats.plot(enhanced_signal,'signal', title='Final filtered signal'.upper()+'\n{}'.format(filter_type), sr = fil.sr)
-    enhanced_signal = fil.check_volume(enhanced_signal)
+    #enhanced_signal = fil.check_volume(enhanced_signal)
     if len(enhanced_signal) > len(samples_orig):
         enhanced_signal = enhanced_signal[:len(samples_orig)]
     # for backwards compatibility
