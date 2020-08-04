@@ -532,9 +532,18 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', use_beg_ms = 120,
                           extend_window_ms = 0, energy_thresh = 40, 
-                          freq_thresh = 185, sfm_thresh = 5):
+                          freq_thresh = 185, sfm_thresh = 5, zeropad = True):
     '''Returns STFT matrix and VAD matrix. STFT matrix contains only VAD sections.
     '''
+    # raise error if percent_overlap is not supported
+    if percent_overlap != 0 and percent_overlap < 0.5:
+        raise ValueError('For this VAD function, `percent_overlap` ' +\
+            'set to {} is not currently supported.\n'.format(percent_overlap) +\
+                'Suggested to set at either 0 or 0.5')
+    if percent_overlap > 0.5:
+        import warnings
+        msg = '\nWarning: for this VAD function, parameter `percent_overlap` has most success '+\
+            'when set at 0 or 0.5'
     # raise warnings if sample rate lower than 44100 Hz
     if sr < 44100:
         import warnings
@@ -551,14 +560,14 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
-                                                zeropad = True)
+                                                zeropad = zeropad)
     
     # set number of subframes for extending window
     extwin_num_samples = pyso.dsp.calc_frame_length(extend_window_ms, sr)
     num_win_subframes = pyso.dsp.calc_num_subframes(extwin_num_samples,
                                                     frame_length = frame_length,
                                                     overlap_samples = num_overlap_samples,
-                                                    zeropad = True)
+                                                    zeropad = zeropad)
     
     total_rows = fft_bins
     stft_matrix = pyso.dsp.create_empty_matrix((num_subframes, total_rows),
@@ -573,7 +582,7 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                                                sfm_thresh = sfm_thresh)
     vad_matrix_extwin = vad_matrix.copy()
     
-    # extend VAD windows with 1s
+    # extend VAD windows where VAD indicated
     if extend_window_ms > 0:
         for i, row in enumerate(vad_matrix):
             if row > 0:
@@ -598,7 +607,7 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
             section = data[section_start:section_start+frame_length]
             section = pyso.dsp.apply_window(section, 
                                             window_frame, 
-                                            zeropad = True)
+                                            zeropad = zeropad)
             section_fft = pyso.dsp.calc_fft(section, 
                                             real_signal = real_signal,
                                             fft_bins = total_rows,
@@ -611,7 +620,8 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
     stft_matrix = stft_matrix[:-extra_rows]
     return stft_matrix[:,:fft_bins//2], vad_matrix_extwin
 
-def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5):
+def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5, 
+                     extend_window_ms = 0):
     '''Returns STFT matrix and VAD matrix with beginning and ending silence removed.
     '''
     stft = pyso.feats.get_stft(samples, sr = sr, 
@@ -630,6 +640,19 @@ def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5):
         warnings.warn(msg)
         return [], vad_matrix
     if beg_index < end_index:
+        if extend_window_ms > 0:
+            extra_samples = pyso.dsp.calc_frame_length(extend_window_ms, sr)
+            num_win_subframes = pyso.dsp.calc_num_subframes(
+                extra_samples,
+                frame_length = frame_length,
+                overlap_samples = num_overlap_samples,
+                zeropad = zeropad)
+            beg_index -= num_win_subframes
+            if beg_index < 0:
+                beg_index = 0
+            end_index += num_win_subframes
+            if end_index > len(vad_matrix):
+                end_index = len(vad_matrix)
         stft_speech = stft[beg_index:end_index]
         vad_matrix[beg_index:end_index] = 1
         return stft_speech, vad_matrix
@@ -640,6 +663,15 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                     freq_thresh = 185, sfm_thresh = 5, window = 'hann', zeropad = True):
     '''Returns samples and VAD matrix. Only samples where with VAD are returned.
     '''
+    # raise error if percent_overlap is not supported
+    if percent_overlap != 0 and percent_overlap < 0.5:
+        raise ValueError('For this VAD function, `percent_overlap` ' +\
+            'set to {} is not currently supported.\n'.format(percent_overlap) +\
+                'Suggested to set at either 0 or 0.5')
+    if percent_overlap > 0.5:
+        import warnings
+        msg = '\nWarning: for this VAD function, parameter `percent_overlap` has most success '+\
+            'when set at 0 or 0.5'
     # raise warnings if sample rate lower than 44100 Hz
     if sr < 44100:
         import warnings
@@ -675,7 +707,7 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                                                freq_thresh = freq_thresh, 
                                                sfm_thresh = sfm_thresh)
     vad_matrix_extwin = vad_matrix.copy()
-    # extend VAD windows with 1s
+    # extend VAD windows with if VAD found
     if extend_window_ms > 0:
         for i, row in enumerate(vad_matrix):
             if row > 0:
@@ -712,7 +744,7 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
     return samples_matrix, vad_matrix_extwin
 
 def get_samples_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
-                        window = 'hann', zeropad = True):
+                        extend_window_ms = 0, window = 'hann', zeropad = True):
     '''Returns samples and VAD matrix with beginning and ending silence removed.
     '''
     if not isinstance(samples, np.ndarray):
@@ -737,8 +769,17 @@ def get_samples_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
     sample_start = int(perc_start*len(samples))
     sample_end = int(perc_end*len(samples))
     if sample_start < sample_end:
+        if extend_window_ms > 0:
+            extra_frames = pyso.dsp.calc_frame_length(extend_window_ms, sr)
+            sample_start -= extra_frames
+            if sample_start < 0:
+                sample_start = 0
+            sample_end += extra_frames
+            if sample_end > len(vad_matrix):
+                sample_end = len(vad_matrix)
         samples_speech = samples[sample_start:sample_end]
         vad_matrix[sample_start:sample_end] = 1
+            
         return samples_speech, vad_matrix
 
     import warnings
