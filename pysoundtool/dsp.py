@@ -2636,55 +2636,6 @@ def get_energy(stft):
 def get_energy_mean(rms_energy):
     energy_mean = sum(rms_energy)/len(rms_energy)
     return energy_mean
-   
-def get_speech_samples(samples, sr, win_size_ms = 50, percent_overlap = 0.5):
-
-    stft = pyso.feats.get_stft(samples,sr, 
-                               win_size_ms = win_size_ms, 
-                               percent_overlap = percent_overlap)
-    energy = get_energy(stft)
-    energy_mean = get_energy_mean(energy)
-    beg = sound_index(energy,energy_mean,start=True)
-    end = sound_index(energy,energy_mean,start=False)
-    vad_matrix = np.zeros(len(samples))
-    if beg[1] == False or end[1] == False:
-        import warnings
-        msg = 'No speech detected'
-        warnings.warn(msg)
-        return [], vad_matrix
-    
-    perc_start = beg[0]/len(energy)
-    perc_end = end[0]/len(energy)
-    sample_start = int(perc_start*len(samples))
-    sample_end = int(perc_end*len(samples))
-    if sample_start < sample_end:
-        samples_speech = samples[sample_start:sample_end]
-        vad_matrix[sample_start:sample_end] = 1
-        return samples_speech, vad_matrix
-
-    import warnings
-    msg = 'No speech detected'
-    warnings.warn(msg)
-    return [], vad_matrix
-
-def get_speech_stft(samples, sr, win_size_ms = 50, percent_overlap = 0.5):
-    stft = pyso.feats.get_stft(samples, sr = sr, win_size_ms = win_size_ms, 
-                               percent_overlap = percent_overlap)
-    energy = get_energy(stft)
-    energy_mean = get_energy_mean(energy)
-    beg_index, beg_speech_found = sound_index(energy,energy_mean,start=True)
-    end_index, end_speech_found = sound_index(energy,energy_mean,start=False)
-    vad_matrix = np.zeros(len(stft))
-    if beg_speech_found == False or end_speech_found == False:
-        import warnings
-        msg = '\nNo speech detected'
-        warnings.warn(msg)
-        return [], vad_matrix
-    if beg_index < end_index:
-        stft_speech = stft[beg_index:end_index]
-        vad_matrix[beg_index:end_index] = 1
-        return stft_speech, vad_matrix
-    return [], vad_matrix
 
 # TODO test
 def spectral_flatness_measure(spectrum):
