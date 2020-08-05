@@ -232,7 +232,7 @@ def pitch_decrease(sound, sr, num_semitones = 2, **kwargs):
 def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann',
-         zeropad = True):
+         zeropad = True, expected_shape = None):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
     
     References
@@ -301,6 +301,8 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         stft_matrix[frame][:len(section_warped)] = section_warped
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:,:len(section_warped)]
+    if expected_shape is not None:
+        stft_matrix = pyso.feats.adjust_shape(stft_matrix, expected_shape)
     return stft_matrix, vtlp_a
 
 def get_augmentation_dict():

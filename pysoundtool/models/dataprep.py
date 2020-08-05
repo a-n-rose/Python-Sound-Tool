@@ -389,6 +389,7 @@ class GeneratorFeatExtraction:
                     print('File {} contains invalid sample data,'.format(audiopath)+\
                         ' incompatible with augmentation techniques. Trying again.')
                     if self.decode_dict is not None:
+                        # relabel data to non-label (e.g. silence)
                         if not self.ignore_invalid:
                             label_invalid = len(self.decode_dict)-1
                             label_pic = self.decode_dict[label_invalid]
@@ -459,7 +460,8 @@ class GeneratorFeatExtraction:
                                           win_size_ms = win_size_ms,
                                           percent_overlap = percent_overlap, 
                                           fft_bins = fft_bins,
-                                          window = window)
+                                          window = window,
+                                          expected_shape = self.input_shape[:-1])
                 augmentation += 'alpha{}'.format(alpha)
             try:
                 feats = pyso.feats.get_feats(augmented_data, **self.kwargs)
@@ -666,7 +668,7 @@ def augment_features(sound,
             if isinstance(kwargs_aug['snr'], list):
                 snr = np.random.choice(kwargs_aug['snr'])
         else:
-            snr = dict([('snr', np.random.choice(snr))])
+            snr = np.random.choice(snr)
         samples_augmented = pyso.augment.add_white_noise(samples_augmented, 
                                                          sr = sr,
                                                          snr = snr)
@@ -837,6 +839,8 @@ def get_input_shape(kwargs_get_feats, labeled_data = False,
         else:
             if 'signal' in feature_type:
                 num_feats = frame_length
+            elif 'stft' in feature_type or 'powspec' in feature_type:
+                num_feats = int(1+fft_bins/2)
             else:
                 num_feats = num_filters
             
