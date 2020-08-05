@@ -2594,6 +2594,8 @@ def envclassifier_extract_train(
     input_shape = pysodl.dataprep.get_input_shape(kwargs, labeled_data = labeled_data,
                                   frames_per_sample = frames_per_sample,
                                   use_librosa = use_librosa)
+    print('!!!!!!!!!!!')
+    print(input_shape)
     
     # extract validation data (must already be extracted)
     val_dict = dict([('val',dataset_dict['val'])])
@@ -2695,8 +2697,11 @@ def envclassifier_extract_train(
             for key, value in augment_dict.items():
                 if value == True:
                     print('{}'.format(key).upper())
-                    settings = augment_dict['augment_settings_dict'][key]
-                    print('- Settings: {}'.format(settings))
+                    try:
+                        settings = augment_dict['augment_settings_dict'][key]
+                        print('- Settings: {}'.format(settings))
+                    except KeyError:
+                        pass
             print()
         else:
             print('\nNo augmentations applied.\n')
