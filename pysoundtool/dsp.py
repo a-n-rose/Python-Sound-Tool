@@ -351,7 +351,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         The sample rate of sounds to be added together. Note: sr of 44100 or higher
         is suggested.
     
-    snr : int, float
+    snr : int, float, list, tuple
         The sound-to-noise-ratio of the target and background signals. Note: this
         is an approximation and needs further testing and development to be 
         used as an official measurement of snr. If no SNR provided, signals 
@@ -481,14 +481,21 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         if not noise_stft.any():
             noise_stft = pyso.feats.get_stft(sound2add, sr)
         
-    # TODO fix issue here if nan values - errors/warnings happening here.
-    # numpy/core/fromnumeric.py:3257: RuntimeWarning: Mean of empty slice.
     target_power = np.abs(target_stft)**2
     noise_power = np.abs(noise_stft)**2
     target_energy = np.mean(target_power)
     noise_energy = np.mean(noise_power)
     
     if snr is not None:
+        if isinstance(snr, list) or isinstance(snr, tuple):
+            snr = np.random.choice(snr)
+        elif isinstance(snr, int) or isinstance(snr, float) or isinstance(snr, np.int_) \
+            or isinstance(snr, np.float_):
+            pass
+        else:
+            raise TypeError('Function `add_backgroundsound` expects parameter '+\
+                '`snr` to be an int or float or a list / tuple of ints or floats, '+\
+                    'not of type {}.'.format(type(snr)))
         # see pysoundtool.dsp.snr_adjustnoiselevel
         adjust_sound = (np.sqrt(target_energy/(noise_energy+1e-6) / (10**(snr/10))))
         sound2add *= adjust_sound
