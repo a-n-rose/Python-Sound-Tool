@@ -27,3 +27,4 @@ dev_env/
 docs/source/examples/example_feats_models/
 *.png
 example_feats_models/
+update_env/
