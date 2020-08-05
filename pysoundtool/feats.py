@@ -95,7 +95,6 @@ def plot(feature_matrix, feature_type,
     elif energy_scale == 'db_to_amplitude':
         feature_matrix = librosa.db_to_amplitude(feature_matrix)
         energy_label = 'amplitude'
-    plt.clf()
     if 'signal' not in feature_type:
         x_axis_label = 'Frequency bins'
     else:
