@@ -102,11 +102,11 @@ def test_get_vad_samples_stft_consistency():
                                                 delay_mainsound_sec = 1,
                                                 total_len_sec = 3,
                                                 random_seed = 40)
-    vad_samples, sr = pyso.feats.get_vad_samples(speech_snr, 
+    vad_samples, vad_matrix1 = pyso.feats.get_vad_samples(speech_snr, 
                                            sr = sr,
                                            win_size_ms = win_size_ms,
                                            percent_overlap = percent_overlap)
-    vad_stft, sr = pyso.feats.get_vad_stft(speech_snr, 
+    vad_stft, vad_matrix2 = pyso.feats.get_vad_stft(speech_snr, 
                                      sr = sr,
                                      win_size_ms = win_size_ms,
                                      percent_overlap = percent_overlap)
@@ -133,7 +133,7 @@ def test_get_vad_samples_40SNR_50percentVAD_length_threshold():
                                                 total_len_sec = 3,
                                                 random_seed = snr,
                                                 remove_dc = False)
-    vad_samples, sr = pyso.feats.get_vad_samples(speech_snr, 
+    vad_samples, vad_vector = pyso.feats.get_vad_samples(speech_snr, 
                                            sr = sr,
                                            win_size_ms = win_size_ms,
                                            percent_overlap = percent_overlap)
