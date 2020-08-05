@@ -258,8 +258,9 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         vtlp_a = a
     else:
         vtlp_a = None
-    if isinstance(vtlp_a, int) or isinstance(vtlp_a, float):
-        pass
+    if isinstance(vtlp_a, int) or isinstance(vtlp_a, float) or isinstance(vtlp_a, np.int_) \
+        or isinstance(vtlp_a, np.float_):
+            pass
     else:
         raise TypeError('Function `pysoundtool.augment.vtlp` expected a to be an int or float, or'+\
             ' a list / tuple of ints, or floats; not of type {}'.format(type(a)))
