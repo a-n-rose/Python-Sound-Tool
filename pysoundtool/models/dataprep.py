@@ -455,50 +455,81 @@ class GeneratorFeatExtraction:
                     window = pyso.utils.restore_dictvalue(self.kwargs['window'])
                 except KeyError:
                     window = 'hann'
-                # stft matrix instead of raw samples
+                # get vtlp
+                
+
+                
+                # for 'stft' or 'powspec', can use as feats but needs to be correct size:
+                if 'stft' in self.kwargs['feature_type'] or 'powspec' in \
+                    self.kwargs['feature_type']:
+                    expected_shape = self.input_shape[:-1]
+                # for fbank, mfcc, signal features, must be able to put vtlp stft matrix
+                # back into samples, therefore keep as much info as possible
+                else:
+                    expected_shape = None
                 augmented_data, alpha = pyso.augment.vtlp(augmented_data, self.sr, 
                                           win_size_ms = win_size_ms,
                                           percent_overlap = percent_overlap, 
                                           fft_bins = fft_bins,
                                           window = window,
-                                          expected_shape = self.input_shape[:-1])
+                                          expected_shape = expected_shape)
+                
+                # TODO improve efficiency / issues with vtlp stft matrix and librosa
+                # Had issues converting vtlp stft into fbank or mfcc. 
+                # First turn into audio samples, then into fbank or mfcc or leave as samples.
+                # terribly slow and inefficient.
+                if 'stft' not in self.kwargs['feature_type'] and 'powspec' not in \
+                    self.kwargs['feature_type']:
+                    augmented_data = pyso.feats.feats2audio(
+                        feats = augmented_data, 
+                        feature_type = 'stft',
+                        sr = self.sr,
+                        win_size_ms = win_size_ms,
+                        percent_overlap = percent_overlap)
                 augmentation += 'alpha{}'.format(alpha)
-            try:
-                feats = pyso.feats.get_feats(augmented_data, **self.kwargs)
-            except TypeError:
-                # invalid audio for feature_extraction
-                print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                print('File {} contains invalid sample data,'.format(audiopath)+\
-                    ' incompatible with augmentation techniques. Removing NAN values.')
-                feats = pyso.feats.get_feats(np.nan_to_num(augmented_data), **self.kwargs)
-                if self.decode_dict is not None:
-                    if not self.ignore_invalid:
-                        label_invalid = len(self.decode_dict)-1
-                        label_pic = self.decode_dict[label_invalid]
-                        if label_pic == 'invalid':
-                            print('Encoded label {} adjusted to {}'.format(label,
-                                                                            label_invalid))
-                            label = label_invalid
-                            print('Label adjusted to `invalid`')
-                            print('NOTE: If you would like to ignore invalid data, '+\
-                                'set `ignore_invalid` to True.\n')
+            
+            if self.vtlp and 'stft' in self.kwargs['feature_type'] or \
+                'powspec' in self.kwargs['feature_type']:
+                feats = augmented_data
+                if 'powspec' in self.kwargs['feature_type']:
+                    feats = np.abs(feats)**2
+            else:
+                try:
+                    feats = pyso.feats.get_feats(augmented_data, **self.kwargs)
+                except TypeError:
+                    # invalid audio for feature_extraction
+                    print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    print('File {} contains invalid sample data,'.format(audiopath)+\
+                        ' incompatible with augmentation techniques. Removing NAN values.')
+                    feats = pyso.feats.get_feats(np.nan_to_num(augmented_data), **self.kwargs)
+                    if self.decode_dict is not None:
+                        if not self.ignore_invalid:
+                            label_invalid = len(self.decode_dict)-1
+                            label_pic = self.decode_dict[label_invalid]
+                            if label_pic == 'invalid':
+                                print('Encoded label {} adjusted to {}'.format(label,
+                                                                                label_invalid))
+                                label = label_invalid
+                                print('Label adjusted to `invalid`')
+                                print('NOTE: If you would like to ignore invalid data, '+\
+                                    'set `ignore_invalid` to True.\n')
+                            else:
+                                label_pic = self.decode_dict[label]
+                                import Warnings
+                                msg = '\nWARNING: Label dict does not include `invalid` label. '+\
+                                    'Invalid audiofile {} will be fed '.format(audiopath)+\
+                                        'to the network under {} label.\n'.format(self.decode_dict[label])
+                                Warnings.warn(msg)
                         else:
-                            label_pic = self.decode_dict[label]
-                            import Warnings
-                            msg = '\nWARNING: Label dict does not include `invalid` label. '+\
-                                'Invalid audiofile {} will be fed '.format(audiopath)+\
-                                    'to the network under {} label.\n'.format(self.decode_dict[label])
-                            Warnings.warn(msg)
+                            print('Invalid data ignored (no `invalid` label applied)')
+                            print('NOTE: If you do not want to ignore invalid data, '+\
+                                'set `ignore_invalid` to False.\n')
                     else:
-                        print('Invalid data ignored (no `invalid` label applied)')
-                        print('NOTE: If you do not want to ignore invalid data, '+\
-                            'set `ignore_invalid` to False.\n')
-                else:
-                    import Warnings
-                    msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
-                        'No label dictionary with `invalid` label supplied. Therefore '+\
-                            'model will be fed possibly invalid data with label {}\n'.format(
-                                label)
+                        import Warnings
+                        msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
+                            'No label dictionary with `invalid` label supplied. Therefore '+\
+                                'model will be fed possibly invalid data with label {}\n'.format(
+                                    label)
             if self.apply_log:
                 # TODO test
                 if feats[0].any() < 0:
