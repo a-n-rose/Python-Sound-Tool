@@ -129,6 +129,8 @@ $ source env/bin/activate
 
 ## Install via pip
 
+This will not have the most recent updates.
+
 ```
 (env)..$ pip install pysoundtool
 ```
@@ -141,7 +143,6 @@ Then install the necessary dependencies via pip:
 ```
 (env)..$ pip install -r requirements.txt
 ```
-
 # Examples 
 
 You can explore example code via:
