@@ -1,7 +1,7 @@
 import pysoundtool as pyso 
 import matplotlib.pyplot as plt
 
-feature_type = 'fbank'
+feature_type = 'stft'
 num_filters = 40
 mono = True
 rate_of_change = False
@@ -75,6 +75,18 @@ augmentation_all_speeddown_pitchdown_novtlp = dict([('add_white_noise',True),
                                              ('harmonic_distortion', True),
                                              ('vtlp', False)
                                              ])
+augmentation_pitchdown_novtlp = dict([('add_white_noise',False),
+                                             ('speed_decrease', False),
+                                             ('pitch_decrease', True),
+                                             ('harmonic_distortion', False),
+                                             ('vtlp', False)
+                                             ])
+augmentation_pitchdown_vtlp = dict([('add_white_noise',False),
+                                             ('speed_decrease', False),
+                                             ('pitch_decrease', True),
+                                             ('harmonic_distortion', False),
+                                             ('vtlp', True)
+                                             ])
 
 # get defaults dict of all augmentations:
 augment_settings_dict = {}
@@ -87,9 +99,9 @@ augment_settings_dict['add_white_noise']['snr'] = [10,15,20]
 augment_settings_dict['speed_decrease']['perc'] = 0.1
 
 audiodata_path = '../mini-audio-datasets/speech_commands/'
-augmentation_harmondist.update(
-    dict(augment_settings_dict=augment_settings_dict))
-augment_dict_list = [augmentation_harmondist]
+#augmentation_harmondist.update(
+    #dict(augment_settings_dict=augment_settings_dict))
+augment_dict_list = [augmentation_pitchdown_vtlp, augmentation_pitchdown_novtlp]
 labeled_data = True 
 batch_size = 1
 use_librosa = True 
