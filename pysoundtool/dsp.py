@@ -629,7 +629,7 @@ def clip_at_zero(samples, samp_win = None):
         if f_0 == 0 and l_0 == 0:
             import warnings
             msg = '\nWarning: `pysoundtool.dsp.clip_at_zero` found no samples close to zero.'+\
-                ' Original samples returned.\n'
+                ' Clipping was not applied.\n'
             warnings.warn(msg)
             return samps
         # translate index of flipped array to non-flipped array
