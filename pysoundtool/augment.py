@@ -228,9 +228,10 @@ def pitch_decrease(sound, sr, num_semitones = 2, **kwargs):
     return y_d
       
 # TODO pad similarly to librosa?
+# only seems to work with sr=16000
 def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
-         bilinear_warp = True, real_signal = False, fft_bins = 1024, window = 'hann',
+         bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann',
          zeropad = True):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
     
@@ -251,13 +252,13 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         assert sr2 == sr
     if random_seed is not None:
         np.random.seed(random_seed)
-    if isisntance(a, tuple) or isinstance(a, list):
+    if isinstance(a, tuple) or isinstance(a, list):
         vtlp_a = np.random.choice(np.arange(min(a), max(a)+.1, 0.1)  )
     elif isinstance(a, int) or isinstance(a, float):
         vtlp_a = a
     else:
         vtlp_a = None
-    if isisntance(vtlp_a, int) or isinstance(vtlp_a, float):
+    if isinstance(vtlp_a, int) or isinstance(vtlp_a, float):
         pass
     else:
         raise TypeError('Function `pysoundtool.augment.vtlp` expected a to be an int or float, or'+\
@@ -269,9 +270,6 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
     max_freq = sr//2
-    ## ensure even
-    #if not max_freq % 2 == 0:
-        #max_freq += 1
     if fft_bins is None:
         fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins * oversize_factor
@@ -294,10 +292,14 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         else:
             section_warped = pyso.dsp.piecewise_linear_warp(section_fft, vtlp_a,
                                                                 max_freq = max_freq)
-        section_warped = section_warped[:total_rows]
-        stft_matrix[frame] = section_warped
+        
+        if real_signal:
+            section_warped = section_warped[:len(section_warped)]
+        else:
+            section_warped = section_warped[:len(section_warped)//2]
+        stft_matrix[frame][:len(section_warped)] = section_warped
         section_start += (frame_length - num_overlap_samples)
-    stft_matrix = stft_matrix[:,:max_freq]
+    stft_matrix = stft_matrix[:,:len(section_warped)]
     return stft_matrix, vtlp_a
 
 def get_augmentation_dict():
