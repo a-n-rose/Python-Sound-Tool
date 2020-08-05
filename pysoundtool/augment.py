@@ -230,7 +230,8 @@ def pitch_decrease(sound, sr, num_semitones = 2, **kwargs):
 # TODO pad similarly to librosa?
 def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
-         bilinear_warp = True, real_signal = False, fft_bins = 1024, window = 'hann'):
+         bilinear_warp = True, real_signal = False, fft_bins = 1024, window = 'hann',
+         zeropad = True):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
     
     References
@@ -250,14 +251,23 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         assert sr2 == sr
     if random_seed is not None:
         np.random.seed(random_seed)
-    vtlp_a = np.random.choice(np.arange(min(a), max(a)+.1, 0.1)  )
-    
+    if isisntance(a, tuple) or isinstance(a, list):
+        vtlp_a = np.random.choice(np.arange(min(a), max(a)+.1, 0.1)  )
+    elif isinstance(a, int) or isinstance(a, float):
+        vtlp_a = a
+    else:
+        vtlp_a = None
+    if isisntance(vtlp_a, int) or isinstance(vtlp_a, float):
+        pass
+    else:
+        raise TypeError('Function `pysoundtool.augment.vtlp` expected a to be an int or float, or'+\
+            ' a list / tuple of ints, or floats; not of type {}'.format(type(a)))
     frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
     num_subframes = pyso.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
-                                                zeropad = True)
+                                                zeropad = zeropad)
     max_freq = sr//2
     ## ensure even
     #if not max_freq % 2 == 0:
@@ -273,7 +283,7 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
     window_frame = pyso.dsp.create_window(window, frame_length)
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section = pyso.dsp.apply_window(section, window_frame, zeropad = True)
+        section = pyso.dsp.apply_window(section, window_frame, zeropad = zeropad)
         # apply dft to large window - increase frequency resolution during warping
         section_fft = pyso.dsp.calc_fft(section, 
                                         real_signal = real_signal,
