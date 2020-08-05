@@ -270,7 +270,13 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
+    
+
     max_freq = sr//2
+    if expected_shape is not None:
+        # expects last column to represent the number of relevant frequency bins
+        fft_bins = expected_shape[-1]
+        real_signal = True
     if fft_bins is None:
         fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins * oversize_factor
@@ -300,9 +306,10 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
             section_warped = section_warped[:len(section_warped)//2]
         stft_matrix[frame][:len(section_warped)] = section_warped
         section_start += (frame_length - num_overlap_samples)
-    stft_matrix = stft_matrix[:,:len(section_warped)]
     if expected_shape is not None:
-        stft_matrix = pyso.feats.adjust_shape(stft_matrix, expected_shape)
+        stft_matrix = stft_matrix[:expected_shape[0],:expected_shape[1]]
+    else:
+        stft_matrix = stft_matrix[:,:len(section_warped)]
     return stft_matrix, vtlp_a
 
 def get_augmentation_dict():
