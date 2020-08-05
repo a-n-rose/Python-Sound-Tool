@@ -1165,15 +1165,37 @@ def adjust_shape(data, desired_shape, change_dims = False):
         if len(data_flattened) < total_desired_samples:
             data_flattened = pyso.feats.zeropad_features(data_flattened, 
                                                          desired_shape = (total_desired_samples,))
-        if len(data_flattened) > total_desired_samples:
+        elif len(data_flattened) > total_desired_samples:
             data_flattened = data_flattened[:total_desired_samples]
         data_prepped = data_flattened.reshape(desired_shape)
         return data_prepped
         
     # attempt to zeropad data:
     try:
-        data_prepped = pyso.feats.zeropad_features(data, 
-                                                  desired_shape = desired_shape)
+        greater_items = [i for i, x in enumerate(data.shape) if x > desired_shape[i]]
+        # all dimensions can be zeropadded or left alone
+        if len(greater_items) == 0:
+            data_prepped = pyso.feats.zeropad_features(
+                data, desired_shape = desired_shape)
+        # not all dimensions can be zeropadded. Zeropad what can be zeropadded.
+        # then reduce larger dimensions
+        elif len(greater_items) == len(data.shape): 
+            raise ValueError
+            # get out of try statement and run `reduce_num_features` in except clause
+        else:
+            temp_shape = []
+            for i, item in enumerate(data.shape):
+                if item <= desired_shape[i]:
+                    temp_shape.append(desired_shape[i])
+                else:
+                    temp_shape.append(item)
+            temp_shape = tuple(temp_shape)
+            # first zeropad the dimensions that are too small
+            data_prepped = pyso.feats.zeropad_features(
+                data, desired_shape = temp_shape)
+            # then clip the dimensions that are too big
+            data_prepped = pyso.feats.reduce_num_features(
+                data_prepped, desired_shape = desired_shape)
     # if zeropadding is smaller than data.shape/features:
     except ValueError:
         # remove extra data/columns to match desired_shape:
