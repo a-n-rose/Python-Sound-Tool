@@ -2594,8 +2594,6 @@ def envclassifier_extract_train(
     input_shape = pysodl.dataprep.get_input_shape(kwargs, labeled_data = labeled_data,
                                   frames_per_sample = frames_per_sample,
                                   use_librosa = use_librosa)
-    print('!!!!!!!!!!!')
-    print(input_shape)
     
     # extract validation data (must already be extracted)
     val_dict = dict([('val',dataset_dict['val'])])
