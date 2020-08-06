@@ -15,7 +15,7 @@ sr = 48000
 fft_bins = None
 center = False 
 mode = 'reflect'
-real_signal = True
+real_signal = False
 
 get_feats_kwargs = dict(feature_type = feature_type,
                         num_filters = num_filters,

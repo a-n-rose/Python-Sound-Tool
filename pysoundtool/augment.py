@@ -310,9 +310,10 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         section_start += (frame_length - num_overlap_samples)
     if expected_shape is not None:
         stft_matrix = stft_matrix[:expected_shape[0],:expected_shape[1]*oversize_factor]
+        limit = expected_shape[1]*oversize_factor // 2 + 1
         if real_signal:
-            limit = (expected_shape[1]*oversize_factor // 2 + 1) // 2 + 1
-            stft_matrix = stft_matrix[:expected_shape[0],:limit]
+            limit = limit // 2 + 1
+        stft_matrix = stft_matrix[:expected_shape[0],:limit]
     else:
         stft_matrix = stft_matrix[:,:len(section_warped)]
     return stft_matrix, vtlp_a
