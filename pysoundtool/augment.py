@@ -272,7 +272,7 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
                                                 zeropad = zeropad)
     
 
-    max_freq = sr//2
+    max_freq = sr/2.
     if expected_shape is not None:
         # expects last column to represent the number of relevant frequency bins
         fft_bins = expected_shape[-1]
