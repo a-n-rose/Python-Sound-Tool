@@ -447,7 +447,6 @@ feat_model_dir, history = pyso.envclassifier_extract_train(
     frames_per_sample = frames_per_sample,
     epochs = epochs, 
     patience = patience,
-    visualize = True,
     **get_feats_kwargs)
 
 #########################################################
