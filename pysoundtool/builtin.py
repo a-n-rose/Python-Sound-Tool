@@ -803,6 +803,7 @@ def envclassifier_feats(
     feature_type = None,
     dur_sec = 1,
     perc_train = 0.8,
+    ignore_label_marker = None,
     **kwargs):
     '''Environment Classifier: feature extraction of scene audio into train, val, & test datasets.
     
@@ -827,6 +828,10 @@ def envclassifier_feats(
         
     dur_sec : int, float
         The duration of each audio sample to be extracted. (default 1)
+        
+    ignore_label_marker : str 
+        A string to look for in the labels if the "label" should not be included.
+        For example, '__' to ignore a subdirectory titled "__noise" or "not__label".
     
     kwargs : additional keyword arguments
         Keyword arguments for `pysoundtool.feats.save_features_datasets` and 
@@ -861,6 +866,12 @@ def envclassifier_feats(
         if label.suffix:
             # avoid adding unwanted files in the directory
             # want only directory names
+            continue
+        if ignore_label_marker is not None:
+            if ignore_label_marker in label.stem:
+                continue
+        # ignores hidden directories
+        if label.stem[0] == '.':
             continue
         labels.append(label.stem)
     labels = set(labels)
