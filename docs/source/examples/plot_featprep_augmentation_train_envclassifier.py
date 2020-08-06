@@ -40,22 +40,17 @@ pyso_dir = package_dir
 #########################################################
 # Choose Feature Type, etc. 
 # -------------------------
-# We can extract 'mfcc', 'fbank', 'powspec', and 'stft'.
-# if you are working with speech, I suggest 'fbank', 'powspec', or 'stft'.
+# As of now, this functionality unfortunately only works for 'stft'.
 feature_type = 'stft'
 sr = 44100 # higher sr rates seem to do better with augmentation techniques
 num_filters = 40 # number of fbTypeank filters, in this case
 dur_sec = 1 # how much sound data from each audio file to use 
 win_size_ms = 20 # size of processing window for applying the fourier transform
 percent_overlap = 0.5 # the amount of overlap between processing windows
-rate_of_change = False # feature useful for speech recognition
-rate_of_acceleration = False # feature useful for speech recognition
 
 # set these variables into dict:
 get_feats_kwargs = dict(feature_type = feature_type,
                         num_filters = num_filters,
-                        rate_of_change = rate_of_change,
-                        rate_of_acceleration = rate_of_acceleration,
                         dur_sec = dur_sec,
                         win_size_ms = win_size_ms,
                         percent_overlap = percent_overlap,
