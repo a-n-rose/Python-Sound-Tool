@@ -63,7 +63,6 @@ def plot(feature_matrix, feature_type,
         presented as time in seconds.
     '''
     import matplotlib.pyplot as plt
-    plt.clf()
     # ensure real numbers
     if feature_matrix.dtype == np.complex64 or feature_matrix.dtype == np.complex128:
         feature_matrix = np.abs(feature_matrix)
