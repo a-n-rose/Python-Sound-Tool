@@ -78,7 +78,7 @@ formatted_data = pd.DataFrame(dataset_formatted_dict).T
 formatted_data.head()
 
 ###################################
-print('formats: ', formatted_data.format_type.unique())
+print('audio formats: ', formatted_data.format_type.unique())
 print('bitdepth (types): ', formatted_data.bitdepth.unique())
 print('mean duration (sec): ', formatted_data.dur_sec.mean())
 print('std dev duration (sec): ', formatted_data.dur_sec.std())

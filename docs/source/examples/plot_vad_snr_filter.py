@@ -105,8 +105,8 @@ pyso_dir = package_dir
 # ~~~~~~~~
 # Note: this file is available in the PySoundTool repo.
 
-# VAD and filtering work best with high sample rates (48000)
-sr = 48000
+# VAD and filtering work best with high sample rates 
+sr = 44100
 python = '{}audiodata/python.wav'.format(pyso_dir, sr=sr)
 y_p, sr = pyso.loadsound(python, sr=sr)
 ipd.Audio(y_p, rate = sr)

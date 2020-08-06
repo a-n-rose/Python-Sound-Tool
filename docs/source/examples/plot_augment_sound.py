@@ -45,7 +45,7 @@ speech = pyso.utils.string2pathlib(speech)
 # Hear and see speech
 # ~~~~~~~~~~~~~~~~~~~
 
-sr = 16000
+sr = 44100
 f, sr = pyso.loadsound(speech, sr=sr)
 ipd.Audio(f,rate=sr)
 

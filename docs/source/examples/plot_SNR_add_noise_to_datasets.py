@@ -54,7 +54,7 @@ noise
 # ~~~~~~~~~~~~~~~~~
 # I'm using a higher sample rate here as calculating SNR 
 # performs best upwards of 44100 Hz.
-sr = 48000
+sr = 44100
 s, sr = pyso.loadsound(speech_sample, sr = sr)
 ipd.Audio(s,rate=sr)
 

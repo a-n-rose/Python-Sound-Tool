@@ -50,7 +50,7 @@ noisy, snr_measured = pyso.dsp.add_backgroundsound(
     sr = sr, 
     snr = 10, 
     total_len_sec = 3, 
-    pad_mainsound_sec = 1)
+    pad_mainsound_sec = 0.75)
 
 ##########################################################
 # Hear and see the noisy speech 

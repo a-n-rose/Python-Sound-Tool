@@ -25,7 +25,8 @@ import pysoundtool as pyso
 pyso_dir = '../../../'
 
 ######################################################
-# I will load previously extracted features (sample data), see `pysoundtool.feats.save_features_datasets` or `pysoundtool.builtin.envclassifier_feats`
+# I will load previously extracted features (from the Speech Commands Dataset) 
+# See `pysoundtool.feats.save_features_datasets` or `pysoundtool.builtin.envclassifier_feats`
 feature_extraction_dir = '{}audiodata2/example_feats_models/'.format(pyso_dir)+\
     'envclassifier/example_feats_fbank/'
 
@@ -54,7 +55,7 @@ for f in files:
 feat_settings = pyso.utils.load_dict(
     feature_extraction_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' --> ', value)
+    print(key, ' ---> ', value)
     
 #########################################################
 # For more about these settings, see `pysoundtool.feats.save_features_datasets`.
@@ -78,8 +79,8 @@ for key, value in audio_datasets.items():
 
 #############################################################
 model_dir, history = pyso.envclassifier_train(feature_extraction_dir = feature_extraction_dir,
-                                         epochs = 50,
-                                         patience =25)
+                                         epochs = 500,
+                                         patience = 500)
 
 #############################################################
 # Where the model and logs are located:
