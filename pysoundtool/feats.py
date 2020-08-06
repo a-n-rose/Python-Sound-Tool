@@ -489,7 +489,8 @@ def get_feats(sound,
 # allows for more control over fft bins / resolution of each iteration.
 def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                 real_signal = False, fft_bins = 1024, 
-                window = 'hann', zeropad = True):
+                window = 'hann', zeropad = True, rate_of_change = False,
+                rate_of_acceleration = False):
     '''Returns STFT matrix.
     
     This function allows more flexibility in number of `fft_bins` and `real_signal`
@@ -527,8 +528,14 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                                         )
         stft_matrix[frame] = section_fft[:total_rows]
         section_start += (frame_length - num_overlap_samples)
-    
-    return stft_matrix[:,:fft_bins//2]
+    stft_matrix = stft_matrix[:,:fft_bins//2]
+    if rate_of_change or rate_of_acceleration:
+        d, d_d = pyso.feats.get_change_acceleration_rate(stft_matrix)
+        if rate_of_change:
+            stft_matrix = np.concatenate((stft_matrix, d), axis=1)
+        if rate_of_acceleration:
+            stft_matrix = np.concatenate((stft_matrix, d_d), axis=1)
+    return stft_matrix
 
 def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           real_signal = False, fft_bins = 1024, 
@@ -1586,6 +1593,18 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                     raise ValueError('Feature type "{}" '.format(feature_type)+\
                         'not understood.\nMust include one of the following: \n'+\
                             ', '.join(list_available_features()))
+            # If 'rate_of_acceleration' or 'rate_of_change' in feature kwargs,
+            # adapt input shape for that
+            if 'rate_of_change' in kwargs:
+                if kwargs['rate_of_change']:
+                    num_feats_model = num_feats + num_feats
+                else:
+                    num_feats_model = num_feats
+            else:
+                num_feats_model = num_feats
+            if 'rate_of_acceleration' in kwargs:
+                if kwargs['rate_of_acceleration']:
+                    num_feats_model += num_feats
 
             # adjust shape for model
             # input_shape: the input shape for the model
@@ -1596,19 +1615,19 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
                 # want smaller windows, e.g. autoencoder denoiser or speech recognition
                 batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
                 if labeled_data:
-                    input_shape = (batch_size, frames_per_sample, num_feats + 1)
+                    input_shape = (batch_size, frames_per_sample, num_feats_model + 1)
                     desired_shape = (input_shape[0] * input_shape[1], 
                                      input_shape[2]-1)
                 else:
-                    input_shape = (batch_size, frames_per_sample, num_feats)
+                    input_shape = (batch_size, frames_per_sample, num_feats_model)
                     desired_shape = (input_shape[0]*input_shape[1],
                                      input_shape[2])
             else:
                 if labeled_data:
-                    input_shape = (int(total_rows_per_wav), num_feats + 1)
+                    input_shape = (int(total_rows_per_wav), num_feats_model + 1)
                     desired_shape = (input_shape[0], input_shape[1]-1)
                 else:
-                    input_shape = (int(total_rows_per_wav), num_feats)
+                    input_shape = (int(total_rows_per_wav), num_feats_model)
                     desired_shape = input_shape
             # set whether or not features will include complex values:
             if 'stft' in feature_type:
