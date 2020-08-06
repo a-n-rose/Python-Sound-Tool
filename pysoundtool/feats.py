@@ -231,6 +231,7 @@ def get_feats(sound,
               rate_of_acceleration = False,
               subtract_mean = False,
               use_scipy = False,
+              real_signal = True,
               **kwargs):
     '''Collects raw signal data, stft, fbank, or mfcc features via librosa.
     
@@ -424,13 +425,13 @@ def get_feats(sound,
                     sr = sr, 
                     win_size_ms = win_size_ms,
                     percent_overlap = percent_overlap,
-                    real_signal = False,
+                    real_signal = real_signal,
                     fft_bins = fft_bins,
                     window = window)
             else:
                 # if being fed a spectrogram:
                 if data.dtype == np.complex128 or data.dtype == np.complex64:
-                    print("Already a STFT matrix. No features extracted.")
+                    print("\nAlready a STFT matrix. No features extracted.")
                     feats = data
                 else:
                     feats = librosa.stft(
@@ -508,6 +509,8 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
     total_rows = fft_bins
+    #if real_signal:
+        #total_rows = fft_bins//2 +1
     stft_matrix = pyso.dsp.create_empty_matrix((num_subframes, total_rows),
                                               complex_vals = True)
     section_start = 0
@@ -520,9 +523,9 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
         
         section_fft = pyso.dsp.calc_fft(section, 
                                         real_signal = real_signal,
-                                        fft_bins = total_rows,
+                                        fft_bins = fft_bins * 2 +1,
                                         )
-        stft_matrix[frame] = section_fft
+        stft_matrix[frame] = section_fft[:total_rows]
         section_start += (frame_length - num_overlap_samples)
     
     return stft_matrix[:,:fft_bins//2]

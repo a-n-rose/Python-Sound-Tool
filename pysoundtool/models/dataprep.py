@@ -358,7 +358,44 @@ class GeneratorFeatExtraction:
                 label_pic = None
         
             # ensure audio is valid:
-            y, sr = pyso.loadsound(audiopath,self.sr)
+            y, sr = pyso.loadsound(audiopath, self.sr)
+            
+            
+            # debugging
+            # Save visuals if desired
+            if self.visualize:
+                if self.counter % self.vis_every_n_items == 0:
+                    if self.visuals_dir is not None:
+                        save_visuals_path = pyso.check_dir(self.visuals_dir, make=True)
+                    else:
+                        save_visuals_path = pyso.check_dir('./training_images/', make=True)
+                    save_visuals_path = save_visuals_path.joinpath(
+                        '{}_label{}_training_{}_{}__0_original.png'.format(
+                            self.dataset,
+                            label_pic, 
+                            self.model_name, 
+                            pyso.utils.get_date()))
+                    feature_type = 'signal'
+                    sr = self.kwargs['sr']
+                    win_size_ms = self.kwargs['win_size_ms']
+                    percent_overlap = self.kwargs['percent_overlap']
+                    if 'stft' in feature_type or 'powspec' in feature_type or 'fbank' \
+                        in feature_type:
+                            energy_scale = 'power_to_db'
+                    else:
+                        energy_scale = None
+                    pyso.feats.saveplot(
+                        feature_matrix = y, 
+                        feature_type = feature_type, 
+                        sr = sr, 
+                        win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                        energy_scale = energy_scale, save_pic = True, 
+                        name4pic = save_visuals_path,
+                        title = 'Label {} {} features \n'.format(label_pic, feature_type)+\
+                            '(item {})'.format(self.counter))
+                    
+                    
+            
             if self.label_silence:
                 if self.vad_start_end:
                     y_stft, vad = pyso.dsp.get_stft_clipped(y, sr=sr, 
@@ -383,6 +420,42 @@ class GeneratorFeatExtraction:
                     augmented_data, augmentation = augment_features(y, 
                                                                 self.sr, 
                                                                 **self.augment_dict)
+                    
+                    # debugging
+                    # Save visuals if desired
+                    if self.visualize:
+                        if self.counter % self.vis_every_n_items == 0:
+                            if self.visuals_dir is not None:
+                                save_visuals_path = pyso.check_dir(self.visuals_dir, make=True)
+                            else:
+                                save_visuals_path = pyso.check_dir('./training_images/', make=True)
+                            save_visuals_path = save_visuals_path.joinpath(
+                                '{}_label{}_training_{}_{}_{}__1.png'.format(
+                                    self.dataset,
+                                    label_pic, 
+                                    self.model_name, 
+                                    augmentation, 
+                                    pyso.utils.get_date()))
+                            feature_type = 'signal'
+                            sr = self.kwargs['sr']
+                            win_size_ms = self.kwargs['win_size_ms']
+                            percent_overlap = self.kwargs['percent_overlap']
+                            if 'stft' in feature_type or 'powspec' in feature_type or 'fbank' \
+                                in feature_type:
+                                    energy_scale = 'power_to_db'
+                            else:
+                                energy_scale = None
+                            pyso.feats.saveplot(
+                                feature_matrix = augmented_data, 
+                                feature_type = feature_type, 
+                                sr = sr, 
+                                win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                                energy_scale = energy_scale, save_pic = True, 
+                                name4pic = save_visuals_path,
+                                title = 'Label {} {} features \n'.format(label_pic, feature_type)+\
+                                    '(item {})'.format(self.counter))
+                    
+                    
                 except librosa.util.exceptions.ParameterError:
                     # invalid audio for augmentation
                     print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -434,6 +507,7 @@ class GeneratorFeatExtraction:
                                 ' To label such data as '+\
                                 '`invalid`, set `ignore_invalid` to False.')
                             augmented_data, augmentation = y, ''
+                
             else:
                 augmented_data, augmentation = y, ''
             # extract features
@@ -455,6 +529,10 @@ class GeneratorFeatExtraction:
                     window = pyso.utils.restore_dictvalue(self.kwargs['window'])
                 except KeyError:
                     window = 'hann'
+                try:
+                    real_signal = pyso.utils.restore_dictvalue(self.kwargs['real_signal'])
+                except KeyError:
+                    real_signal = False
                 # get vtlp
                 
 
@@ -472,6 +550,7 @@ class GeneratorFeatExtraction:
                                           percent_overlap = percent_overlap, 
                                           fft_bins = fft_bins,
                                           window = window,
+                                          real_signal = real_signal,
                                           expected_shape = expected_shape)
                 
                 # TODO improve efficiency / issues with vtlp stft matrix and librosa
@@ -491,6 +570,20 @@ class GeneratorFeatExtraction:
             if self.vtlp and 'stft' in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
                 feats = augmented_data
+                if 'powspec' in self.kwargs['feature_type']:
+                    feats = np.abs(feats)**2
+            elif 'stft'in self.kwargs['feature_type'] or \
+                'powspec' in self.kwargs['feature_type']:
+                feats = pyso.feats.get_stft(
+                    augmented_data, 
+                    win_size_ms = self.kwargs['win_size_ms'],
+                    percent_overlap = self.kwargs['percent_overlap'],
+                    real_signal = self.kwargs['real_signal'],
+                    fft_bins = self.kwargs['fft_bins'],
+                    #window = self.kwargs['window'],
+                    #zeropad = self.kwargs['zeropad']
+                    )
+                
                 if 'powspec' in self.kwargs['feature_type']:
                     feats = np.abs(feats)**2
             else:
@@ -530,13 +623,52 @@ class GeneratorFeatExtraction:
                             'No label dictionary with `invalid` label supplied. Therefore '+\
                                 'model will be fed possibly invalid data with label {}\n'.format(
                                     label)
+            
+            
+            
+            # debugging
+            # Save visuals if desired
+            if self.visualize:
+                if self.counter % self.vis_every_n_items == 0:
+                    if self.visuals_dir is not None:
+                        save_visuals_path = pyso.check_dir(self.visuals_dir, make=True)
+                    else:
+                        save_visuals_path = pyso.check_dir('./training_images/', make=True)
+                    save_visuals_path = save_visuals_path.joinpath(
+                        '{}_label{}_training_{}_{}_{}__2.png'.format(
+                            self.dataset,
+                            label_pic, 
+                            self.model_name, 
+                            augmentation, 
+                            pyso.utils.get_date()))
+                    feature_type = self.kwargs['feature_type']
+                    sr = self.kwargs['sr']
+                    win_size_ms = self.kwargs['win_size_ms']
+                    percent_overlap = self.kwargs['percent_overlap']
+                    if 'stft' in feature_type or 'powspec' in feature_type or 'fbank' \
+                        in feature_type:
+                            energy_scale = 'power_to_db'
+                    else:
+                        energy_scale = None
+                    pyso.feats.saveplot(
+                        feature_matrix = feats, 
+                        feature_type = feature_type, 
+                        sr = sr, 
+                        win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                        energy_scale = energy_scale, save_pic = True, 
+                        name4pic = save_visuals_path,
+                        title = 'Label {} {} features \n'.format(label_pic, feature_type)+\
+                            '(item {})'.format(self.counter))
+                
+                
+                
             if self.apply_log:
                 # TODO test
                 if feats[0].any() < 0:
                         feats = np.abs(feats)
                 feats = np.log(feats)
-            if self.normalize:
-                feats = pyso.feats.normalize(feats)
+            #if self.normalize:
+                #feats = pyso.feats.normalize(feats)
             if not labeled_data and self.audiolist2 is not None:
                 feats2 = pyso.feats.get_feats(audiopath2, **self.kwargs)
                 if self.apply_log:
@@ -782,6 +914,7 @@ def augment_features(sound,
     return samples_augmented, augmentation
 
 # TODO: add default values?
+# does real_signal influence shape??
 def get_input_shape(kwargs_get_feats, labeled_data = False,
                     frames_per_sample = None, use_librosa = True, mode = 'reflect'):
     # set defaults if not provided
@@ -828,6 +961,11 @@ def get_input_shape(kwargs_get_feats, labeled_data = False,
     except KeyError:
         kwargs_get_feats['num_mfcc'] = None
         num_mfcc = kwargs_get_feats['num_mfcc']
+    try:
+        real_signal = kwargs_get_feats['real_signal']
+    except KeyError:
+        kwargs_get_feats['real_signal'] = True
+        real_signal = kwargs_get_feats['real_signal']
     # figure out shape of data:
     total_samples = pyso.dsp.calc_frame_length(dur_sec*1000, sr=sr)
     if use_librosa:
@@ -835,7 +973,7 @@ def get_input_shape(kwargs_get_feats, labeled_data = False,
         win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
         hop_length = int(win_shift_ms*0.001*sr)
         if fft_bins is None:
-            fft_bins = frame_length
+            fft_bins = int(win_size_ms * sr // 1000)
         # librosa centers samples by default, sligthly adjusting total 
         # number of samples
         if center:

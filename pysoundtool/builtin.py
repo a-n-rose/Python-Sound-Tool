@@ -2595,6 +2595,16 @@ def envclassifier_extract_train(
                                   frames_per_sample = frames_per_sample,
                                   use_librosa = use_librosa)
     
+    # update num_fft_bins to input_shape's last column, expecting it to be freq bins  / feats:
+    try:
+        real_signal = kwargs['real_signal']
+    except KeyError:
+        kwargs['real_signal'] = False # set as default
+        
+    if kwargs['real_signal']:
+        kwargs['fft_bins'] = input_shape[-1] 
+    else:
+        kwargs['fft_bins'] = input_shape[-1] * 2 -1
     # extract validation data (must already be extracted)
     val_dict = dict([('val',dataset_dict['val'])])
     val_path = dataset_path.joinpath('val_data.npy')

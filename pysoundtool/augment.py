@@ -276,7 +276,8 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
     if expected_shape is not None:
         # expects last column to represent the number of relevant frequency bins
         fft_bins = expected_shape[-1]
-        real_signal = True
+        if not real_signal:
+            fft_bins = expected_shape[-1] * 2 -1
     if fft_bins is None:
         fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins * oversize_factor
@@ -303,11 +304,15 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         if real_signal:
             section_warped = section_warped[:len(section_warped)]
         else:
-            section_warped = section_warped[:len(section_warped)//2]
+            section_warped = section_warped[:len(section_warped)]
+            #section_warped = section_warped[:len(section_warped)//2]
         stft_matrix[frame][:len(section_warped)] = section_warped
         section_start += (frame_length - num_overlap_samples)
     if expected_shape is not None:
-        stft_matrix = stft_matrix[:expected_shape[0],:expected_shape[1]]
+        stft_matrix = stft_matrix[:expected_shape[0],:expected_shape[1]*oversize_factor]
+        if real_signal:
+            limit = (expected_shape[1]*oversize_factor // 2 + 1) // 2 + 1
+            stft_matrix = stft_matrix[:expected_shape[0],:limit]
     else:
         stft_matrix = stft_matrix[:,:len(section_warped)]
     return stft_matrix, vtlp_a

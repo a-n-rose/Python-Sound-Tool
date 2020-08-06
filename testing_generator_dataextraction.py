@@ -7,14 +7,15 @@ mono = True
 rate_of_change = False
 rate_of_acceleration = False
 subtract_mean = False
-use_scipy = False
+use_scipy = True
 dur_sec = 1
 win_size_ms = 25
 percent_overlap = 0.5
 sr = 48000
 fft_bins = None
 center = False 
-mode = 'reflect' 
+mode = 'reflect'
+real_signal = True
 
 get_feats_kwargs = dict(feature_type = feature_type,
                         num_filters = num_filters,
@@ -29,7 +30,8 @@ get_feats_kwargs = dict(feature_type = feature_type,
                         sr = sr,
                         fft_bins = fft_bins,
                         center = center,
-                        mode = mode)
+                        mode = mode,
+                        real_signal = real_signal)
 
 
 augmentation_none = dict()
@@ -101,13 +103,16 @@ augment_settings_dict['speed_decrease']['perc'] = 0.1
 audiodata_path = '../mini-audio-datasets/speech_commands/'
 #augmentation_harmondist.update(
     #dict(augment_settings_dict=augment_settings_dict))
-augment_dict_list = [augmentation_pitchdown_vtlp, augmentation_pitchdown_novtlp]
+augment_dict_list = [augmentation_vtlp,
+                     augmentation_none, 
+                     augmentation_pitchdown_novtlp,
+                     augmentation_speedup]
 labeled_data = True 
 batch_size = 1
 use_librosa = True 
 frames_per_sample = None 
 log_settings = True 
-epochs = 5
+epochs =2
 patience = 15
 
 
