@@ -553,25 +553,29 @@ class GeneratorFeatExtraction:
                                           real_signal = real_signal,
                                           expected_shape = expected_shape)
                 
-                # TODO improve efficiency / issues with vtlp stft matrix and librosa
-                # Had issues converting vtlp stft into fbank or mfcc. 
-                # First turn into audio samples, then into fbank or mfcc or leave as samples.
-                # terribly slow and inefficient.
-                if 'stft' not in self.kwargs['feature_type'] and 'powspec' not in \
-                    self.kwargs['feature_type']:
-                    augmented_data = pyso.feats.feats2audio(
-                        feats = augmented_data, 
-                        feature_type = 'stft',
-                        sr = self.sr,
-                        win_size_ms = win_size_ms,
-                        percent_overlap = percent_overlap)
-                augmentation += 'alpha{}'.format(alpha)
+                ## TODO improve efficiency / issues with vtlp stft matrix and librosa
+                ## Had issues converting vtlp stft into fbank or mfcc. 
+                ## First turn into audio samples, then into fbank or mfcc or leave as samples.
+                ## terribly slow and inefficient.
+                #if 'stft' not in self.kwargs['feature_type'] and 'powspec' not in \
+                    #self.kwargs['feature_type']:
+                    #augmented_data = pyso.feats.feats2audio(
+                        #feats = augmented_data, 
+                        #feature_type = 'stft',
+                        #sr = self.sr,
+                        #win_size_ms = win_size_ms,
+                        #percent_overlap = percent_overlap)
+                #augmentation += 'alpha{}'.format(alpha)
             
             if self.vtlp and 'stft' in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
                 feats = augmented_data
                 if 'powspec' in self.kwargs['feature_type']:
                     feats = np.abs(feats)**2
+                    
+            # finding it difficult to work with librosa due to slight 
+            # differences in padding, fft_bins etc.
+            # perhaps more reliable to use non-librosa function for 'stft' extraction
             elif 'stft'in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
                 feats = pyso.feats.get_stft(
@@ -580,8 +584,10 @@ class GeneratorFeatExtraction:
                     percent_overlap = self.kwargs['percent_overlap'],
                     real_signal = self.kwargs['real_signal'],
                     fft_bins = self.kwargs['fft_bins'],
-                    #window = self.kwargs['window'],
-                    #zeropad = self.kwargs['zeropad']
+                    rate_of_change = self.kwargs['rate_of_change'],
+                    rate_of_acceleration = self.kwargs['rate_of_acceleration'],
+                    window = self.kwargs['window'],
+                    zeropad = self.kwargs['zeropad']
                     )
                 
                 if 'powspec' in self.kwargs['feature_type']:
@@ -589,8 +595,11 @@ class GeneratorFeatExtraction:
             else:
                 try:
                     feats = pyso.feats.get_feats(augmented_data, **self.kwargs)
-                except TypeError:
+                except TypeError as e:
+                    print(e)
                     # invalid audio for feature_extraction
+                    print('Are any non-nan? ',np.isfinite(augmented_data).any())
+                    print('Are all non-nan? ',np.isfinite(augmented_data).all())
                     print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                     print('File {} contains invalid sample data,'.format(audiopath)+\
                         ' incompatible with augmentation techniques. Removing NAN values.')
