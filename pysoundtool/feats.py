@@ -1017,6 +1017,10 @@ def get_mfcc_fbank(samples, feature_type='mfcc', sr=48000, win_size_ms=20,
                      fft_bins = None, window_function = None, zeropad = True, **kwargs):
     '''Collects fbank or mfcc features via python-speech-features (rather than librosa).
     '''
+    if samples.dtype == np.complex64 or samples.dtype == np.complex128:
+        raise TypeError('Function `pysoundtool.feats.get_mfcc_fbank` only works'+\
+            ' with raw signals, not complex data. Received input of type {}'.format(
+                samples.dtype))
     if not window_function:
         # default for python_speech_features:
         def window_function(x): return np.ones((x,))
