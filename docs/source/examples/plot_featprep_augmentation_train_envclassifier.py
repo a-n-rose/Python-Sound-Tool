@@ -42,8 +42,8 @@ pyso_dir = package_dir
 # -------------------------
 # We can extract 'mfcc', 'fbank', 'powspec', and 'stft'.
 # if you are working with speech, I suggest 'fbank', 'powspec', or 'stft'.
-feature_type = 'fbank'
-sr = 48000 # higher sr rates seem to do better with augmentation techniques
+feature_type = 'stft'
+sr = 44100 # higher sr rates seem to do better with augmentation techniques
 num_filters = 40 # number of fbTypeank filters, in this case
 dur_sec = 1 # how much sound data from each audio file to use 
 win_size_ms = 20 # size of processing window for applying the fourier transform
@@ -452,6 +452,7 @@ feat_model_dir, history = pyso.envclassifier_extract_train(
     frames_per_sample = frames_per_sample,
     epochs = epochs, 
     patience = patience,
+    visualize = True,
     **get_feats_kwargs)
 
 #########################################################
