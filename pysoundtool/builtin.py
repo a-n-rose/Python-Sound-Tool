@@ -864,6 +864,9 @@ def envclassifier_feats(
             continue
         labels.append(label.stem)
     labels = set(labels)
+    if len(labels) == 0:
+        raise ValueError('No subdirectories found to offer as labels. Ensure this path'+\
+            ' contains the data:\n{}'.format(data_dir))
 
     # create paths for what we need to save:
     data_features_dir = pyso.utils.check_dir(data_features_dir)
@@ -2483,6 +2486,39 @@ def envclassifier_extract_train(
             'parameter `feature_type` to be set as one of the following:\n'+ \
                 '- signal\n- stft\n- powspec\n- fbank\n- mfcc\n') 
     
+    if 'stft' not in kwargs['feature_type'] and 'powspec' not in kwargs['feature_type']:
+        raise ValueError('Function `envclassifier_extract_train` can only reliably '+\
+            'work if `feature_type` parameter is set to "stft" or "powspec".'+\
+                ' In future versions the other feature types will be made available.')
+    
+    # ensure defaults are set if not included in kwargs:
+    if 'win_size_ms' not in kwargs:
+        kwargs['win_size_ms'] = 25
+    if 'percent_overlap' not in kwargs:
+        kwargs['percent_overlap'] = 0.5
+    if 'mono' not in kwargs:
+        kwargs['mono'] = True
+    if 'rate_of_change' not in kwargs:
+        kwargs['rate_of_change'] = False
+    if 'rate_of_acceleration' not in kwargs:
+        kwargs['rate_of_acceleration'] = False
+    if 'subtract_mean' not in kwargs:
+        kwargs['subtract_mean'] = False
+    if 'dur_sec' not in kwargs:
+        raise ValueError('Function `envclassifier_extract_train``requires ' +\
+            'the keyword argument `dur_sec` to be set. How many seconds of audio '+\
+                'from each audio file would you like to use for training?')
+    if 'sr' not in kwargs:
+        kwargs['sr'] = 48000
+    if 'fft_bins' not in kwargs:
+        kwargs['fft_bins'] = None
+    if 'real_signal' not in kwargs:
+        kwargs['real_signal'] = True
+    if 'window' not in kwargs:
+        kwargs['window'] = 'hann'
+    if 'zeropad' not in kwargs:
+        kwargs['zeropad'] = True
+        
     # training will fail if patience set to a non-integer type
     if patience is None:
         patience = epochs
@@ -2595,20 +2631,21 @@ def envclassifier_extract_train(
                                   frames_per_sample = frames_per_sample,
                                   use_librosa = use_librosa)
     
-    # update num_fft_bins to input_shape's last column, expecting it to be freq bins  / feats:
-    try:
-        real_signal = kwargs['real_signal']
-    except KeyError:
-        kwargs['real_signal'] = False # set as default
-        
+    # update num_fft_bins to input_shape's last column, expecting it to be freq bins  / feats: 
     if kwargs['real_signal']:
         kwargs['fft_bins'] = input_shape[-1] 
     else:
         kwargs['fft_bins'] = input_shape[-1] * 2 -1
+        
+    # currently unnecessary as 'fbank' and 'mfcc' are not supported yet.
+    if 'fbank' in kwargs['feature_type'] or 'mfcc' in kwargs['feature_type']:
+        if not kwargs['use_scipy']:
+            kwargs['fmax'] = kwargs['sr'] * 2.0
     # extract validation data (must already be extracted)
     val_dict = dict([('val',dataset_dict['val'])])
     val_path = dataset_path.joinpath('val_data.npy')
     val_path_dict = dict([('val', val_path)])
+
 
     val_dict, val_path_dict = pyso.feats.save_features_datasets(
         val_dict,
