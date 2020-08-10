@@ -7,7 +7,9 @@ currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
-from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint, TensorBoard
+import tensorflow
+from tensorflow.keras.callbacks import EarlyStopping, CSVLogger,\
+    ModelCheckpoint, TensorBoard
 import numpy as np
 import pysoundtool as pyso
 

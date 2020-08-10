@@ -6,11 +6,12 @@ import inspect
 import pathlib
 import numpy as np
 # for building and training models
-from keras import applications
-from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Conv2D, Flatten, Dropout, Conv2DTranspose, \
+import tensorflow
+from tensorflow.keras import applications
+from tensorflow.keras.models import Sequential, load_model, Model
+from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, Conv2DTranspose, \
     LSTM, MaxPooling2D, TimeDistributed
-from keras.constraints import max_norm
+from tensorflow.keras.constraints import max_norm
  
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))

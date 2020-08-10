@@ -9,9 +9,9 @@ import random
 import numpy as np
 import soundfile as sf
 from scipy.io.wavfile import write
-import keras
-from keras.models import load_model
-from keras.optimizers import Adam
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.optimizers import Adam
 
 # in order to import pysoundtool
 import os, sys
@@ -1320,7 +1320,7 @@ def denoiser_train(feature_extraction_dir,
         callbacks = pysodl.setup_callbacks(patience = patience,
                                                 best_modelname = model_path, 
                                                 log_filename = model_dir.joinpath('log.csv'))
-    adm = keras.optimizers.Adam(learning_rate=0.0001)
+    adm = tensorflow.keras.optimizers.Adam(learning_rate=0.0001)
     denoiser.compile(optimizer=adm, loss='binary_crossentropy')
 
     # TODO remove?
