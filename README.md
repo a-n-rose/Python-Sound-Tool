@@ -10,6 +10,24 @@ SoundPy is an experimental framework for exploring sound as well as machine lear
 
 For examples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>. 
 
+## Examples 
+
+You can explore example code:
+
+### Visually and Aurally in the Documentation:
+
+<a href="https://aislynrose.bitbucket.io/example_cases.html">SoundPy Examples</a> 
+
+### Via Jupyter Notebook (after you install SoundPy locally - see below):
+
+Install and run jupyter notebook:
+
+```
+(env)..$ pip install notebook
+(env)..$ jupyter notebook
+```
+Venture into the folder `jupyter_notebooks` and have a go!
+
 ## Main Uses:
 
 ### Visualization
@@ -48,68 +66,7 @@ You must have `libsndfile1` installed in your system.
 $ sudo apt-get install libsndfile1
 ```
 
-(This should automatically get installed for other operating systems during `pip install soundfile`).
-
-## Updates of upcoming release:
-
-### soundpy.dsp.vad
-- add `use_beg_ms` parameter: improved VAD recognition of silences post speech.
-- raise warning for sample rates lower than 44100 Hz. VAD seems to fail at lower sample rates.
-
-### soundpy.feats.get_vad_samples and soundpy.feats.get_vad_stft
-- moved from dsp module to the feats module
-- add `extend_window_ms` paremeter: can extend VAD window if desired. Useful in higher SNR environments.
-- raise warning for sample rates lower than 44100 Hz. VAD seems to fail at lower sample rates.
-
-### added soundpy.feats.get_samples_clipped and soundpy.feats.get_stft_clipped
-- another option for VAD 
-- clips beginning and ending of audio data where high energy sound starts and ends.
-
-### soundpy.models.dataprep.GeneratorFeatExtraction 
-- can extract and augment features from audio files as each audio file fed to model. 
-- example can be viewed: soundpy.builtin.envclassifier_extract_train
-
-### soundpy.dsp.add_backgroundsound
-- improvements in the smoothness of the added signal.
-- soundpy.dsp.clip_at_zero
-- improved soundpy.dsp.vad and soundpy.feats.get_vad_stft
-
-### soundpy.feats.normalize 
-- can use it: soundpy.normalize (don't need to remember dsp or feats)
-
-### soundpy.dsp.remove_dc_bias
-- implemented in soundpy.files.loadsound() and soundpy.files.savesound()
-- vastly improves the ability to work with and combine signals.
-
-### soundpy.dsp.clip_at_zero
-- clips beginning and ending audio at zero crossings (at negative to positive zero crossings)
-- useful when concatenating signals
-- useful for removing clicks at beginning or ending of audio signals
-
-### soundpy.dsp.apply_sample_length
-- can now mirror the sound as a form of sound extention with parameter `mirror_sound`.
-
-### Removed soundpy_online (and therefore mybinder as well)
-- for the time being, this is too much work to keep up. Eventually plan on bringing this back in a more maintainable manner.
-
-## About
-
-Note: as is, soundpy is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility. 
-
-Those who might find this useful: 
-
-* speech and sound enthusiasts
-* digital signal processing / mathematics / physics / acoustics enthusiasts
-* deep learning enthusiasts
-* researchers
-* linguists
-* psycholinguists
-
-The main goal of soundpy is to provide the code and functionality with more context via visualization, research, and mathematics. Most of the resources used to build the functionality stems from publicly available research and datasets. (For a list of open datasets, see my ever growing <a href='https://a-n-rose.github.io/2019/01/06/resources-publicly-available-speech-databases.html'>collection</a>.)
-
-As it covers quite a large range, from audio file conversion to implementation of trained neural networks, the purpose of soundpy is not to be the perfect implementation of all functions (although that is also a goal :P ), but rather a peak into how they *can* be implemented, hopefully offering others a foundation for trying out different ways of implementation (feature extraction, building neural networks, etc.).
-
-This project is still in the beginning stages and has a lot of room for growth, especially with contributers having a background / knowlege in data science, computer science, machine and deep learning, physics, acoustics, or dsp. Contributers from other backgrounds are also welcome! If you'd like soundpy to do something it doesn't, try making it or create an issue.
+(This should automatically get installed for other operating systems during `pip install soundfile`, which is completed when installing the requirements; see below).
 
 # Installation
 
@@ -140,23 +97,25 @@ Then install the necessary dependencies via pip:
 ```
 (env)..$ pip install -r requirements.txt --use-feature=2020-resolver
 ```
-# Examples 
 
-You can explore example code:
+## About
 
-## Locally via Jupyter Notebook:
+Note: as is, soundpy is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility. 
 
-Install and run jupyter notebook:
+Those who might find this useful: 
 
-```
-(env)..$ pip install notebook
-(env)..$ jupyter notebook
-```
-Venture into the folder `jupyter_notebooks` and have a go!
+* speech and sound enthusiasts
+* digital signal processing / mathematics / physics / acoustics enthusiasts
+* deep learning enthusiasts
+* researchers
+* linguists
+* psycholinguists
 
-## Visually and Aurally in the Documentation:
+The main goal of soundpy is to provide the code and functionality with more context via visualization, research, and mathematics. Most of the resources used to build the functionality stems from publicly available research and datasets. (For a list of open datasets, see my ever growing <a href='https://a-n-rose.github.io/2019/01/06/resources-publicly-available-speech-databases.html'>collection</a>.)
 
-<a href="https://aislynrose.bitbucket.io/example_cases.html">SoundPy Examples</a> 
+As it covers quite a large range, from audio file conversion to implementation of trained neural networks, the purpose of soundpy is not to be the perfect implementation of all functions (although that is also a goal :P ), but rather a peak into how they *can* be implemented, hopefully offering others a foundation for trying out different ways of implementation (feature extraction, building neural networks, etc.).
+
+This project is still in the beginning stages and has a lot of room for growth, especially with contributers having a background / knowlege in data science, computer science, machine and deep learning, physics, acoustics, or dsp. Contributers from other backgrounds are also welcome! If you'd like soundpy to do something it doesn't, try making it or create an issue.
 
 # Example datasets
 
