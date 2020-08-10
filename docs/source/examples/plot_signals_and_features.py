@@ -6,8 +6,8 @@ Create and Plot Signals
 
 Create and plot signals / noise; combine them at a specific SNR.
 
-To see how PySoundTool implements this, see `pysoundtool.dsp.generate_sound`, 
-`pysoundtool.dsp.generate_noise` and `pysoundtool.dsp.add_backgroundsound`.
+To see how soundpy implements this, see `soundpy.dsp.generate_sound`, 
+`soundpy.dsp.generate_noise` and `soundpy.dsp.add_backgroundsound`.
 """
 
 
@@ -15,8 +15,8 @@ To see how PySoundTool implements this, see `pysoundtool.dsp.generate_sound`,
 #  
 
 #####################################################################
-# Let's import pysoundtool
-import pysoundtool as pyso
+# Let's import soundpy
+import soundpy as sp
 
 ###########################################################################
 # Create a Signal
@@ -30,16 +30,16 @@ sr = 44100
 #########################################################################
 # Let's create a signal of 10 Hz 
 sig1_hz = 10
-sig1, sr = pyso.generate_sound(freq=sig1_hz, amplitude = 0.4, sr=sr, dur_sec=1)
-pyso.plotsound(sig1, sr=sr, feature_type = 'signal',
+sig1, sr = sp.generate_sound(freq=sig1_hz, amplitude = 0.4, sr=sr, dur_sec=1)
+sp.plotsound(sig1, sr=sr, feature_type = 'signal',
                title = 'Signal: {} Hz'.format(sig1_hz))
 
 
 #########################################################################
 # Let's create a signal of 20 Hz
 sig2_hz = 20 
-sig2, sr = pyso.generate_sound(freq=sig2_hz, amplitude= 0.4, sr=sr, dur_sec=1)
-pyso.plotsound(sig2, sr=sr, feature_type = 'signal',
+sig2, sr = sp.generate_sound(freq=sig2_hz, amplitude= 0.4, sr=sr, dur_sec=1)
+sp.plotsound(sig2, sr=sr, feature_type = 'signal',
                title = 'Signal: {} Hz'.format(sig2_hz))
 
 ###########################################################################
@@ -50,7 +50,7 @@ pyso.plotsound(sig2, sr=sr, feature_type = 'signal',
 #########################################################################
 # Add them together and see what they look like:
 sig3 = sig1 + sig2
-pyso.plotsound(sig3, sr=sr, feature_type = 'signal', 
+sp.plotsound(sig3, sr=sr, feature_type = 'signal', 
                title='Mixed Signals: {} Hz + {} Hz'.format(sig1_hz, sig2_hz))
 
 
@@ -61,8 +61,8 @@ pyso.plotsound(sig3, sr=sr, feature_type = 'signal',
 
 #########################################################################
 # Create noise to add to the signal:
-noise = pyso.generate_noise(len(sig3), amplitude=0.025, random_seed=40)
-pyso.plotsound(noise, sr=sr, feature_type = 'signal',
+noise = sp.generate_noise(len(sig3), amplitude=0.025, random_seed=40)
+sp.plotsound(noise, sr=sr, feature_type = 'signal',
                title='Random Noise')
 
 ###########################################################################
@@ -71,7 +71,7 @@ pyso.plotsound(noise, sr=sr, feature_type = 'signal',
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 40
-sig_noisy, snr = pyso.dsp.add_backgroundsound(
+sig_noisy, snr = sp.dsp.add_backgroundsound(
     audio_main = sig3, 
     audio_background = noise, 
     sr = sr,
@@ -79,50 +79,50 @@ sig_noisy, snr = pyso.dsp.add_backgroundsound(
     clip_at_zero = False)
 
 # keep energy between 1 and -1 
-sig_noisy = pyso.dsp.scalesound(sig_noisy, max_val=1)
-pyso.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 40 SNR')
+sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 40 SNR')
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 20
-sig_noisy, snr = pyso.dsp.add_backgroundsound(
+sig_noisy, snr = sp.dsp.add_backgroundsound(
     audio_main = sig3, 
     audio_background = noise,
     sr = sr,
     snr = 20)
 # keep energy between 1 and -1 
-sig_noisy = pyso.dsp.scalesound(sig_noisy, max_val=1)
-pyso.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 20 SNR')
+sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 20 SNR')
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 10
-sig_noisy, snr = pyso.dsp.add_backgroundsound(
+sig_noisy, snr = sp.dsp.add_backgroundsound(
     audio_main = sig3, 
     audio_background = noise,
     sr = sr,
     snr = 10)
 # keep energy between 1 and -1 
-sig_noisy = pyso.dsp.scalesound(sig_noisy, max_val=1)
-pyso.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 10 SNR')
+sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 10 SNR')
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 0
-sig_noisy, snr = pyso.dsp.add_backgroundsound(
+sig_noisy, snr = sp.dsp.add_backgroundsound(
     audio_main = sig3,
     audio_background = noise,
     sr = sr,
     snr = 0)
 # keep energy between 1 and -1 
-sig_noisy = pyso.dsp.scalesound(sig_noisy, max_val=1)
-pyso.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 0 SNR')
+sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 0 SNR')
 
 
 #########################################################################
 # Add noise at signal-to-noise ratio of -10
-sig_noisy, snr = pyso.dsp.add_backgroundsound(
+sig_noisy, snr = sp.dsp.add_backgroundsound(
     audio_main = sig3, 
     audio_background = noise,
     sr = sr,
     snr = -10)
 # keep energy between 1 and -1 
-sig_noisy = pyso.dsp.scalesound(sig_noisy, max_val=1)
-pyso.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: -10 SNR')
+sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: -10 SNR')

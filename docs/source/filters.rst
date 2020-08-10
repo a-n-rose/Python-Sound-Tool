@@ -2,27 +2,19 @@
 Filters: Wiener and Band Spectral Subtraction
 ---------------------------------------------
 
-.. automodule:: pysoundtool.filters
+.. automodule:: soundpy.filters
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: pysoundtool.filters.FilterSettings
+.. autoclass:: soundpy.filters.FilterSettings
    :members:
    :undoc-members:
    :show-inheritance:
    
    .. automethod:: __init__
    
-.. autoclass:: pysoundtool.filters.Filter
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   
-   .. automethod:: __init__
-   
-   
-.. autoclass:: pysoundtool.filters.WienerFilter
+.. autoclass:: soundpy.filters.Filter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -30,7 +22,15 @@ Filters: Wiener and Band Spectral Subtraction
    .. automethod:: __init__
    
    
-.. autoclass:: pysoundtool.filters.BandSubtraction
+.. autoclass:: soundpy.filters.WienerFilter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
+   .. automethod:: __init__
+   
+   
+.. autoclass:: soundpy.filters.BandSubtraction
    :members:
    :undoc-members:
    :show-inheritance:

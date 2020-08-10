@@ -2,7 +2,7 @@
 Built-In Functionality
 ----------------------
 
-.. automodule:: pysoundtool.builtin
+.. automodule:: soundpy.builtin
    :members:
    :undoc-members:
    :show-inheritance:

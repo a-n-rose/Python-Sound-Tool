@@ -17,12 +17,12 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'PySoundTool'
+project = 'SoundPy'
 copyright = '2020, Aislyn Rose'
 author = 'Aislyn Rose'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.0a'
+release = '0.1.0a2'
 
 
 # -- General configuration ---------------------------------------------------
@@ -145,7 +145,7 @@ add_module_names = True
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pysoundtooldoc'
+htmlhelp_basename = 'soundpydoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -173,7 +173,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 master_doc = 'index'
 latex_documents = [
-    (master_doc, 'pysoundtool.tex', u'PySoundTool Docs',
+    (master_doc, 'soundpy.tex', u'SoundPy Docs',
      u'Aislyn Rose', 'manual'),
 ]
 
@@ -183,7 +183,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'PySoundTool', u'Documentation',
+    (master_doc, 'SoundPy', u'Documentation',
      [author], 1)
 ]
 
@@ -194,8 +194,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'PySoundTool', u'Documentation',
-     author, 'PySoundTool', 
+    (master_doc, 'SoundPy', u'Documentation',
+     author, 'SoundPy', 
      'A framework for exploring and experimenting with acoustics and deep learning.',
      'Miscellaneous'),
 ]

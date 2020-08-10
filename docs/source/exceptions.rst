@@ -2,7 +2,7 @@
 Customized Errors
 -----------------
 
-.. automodule:: pysoundtool.exceptions
+.. automodule:: soundpy.exceptions
    :members:
    :undoc-members:
    :show-inheritance:

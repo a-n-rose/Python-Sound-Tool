@@ -2,7 +2,7 @@
 Feeding large datasets to models
 --------------------------------
 
-.. autoclass:: pysoundtool.models.dataprep.Generator
+.. autoclass:: soundpy.models.dataprep.Generator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -10,7 +10,7 @@ Feeding large datasets to models
    .. automethod:: __init__
 
    
-.. automodule:: pysoundtool.models.dataprep
+.. automodule:: soundpy.models.dataprep
    :members:
    :undoc-members:
    :show-inheritance:

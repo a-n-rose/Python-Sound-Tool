@@ -2,7 +2,7 @@
 Working with signals
 --------------------
 
-.. automodule:: pysoundtool.dsp
+.. automodule:: soundpy.dsp
    :members:
    :undoc-members:
    :show-inheritance:

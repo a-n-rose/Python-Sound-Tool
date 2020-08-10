@@ -2,7 +2,7 @@
 Organizing datasets
 -------------------
 
-.. automodule:: pysoundtool.datasets
+.. automodule:: soundpy.datasets
    :members:
    :undoc-members:
    :show-inheritance:

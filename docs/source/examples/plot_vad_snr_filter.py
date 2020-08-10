@@ -7,15 +7,15 @@ Voice Activity Detection (upcoming release)
 
 Plot the VAD in signals and remove silences.
 
-Currently PySoundTool has two base functions to complete voice-activity-detection.
+Currently soundpy has two base functions to complete voice-activity-detection.
 
-1) `pysoundtool.dsp.sound_index`
+1) `soundpy.dsp.sound_index`
 --------------------------------
 
 This function is used in:
 
-`pysoundtool.feats.get_stft_clipped`, `pysoundtool.feats.get_samples_clipped`, 
-and `pysoundtool.feats.plot_vad`
+`soundpy.feats.get_stft_clipped`, `soundpy.feats.get_samples_clipped`, 
+and `soundpy.feats.plot_vad`
 
 
 This form of VAD uses the energy in the signal to identify when sounds start and 
@@ -35,13 +35,13 @@ Weakness
 This is less sensitive to certain speech sounds such as fricatives (s, f, h, etc.), causing it to miss speech activity consisting primarily of these sounds.
 
 
-2) `pysoundtool.dsp.vad`
+2) `soundpy.dsp.vad`
 ------------------------
 
 This function is used in:
 
-`pysoundtool.feats.get_vad_stft`, `pysoundtool.feats.get_vad_samples`,
-and `pysoundtool.feats.plot_vad`
+`soundpy.feats.get_vad_stft`, `soundpy.feats.get_vad_samples`,
+and `soundpy.feats.plot_vad`
 
 This function (pulling from research) utilizes energy, frequency, and spectral flatness, 
 which makes it less finicky when it comes to speech sounds (fricative vs plosive speech sounds). 
@@ -84,13 +84,13 @@ parparentdir = os.path.dirname(parentdir)
 packagedir = os.path.dirname(parparentdir)
 sys.path.insert(0, packagedir)
 
-import pysoundtool as pyso 
+import soundpy as sp 
 import numpy as np
 import IPython.display as ipd
 
 package_dir = '../../../'
 os.chdir(package_dir)
-pyso_dir = package_dir
+sp_dir = package_dir
 
 ######################################################
 # Load sample speech audio
@@ -103,12 +103,12 @@ pyso_dir = package_dir
 ######################################################
 # "Python"
 # ~~~~~~~~
-# Note: this file is available in the PySoundTool repo.
+# Note: this file is available in the soundpy repo.
 
 # VAD and filtering work best with high sample rates 
 sr = 44100
-python = '{}audiodata/python.wav'.format(pyso_dir, sr=sr)
-y_p, sr = pyso.loadsound(python, sr=sr)
+python = '{}audiodata/python.wav'.format(sp_dir, sr=sr)
+y_p, sr = sp.loadsound(python, sr=sr)
 ipd.Audio(y_p, rate = sr)
 
 ######################################################
@@ -122,8 +122,8 @@ ipd.Audio(y_p, rate = sr)
 ######################################################
 # This is audio that has two fricatives in it: 's' and 'x'
 # which will show to cause issues as noise increases.
-six = '{}audiodata/six.wav'.format(pyso_dir, sr = sr)
-y_six, sr = pyso.loadsound(six, sr = sr)
+six = '{}audiodata/six.wav'.format(sp_dir, sr = sr)
+y_six, sr = sp.loadsound(six, sr = sr)
 ipd.Audio(y_six,rate = sr)
 
 ######################################################
@@ -136,53 +136,53 @@ ipd.Audio(y_six,rate = sr)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # This is to show the strengths and weaknesses of both VAD techniques.
 p_silence = np.zeros(len(y_p))
-y_p_long, snr_none = pyso.dsp.add_backgroundsound(y_p, p_silence,
+y_p_long, snr_none = sp.dsp.add_backgroundsound(y_p, p_silence,
                                         sr = sr, 
                                         snr = None,
                                         pad_mainsound_sec = 1,
                                         total_len_sec = 3,
                                         random_seed = 40)
-y_six_long, snr_none = pyso.dsp.add_backgroundsound(y_six, p_silence,
+y_six_long, snr_none = sp.dsp.add_backgroundsound(y_six, p_silence,
                                         sr = sr, 
                                         snr = None,
                                         pad_mainsound_sec = 1,
                                         total_len_sec = 3,
                                         random_seed = 40)
 y = np.concatenate((y_six_long, y_p_long))
-pyso.feats.plot(y, sr=sr, feature_type = 'signal')
+sp.feats.plot(y, sr=sr, feature_type = 'signal')
 ipd.Audio(y, rate=sr)
 
 ######################################################
 # Generate white noise 
 # ~~~~~~~~~~~~~~~~~~~~
-white_noise = pyso.dsp.generate_noise(len(y), random_seed = 40)
+white_noise = sp.dsp.generate_noise(len(y), random_seed = 40)
 
 
 ######################################################
 # Speech and Noise SNR 20
 # -----------------------
-y_snr20, snr20 = pyso.dsp.add_backgroundsound(
+y_snr20, snr20 = sp.dsp.add_backgroundsound(
     y, white_noise, sr=sr, snr = 20,random_seed = 40)
 # round the measured snr:
 snr20 = int(round(snr20))
 snr20
 
 ######################################################
-pyso.plotsound(y_snr20, sr = sr, feature_type = 'signal', 
+sp.plotsound(y_snr20, sr = sr, feature_type = 'signal', 
                title = 'Speech SNR {}'.format(snr20))
 ipd.Audio(y_snr20,rate=sr)
 
 ######################################################
 # Speech and Noise SNR 5
 # ----------------------
-y_snr05, snr05 = pyso.dsp.add_backgroundsound(
+y_snr05, snr05 = sp.dsp.add_backgroundsound(
     y, white_noise, sr=sr, snr = 5, random_seed = 40)
 # round the measured snr:
 snr05 = int(round(snr05))
 snr05
 
 ######################################################
-pyso.plotsound(y_snr05, sr = sr, feature_type = 'signal', 
+sp.plotsound(y_snr05, sr = sr, feature_type = 'signal', 
                title = 'Speech SNR {}'.format(snr05))
 ipd.Audio(y_snr05,rate=sr)
 
@@ -215,7 +215,7 @@ percent_overlap = 0.5
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # For measuring background noise in signal, set amount 
 # of beginning noise in milliseconds to use. Currently, this is 
-# only relevant for `pysoundtool.dsp.vad`.
+# only relevant for `soundpy.dsp.vad`.
 use_beg_ms = 120
 
 
@@ -230,14 +230,14 @@ use_beg_ms = 120
 ######################################################
 # Cut off beginning and ending silences
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pyso.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = True,
+sp.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = True,
                     percent_overlap = percent_overlap, 
                     win_size_ms = win_size_ms)
 
 ######################################################
-clipped_samples, vad_matrix = pyso.feats.get_samples_clipped(y_snr20, sr=sr, percent_overlap = percent_overlap, 
+clipped_samples, vad_matrix = sp.feats.get_samples_clipped(y_snr20, sr=sr, percent_overlap = percent_overlap, 
                    win_size_ms = win_size_ms)
-pyso.feats.plot(clipped_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(clipped_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(clipped_samples, rate= sr)
 
 
@@ -248,29 +248,29 @@ ipd.Audio(clipped_samples, rate= sr)
 ######################################################
 # Check VAD through entire signal
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pyso.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = False,
+sp.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = False,
                     percent_overlap = 0.5, 
                     win_size_ms = win_size_ms)
 
 ######################################################
-vad_samples, vad_matrix = pyso.feats.get_vad_samples(
+vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr20, sr=sr, use_beg_ms = use_beg_ms, 
     percent_overlap = percent_overlap, win_size_ms = win_size_ms)
-pyso.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(vad_samples, rate = sr)
 
 #######################################################
 # Let's extend the window of VAD
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pyso.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = False,
+sp.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = False,
                    extend_window_ms = 300, use_beg_ms = use_beg_ms, 
                     percent_overlap = 0, win_size_ms = win_size_ms)
 
 #######################################################
-vad_samples, vad_matrix = pyso.feats.get_vad_samples(
+vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr20, sr=sr, use_beg_ms = use_beg_ms, extend_window_ms = 300,
     percent_overlap = 0.5, win_size_ms = win_size_ms)
-pyso.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(vad_samples, rate = sr)
 
 
@@ -285,32 +285,32 @@ ipd.Audio(vad_samples, rate = sr)
 ######################################################
 # Cut off beginning and ending silences
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pyso.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = True, 
+sp.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = True, 
                     percent_overlap = percent_overlap, 
                     win_size_ms = win_size_ms)
 
 ######################################################
-clipped_samples, vad_matrix = pyso.feats.get_samples_clipped(y_snr05, sr=sr, percent_overlap = percent_overlap, 
+clipped_samples, vad_matrix = sp.feats.get_samples_clipped(y_snr05, sr=sr, percent_overlap = percent_overlap, 
                    win_size_ms = win_size_ms)
-pyso.feats.plot(clipped_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(clipped_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(clipped_samples, rate= sr)
 
 
 ######################################################
 # Improves with Wiener filter and padding?
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-y_snr05_wf, sr = pyso.filtersignal(
+y_snr05_wf, sr = sp.filtersignal(
     y_snr05, sr=sr, apply_postfilter = True)
 
-pyso.feats.plot_vad(y_snr05_wf, sr=sr, beg_end_clipped = True,
+sp.feats.plot_vad(y_snr05_wf, sr=sr, beg_end_clipped = True,
                     percent_overlap = percent_overlap, 
                     win_size_ms = win_size_ms, extend_window_ms = 300)
 
 ######################################################
-clipped_samples, vad_matrix = pyso.feats.get_samples_clipped(
+clipped_samples, vad_matrix = sp.feats.get_samples_clipped(
     y_snr05_wf, sr=sr, percent_overlap = percent_overlap, 
     win_size_ms = win_size_ms, extend_window_ms = 300)
-pyso.feats.plot(clipped_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(clipped_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(clipped_samples, rate= sr)
 
 
@@ -321,28 +321,28 @@ ipd.Audio(clipped_samples, rate= sr)
 ######################################################
 # Check VAD through entire signal
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pyso.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = False,
+sp.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = False,
                     percent_overlap = 0.5, win_size_ms = win_size_ms)
 
 ######################################################
-vad_samples, vad_matrix = pyso.feats.get_vad_samples(
+vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr05, sr=sr, use_beg_ms = use_beg_ms, 
     percent_overlap = 0.5, win_size_ms = win_size_ms)
-pyso.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(vad_samples, rate = sr)
 
 #######################################################
 # Let's extend the window of VAD
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pyso.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = False,
+sp.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = False,
                     extend_window_ms = 300, use_beg_ms = use_beg_ms, 
                     percent_overlap = 0, win_size_ms = win_size_ms)
 
 #######################################################
-vad_samples, vad_matrix = pyso.feats.get_vad_samples(
+vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr05, sr=sr, use_beg_ms = use_beg_ms, extend_window_ms = 300,
     percent_overlap = 0.5, win_size_ms = win_size_ms)
-pyso.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(vad_samples, rate = sr)
 
 

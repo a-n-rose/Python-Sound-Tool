@@ -1,4 +1,4 @@
  
 -----------------------------
-PySoundTool Example Use Cases
+SoundPy Example Use Cases
 -----------------------------

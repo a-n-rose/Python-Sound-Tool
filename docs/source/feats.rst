@@ -2,7 +2,7 @@
 Extract and manipulate audio features
 -------------------------------------
 
-.. automodule:: pysoundtool.feats
+.. automodule:: soundpy.feats
    :members:
    :undoc-members:
    :show-inheritance:

@@ -7,7 +7,7 @@ Feature Extraction for Denoising: Clean and Noisy Audio
 Extract acoustic features from clean and noisy datasets for 
 training a denoising model, e.g. a denoising autoencoder.
 
-To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_feats`.
+To see how soundpy implements this, see `soundpy.builtin.denoiser_feats`.
 """
 
 
@@ -15,7 +15,7 @@ To see how PySoundTool implements this, see `pysoundtool.builtin.denoiser_feats`
 # 
 
 #####################################################################
-import pysoundtool as pyso
+import soundpy as sp
 import IPython.display as ipd
 
 ######################################################
@@ -57,7 +57,7 @@ dur_sec = 3
 frames_per_sample = 11
 
 #######################################################################
-# Option 1: Built-In Functionality: PySoundTool does everything for you
+# Option 1: Built-In Functionality: soundpy does everything for you
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ############################################################
@@ -70,7 +70,7 @@ frames_per_sample = 11
 # `visualize` saves periodic images of the features extracted.
 # This is useful if you want to know what's going on during the process.
 perc_train = 0.6 # with larger datasets this would be around 0.8
-extraction_dir = pyso.denoiser_feats(
+extraction_dir = sp.denoiser_feats(
     data_clean_dir = data_clean_dir, 
     data_noisy_dir = data_noisy_dir,
     sr = sr,

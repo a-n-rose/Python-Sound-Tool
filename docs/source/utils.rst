@@ -2,7 +2,7 @@
 Other useful non-specific functionality
 ---------------------------------------
 
-.. automodule:: pysoundtool.utils
+.. automodule:: soundpy.utils
    :members:
    :undoc-members:
    :show-inheritance:

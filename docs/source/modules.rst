@@ -1,5 +1,5 @@
 =========================
-PySoundTool Functionality
+SoundPy Functionality
 =========================
 
 .. include:: builtin.rst

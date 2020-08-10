@@ -2,7 +2,7 @@
 Working with audio files
 ------------------------
 
-.. automodule:: pysoundtool.files
+.. automodule:: soundpy.files
    :members:
    :undoc-members:
    :show-inheritance:

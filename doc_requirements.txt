@@ -3,3 +3,4 @@ sphinx-gallery==0.7.0
 numpydoc==1.1.0
 pillow==7.2.0
 ipython==7.16.1
+pandas==1.1.0

@@ -7,7 +7,7 @@ Feature Extraction for Classification
 Extract acoustic features from labeled data for 
 training an environment or speech classifier.
 
-To see how PySoundTool implements this, see `pysoundtool.builtin.envclassifier_feats`.
+To see how soundpy implements this, see `soundpy.builtin.envclassifier_feats`.
 """
 
 
@@ -26,11 +26,11 @@ packagedir = os.path.dirname(parparentdir)
 sys.path.insert(0, packagedir)
 
 import matplotlib.pyplot as plt
-import pysoundtool as pyso 
+import soundpy as sp 
 import IPython.display as ipd
 package_dir = '../../../'
 os.chdir(package_dir)
-pyso_dir = package_dir
+sp_dir = package_dir
 ######################################################
 # Prepare for Extraction: Data Organization
 # -----------------------------------------
@@ -59,7 +59,7 @@ dur_sec = 1
 
 
 #############################################################
-# Built-In Functionality - PySoundTool extracts the features for you
+# Built-In Functionality - soundpy extracts the features for you
 # ----------------------------------------------------------------------------
 
 ############################################################
@@ -69,7 +69,7 @@ dur_sec = 1
 # (Although, you can set this under the parameter `data_features_dir`)
 # `visualize` saves periodic images of the features extracted.
 # This is useful if you want to know what's going on during the process.
-extraction_dir = pyso.envclassifier_feats(data_dir, 
+extraction_dir = sp.envclassifier_feats(data_dir, 
                                           feature_type=feature_type, 
                                           dur_sec=dur_sec,
                                           visualize=True);

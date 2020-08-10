@@ -7,7 +7,7 @@ Augment Speech and Sound for Machine and Deep Learning
 
 Augment audio to expanding datasets and train resilient models.
 
-To see how PySoundTool implements this, see the module `pysoundtool.augment`.
+To see how SoundPy implements this, see the module `soundpy.augment`.
 
 
 Note:
@@ -24,7 +24,7 @@ Below are a few augmentation techniques I have seen implemented in sound researc
 
 
 #####################################################################
-import pysoundtool as pyso
+import soundpy as sp
 import IPython.display as ipd
 
 #############################################
@@ -33,24 +33,24 @@ import IPython.display as ipd
 
 ##########################################################
 # Designate the path relevant for accessing audiodata
-# Note: the speech and sound come with the PySoundTool repo.
-pyso_dir = '../../../'
+# Note: the speech and sound come with the soundpy repo.
+sp_dir = '../../../'
 
 ##########################################################
 # Speech sample:
-speech = '{}audiodata/python.wav'.format(pyso_dir)
-speech = pyso.utils.string2pathlib(speech)
+speech = '{}audiodata/python.wav'.format(sp_dir)
+speech = sp.utils.string2pathlib(speech)
 
 ################################################################
 # Hear and see speech
 # ~~~~~~~~~~~~~~~~~~~
 
 sr = 44100
-f, sr = pyso.loadsound(speech, sr=sr)
+f, sr = sp.loadsound(speech, sr=sr)
 ipd.Audio(f,rate=sr)
 
 ##########################################################
-pyso.plotsound(f, sr=sr, feature_type='stft', title='Female Speech "Python"')
+sp.plotsound(f, sr=sr, feature_type='stft', title='Female Speech "Python"')
 
 ##########################################################
 # Change Speed
@@ -59,25 +59,25 @@ pyso.plotsound(f, sr=sr, feature_type='stft', title='Female Speech "Python"')
 ##########################################################
 # Let's increase the speed by 15%:
 
-fast = pyso.augment.speed_increase(f, sr=sr, perc = 0.15) 
+fast = sp.augment.speed_increase(f, sr=sr, perc = 0.15) 
 
 ##########################################################
 ipd.Audio(fast,rate=sr)
 
 ##########################################################
-pyso.plotsound(fast, sr = sr, feature_type = 'stft', 
+sp.plotsound(fast, sr = sr, feature_type = 'stft', 
                title = 'Female speech: 15%  faster')
 
 ##########################################################
 # Let's decrease the speed by 15%:
 
-slow = pyso.augment.speed_decrease(f, sr = sr, perc = 0.15) 
+slow = sp.augment.speed_decrease(f, sr = sr, perc = 0.15) 
 
 ##########################################################
 ipd.Audio(slow, rate = sr)
 
 ##########################################################
-pyso.plotsound(slow, sr = sr, feature_type = 'stft', 
+sp.plotsound(slow, sr = sr, feature_type = 'stft', 
                title = 'Speech: 15%  slower')
 
 
@@ -88,13 +88,13 @@ pyso.plotsound(slow, sr = sr, feature_type = 'stft',
 ##########################################################
 # Add white noise: 10 SNR
 
-noisy = pyso.augment.add_white_noise(f, sr=sr, snr = 10) 
+noisy = sp.augment.add_white_noise(f, sr=sr, snr = 10) 
 
 ##########################################################
 ipd.Audio(noisy,rate=sr)
 
 ##########################################################
-pyso.plotsound(noisy, sr=sr, feature_type='stft', 
+sp.plotsound(noisy, sr=sr, feature_type='stft', 
                title='Speech with white noise: 10 SNR')
 
 
@@ -102,13 +102,13 @@ pyso.plotsound(noisy, sr=sr, feature_type='stft',
 # Harmonic Distortion
 # ~~~~~~~~~~~~~~~~~~~
 
-hd = pyso.augment.harmonic_distortion(f, sr=sr) 
+hd = sp.augment.harmonic_distortion(f, sr=sr) 
 
 ##########################################################
 ipd.Audio(hd,rate=sr)
 
 ##########################################################
-pyso.plotsound(hd, sr=sr, feature_type='stft', 
+sp.plotsound(hd, sr=sr, feature_type='stft', 
                title='Speech with harmonic distortion')
 
 
@@ -119,25 +119,25 @@ pyso.plotsound(hd, sr=sr, feature_type='stft',
 ##########################################################
 # Pitch shift increase
 
-psi = pyso.augment.pitch_increase(f, sr=sr, num_semitones = 2) 
+psi = sp.augment.pitch_increase(f, sr=sr, num_semitones = 2) 
 
 ##########################################################
 ipd.Audio(psi,rate=sr)
 
 ##########################################################
-pyso.plotsound(psi, sr=sr, feature_type='stft', 
+sp.plotsound(psi, sr=sr, feature_type='stft', 
                title='Speech with pitch shift increase')
 
 ##########################################################
 # Pitch shift decrease
 
-psd = pyso.augment.pitch_decrease(f, sr=sr, num_semitones = 2) 
+psd = sp.augment.pitch_decrease(f, sr=sr, num_semitones = 2) 
 
 ##########################################################
 ipd.Audio(psd,rate=sr)
 
 ##########################################################
-pyso.plotsound(psd, sr=sr, feature_type='stft', 
+sp.plotsound(psd, sr=sr, feature_type='stft', 
                title='Speech with pitch shift decrease')
 
 
@@ -149,41 +149,41 @@ pyso.plotsound(psd, sr=sr, feature_type='stft',
 ##########################################################
 # Vocal tract length perturbation (by factor 0.8 to 1.2)
 
-vtlp_stft, a = pyso.augment.vtlp(f, sr=sr, win_size_ms = 50,
+vtlp_stft, a = sp.augment.vtlp(f, sr=sr, win_size_ms = 50,
                                  percent_overlap = 0.5,
                                  random_seed = 41) 
 
 ##########################################################
 # In order to listen to this, we need to turn the stft into 
 # samples:
-vtlp_y = pyso.feats.feats2audio(vtlp_stft, sr = sr,
+vtlp_y = sp.feats.feats2audio(vtlp_stft, sr = sr,
                                 feature_type = 'stft',
                                 win_size_ms = 50,
                                 percent_overlap = 0.5)
 ipd.Audio(vtlp_y,rate=sr)
 
 ##########################################################
-pyso.feats.plot(vtlp_stft, sr=sr, feature_type='stft', 
+sp.feats.plot(vtlp_stft, sr=sr, feature_type='stft', 
                title='VTLP (factor {})'.format(a))
 
 ##########################################################
 # Vocal tract length perturbation (by factor 0.8 to 1.2)
 
-vtlp_stft, a = pyso.augment.vtlp(f, sr=sr, win_size_ms = 50,
+vtlp_stft, a = sp.augment.vtlp(f, sr=sr, win_size_ms = 50,
                                  percent_overlap = 0.5,
                                  random_seed = 43) 
 
 ##########################################################
 # In order to listen to this, we need to turn the stft into 
 # samples:
-vtlp_y = pyso.feats.feats2audio(vtlp_stft, sr = sr,
+vtlp_y = sp.feats.feats2audio(vtlp_stft, sr = sr,
                                 feature_type = 'stft',
                                 win_size_ms = 50,
                                 percent_overlap = 0.5)
 ipd.Audio(vtlp_y,rate=sr)
 
 ##########################################################
-pyso.feats.plot(vtlp_stft, sr=sr, feature_type='stft', 
+sp.feats.plot(vtlp_stft, sr=sr, feature_type='stft', 
                title='VTLP (factor {})'.format(a))
 
 
@@ -192,17 +192,17 @@ pyso.feats.plot(vtlp_stft, sr=sr, feature_type='stft',
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Car horn sample:
-honk = '{}audiodata/car_horn.wav'.format(pyso_dir)
-honk = pyso.utils.string2pathlib(honk)
+honk = '{}audiodata/car_horn.wav'.format(sp_dir)
+honk = sp.utils.string2pathlib(honk)
 
 ##########################################################
 # Hear and see sound signal 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
-h, sr = pyso.loadsound(honk, sr=sr)
+h, sr = sp.loadsound(honk, sr=sr)
 ipd.Audio(h,rate=sr)
 
 ##########################################################
-pyso.plotsound(h, sr=sr, feature_type='stft', 
+sp.plotsound(h, sr=sr, feature_type='stft', 
                title='Car Horn Sound')
 
 ##########################################################
@@ -212,25 +212,25 @@ pyso.plotsound(h, sr=sr, feature_type='stft',
 ##########################################################
 # Let's increase the speed by 15%:
 
-fast = pyso.augment.speed_increase(h, sr=sr, perc = 0.15) 
+fast = sp.augment.speed_increase(h, sr=sr, perc = 0.15) 
 
 ##########################################################
 ipd.Audio(fast,rate=sr)
 
 ##########################################################
-pyso.plotsound(fast, sr=sr, feature_type='stft', 
+sp.plotsound(fast, sr=sr, feature_type='stft', 
                title='Car horn: 15%  faster')
 
 ##########################################################
 # Let's decrease the speed by 15%:
 
-slow = pyso.augment.speed_decrease(h, sr=sr, perc = 0.15) 
+slow = sp.augment.speed_decrease(h, sr=sr, perc = 0.15) 
 
 ##########################################################
 ipd.Audio(slow,rate=sr)
 
 ##########################################################
-pyso.plotsound(slow, sr=sr, feature_type='stft', 
+sp.plotsound(slow, sr=sr, feature_type='stft', 
                title='Car horn: 15%  slower')
 
 ##########################################################
@@ -239,26 +239,26 @@ pyso.plotsound(slow, sr=sr, feature_type='stft',
 
 ##########################################################
 # Add white noise 
-h_noisy = pyso.augment.add_white_noise(h, sr=sr, snr = 10)
+h_noisy = sp.augment.add_white_noise(h, sr=sr, snr = 10)
 
 ##########################################################
 ipd.Audio(h_noisy,rate=sr)
 
 ##########################################################
-pyso.plotsound(h_noisy, sr=sr, feature_type='stft', 
+sp.plotsound(h_noisy, sr=sr, feature_type='stft', 
                title='Car horn with white noise (10 SNR)')
 
 ##########################################################
 # Harmonic Distortion
 # ~~~~~~~~~~~~~~~~~~~
 
-hd = pyso.augment.harmonic_distortion(h, sr=sr) 
+hd = sp.augment.harmonic_distortion(h, sr=sr) 
 
 ##########################################################
 ipd.Audio(hd,rate=sr)
 
 ##########################################################
-pyso.plotsound(hd, sr=sr, feature_type='stft', 
+sp.plotsound(hd, sr=sr, feature_type='stft', 
                title='Car horn with harmonic distortion')
 
 
@@ -269,25 +269,25 @@ pyso.plotsound(hd, sr=sr, feature_type='stft',
 ##########################################################
 # Pitch shift increase
 
-psi = pyso.augment.pitch_increase(h, sr=sr, num_semitones = 2) 
+psi = sp.augment.pitch_increase(h, sr=sr, num_semitones = 2) 
 
 ##########################################################
 ipd.Audio(psi,rate=sr)
 
 ##########################################################
-pyso.plotsound(psi, sr=sr, feature_type='stft', 
+sp.plotsound(psi, sr=sr, feature_type='stft', 
                title='Car horn with pitch shift increase')
 
 ##########################################################
 # Pitch shift decrease
 
-psd = pyso.augment.pitch_decrease(h, sr=sr, num_semitones = 2) 
+psd = sp.augment.pitch_decrease(h, sr=sr, num_semitones = 2) 
 
 ##########################################################
 ipd.Audio(psd,rate=sr)
 
 ##########################################################
-pyso.plotsound(psd, sr=sr, feature_type='stft', 
+sp.plotsound(psd, sr=sr, feature_type='stft', 
                title='Car horn with pitch shift decrease')
 
 ##########################################################
@@ -296,13 +296,13 @@ pyso.plotsound(psd, sr=sr, feature_type='stft',
 
 ##########################################################
 # We'll apply a random shift to the sound
-h_shift = pyso.augment.time_shift(h, sr=sr)
+h_shift = sp.augment.time_shift(h, sr=sr)
 
 ##########################################################
 ipd.Audio(h_shift,rate=sr)
 
 ##########################################################
-pyso.plotsound(h_shift, sr=sr, feature_type='stft', 
+sp.plotsound(h_shift, sr=sr, feature_type='stft', 
                title='Car horn: time shifted')
 
 
@@ -310,14 +310,14 @@ pyso.plotsound(h_shift, sr=sr, feature_type='stft',
 # Shuffle the Sound
 # ~~~~~~~~~~~~~~~~~
 
-h_shuffle = pyso.augment.shufflesound(h, sr=sr,
+h_shuffle = sp.augment.shufflesound(h, sr=sr,
                                       num_subsections = 5)
 
 ##########################################################
 ipd.Audio(h_shuffle,rate=sr)
 
 ##########################################################
-pyso.plotsound(h_shuffle, sr=sr, feature_type='stft', 
+sp.plotsound(h_shuffle, sr=sr, feature_type='stft', 
                title='Car horn: shuffled')
 
 
@@ -325,12 +325,12 @@ pyso.plotsound(h_shuffle, sr=sr, feature_type='stft',
 # Just for kicks let's do the same to speech and see how 
 # that influences the signal:
 
-h_shuffle = pyso.augment.shufflesound(f, sr=sr,
+h_shuffle = sp.augment.shufflesound(f, sr=sr,
                                       num_subsections = 5)
 
 ##########################################################
 ipd.Audio(h_shuffle,rate=sr)
 
 ##########################################################
-pyso.plotsound(h_shuffle, sr=sr, feature_type='stft', 
+sp.plotsound(h_shuffle, sr=sr, feature_type='stft', 
                title='Speech: shuffled')

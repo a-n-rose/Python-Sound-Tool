@@ -2,7 +2,7 @@
 Augment audio data
 ------------------
 
-.. automodule:: pysoundtool.augment
+.. automodule:: soundpy.augment
    :members:
    :undoc-members:
    :show-inheritance:
