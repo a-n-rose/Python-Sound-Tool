@@ -9,7 +9,7 @@ sys.path.insert(0, parentdir)
 import librosa
 import numpy as np
 import pytest
-import pysoundtool as pyso
+import soundpy as sp
 
 audiodir = 'test_audio/'
 test_audiofile = '{}audio2channels.wav'.format(audiodir)
@@ -20,7 +20,7 @@ test_filtered_bandsub = '{}python_traffic_bs.wav'.format(audiodir)
 
 
 def test_setup_bands_default():
-    fil = pyso.BandSubtraction()
+    fil = sp.BandSubtraction()
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
@@ -30,7 +30,7 @@ def test_setup_bands_default():
     assert np.array_equal(expected2, band_end_freq)
     
 def test_setup_bands_8():
-    fil = pyso.BandSubtraction(num_bands = 8)
+    fil = sp.BandSubtraction(num_bands = 8)
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
@@ -40,7 +40,7 @@ def test_setup_bands_8():
     assert np.array_equal(expected2, band_end_freq)
 
 def test_setup_bands_winsize16ms():
-    fil = pyso.BandSubtraction(win_size_ms = 16)
+    fil = sp.BandSubtraction(win_size_ms = 16)
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
@@ -50,7 +50,7 @@ def test_setup_bands_winsize16ms():
     assert np.array_equal(expected2, band_end_freq)
     
 def test_setup_bands_winsize500ms():
-    fil = pyso.BandSubtraction(win_size_ms = 500)
+    fil = sp.BandSubtraction(win_size_ms = 500)
     fil.setup_bands()
     band_start_freq = fil.band_start_freq
     band_end_freq = fil.band_end_freq
@@ -61,7 +61,7 @@ def test_setup_bands_winsize500ms():
     
 def test_update_posteri_bands_noisy():
     noise_max = 0.3
-    fil = pyso.BandSubtraction(num_bands = 3)
+    fil = sp.BandSubtraction(num_bands = 3)
     fil.setup_bands()
     time = np.arange(0, 10, 0.01)
     signal = np.sin(time)[:fil.frame_length]
@@ -79,7 +79,7 @@ def test_update_posteri_bands_noisy():
 
 def test_update_posteri_bands_verynoisy():
     noise_max = 0.7
-    fil = pyso.BandSubtraction(num_bands = 3)
+    fil = sp.BandSubtraction(num_bands = 3)
     fil.setup_bands()
     time = np.arange(0, 10, 0.01)
     signal = np.sin(time)[:fil.frame_length]
@@ -95,7 +95,7 @@ def test_update_posteri_bands_verynoisy():
     assert np.allclose(expected, snr_bands)
     
 def test_update_posteri_bands_nonoise():
-    fil = pyso.BandSubtraction(num_bands = 3)
+    fil = sp.BandSubtraction(num_bands = 3)
     fil.setup_bands()
     time = np.arange(0, 10, 0.01)
     signal = np.sin(time)[:fil.frame_length]
@@ -108,7 +108,7 @@ def test_update_posteri_bands_nonoise():
     
 def test_calc_oversub_factor_noisy():
     noise_max = 0.3
-    fil = pyso.BandSubtraction(num_bands = 4)
+    fil = sp.BandSubtraction(num_bands = 4)
     fil.setup_bands()
     time = np.arange(0, 10, 0.01)
     signal = np.sin(time)[:fil.frame_length]
@@ -125,7 +125,7 @@ def test_calc_oversub_factor_noisy():
     
 def test_calc_oversub_factor_nonoise():
     noise_max = 0.3
-    fil = pyso.BandSubtraction(num_bands = 4)
+    fil = sp.BandSubtraction(num_bands = 4)
     fil.setup_bands()
     time = np.arange(0, 10, 0.01)
     signal = np.sin(time)[:fil.frame_length]
@@ -136,7 +136,7 @@ def test_calc_oversub_factor_nonoise():
     assert np.allclose(expected, a)
     
 def test_calc_relevant_band1():
-    fil = pyso.BandSubtraction(num_bands = 6)
+    fil = sp.BandSubtraction(num_bands = 6)
     fil.setup_bands()
     band_index = 0
     freq = fil.band_start_freq[band_index] 
@@ -159,7 +159,7 @@ def test_calc_relevant_band1():
     
     
 def test_calc_relevant_band2():
-    fil = pyso.BandSubtraction(num_bands = 6)
+    fil = sp.BandSubtraction(num_bands = 6)
     fil.setup_bands()
     band_index = 1
     freq = fil.band_start_freq[band_index] 
@@ -182,7 +182,7 @@ def test_calc_relevant_band2():
     
     
 def test_calc_relevant_band4():
-    fil = pyso.BandSubtraction(num_bands = 6)
+    fil = sp.BandSubtraction(num_bands = 6)
     fil.setup_bands()
     band_index = 2
     freq = fil.band_start_freq[band_index] 
@@ -204,7 +204,7 @@ def test_calc_relevant_band4():
     assert expected == rel_band
     
 def test_calc_relevant_band4():
-    fil = pyso.BandSubtraction(num_bands = 6)
+    fil = sp.BandSubtraction(num_bands = 6)
     fil.setup_bands()
     band_index = 3
     freq = fil.band_start_freq[band_index]
@@ -226,7 +226,7 @@ def test_calc_relevant_band4():
     assert expected == rel_band
     
 def test_calc_relevant_band():
-    fil = pyso.BandSubtraction(num_bands = 4)
+    fil = sp.BandSubtraction(num_bands = 4)
     fil.setup_bands()
     time = np.arange(0, 10, 0.01)
     signal = np.cos(time)[:fil.frame_length]
@@ -237,14 +237,14 @@ def test_calc_relevant_band():
     
 def test_bandsub_reset_samplerate_22050():
     sr = 22050 
-    fil = pyso.BandSubtraction(num_bands=4, sr=sr)
+    fil = sp.BandSubtraction(num_bands=4, sr=sr)
     updated_sr = fil.sr
     expected = 48000
     assert expected == updated_sr
     
 # TODO: just seems a bit complicated.. remove?
 #def test_sub_noise():
-    #fil = pyso.BandSubtraction(num_bands = 4)
+    #fil = sp.BandSubtraction(num_bands = 4)
     #fil.setup_bands()
     #time = np.arange(0, 10, 0.01)
     #signal = np.sin(time)[:fil.frame_length]
@@ -262,14 +262,14 @@ def test_bandsub_reset_samplerate_22050():
                                #speech = True)
 
 def test_filtersettings_getsamples_default_wiener():
-    wf = pyso.WienerFilter()
+    wf = sp.WienerFilter()
     samps_wf = wf.get_samples(test_audiofile,
                               dur_sec = 1)
     assert wf.sr == 48000
     assert len(samps_wf) == wf.sr
     
 def test_filtersettings_getsamples_default_bandsubtraction():
-    bs = pyso.BandSubtraction()
+    bs = sp.BandSubtraction()
     samps_bs = bs.get_samples(test_audiofile,
                               dur_sec = 1)
     assert bs.sr == 48000
@@ -278,7 +278,7 @@ def test_filtersettings_getsamples_default_bandsubtraction():
     
 def test_filtersettings_getsamples_sr22050_wiener():
     sr = 22050
-    wf = pyso.WienerFilter(sr=sr)
+    wf = sp.WienerFilter(sr=sr)
     samps_wf = wf.get_samples(test_audiofile,
                               dur_sec = 1)
     assert wf.sr == sr
@@ -287,7 +287,7 @@ def test_filtersettings_getsamples_sr22050_wiener():
 def test_filtersettings_getsamples_sr22050_bandsubtraction():
     sr = 22050
     sr_permanent = 48000
-    bs = pyso.BandSubtraction(sr=sr)
+    bs = sp.BandSubtraction(sr=sr)
     samps_bs = bs.get_samples(test_audiofile,
                               dur_sec = 1)
     print('IF ERROR: Check whether or not BandSubtraction works with '+\
@@ -297,7 +297,7 @@ def test_filtersettings_getsamples_sr22050_bandsubtraction():
 
 def test_filtersettings_getsamples_sr8000_wiener():
     sr = 8000
-    wf = pyso.WienerFilter(sr=sr)
+    wf = sp.WienerFilter(sr=sr)
     samps_wf = wf.get_samples(test_audiofile,
                               dur_sec = 1)
     assert wf.sr == sr
@@ -306,7 +306,7 @@ def test_filtersettings_getsamples_sr8000_wiener():
 def test_filtersettings_getsamples_sr8000_bandsubtraction():
     sr = 8000
     sr_permanent = 48000
-    bs = pyso.BandSubtraction(sr=sr)
+    bs = sp.BandSubtraction(sr=sr)
     samps_bs = bs.get_samples(test_audiofile,
                               dur_sec = 1)
     print('IF ERROR: Check whether or not BandSubtraction works with '+\
@@ -315,21 +315,21 @@ def test_filtersettings_getsamples_sr8000_bandsubtraction():
     assert len(samps_bs) == bs.sr
     
 def test_filtersignal_wiener_simple_doesitrun_uselibrosa_False():
-    signal, sr = pyso.filtersignal(test_noisyfile, filter_type = 'wiener',
+    signal, sr = sp.filtersignal(test_noisyfile, filter_type = 'wiener',
                                    use_scipy=True, remove_dc=False, control_vol = True)
     sig_expected, sr_expected = librosa.load(test_filtered_wiener, sr=sr)
     assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
 
 def test_filtersignal_wiener_posfilter_simple_doesitrun_uselibrosa_False():
-    signal, sr = pyso.filtersignal(test_noisyfile, filter_type = 'wiener_pf',
+    signal, sr = sp.filtersignal(test_noisyfile, filter_type = 'wiener_pf',
                                    use_scipy=True, remove_dc=False, control_vol = True)
     sig_expected, sr_expected = librosa.load(test_filtered_wiener_postfilter, sr=sr)
     assert np.allclose(signal, sig_expected)
     assert sr == sr_expected
     
 def test_filtersignal_bandsubtraction_simple_doesitrun_uselibrosa_False():
-    signal, sr = pyso.filtersignal(test_noisyfile, filter_type = 'bandsubtraction',
+    signal, sr = sp.filtersignal(test_noisyfile, filter_type = 'bandsubtraction',
                                    use_scipy=True, remove_dc=False, control_vol = True)
     sig_expected, sr_expected = librosa.load(test_filtered_bandsub,sr=sr)
     assert np.allclose(signal, sig_expected)
