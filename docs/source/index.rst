@@ -26,7 +26,7 @@ As it covers quite a large range, from audio file conversion to implementation o
 
 This project is still in the beginning stages and has a lot of room for growth, especially with contributers having a background / knowlege in data science, computer science, machine and deep learning, physics, acoustics, or dsp. Contributers from other backgrounds are also welcome! If you'd like SoundPy to do something it doesn't, try making it or create an issue.
 
-.. _package: https://github.com/a-n-rose/Python-Sound-Tool/master
+.. _package: https://github.com/a-n-rose/Python-Sound-Tool/tree/master
 
 .. toctree:: 
    :maxdepth: 2
