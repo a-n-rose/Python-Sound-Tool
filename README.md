@@ -41,8 +41,8 @@ Python 3.6
 
 ### For Linux users:
 
-In order to use all functionality (i.e. `soundpy` and not `soundpy_online` you must 
-have `libsndfile1` installed in your system. <a href="https://pypi.org/project/SoundFile/">Soundfile</a> uses this library.
+You must have `libsndfile1` installed in your system. 
+<a href="https://pypi.org/project/SoundFile/">Soundfile</a> uses this library.
 
 ```
 $ sudo apt-get install libsndfile1
@@ -52,16 +52,16 @@ $ sudo apt-get install libsndfile1
 
 ## Updates of upcoming release:
 
-### soundpy.dsp.vad()
+### soundpy.dsp.vad
 - add `use_beg_ms` parameter: improved VAD recognition of silences post speech.
 - raise warning for sample rates lower than 44100 Hz. VAD seems to fail at lower sample rates.
 
-### soundpy.feats.get_vad_samples() and soundpy.feats.get_vad_stft()
+### soundpy.feats.get_vad_samples and soundpy.feats.get_vad_stft
 - moved from dsp module to the feats module
 - add `extend_window_ms` paremeter: can extend VAD window if desired. Useful in higher SNR environments.
 - raise warning for sample rates lower than 44100 Hz. VAD seems to fail at lower sample rates.
 
-### added soundpy.feats.get_samples_clipped() and soundpy.feats.get_stft_clipped()
+### added soundpy.feats.get_samples_clipped and soundpy.feats.get_stft_clipped
 - another option for VAD 
 - clips beginning and ending of audio data where high energy sound starts and ends.
 
@@ -69,7 +69,7 @@ $ sudo apt-get install libsndfile1
 - can extract and augment features from audio files as each audio file fed to model. 
 - example can be viewed: soundpy.builtin.envclassifier_extract_train
 
-### soundpy.dsp.add_backgroundsound()
+### soundpy.dsp.add_backgroundsound
 - improvements in the smoothness of the added signal.
 - soundpy.dsp.clip_at_zero
 - improved soundpy.dsp.vad and soundpy.feats.get_vad_stft
@@ -77,16 +77,16 @@ $ sudo apt-get install libsndfile1
 ### soundpy.feats.normalize 
 - can use it: soundpy.normalize (don't need to remember dsp or feats)
 
-### soundpy.dsp.remove_dc_bias() 
+### soundpy.dsp.remove_dc_bias
 - implemented in soundpy.files.loadsound() and soundpy.files.savesound()
 - vastly improves the ability to work with and combine signals.
 
-### soundpy.dsp.clip_at_zero()
+### soundpy.dsp.clip_at_zero
 - clips beginning and ending audio at zero crossings (at negative to positive zero crossings)
 - useful when concatenating signals
 - useful for removing clicks at beginning or ending of audio signals
 
-### soundpy.dsp.apply_sample_length()
+### soundpy.dsp.apply_sample_length
 - can now mirror the sound as a form of sound extention with parameter `mirror_sound`.
 
 ### Removed soundpy_online (and therefore mybinder as well)
@@ -115,9 +115,9 @@ This project is still in the beginning stages and has a lot of room for growth, 
 
 You can install SoundPy by cloning this repository. 
 
-You will be able to use the provided example audio and models in the folder `audiodata` and you can also use soundpy_online instead of soundpy, however, this has decreased functionality as it does not import librosa or soundfile, two awesome packages for working with audio.
+You will be able to use the provided example audio and models in the folder `audiodata`.
 
-Before either, I suggest a virtual environment:
+I suggest a virtual environment before installing:
 
 ```
 $ python3 -m venv env
