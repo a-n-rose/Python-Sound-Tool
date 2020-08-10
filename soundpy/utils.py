@@ -1,4 +1,4 @@
-'''Utils module covers functions that are useful for PySoundTool but are not 
+'''Utils module covers functions that are useful for soundpy but are not 
 directly related to sound data.
 ''' 
 import os, sys
@@ -15,7 +15,7 @@ currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
-import pysoundtool as pyso
+import soundpy as sp
 
 # TODO make str path into Pathlib.PosixPath
 def path_or_samples(input_value):
@@ -544,15 +544,15 @@ def audiofile_length_match(filename1, filename2):
     UserWarning
         If the length of the files don't match.
     '''
-    y1, sr1 = pyso.loadsound(filename1)
-    y2, sr2 = pyso.loadsound(filename2)
+    y1, sr1 = sp.loadsound(filename1)
+    y2, sr2 = sp.loadsound(filename2)
     if sr1 != sr2:
         import Warnings
         message = '\nWARNING: Sample rates do not match: '+\
             '\n{} has sr {}'.format(filename1, sr1)+\
             '\n{} has sr {}.'.format(filename2, sr2)
         warnings.warn(message)
-        y2, sr2 = pyso.dsp.resample_audio(y2, sr_original = sr2, sr_desired = sr1)
+        y2, sr2 = sp.dsp.resample_audio(y2, sr_original = sr2, sr_desired = sr1)
     assert sr1 == sr2
     if len(y1) != len(y2):
         import warnings
@@ -620,7 +620,7 @@ def load_dict(csv_path):
     '''Loads a dictionary from csv file. Expands csv limit if too large.
     
     Increasing the csv limit helps if loading dicitonaries with very long audio 
-    file path lists. For example, see pysoundtool.datasets.audio2datasets function.
+    file path lists. For example, see soundpy.datasets.audio2datasets function.
     '''
     # if a dictionary is already loaded, simply return the dictionary
     if isinstance(csv_path, dict):

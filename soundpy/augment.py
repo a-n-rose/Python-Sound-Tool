@@ -1,7 +1,7 @@
 '''The augment module includes functions related to augmenting audio data.
 These functions pull from implementations performed in research. 
 
-Other resources for augmentation (not included in PySoundTool functionality):
+Other resources for augmentation (not included in soundpy functionality):
 
 Ma, E. (2019). NLP Augmentation. https://github.com/makcedward/nlpaug
 
@@ -32,7 +32,7 @@ import numpy as np
 import math
 import librosa
 import pathlib
-import pysoundtool as pyso
+import soundpy as sp
 
 def speed_increase(sound, sr, perc=0.15, **kwargs):
     '''Acoustic augmentation of speech.
@@ -55,7 +55,7 @@ def speed_increase(sound, sr, perc=0.15, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     # if entered 50 instead of .50, turns 50 into .50
     if perc > 1:
@@ -79,7 +79,7 @@ def speed_decrease(sound, sr, perc=0.15, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     # if entered 50 instead of .50, turns 50 into .50
     if perc > 1:
@@ -105,9 +105,9 @@ def time_shift(sound, sr, random_seed = None, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
-    switched = pyso.augment.shufflesound(data, sr=sr, 
+    switched = sp.augment.shufflesound(data, sr=sr, 
                                           num_subsections = 2, 
                                           random_seed = random_seed)
     return switched
@@ -129,7 +129,7 @@ def shufflesound(sound, sr, num_subsections = 2, random_seed = None, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     subsection_length = len(data) // num_subsections
     order = np.arange(num_subsections)
@@ -162,14 +162,14 @@ def add_white_noise(sound, sr, noise_level=0.01, snr=10, random_seed=None, **kwa
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr)
+        data, sr2 = sp.loadsound(sound, sr=sr)
         assert sr2 == sr
-    n = pyso.dsp.generate_noise(num_samples = len(data), 
+    n = sp.dsp.generate_noise(num_samples = len(data), 
                                 amplitude=noise_level, 
                                 random_seed=random_seed)
     if isinstance(snr, list):
         snr = np.random.choice(snr)
-    sound_n, snr = pyso.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, **kwargs)
+    sound_n, snr = sp.dsp.add_backgroundsound(data, n, sr = sr, snr=snr, **kwargs)
     return sound_n
 
 def harmonic_distortion(sound, sr, **kwargs):
@@ -184,7 +184,7 @@ def harmonic_distortion(sound, sr, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     data = 2*np.pi*data
     count = 0
@@ -205,7 +205,7 @@ def pitch_increase(sound, sr, num_semitones = 2, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     y_i = librosa.effects.pitch_shift(data, sr=sr, n_steps = num_semitones)
     return y_i
@@ -222,7 +222,7 @@ def pitch_decrease(sound, sr, num_semitones = 2, **kwargs):
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr, **kwargs)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     y_d = librosa.effects.pitch_shift(data, sr=sr, n_steps = -num_semitones)
     return y_d
@@ -248,7 +248,7 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr)
+        data, sr2 = sp.loadsound(sound, sr=sr)
         assert sr2 == sr
     if random_seed is not None:
         np.random.seed(random_seed)
@@ -262,11 +262,11 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         or isinstance(vtlp_a, np.float_):
             pass
     else:
-        raise TypeError('Function `pysoundtool.augment.vtlp` expected a to be an int or float, or'+\
+        raise TypeError('Function `soundpy.augment.vtlp` expected a to be an int or float, or'+\
             ' a list / tuple of ints, or floats; not of type {}'.format(type(a)))
-    frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
+    frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
-    num_subframes = pyso.dsp.calc_num_subframes(len(data),
+    num_subframes = sp.dsp.calc_num_subframes(len(data),
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
@@ -282,23 +282,23 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins * oversize_factor
     # initialize empty matrix to fill dft values into
-    stft_matrix = pyso.dsp.create_empty_matrix(
+    stft_matrix = sp.dsp.create_empty_matrix(
         (num_subframes,total_rows), complex_vals = True)
     
     section_start = 0
-    window_frame = pyso.dsp.create_window(window, frame_length)
+    window_frame = sp.dsp.create_window(window, frame_length)
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section = pyso.dsp.apply_window(section, window_frame, zeropad = zeropad)
+        section = sp.dsp.apply_window(section, window_frame, zeropad = zeropad)
         # apply dft to large window - increase frequency resolution during warping
-        section_fft = pyso.dsp.calc_fft(section, 
+        section_fft = sp.dsp.calc_fft(section, 
                                         real_signal = real_signal,
                                         fft_bins = total_rows,
                                         )
         if bilinear_warp:
-            section_warped = pyso.dsp.bilinear_warp(section_fft, vtlp_a)
+            section_warped = sp.dsp.bilinear_warp(section_fft, vtlp_a)
         else:
-            section_warped = pyso.dsp.piecewise_linear_warp(section_fft, vtlp_a,
+            section_warped = sp.dsp.piecewise_linear_warp(section_fft, vtlp_a,
                                                                 max_freq = max_freq)
         
         if real_signal:
@@ -332,30 +332,30 @@ def get_augmentation_dict():
     return base_dict
 
 def list_augmentations():
-    augmentation_dict = pyso.augment.get_augmentation_dict()
+    augmentation_dict = sp.augment.get_augmentation_dict()
     aug_list = '\t'+'\n\t'.join(str(x) for x in augmentation_dict.keys())
     augmentations = 'Available augmentations:\n '+ aug_list
     return augmentations
     
 def get_augmentation_settings_dict(augmentation):
     if augmentation == 'speed_increase':
-        aug_defaults = pyso.utils.get_default_args(pyso.augment.speed_increase)
+        aug_defaults = sp.utils.get_default_args(sp.augment.speed_increase)
     elif augmentation == 'speed_decrease':
-        aug_defaults = pyso.utils.get_default_args(pyso.augment.speed_decrease)        
+        aug_defaults = sp.utils.get_default_args(sp.augment.speed_decrease)        
     elif augmentation == 'time_shift':
-        aug_defaults = pyso.utils.get_default_args(pyso.augment.time_shift)
+        aug_defaults = sp.utils.get_default_args(sp.augment.time_shift)
     elif augmentation == 'shufflesound':
-        aug_defaults = pyso.utils.get_default_args(pyso.augment.shufflesound)
+        aug_defaults = sp.utils.get_default_args(sp.augment.shufflesound)
     elif augmentation == 'add_white_noise':
-        aug_defaults = pyso.utils.get_default_args(pyso.augment.add_white_noise)
+        aug_defaults = sp.utils.get_default_args(sp.augment.add_white_noise)
     elif augmentation == 'harmonic_distortion':
-        aug_defaults = pyso.utils.get_default_args(pyso.augment.harmonic_distortion)
+        aug_defaults = sp.utils.get_default_args(sp.augment.harmonic_distortion)
     elif augmentation == 'pitch_increase':
-        aug_defaults = pyso.utils.get_default_args(pyso.augment.pitch_increase)
+        aug_defaults = sp.utils.get_default_args(sp.augment.pitch_increase)
     elif augmentation == 'pitch_decrease':
-        aug_defaults = pyso.utils.get_default_args(pyso.augment.pitch_decrease)
+        aug_defaults = sp.utils.get_default_args(sp.augment.pitch_decrease)
     elif augmentation == 'vtlp':
-        aug_defaults = pyso.utils.get_default_args(pyso.augment.vtlp)
+        aug_defaults = sp.utils.get_default_args(sp.augment.vtlp)
     return aug_defaults
     
     

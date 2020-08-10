@@ -9,7 +9,7 @@ packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 import numpy as np
 import random
-import pysoundtool as pyso
+import soundpy as sp
 import librosa
 
 
@@ -77,7 +77,7 @@ class Generator:
                 'with shape {}.'.format(self.datax.shape))
         if self.datay is None:
             # separate the label from the feature data
-            self.datax, self.datay = pyso.feats.separate_dependent_var(self.datax)
+            self.datax, self.datay = sp.feats.separate_dependent_var(self.datax)
             # assumes last column of features is the label column
             self.num_feats = self.datax.shape[-1] 
             self.labels = True
@@ -128,9 +128,9 @@ class Generator:
             if not self.normalized or self.datax.dtype == np.complex_:
                 # if complex data, power spectrum will be extracted
                 # power spectrum = np.abs(complex_data)**2
-                batch_x = pyso.feats.normalize(batch_x)
+                batch_x = sp.feats.normalize(batch_x)
                 if self.labels is None:
-                    batch_y = pyso.feats.normalize(batch_y)
+                    batch_y = sp.feats.normalize(batch_y)
             # apply log if specified
             if self.apply_log: 
                 batch_x = np.log(np.abs(batch_x))
@@ -142,19 +142,19 @@ class Generator:
             # if need greater number of features --> zero padding
             # could this be applied to including both narrowband and wideband data?
             if self.desired_shape is not None:
-                batch_x = pyso.feats.adjust_shape(batch_x, self.desired_shape, change_dims=True)
+                batch_x = sp.feats.adjust_shape(batch_x, self.desired_shape, change_dims=True)
                 
                 if self.labels is None:
-                    batch_y = pyso.feats.adjust_shape(batch_y, self.desired_shape, change_dims=True)
+                    batch_y = sp.feats.adjust_shape(batch_y, self.desired_shape, change_dims=True)
             
             if self.gray2color:
                 # expects colorscale to be last column.
                 # will copy first channel into the other (assumed empty) channels.
-                # the empty channels were created in pyso.feats.adjust_shape
-                batch_x = pyso.feats.grayscale2color(batch_x, 
+                # the empty channels were created in sp.feats.adjust_shape
+                batch_x = sp.feats.grayscale2color(batch_x, 
                                                      colorscale = batch_x.shape[-1])
                 if self.labels is None:
-                    batch_y = pyso.feats.gray2color(batch_y, 
+                    batch_y = sp.feats.gray2color(batch_y, 
                                                     colorscale = batch_y.shape[-1])
             ## add tensor dimension
             if self.add_tensor_last is True:
@@ -215,7 +215,7 @@ class GeneratorFeatExtraction:
             potentially finicky.
         
         **kwargs : additional keyword arguments
-            Keyword arguments for pysoundtool.feats.get_feats
+            Keyword arguments for soundpy.feats.get_feats
         '''
         if input_shape is None and 'dur_sec' not in kwargs.keys():
             raise ValueError('No information pertaining to amount of audio data '+\
@@ -358,15 +358,15 @@ class GeneratorFeatExtraction:
                 label_pic = None
         
             # ensure audio is valid:
-            y, sr = pyso.loadsound(audiopath, self.sr)
+            y, sr = sp.loadsound(audiopath, self.sr)
             
             if self.label_silence:
                 if self.vad_start_end:
-                    y_stft, vad = pyso.dsp.get_stft_clipped(y, sr=sr, 
+                    y_stft, vad = sp.dsp.get_stft_clipped(y, sr=sr, 
                                                      win_size_ms = 50, 
                                                      percent_overlap = 0.5)
                 else:
-                    y_stft, __ = pyso.feats.get_vad_stft(y, sr=sr,
+                    y_stft, __ = sp.feats.get_vad_stft(y, sr=sr,
                                                         win_size_ms = 50,
                                                         percent_overlap = 0.5,
                                                         use_beg_ms = 120,
@@ -443,23 +443,23 @@ class GeneratorFeatExtraction:
             # will be shape (num_frames, num_features)
             if self.vtlp:
                 try:
-                    win_size_ms = pyso.utils.restore_dictvalue(self.kwargs['win_size_ms'])
+                    win_size_ms = sp.utils.restore_dictvalue(self.kwargs['win_size_ms'])
                 except KeyError:
                     raise ValueError('win_size_ms not set for feature extraction.')
                 try:
-                    percent_overlap = pyso.utils.restore_dictvalue(self.kwargs['percent_overlap'])
+                    percent_overlap = sp.utils.restore_dictvalue(self.kwargs['percent_overlap'])
                 except KeyError:
                     percent_overlap = 0.5
                 try:
-                    fft_bins =  pyso.utils.restore_dictvalue(self.kwargs['fft_bins'])
+                    fft_bins =  sp.utils.restore_dictvalue(self.kwargs['fft_bins'])
                 except KeyError:
                     fft_bins = None
                 try:
-                    window = pyso.utils.restore_dictvalue(self.kwargs['window'])
+                    window = sp.utils.restore_dictvalue(self.kwargs['window'])
                 except KeyError:
                     window = 'hann'
                 try:
-                    real_signal = pyso.utils.restore_dictvalue(self.kwargs['real_signal'])
+                    real_signal = sp.utils.restore_dictvalue(self.kwargs['real_signal'])
                 except KeyError:
                     real_signal = False
                 # get vtlp
@@ -471,7 +471,7 @@ class GeneratorFeatExtraction:
                 # back into samples, therefore keep as much info as possible
                 else:
                     expected_shape = None
-                augmented_data, alpha = pyso.augment.vtlp(augmented_data, self.sr, 
+                augmented_data, alpha = sp.augment.vtlp(augmented_data, self.sr, 
                                           win_size_ms = win_size_ms,
                                           percent_overlap = percent_overlap, 
                                           fft_bins = fft_bins,
@@ -485,7 +485,7 @@ class GeneratorFeatExtraction:
                 ## terribly slow and inefficient.
                 #if 'stft' not in self.kwargs['feature_type'] and 'powspec' not in \
                     #self.kwargs['feature_type']:
-                    #augmented_data = pyso.feats.feats2audio(
+                    #augmented_data = sp.feats.feats2audio(
                         #feats = augmented_data, 
                         #feature_type = 'stft',
                         #sr = self.sr,
@@ -504,7 +504,7 @@ class GeneratorFeatExtraction:
             # perhaps more reliable to use non-librosa function for 'stft' extraction
             elif 'stft'in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
-                feats = pyso.feats.get_stft(
+                feats = sp.feats.get_stft(
                     augmented_data, 
                     win_size_ms = self.kwargs['win_size_ms'],
                     percent_overlap = self.kwargs['percent_overlap'],
@@ -520,7 +520,7 @@ class GeneratorFeatExtraction:
                     feats = np.abs(feats)**2
             else:
                 try:
-                    feats = pyso.feats.get_feats(augmented_data, **self.kwargs)
+                    feats = sp.feats.get_feats(augmented_data, **self.kwargs)
                 except TypeError as e:
                     print(e)
                     # invalid audio for feature_extraction
@@ -529,7 +529,7 @@ class GeneratorFeatExtraction:
                     print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                     print('File {} contains invalid sample data,'.format(audiopath)+\
                         ' incompatible with augmentation techniques. Removing NAN values.')
-                    feats = pyso.feats.get_feats(np.nan_to_num(augmented_data), **self.kwargs)
+                    feats = sp.feats.get_feats(np.nan_to_num(augmented_data), **self.kwargs)
                     if self.decode_dict is not None:
                         if not self.ignore_invalid:
                             label_invalid = len(self.decode_dict)-1
@@ -565,16 +565,16 @@ class GeneratorFeatExtraction:
                         feats = np.abs(feats)
                 feats = np.log(feats)
             #if self.normalize:
-                #feats = pyso.feats.normalize(feats)
+                #feats = sp.feats.normalize(feats)
             if not labeled_data and self.audiolist2 is not None:
-                feats2 = pyso.feats.get_feats(audiopath2, **self.kwargs)
+                feats2 = sp.feats.get_feats(audiopath2, **self.kwargs)
                 if self.apply_log:
                     # TODO test
                     if feats2[0].any() < 0:
                             feats2 = np.abs(feats2)
                     feats2 = np.log(feats2)
                 if self.normalize:
-                    feats2 = pyso.feats.normalize(feats2)
+                    feats2 = sp.feats.normalize(feats2)
             else:
                 feats2 = None
                 
@@ -582,16 +582,16 @@ class GeneratorFeatExtraction:
             if self.visualize:
                 if self.counter % self.vis_every_n_items == 0:
                     if self.visuals_dir is not None:
-                        save_visuals_path = pyso.check_dir(self.visuals_dir, make=True)
+                        save_visuals_path = sp.check_dir(self.visuals_dir, make=True)
                     else:
-                        save_visuals_path = pyso.check_dir('./training_images/', make=True)
+                        save_visuals_path = sp.check_dir('./training_images/', make=True)
                     save_visuals_path = save_visuals_path.joinpath(
                         '{}_label{}_training_{}_{}_{}.png'.format(
                             self.dataset,
                             label_pic, 
                             self.model_name, 
                             augmentation, 
-                            pyso.utils.get_date()))
+                            sp.utils.get_date()))
                     feature_type = self.kwargs['feature_type']
                     sr = self.kwargs['sr']
                     win_size_ms = self.kwargs['win_size_ms']
@@ -601,7 +601,7 @@ class GeneratorFeatExtraction:
                             energy_scale = 'power_to_db'
                     else:
                         energy_scale = None
-                    pyso.feats.saveplot(
+                    sp.feats.saveplot(
                         feature_matrix = feats, 
                         feature_type = feature_type, 
                         sr = sr, 
@@ -612,10 +612,10 @@ class GeneratorFeatExtraction:
                             '(item {})'.format(self.counter))
                     if feats2 is not None:
                         # add '_2' to pathway
-                        p = pyso.utils.string2pathlib(save_visuals_path)
+                        p = sp.utils.string2pathlib(save_visuals_path)
                         p2 = p.name.stem
                         save_visuals_path2 = p.parent.joinpath(p2+'_2'+p.name.suffix)
-                        pyso.feats.saveplot(
+                        sp.feats.saveplot(
                             feature_matrix = feats2, 
                             feature_type = feature_type, 
                             sr = sr, 
@@ -632,18 +632,18 @@ class GeneratorFeatExtraction:
                     change_dims = True
                 else:
                     change_dims = False
-                feats = pyso.feats.adjust_shape(feats, self.input_shape, 
+                feats = sp.feats.adjust_shape(feats, self.input_shape, 
                                                 change_dims = change_dims)
                 if feats2 is not None:
-                    feats2 = pyso.feats.adjust_shape(feats2, self.input_shape, 
+                    feats2 = sp.feats.adjust_shape(feats2, self.input_shape, 
                                                      change_dims = change_dims)
                     
             # grayscale 2 color 
             # assumes already zeropadded with new channels, channels last
             if self.gray2color:
-                feats = pyso.feats.grayscale2color(feats, colorscale = feats.shape[-1])
+                feats = sp.feats.grayscale2color(feats, colorscale = feats.shape[-1])
                 if feats2 is not None:
-                    feats2 = pyso.feats.grayscale2color(feats2, colorscale = feats2.shape[-1])
+                    feats2 = sp.feats.grayscale2color(feats2, colorscale = feats2.shape[-1])
             
             # prepare data to be fed to network:
             X_batch = feats
@@ -713,7 +713,7 @@ def augment_features(sound,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = pyso.loadsound(sound, sr=sr)
+        data, sr2 = sp.loadsound(sound, sr=sr)
         assert sr2 == sr
     samples = data.copy()
     samples_augmented = samples.copy()
@@ -723,13 +723,13 @@ def augment_features(sound,
         if aug_settings is not None:
             kwargs_aug = aug_settings['add_white_noise']
             if isinstance(kwargs_aug['snr'], str):
-                kwargs_aug['snr'] = pyso.utils.restore_dictvalue(kwargs_aug['snr'])
+                kwargs_aug['snr'] = sp.utils.restore_dictvalue(kwargs_aug['snr'])
             # if a list of snr values: choose randomly
             if isinstance(kwargs_aug['snr'], list):
                 snr = np.random.choice(kwargs_aug['snr'])
         else:
             snr = np.random.choice(snr)
-        samples_augmented = pyso.augment.add_white_noise(samples_augmented, 
+        samples_augmented = sp.augment.add_white_noise(samples_augmented, 
                                                          sr = sr,
                                                          snr = snr)
         augmentation += '_whitenoise{}SNR'.format(snr)
@@ -739,7 +739,7 @@ def augment_features(sound,
             kwargs_aug = aug_settings['speed_increase']
         else:
             kwargs_aug = dict([('perc', speed_perc)])
-        samples_augmented = pyso.augment.speed_increase(samples_augmented,
+        samples_augmented = sp.augment.speed_increase(samples_augmented,
                                                         sr = sr,
                                                         **kwargs_aug)
         augmentation += '_speedincrease{}'.format(kwargs_aug['perc'])
@@ -750,14 +750,14 @@ def augment_features(sound,
             kwargs_aug = aug_settings['speed_decrease']
         else:
             kwargs_aug = dict([('perc', speed_perc)])
-        samples_augmented = pyso.augment.speed_decrease(samples_augmented,
+        samples_augmented = sp.augment.speed_decrease(samples_augmented,
                                                         sr = sr,
                                                         **kwargs_aug)
         augmentation += '_speeddecrease{}'.format(kwargs_aug['perc'])
 
 
     if time_shift:
-        samples_augmented = pyso.augment.time_shift(samples_augmented, 
+        samples_augmented = sp.augment.time_shift(samples_augmented, 
                                                     sr = sr)
         augmentation += '_randtimeshift'
 
@@ -767,14 +767,14 @@ def augment_features(sound,
             kwargs_aug = aug_settings['shufflesound']
         else:
             kwargs_aug = dict([('num_subsections', num_subsections)])
-        samples_augmented = pyso.augment.shufflesound(samples_augmented, 
+        samples_augmented = sp.augment.shufflesound(samples_augmented, 
                                                       sr = sr,
                                                     **kwargs_aug)
         augmentation += '_randshuffle{}sections'.format(kwargs_aug['num_subsections'])
 
 
     if harmonic_distortion: 
-        samples_augmented = pyso.augment.harmonic_distortion(samples_augmented,
+        samples_augmented = sp.augment.harmonic_distortion(samples_augmented,
                                                              sr = sr)
         augmentation += '_harmonicdistortion'
 
@@ -784,7 +784,7 @@ def augment_features(sound,
             kwargs_aug = aug_settings['pitch_increase']
         else:
             kwargs_aug = dict([('num_semitones', num_semitones)])
-        samples_augmented = pyso.augment.pitch_increase(samples_augmented,
+        samples_augmented = sp.augment.pitch_increase(samples_augmented,
                                                         sr = sr,
                                                         **kwargs_aug)
         augmentation += '_pitchincrease{}semitones'.format(kwargs_aug['num_semitones'])
@@ -795,7 +795,7 @@ def augment_features(sound,
             kwargs_aug = aug_settings['pitch_decrease']
         else:
             kwargs_aug = dict([('num_semitones', num_semitones)])
-        samples_augmented = pyso.augment.pitch_decrease(samples_augmented,
+        samples_augmented = sp.augment.pitch_decrease(samples_augmented,
                                                         sr = sr,
                                                         **kwargs_aug)
         augmentation += '_pitchdecrease{}semitones'.format(kwargs_aug['num_semitones'])
@@ -806,7 +806,7 @@ def augment_features(sound,
     if vtlp:
         augmentation += '_vtlp'
 
-    samples_augmented = pyso.dsp.set_signal_length(samples_augmented, len(samples))
+    samples_augmented = sp.dsp.set_signal_length(samples_augmented, len(samples))
 
     return samples_augmented, augmentation
 
@@ -864,9 +864,9 @@ def get_input_shape(kwargs_get_feats, labeled_data = False,
         kwargs_get_feats['real_signal'] = True
         real_signal = kwargs_get_feats['real_signal']
     # figure out shape of data:
-    total_samples = pyso.dsp.calc_frame_length(dur_sec*1000, sr=sr)
+    total_samples = sp.dsp.calc_frame_length(dur_sec*1000, sr=sr)
     if use_librosa:
-        frame_length = pyso.dsp.calc_frame_length(win_size_ms, sr)
+        frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
         win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
         hop_length = int(win_shift_ms*0.001*sr)
         if fft_bins is None:

@@ -10,7 +10,7 @@ currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
-import pysoundtool as pyst
+import soundpy as pyst
 
 
 def featuremaps(features, model, image_dir='./feature_maps/'):
@@ -34,8 +34,8 @@ def featuremaps(features, model, image_dir='./feature_maps/'):
         for i in range(featuremaps.shape[-1]):
             plt.clf()
             plt.imshow(featuremaps[0,:,:,i], cmap='gray')
-            image_dir = pyso.utils.check_dir(image_dir, make=True)
+            image_dir = sp.utils.check_dir(image_dir, make=True)
             image_path = image_dir.joinpath('layer_{}'.format(idx),
                                             'featmap_{}.png'.format(i))
-            image_par = pyso.utils.check_dir(image_path.parent, make=True)
+            image_par = sp.utils.check_dir(image_path.parent, make=True)
             plt.savefig(image_path)

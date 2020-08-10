@@ -11,7 +11,7 @@ currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
-import pysoundtool as pyso
+import soundpy as sp
 
 
 
@@ -57,10 +57,10 @@ class FilterSettings:
         self.sr = sr if sr else 48000
         self.window_type = window_type if window_type else 'hamming'
         # set other attributes based on above values
-        self.frame_length = pyso.dsp.calc_frame_length(
+        self.frame_length = sp.dsp.calc_frame_length(
             self.frame_dur,
             self.sr)
-        self.overlap_length = pyso.dsp.calc_num_overlap_samples(
+        self.overlap_length = sp.dsp.calc_num_overlap_samples(
             self.frame_length,
             self.percent_overlap)
         self.num_fft_bins = self.frame_length
@@ -69,7 +69,7 @@ class FilterSettings:
     def get_window(self):
         '''Returns window acc. to attributes `window_type` and `frame_length`
         '''
-        window = pyso.dsp.create_window(self.window_type, self.frame_length)
+        window = sp.dsp.create_window(self.window_type, self.frame_length)
         return window
 
 
@@ -139,7 +139,7 @@ class Filter(FilterSettings):
         samples : ndarray
             Array containing signal amplitude values in time domain
         """
-        samples, sr = pyso.loadsound(
+        samples, sr = sp.loadsound(
             audiofile, self.sr, dur_sec=dur_sec)
         self.set_volume(samples, max_vol = self.max_vol)
         return samples
@@ -197,14 +197,14 @@ class Filter(FilterSettings):
         None
         """
         if is_noise:
-            self.noise_subframes = pyso.dsp.calc_num_subframes(
+            self.noise_subframes = sp.dsp.calc_num_subframes(
                 tot_samples=len_samples,
                 frame_length=self.frame_length,
                 overlap_samples=self.overlap_length,
                 zeropad=zeropad
             )
         else:
-            self.target_subframes = pyso.dsp.calc_num_subframes(
+            self.target_subframes = sp.dsp.calc_num_subframes(
                 tot_samples=len_samples,
                 frame_length=self.frame_length,
                 overlap_samples=self.overlap_length,
@@ -216,7 +216,7 @@ class Filter(FilterSettings):
         """ensures volume of filtered signal is within the bounds of the original
         """
         max_orig = round(max(samples), 2)
-        samples = pyso.dsp.scalesound(samples, max_val=self.max_vol)
+        samples = sp.dsp.scalesound(samples, max_val=self.max_vol)
         max_adjusted = round(max(samples), 2)
         if max_orig != max_adjusted:
             print("volume adjusted from {} to {}".format(max_orig, max_adjusted))
@@ -245,31 +245,31 @@ class WienerFilter(Filter):
     def apply_wienerfilter(self, frame_index, target_fft, target_power_frame, noise_power):
         if frame_index == 0:
             # TODO: remove commented line
-            #posteri = pyso.dsp.create_empty_matrix(
+            #posteri = sp.dsp.create_empty_matrix(
                 #(len(target_power_frame),))
-            self.posteri_snr = pyso.dsp.calc_posteri_snr(
+            self.posteri_snr = sp.dsp.calc_posteri_snr(
                 target_power_frame, noise_power)
-            self.posteri_prime = pyso.dsp.calc_posteri_prime(
+            self.posteri_prime = sp.dsp.calc_posteri_prime(
                 self.posteri_snr)
-            self.priori_snr = pyso.dsp.calc_prior_snr(snr=self.posteri_snr,
+            self.priori_snr = sp.dsp.calc_prior_snr(snr=self.posteri_snr,
                                             snr_prime=self.posteri_prime,
                                             smooth_factor=self.beta,
                                             first_iter=True,
                                             gain=None)
         elif frame_index > 0:
-            self.posteri_snr = pyso.dsp.calc_posteri_snr(
+            self.posteri_snr = sp.dsp.calc_posteri_snr(
                 target_power_frame,
                 noise_power)
-            self.posteri_prime = pyso.dsp.calc_posteri_prime(
+            self.posteri_prime = sp.dsp.calc_posteri_prime(
                 self.posteri_snr)
-            self.priori_snr = pyso.dsp.calc_prior_snr(
+            self.priori_snr = sp.dsp.calc_prior_snr(
                 snr=self.posteri_snr_prev,
                 snr_prime=self.posteri_prime,
                 smooth_factor=self.beta,
                 first_iter=False,
                 gain=self.gain_prev)
-        self.gain = pyso.dsp.calc_gain(prior_snr=self.priori_snr)
-        enhanced_fft = pyso.dsp.apply_gain_fft(target_fft, self.gain)
+        self.gain = sp.dsp.calc_gain(prior_snr=self.priori_snr)
+        enhanced_fft = sp.dsp.apply_gain_fft(target_fft, self.gain)
         # set attributes for next iteration
         self.gain_prev = self.gain
         self.posteri_snr_prev = self.posteri_snr
@@ -277,13 +277,13 @@ class WienerFilter(Filter):
     
     def apply_postfilter(self, enhanced_fft, target_fft, 
                          target_power_frame):
-        target_noisereduced_power = pyso.dsp.calc_power(enhanced_fft)
-        self.gain = pyso.dsp.postfilter(target_power_frame,
+        target_noisereduced_power = sp.dsp.calc_power(enhanced_fft)
+        self.gain = sp.dsp.postfilter(target_power_frame,
                                 target_noisereduced_power,
                                 gain=self.gain,
                                 threshold=0.9,
                                 scale=20)
-        enhanced_fft = pyso.dsp.apply_gain_fft(target_fft, self.gain)
+        enhanced_fft = sp.dsp.apply_gain_fft(target_fft, self.gain)
         return enhanced_fft
 
 class BandSubtraction(Filter):
@@ -327,11 +327,11 @@ class BandSubtraction(Filter):
         reduced_noise_target = self.sub_noise(target_power, noise_power, beta)
         # perhaps don't need. TODO test this with real signal (ie half of fft)
         if len(reduced_noise_target) < len(target_power):
-            reduced_noise_target = pyso.dsp.reconstruct_whole_spectrum(
+            reduced_noise_target = sp.dsp.reconstruct_whole_spectrum(
                 reduced_noise_target, n_fft = self.num_fft_bins)
         
         # apply original phase to reduced noise power 
-        enhanced_fft = pyso.dsp.apply_original_phase(
+        enhanced_fft = sp.dsp.apply_original_phase(
             reduced_noise_target,
             target_phase)
         return enhanced_fft
@@ -351,17 +351,17 @@ class BandSubtraction(Filter):
             
         Examples
         --------
-        >>> import pysoundtool as pyso
+        >>> import soundpy as sp
         >>> import numpy as np
         >>> # Default is set to 6 bands:
-        >>> fil = pyso.BandSubtraction()
+        >>> fil = sp.BandSubtraction()
         >>> fil.setup_bands()
         >>> fil.band_start_freq
         array([  0.,  80., 160., 240., 320., 400.])
         >>> fil.band_end_freq
         array([ 80., 160., 240., 320., 400., 480.])
         >>> # change default settings
-        >>> fil = pyso.BandSubtraction(num_bands=5)
+        >>> fil = sp.BandSubtraction(num_bands=5)
         >>> fil.setup_bands()
         >>> fil.band_start_freq
         array([  0.,  96., 192., 288., 384.])
@@ -419,10 +419,10 @@ class BandSubtraction(Filter):
         
         Examples
         --------
-        >>> import pysoundtool as pyso
+        >>> import soundpy as sp
         >>> import numpy as np
         >>> # setting to 4 bands for space:
-        >>> fil = pyso.BandSubtraction(num_bands=4)
+        >>> fil = sp.BandSubtraction(num_bands=4)
         >>> fil.setup_bands()
         >>> # generate sine signal with and without noise
         >>> time = np.arange(0, 10, 0.01)
@@ -459,10 +459,10 @@ class BandSubtraction(Filter):
         
         Examples
         --------
-        >>> import pysoundtool as pyso
+        >>> import soundpy as sp
         >>> import numpy as np
         >>> # setting to 4 bands for space:
-        >>> fil = pyso.BandSubtraction(num_bands=4)
+        >>> fil = sp.BandSubtraction(num_bands=4)
         >>> fil.setup_bands()
         >>> # generate sine signal with and without noise
         >>> time = np.arange(0, 10, 0.01)
@@ -515,10 +515,10 @@ class BandSubtraction(Filter):
             
         Examples
         --------
-        >>> import pysoundtool as pyso
+        >>> import soundpy as sp
         >>> import numpy as np
         >>> # setting to 4 bands for this example (default is 6):
-        >>> fil = pyso.BandSubtraction(num_bands=4)
+        >>> fil = sp.BandSubtraction(num_bands=4)
         >>> fil.setup_bands()
         >>> # generate sine signal with and with frequency 25
         >>> time = np.arange(0, 10, 0.01)
@@ -596,37 +596,37 @@ class BandSubtraction(Filter):
     def apply_postfilter(self, enhanced_fft, target_fft, 
                          target_power_frame, noise_power):
         if self.first_iter is not False:
-            self.posteri_snr = pyso.dsp.calc_posteri_snr(target_power_frame,
+            self.posteri_snr = sp.dsp.calc_posteri_snr(target_power_frame,
                                                     noise_power)
-            self.posteri_prime = pyso.dsp.calc_posteri_prime(self.posteri_snr)
-            self.prior_snr = pyso.dsp.calc_prior_snr(snr = self.posteri_snr,
+            self.posteri_prime = sp.dsp.calc_posteri_prime(self.posteri_snr)
+            self.prior_snr = sp.dsp.calc_prior_snr(snr = self.posteri_snr,
                                                 snr_prime = self.posteri_prime,
                                                 smooth_factor = self.beta,
                                                 first_iter = True,
                                                 gain = None)
             self.first_iter = False
         else:
-            self.posteri_snr = pyso.dsp.calc_posteri_snr(
+            self.posteri_snr = sp.dsp.calc_posteri_snr(
                 target_power_frame,
                 noise_power)
-            self.posteri_prime = pyso.dsp.calc_posteri_prime(
+            self.posteri_prime = sp.dsp.calc_posteri_prime(
                 self.posteri_snr)
-            self.priori_snr = pyso.dsp.calc_prior_snr(
+            self.priori_snr = sp.dsp.calc_prior_snr(
                 snr=self.posteri_snr_prev,
                 snr_prime=self.posteri_prime,
                 smooth_factor=self.beta,
                 first_iter=False,
                 gain=self.gain_prev)
         
-        self.gain = pyso.dsp.calc_gain(self.prior_snr)
-        target_noisereduced_power = pyso.dsp.calc_power(enhanced_fft)
+        self.gain = sp.dsp.calc_gain(self.prior_snr)
+        target_noisereduced_power = sp.dsp.calc_power(enhanced_fft)
         # update gain with postfilter:
-        self.gain = pyso.dsp.postfilter(target_power_frame,
+        self.gain = sp.dsp.postfilter(target_power_frame,
                                 target_noisereduced_power,
                                 gain=self.gain,
                                 threshold=0.9,
                                 scale=20)
-        enhanced_fft = pyso.dsp.apply_gain_fft(target_fft, self.gain)
+        enhanced_fft = sp.dsp.apply_gain_fft(target_fft, self.gain)
         # set attributes for next iteration
         self.gain_prev = self.gain
         self.posteri_snr_prev = self.posteri_snr

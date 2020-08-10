@@ -11,7 +11,7 @@ import tensorflow
 from tensorflow.keras.callbacks import EarlyStopping, CSVLogger,\
     ModelCheckpoint, TensorBoard
 import numpy as np
-import pysoundtool as pyso
+import soundpy as sp
 
 ###############################################################################
 
@@ -73,11 +73,11 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
     if log or log_filename:
         if log_filename is None:
             # create directory to store log files:
-            log_dir = pyso.utils.check_dir('./model_logs/', 
+            log_dir = sp.utils.check_dir('./model_logs/', 
                                            make=True, 
                                            write_into=True)
             log_filename = '{}log_'.format(log_dir)+\
-                pyso.utils.get_date()+'.csv'
+                sp.utils.get_date()+'.csv'
         # TODO test if pathlib.PosixPath won't work
         # if pathlib object, turn into string
         # TODO do some sort of check to ensure path is valid?
@@ -87,11 +87,11 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
         callbacks.append(csv_logging)
     if save_bestmodel:
         if best_modelname is None:
-            model_dir = pyso.utils.check_dir('./best_models/', 
+            model_dir = sp.utils.check_dir('./best_models/', 
                                              make=True, 
                                              write_into=True)
             best_modelname = '{}model_'.format(model_dir)+\
-                pyso.utils.get_date()+'.h5'
+                sp.utils.get_date()+'.h5'
         # TODO test if pathlib.PosixPath won't work
         # if pathlib object, turn into string
         # TODO do some sort of check to ensure path is valid?
@@ -104,12 +104,12 @@ def setup_callbacks(early_stop=True, patience=15, log=True,
         callbacks.append(checkpoint_callback)
     if tensorboard:
         if log_filename is not None:
-            log_filename = pyso.utils.string2pathlib(log_filename)
+            log_filename = sp.utils.string2pathlib(log_filename)
             log_dir = log_filename.parent
             log_dir = log_dir.joinpath('tb_logs/')
         else:
-            log_dir = pyso.utils.string2pathlib('./model_logs/tb_logs/')
-        log_dir = pyso.utils.check_dir(log_dir, make=True)
+            log_dir = sp.utils.string2pathlib('./model_logs/tb_logs/')
+        log_dir = sp.utils.check_dir(log_dir, make=True)
         if x_test is not None and y_test is not None:
             with open(os.path.join(log_dir, 'metadata.tsv'), 'w') as f:
                 np.savetxt(f, y_test)

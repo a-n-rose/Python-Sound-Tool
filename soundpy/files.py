@@ -17,7 +17,7 @@ currentdir = os.path.dirname(os.path.abspath(
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
-import pysoundtool as pyso
+import soundpy as sp
 
 
 
@@ -62,20 +62,20 @@ def loadsound(filename, sr = None, mono = True, dur_sec = None,
         
     See Also
     --------
-    pysoundtool.files.prep4scipywavfile
+    soundpy.files.prep4scipywavfile
         Prepares audio file for scipy.io.wavfile.read.
         
-    pysoundtool.files.convert_audiofile
+    soundpy.files.convert_audiofile
         Converts audio file to .wav format.
     
-    pysoundtool.files.newbitdepth
+    soundpy.files.newbitdepth
         Converts audio file to specified bitdepth.
         
-    pysoundtool.dsp.resample_audio
+    soundpy.dsp.resample_audio
         Resampe audio data to a specified sample rate.
         
-    pysoundtool.files.list_possibleformats
-        Lists the possible formats to load with pysoundtool.loadsound
+    soundpy.files.list_possibleformats
+        Lists the possible formats to load with soundpy.loadsound
         
     librosa.load
         The package used to load sound data by default. See `librosa`.
@@ -84,7 +84,7 @@ def loadsound(filename, sr = None, mono = True, dur_sec = None,
         The package used to load sound if `use_scipy` is set to True.
         See `scipy`.
 
-    pysoundtool.dsp.remove_dc_bias
+    soundpy.dsp.remove_dc_bias
         Removes the 'direct current' bias from the signal.
         
     Todo
@@ -106,13 +106,13 @@ def loadsound(filename, sr = None, mono = True, dur_sec = None,
                 # change shape from (channels, samples) to (samples, channels)
                 data = data.T
         if remove_dc:
-            data = pyso.dsp.remove_dc_bias(data)
+            data = sp.dsp.remove_dc_bias(data)
         return data, sr
     try:
         sr2, data = read(filename)
         if sr:
             if sr2 != sr:
-                data, sr2 = pyso.dsp.resample_audio(data, 
+                data, sr2 = sp.dsp.resample_audio(data, 
                                           sr_original = sr2, 
                                           sr_desired = sr)
                 assert sr2 == sr
@@ -121,22 +121,22 @@ def loadsound(filename, sr = None, mono = True, dur_sec = None,
     except ValueError:
         print("Converting {} to wavfile".format(filename))
         try:
-            filename = pyso.files.convert_audiofile(filename, overwrite=False)
+            filename = sp.files.convert_audiofile(filename, overwrite=False)
         except RuntimeError as e:
-            raise RuntimeError('Try setting `use_scipy` to False in pysoundtool.loadsound().')
+            raise RuntimeError('Try setting `use_scipy` to False in soundpy.loadsound().')
         try:
             data, sr = loadsound(filename, sr=sr, mono=mono, dur_sec=dur_sec)
             print("File saved as {}".format(filename))
         except ValueError:
             print("Ensure bitdepth is compatible with scipy library")
-            filename = pyso.files.newbitdepth(filename, overwrite=False)
+            filename = sp.files.newbitdepth(filename, overwrite=False)
             data, sr = loadsound(filename, sr=sr, mono=mono, dur_sec=dur_sec)
     
     # scipy loads data in shape (num_samples, num_channels)
     # don't need to transpose as for librosa
     if mono and len(data.shape) > 1:
         if data.shape[1] > 1:
-            data = pyso.dsp.stereo2mono(data)
+            data = sp.dsp.stereo2mono(data)
     if not mono and len(data.shape) > 1:
             import warnings
             msg = '\nWARNING: Most functionality has not been tested '+\
@@ -144,12 +144,12 @@ def loadsound(filename, sr = None, mono = True, dur_sec = None,
                     'expected. Apologies for the inconvenience!'
             warnings.warn(msg)
     # scale samples to be between -1 and 1
-    data = pyso.dsp.scalesound(data, max_val= 1, min_val=-1)
+    data = sp.dsp.scalesound(data, max_val= 1, min_val=-1)
     if dur_sec:
         numsamps = int(dur_sec * sr)
-        data = pyso.dsp.set_signal_length(data, numsamps)
+        data = sp.dsp.set_signal_length(data, numsamps)
     if remove_dc:
-        data = pyso.dsp.remove_dc_bias(data)
+        data = sp.dsp.remove_dc_bias(data)
     return data, sr
 
 def savesound(audiofile_name, signal_values, sr, remove_dc=True, 
@@ -191,20 +191,20 @@ def savesound(audiofile_name, signal_values, sr, remove_dc=True,
     --------
     scipy.io.wavfile.write
     
-    pysoundtool.files.conversion_formats
+    soundpy.files.conversion_formats
         Lists the possible formats to save audio files if `use_scipy` is False.
         
-    pysoundtool.dsp.remove_dc_bias
+    soundpy.dsp.remove_dc_bias
         Removes the 'direct current' bias from the signal.
     """
-    audiofile_name = pyso.utils.string2pathlib(audiofile_name)
+    audiofile_name = sp.utils.string2pathlib(audiofile_name)
     if os.path.exists(audiofile_name) and overwrite is False:
         raise FileExistsError('Filename {} already exists.'.format(audiofile_name)+\
             '\nSet `overwrite` to True in function savesound() to overwrite.')
     directory = audiofile_name.parent
-    directory = pyso.utils.check_dir(directory, make=True)
+    directory = sp.utils.check_dir(directory, make=True)
     if remove_dc:
-        signal_values = pyso.dsp.remove_dc_bias(signal_values)
+        signal_values = sp.dsp.remove_dc_bias(signal_values)
     if use_scipy:
         write(audiofile_name, sr, signal_values)
     else: 
@@ -237,7 +237,7 @@ def list_possibleformats(use_scipy=False):
         return(['.wav', '.aiff', '.flac', '.ogg'])
 
 def list_audioformats():
-    msg = '\nPySoundTool can work with the following file types: '+\
+    msg = '\nsoundpy can work with the following file types: '+\
         ', '.join(get_compatible_formats())+ \
             '\nSo far, functionality does not work with the following types: '+\
                 ', '.join(get_incompatible_formats())
@@ -260,7 +260,7 @@ def audiofiles_present(directory, recursive=False):
     bool 
         True if audio is present; otherwise False.
     '''
-    directory = pyso.utils.string2pathlib(directory)
+    directory = sp.utils.string2pathlib(directory)
 
 def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursive=False):
     '''Collects all files within a given directory.
@@ -299,7 +299,7 @@ def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursiv
     if not hidden_files:
         paths_list = [x for x in paths_list if x.stem[0] != '.']
     # ensure only audiofiles:
-    paths_list = pyso.files.ensure_only_audiofiles(paths_list)
+    paths_list = sp.files.ensure_only_audiofiles(paths_list)
     return paths_list
 
 
@@ -342,7 +342,7 @@ def collect_zipfiles(directory, hidden_files = False, ext='tgz', recursive=False
     return paths_list
     
 def ensure_only_audiofiles(audiolist):
-    possible_extensions = pyso.files.list_possibleformats(use_scipy=False)
+    possible_extensions = sp.files.list_possibleformats(use_scipy=False)
     audiolist_checked = [x for x in audiolist if pathlib.Path(x).suffix in possible_extensions]
     if len(audiolist_checked) < len(audiolist):
         import warnings
@@ -387,7 +387,7 @@ def prep4scipywavfile(filename, overwrite=False):
 def conversion_formats():
     '''Lists the formats available for conversion. 
     
-    PySoundTool uses soundfile to convert files; therefore, whatever
+    soundpy uses soundfile to convert files; therefore, whatever
     available formats soundfile has will be listed here.
     
     Examples
@@ -430,7 +430,7 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
         The filename of the audiofile to be converted to .wav type
         
     format_type : str 
-        The format to convert the audio file to. See pysoundtool.files.conversion_formats. 
+        The format to convert the audio file to. See soundpy.files.conversion_formats. 
         (defaults to 'wav')
     
     new_dir : str, pathlib.PosixPath, optional 
@@ -456,27 +456,27 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
     --------
     >>> audiofile = './example/audio.wav'
     # in same directory
-    >>> audiofile_flac = pyso.files.convert_audiofile(audiofile, format_type='flac')
+    >>> audiofile_flac = sp.files.convert_audiofile(audiofile, format_type='flac')
     >>> audiofile_flac
     PosixPath('example/audio.flac')
     # in new directory
-    >>> audiofile_flac = pyso.files.convert_audiofile(audiofile, format_type='flac', 
+    >>> audiofile_flac = sp.files.convert_audiofile(audiofile, format_type='flac', 
                                                      new_dir = './examples2/')
     >>> audiofile_flac
     PosixPath('examples2/audio.flac')
     >>> # can establish desired conversion format in `new_dir`
-    >>> audiofile_ogg = pyso.files.convert_audiofile(audiofile,
+    >>> audiofile_ogg = sp.files.convert_audiofile(audiofile,
                                                      new_dir = './examples2/audio.ogg')
     >>> audiofile_ogg
     PosixPath('audiodata2/audio.ogg')
     
     See Also
     --------
-    pysoundtool.files.conversion_formats
+    soundpy.files.conversion_formats
         Lists the possible formats to convert audio files.
         
-    pysoundtool.files.list_possibleformats
-        Lists the possible formats to load with pysoundtool.loadsound
+    soundpy.files.list_possibleformats
+        Lists the possible formats to load with soundpy.loadsound
     '''
     import pathlib
     import os
@@ -488,7 +488,7 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
     if not f.suffix:
         raise TypeError('Function convert_audiofile expected a path with an '+\
             'audio extension, not input: \n', filename)
-    if not f.suffix in pyso.files.list_possibleformats(use_scipy=False):
+    if not f.suffix in sp.files.list_possibleformats(use_scipy=False):
         raise TypeError('This software cannot process audio in {}'.format(f.suffix)+\
             ' format. We apologize for the inconvenience.')
     # ensure filename exists:
@@ -526,7 +526,7 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
             # change filename to new directory
             new_filename = new_dir.joinpath(new_f.name)
         # check to make sure new_dir exists
-        new_dir = pyso.utils.check_dir(new_dir, make=True)
+        new_dir = sp.utils.check_dir(new_dir, make=True)
     else:
         new_filename = replace_ext(f, format_type.lower())
         
@@ -546,7 +546,7 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
     if not use_scipy:
         format = format_type.upper()
         
-    new_filename = pyso.savesound(new_filename, data, sr, 
+    new_filename = sp.savesound(new_filename, data, sr, 
                                   overwrite=overwrite, use_scipy=use_scipy,
                                   format=format)
     return new_filename
@@ -680,7 +680,7 @@ def delete_dir_contents(directory, remove_dir = False):
     '''
     https://stackoverflow.com/a/28834214
     '''
-    d = pyso.utils.string2pathlib(directory)
+    d = sp.utils.string2pathlib(directory)
     for sub in d.iterdir():
         if sub.is_dir():
             delete_dir_contents(sub)
@@ -722,7 +722,7 @@ def matching_filenames(list1, list_of_lists):
     contanimated_files = []
     for item in list1_files:
         if isinstance(item, str):
-            item = pyso.string2pathlib(item)
+            item = sp.string2pathlib(item)
         fname = item.stem
         fname_parts = fname.split('-')
         fname_head = fname_parts[:-1]

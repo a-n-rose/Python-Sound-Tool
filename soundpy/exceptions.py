@@ -1,5 +1,5 @@
 """
-The :mod:`pysoundtool.exceptions` module includes customized errors.
+The :mod:`soundpy.exceptions` module includes customized errors.
 """
 
 def notsufficientdata_error(numtrain, numval, numtest, expected_numtrain):
