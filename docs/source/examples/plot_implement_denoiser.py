@@ -60,7 +60,7 @@ for f in files:
 feat_settings = pyso.utils.load_dict(
     model_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' ---> ', value)
+    print(key, ' --> ', value)
     # change objects that were string to original format
     import ast
     try:

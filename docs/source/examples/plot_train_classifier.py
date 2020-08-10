@@ -55,7 +55,7 @@ for f in files:
 feat_settings = pyso.utils.load_dict(
     feature_extraction_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' ---> ', value)
+    print(key, ' --> ', value)
     
 #########################################################
 # For more about these settings, see `pysoundtool.feats.save_features_datasets`.
@@ -78,9 +78,10 @@ for key, value in audio_datasets.items():
 # For more about this function, see `pysoundtool.train_models.envclassifier_train`.
 
 #############################################################
-model_dir, history = pyso.envclassifier_train(feature_extraction_dir = feature_extraction_dir,
-                                         epochs = 500,
-                                         patience = 500)
+model_dir, history = pyso.envclassifier_train(
+    feature_extraction_dir = feature_extraction_dir,
+    epochs = 50,
+    patience = 30)
 
 #############################################################
 # Where the model and logs are located:

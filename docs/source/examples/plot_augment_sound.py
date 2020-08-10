@@ -65,20 +65,20 @@ fast = pyso.augment.speed_increase(f, sr=sr, perc = 0.15)
 ipd.Audio(fast,rate=sr)
 
 ##########################################################
-pyso.plotsound(fast, sr=sr, feature_type='stft', 
-               title='Female speech: 15%  faster')
+pyso.plotsound(fast, sr = sr, feature_type = 'stft', 
+               title = 'Female speech: 15%  faster')
 
 ##########################################################
 # Let's decrease the speed by 15%:
 
-slow = pyso.augment.speed_decrease(f, sr=sr, perc = 0.15) 
+slow = pyso.augment.speed_decrease(f, sr = sr, perc = 0.15) 
 
 ##########################################################
-ipd.Audio(slow,rate=sr)
+ipd.Audio(slow, rate = sr)
 
 ##########################################################
-pyso.plotsound(slow, sr=sr, feature_type='stft', 
-               title='Speech: 15%  slower')
+pyso.plotsound(slow, sr = sr, feature_type = 'stft', 
+               title = 'Speech: 15%  slower')
 
 
 ##########################################################

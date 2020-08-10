@@ -59,7 +59,7 @@ for f in files:
 feat_settings = pyso.utils.load_dict(
     feature_extraction_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' --> ', value)
+    print(key, ' ---> ', value)
     
 #########################################################
 # For more about these settings, see `pysoundtool.feats.save_features_datasets`.
@@ -71,7 +71,7 @@ audio_datasets = pyso.utils.load_dict(
     feature_extraction_dir.joinpath('audiofiles_datasets_clean.csv'))
 count = 0
 for key, value in audio_datasets.items():
-    print(key, ' --> ', value)
+    print(key, ' ---> ', value)
     count += 1
     if count > 5:
         break
