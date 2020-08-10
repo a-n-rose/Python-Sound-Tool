@@ -2,7 +2,6 @@
 
 SoundPy is an experimental framework for exploring sound as well as machine learning in the context of sound. 
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/a-n-rose/Python-Sound-Tool/master)
 [![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)](https://github.com/a-n-rose/Python-Sound-Tool/blob/master/LICENSE.md)
 [![PyPI pyversions](https://img.shields.io/badge/python-3.6-yellow)](https://www.python.org/downloads/release/python-360/)
 
@@ -62,6 +61,10 @@ $ sudo apt-get install libsndfile1
 - add `extend_window_ms` paremeter: can extend VAD window if desired. Useful in higher SNR environments.
 - raise warning for sample rates lower than 44100 Hz. VAD seems to fail at lower sample rates.
 
+### added soundpy.feats.get_samples_clipped() and soundpy.feats.get_stft_clipped()
+- another option for VAD 
+- clips beginning and ending of audio data where high energy sound starts and ends.
+
 ### soundpy.models.dataprep.GeneratorFeatExtraction 
 - can extract and augment features from audio files as each audio file fed to model. 
 - example can be viewed: soundpy.builtin.envclassifier_extract_train
@@ -85,6 +88,9 @@ $ sudo apt-get install libsndfile1
 
 ### soundpy.dsp.apply_sample_length()
 - can now mirror the sound as a form of sound extention with parameter `mirror_sound`.
+
+### Removed soundpy_online (and therefore mybinder as well)
+- for the time being, this is too much work to keep up. Eventually plan on bringing this back in a more maintainable manner.
 
 ## About
 
@@ -136,17 +142,9 @@ Then install the necessary dependencies via pip:
 ```
 # Examples 
 
-You can explore example code via:
+You can explore example code:
 
-* Binder (albeit limited as some packages - librosa, soundfile, tensorflow - can't be or isn't loaded into online environments; tensorflow slows the examples way down.)
-* locally on your machine via Jupyter Notebook
-* <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a> in the documentation. 
-
-### Binder
-
-Click on the Binder badge at the top of this README (it might take a while to load) and venture into the folder `binder_notebooks`.
-
-### Locally via Jupyter Notebook:
+## Locally via Jupyter Notebook:
 
 Install and run jupyter notebook:
 
@@ -154,16 +152,19 @@ Install and run jupyter notebook:
 (env)..$ pip install notebook
 (env)..$ jupyter notebook
 ```
-
 Venture into the folder `jupyter_notebooks` and have a go!
 
-## Example datasets
+## Visually and Aurally in the Documentation:
 
-If you would like to play around with various types of sound, check out my <a href='https://github.com/a-n-rose/mini-audio-datasets'>repo</a> containing mini datasets of sound, ranging from speech to noise. They are very small so don't expect much as it comes to training neural networks. These example datasets are used in some of the documentation <a href="https://aislynrose.bitbucket.io/example_cases.html">examples</a>.
+<a href="https://aislynrose.bitbucket.io/example_cases.html">SoundPy Examples</a> 
 
-## Testing
+# Example datasets
 
-If you want to run the tests for soundpy, they currently use <a href="https://github.com/a-n-rose/mini-audio-datasets/tree/master/test_audio">audiofiles available</a> in the example datasets repo, mentioned above. Also, see `tests_requirements.txt`. The packages located there will need to be installed via:
+If you would like to play around with various types of sound, check out my <a href='https://github.com/a-n-rose/mini-audio-datasets'>repo</a> containing mini datasets of sound, ranging from speech to noise. They are very small so don't expect much as it comes to training neural networks. 
+
+# Testing
+
+If you want to run the tests for SoundPy, they currently use some <a href="https://github.com/a-n-rose/mini-audio-datasets/tree/master/test_audio">audiofiles available</a> in the example datasets repo, mentioned above. Also, see `tests_requirements.txt`. The packages located there will need to be installed via:
 
 ```
 (env)..$ pip install -r tests_requirements.txt
