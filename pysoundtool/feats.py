@@ -27,6 +27,8 @@ def saveplot(**kwargs):
     '''
     import matplotlib
     matplotlib.use('Agg')
+    # must save the plot using 'Agg' backend; cannot simply plot it
+    kwargs['save_pic'] = True
     pyso.feats.plot(**kwargs)
 
 

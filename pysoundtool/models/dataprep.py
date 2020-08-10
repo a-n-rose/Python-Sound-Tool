@@ -57,7 +57,7 @@ class Generator:
         self.batch_size = 1
         self.samples_per_epoch = data_matrix1.shape[0]
         self.number_of_batches = self.samples_per_epoch/self.batch_size
-        self.counter=0
+        self.counter = 0
         self.datax = data_matrix1
         self.datay = data_matrix2
         self.normalized = normalized
@@ -159,8 +159,8 @@ class Generator:
             ## add tensor dimension
             if self.add_tensor_last is True:
                 # e.g. for some conv model
-                X_batch = batch_x.reshape(batch_x.shape+(1,))
-                y_batch = batch_y.reshape(batch_y.shape+(1,))
+                X_batch = batch_x.reshape(batch_x.shape + (1,))
+                y_batch = batch_y.reshape(batch_y.shape + (1,))
             elif self.add_tensor_last is False:
                 # e.g. for some lstm models
                 X_batch = batch_x.reshape((1,)+batch_x.shape)
@@ -173,6 +173,27 @@ class Generator:
                 # needs to be 4 dimensions / have extra tensor
                 X_batch = X_batch.reshape((1,)+X_batch.shape)
                 y_batch = y_batch.reshape((1,)+y_batch.shape)
+                
+            if self.counter % 50 == 0:
+                X_batch_vis = X_batch.reshape(X_batch.shape[1], X_batch.shape[2])
+                try:
+                    pyso.feats.saveplot(feature_matrix = X_batch_vis, 
+                                    feature_type = 'fbank',
+                                    name4pic = './audiodata/test_{}fbank.png'.format(
+                                        self.counter),
+                                    title = 'fbank label {}'.format(y_batch[0][0]))
+                except ValueError as e:
+                    print('\n******** ERROR: ************')
+                    print(e)
+                    print()
+                except IndexError as e:
+                    print('\n******** ERROR: ************')
+                    print(e)
+                    print()
+                except KeyError as e:
+                    print('\n******** ERROR: ************')
+                    print(e)
+                    print()
             
             #send the batched and reshaped data to model
             self.counter += 1
