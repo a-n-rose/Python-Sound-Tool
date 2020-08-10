@@ -15,7 +15,6 @@ docs/doc_layout.md
 docs/Makefile
 docs/make.bat
 docs/source/auto_examples/
-docs/source/examples/
 example_dir/
 tests/testing_pypi/
 test_audio/
@@ -28,3 +27,5 @@ docs/source/examples/example_feats_models/
 *.png
 example_feats_models/
 update_env/
+debug_env/
+

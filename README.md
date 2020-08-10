@@ -141,7 +141,7 @@ Clone this repository. Set the working directory where you clone this repository
 
 Then install the necessary dependencies via pip:
 ```
-(env)..$ pip install -r requirements.txt
+(env)..$ pip install -r requirements.txt --use-feature=2020-resolver
 ```
 # Examples 
 
