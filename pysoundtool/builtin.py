@@ -1320,7 +1320,7 @@ def denoiser_train(feature_extraction_dir,
         callbacks = pysodl.setup_callbacks(patience = patience,
                                                 best_modelname = model_path, 
                                                 log_filename = model_dir.joinpath('log.csv'))
-    adm = tensorflow.keras.optimizers.Adam(learning_rate=0.0001)
+    adm = tf.keras.optimizers.Adam(learning_rate=0.0001)
     denoiser.compile(optimizer=adm, loss='binary_crossentropy')
 
     # TODO remove?
@@ -1372,32 +1372,36 @@ def denoiser_train(feature_extraction_dir,
         # TODO test for when callbacks already in **kwargs
         if i > 0: 
             if 'callbacks' not in kwargs:
-                callbacks = pysodl.setup_callbacks(patience = patience,
-                                                        best_modelname = model_path, 
-                                                        log_filename = model_dir.joinpath('log.csv'))
+                callbacks = pysodl.setup_callbacks(
+                    patience = patience,
+                    best_modelname = model_path, 
+                    log_filename = model_dir.joinpath('log.csv'))
             #else:
                 ## apply callbacks set in **kwargs
                 #callbacks = kwargs['callbacks']
 
         if use_generator:
-            train_generator = pysodl.Generator(data_matrix1 = data_train_noisy, 
-                                                    data_matrix2 = data_train_clean,
-                                                    normalized = normalized,
-                                                    add_tensor_last = True)
-            val_generator = pysodl.Generator(data_matrix1 = data_val_noisy,
-                                                data_matrix2 = data_val_clean,
-                                                normalized = normalized,
-                                                add_tensor_last = True)
+            train_generator = pysodl.Generator(
+                data_matrix1 = data_train_noisy, 
+                data_matrix2 = data_train_clean,
+                normalized = normalized,
+                add_tensor_last = True)
+            val_generator = pysodl.Generator(
+                data_matrix1 = data_val_noisy,
+                data_matrix2 = data_val_clean,
+                normalized = normalized,
+                add_tensor_last = True)
 
             train_generator.generator()
             val_generator.generator()
             try:
-                history = denoiser.fit_generator(train_generator.generator(),
-                                                    steps_per_epoch = data_train_noisy.shape[0],
-                                                    callbacks = callbacks,
-                                                    validation_data = val_generator.generator(),
-                                                    validation_steps = data_val_noisy.shape[0], 
-                                                    **kwargs)
+                history = denoiser.fit(
+                    train_generator.generator(),
+                    steps_per_epoch = data_train_noisy.shape[0],
+                    callbacks = callbacks,
+                    validation_data = val_generator.generator(),
+                    validation_steps = data_val_noisy.shape[0], 
+                    **kwargs)
             except ValueError as e:
                 print('\nValueError: ', e)
                 raise ValueError('Try setting changing the parameter '+\

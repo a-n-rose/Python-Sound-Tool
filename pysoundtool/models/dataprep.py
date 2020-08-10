@@ -173,27 +173,6 @@ class Generator:
                 # needs to be 4 dimensions / have extra tensor
                 X_batch = X_batch.reshape((1,)+X_batch.shape)
                 y_batch = y_batch.reshape((1,)+y_batch.shape)
-                
-            if self.counter % 50 == 0:
-                X_batch_vis = X_batch.reshape(X_batch.shape[1], X_batch.shape[2])
-                try:
-                    pyso.feats.saveplot(feature_matrix = X_batch_vis, 
-                                    feature_type = 'fbank',
-                                    name4pic = './audiodata/test_{}fbank.png'.format(
-                                        self.counter),
-                                    title = 'fbank label {}'.format(y_batch[0][0]))
-                except ValueError as e:
-                    print('\n******** ERROR: ************')
-                    print(e)
-                    print()
-                except IndexError as e:
-                    print('\n******** ERROR: ************')
-                    print(e)
-                    print()
-                except KeyError as e:
-                    print('\n******** ERROR: ************')
-                    print(e)
-                    print()
             
             #send the batched and reshaped data to model
             self.counter += 1
