@@ -13,8 +13,8 @@ with open("requirements.txt","r") as f:
 
 # This call to setup() does all the work
 setup(
-    name="pysoundtool",
-    version="0.1.0a1",
+    name="soundpy",
+    version="0.1.0a2",
     description="A research-based framework for exploring sound as well as machine learning in the context of sound.",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -27,8 +27,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
     ],
-    #packages=find_packages(exclude=("tests","docs", "binder_notebooks", "jupyter_notebooks")),
-    packages=find_packages(exclude=("tests","docs","pysoundtool_online", "pysoundtool_online/models","binder_notebooks", "jupyter_notebooks")),
+    packages=find_packages(exclude=("tests","docs", "jupyter_notebooks")),
     include_package_data=True,
     install_requires=dependencies,
     python_requires=">=3.6.9",
