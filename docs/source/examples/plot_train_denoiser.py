@@ -6,7 +6,7 @@ Train a Denoising Autoencoder
 
 Train a denoising autoencoder with clean and noisy acoustic features.
 
-To see how soundpy implements this, see `soundpy.builtin.denoiser_train`, 
+To see how soundpy implements this, see `soundpy.models.builtin.denoiser_train`, 
 `soundpy.builtin.denoiser_feats` and `soundpy.builtin.create_denoise_data`.
 """
 

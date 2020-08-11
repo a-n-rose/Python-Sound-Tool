@@ -6,7 +6,7 @@ Implement a Denoising Autoencoder
 
 Implement denoising autoencoder to denoise a noisy speech signal.
 
-To see how soundpy implements this, see `soundpy.builtin.denoiser_run`.
+To see how soundpy implements this, see `soundpy.models.builtin.denoiser_run`.
 """
 
 

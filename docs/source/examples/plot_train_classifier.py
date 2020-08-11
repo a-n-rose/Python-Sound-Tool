@@ -6,7 +6,7 @@ Train an Acoustic Classifier
 
 Train an acoustic classifier on speech or noise features.
 
-To see how soundpy implements this, see `soundpy.builtin.envclassifier_train`.
+To see how soundpy implements this, see `soundpy.models.builtin.envclassifier_train`.
 """
 
 ###############################################################################################

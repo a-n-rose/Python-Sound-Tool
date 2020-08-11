@@ -2,7 +2,9 @@
 SoundPy Functionality
 =========================
 
-.. include:: builtin.rst
+.. include:: builtin_sp.rst
+
+.. include:: builtin_spdl.rst
 
 .. include:: augment.rst
 
