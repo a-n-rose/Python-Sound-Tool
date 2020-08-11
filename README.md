@@ -59,7 +59,7 @@ Venture into the folder `jupyter_notebooks` and have a go!
 
 ## Requirements
 
-* CPU or GPU
+* CPU 
     - Python 3.6 (specifically 3.6.9, but other versions should probably work)
     - libsndfile1 installed for Linux users (see note below)
     
@@ -143,8 +143,8 @@ Otherwise you can run python files like normal or open an ipython console:
 ```
 root@...:~/soundpy# ipython
 
-In [1]: import soundpy as sp
-In [2]: from soundpy import models as spdl
+In [1]: import soundpy as sp # for non-deep learning related functionality
+In [2]: from soundpy import models as spdl # for deep learning related functionality
 ```
 
 ### Access to Datasets
