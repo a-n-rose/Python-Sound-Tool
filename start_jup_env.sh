@@ -1,3 +1,6 @@
-docker run -it \
-            -p 8888:8888  \
-            -v "$PWD":"/root/pysoundtool/jupyter_notebooks/" aju
+docker run -it --rm \
+            --gpus all \
+            --privileged=true \
+            -v "$PWD":"/root/soundpy/" \
+            -p 8888:8888 aju
+            #-v "/audiodir/data":"/root/soundpy/data" \

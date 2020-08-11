@@ -1,22 +1,15 @@
-FROM ubuntu:18.04
+FROM tensorflow/tensorflow:2.1.0-gpu-py3
 
 RUN apt update && apt upgrade -y
 
-RUN apt install -y python3-minimal \ 
-                python3-pip 
-                
-RUN mkdir /root/pysoundtool/
+RUN apt-get install -y libsndfile1
 
-WORKDIR /root/pysoundtool/
+RUN pip3 install -U soundfile \
+                    librosa \
+                    python_speech_features \
+                    notebook \
+                    matplotlib
+                    
+RUN mkdir /root/soundpy/
 
-COPY ./requirements.txt . 
-
-RUN pip3 install -r requirements.txt
-
-RUN pip3 install notebook
-
-#CMD /bin/bash 
-CMD jupyter notebook --ip=0.0.0.0 --port=8888 --allow-root 
-
-
-
+WORKDIR /root/soundpy/
