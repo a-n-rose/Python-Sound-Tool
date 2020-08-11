@@ -55,10 +55,10 @@ def denoiser_train(feature_extraction_dir,
         Number of epochs to train without improvement before early stopping.
         
     **kwargs : additional keyword arguments
-        The keyword arguments for keras.fit() and keras.fit_generator(). Note, 
+        The keyword arguments for keras.fit(). Note, 
         the keyword arguments differ for validation data so be sure to use the 
         correct keyword arguments, depending on if you use the generator or not.
-        TODO: add link to keras.fit() and keras.fit_generator()
+        TODO: add link to keras.fit().
         
     Returns
     -------
@@ -326,10 +326,10 @@ def envclassifier_train(feature_extraction_dir,
         Number of epochs to train without improvement before early stopping.
         
     **kwargs : additional keyword arguments
-        The keyword arguments for keras.fit() and keras.fit_generator(). Note, 
+        The keyword arguments for keras.fit(). Note, 
         the keyword arguments differ for validation data so be sure to use the 
         correct keyword arguments, depending on if you use the generator or not.
-        TODO: add link to keras.fit() and keras.fit_generator()
+        TODO: add link to keras.fit().
         
     Returns
     -------
@@ -493,7 +493,7 @@ def envclassifier_train(feature_extraction_dir,
             train_generator.generator()
             val_generator.generator()
             test_generator.generator()
-            history = envclassifier.fit_generator(
+            history = envclassifier.fit(
                 train_generator.generator(),
                 steps_per_epoch = data_train.shape[0],
                 callbacks = callbacks,
@@ -504,7 +504,7 @@ def envclassifier_train(feature_extraction_dir,
             # TODO test how well prediction works. use simple predict instead?
             # need to define `y_test`
             X_test, y_test = sp.feats.separate_dependent_var(data_test)
-            y_predicted = envclassifier.predict_generator(
+            y_predicted = envclassifier.predict(
                 test_generator.generator(),
                 steps = data_test.shape[0])
 
@@ -884,7 +884,7 @@ def cnnlstm_train(feature_extraction_dir,
             train_generator.generator()
             val_generator.generator()
             test_generator.generator()
-            history = model.fit_generator(
+            history = model.fit(
                 train_generator.generator(),
                 steps_per_epoch = data_train.shape[0],
                 callbacks = callbacks,
@@ -895,7 +895,7 @@ def cnnlstm_train(feature_extraction_dir,
             # TODO test how well prediction works. use simple predict instead?
             # need to define `y_test`
             X_test, y_test = sp.feats.separate_dependent_var(data_test)
-            y_predicted = model.predict_generator(
+            y_predicted = model.predict(
                 test_generator.generator(),
                 steps = data_test.shape[0])
 
@@ -1105,7 +1105,7 @@ def resnet50_train(feature_extraction_dir,
             train_generator.generator()
             val_generator.generator()
             test_generator.generator()
-            history = model.fit_generator(
+            history = model.fit(
                 train_generator.generator(),
                 steps_per_epoch = data_train.shape[0],
                 callbacks = callbacks,
@@ -1116,7 +1116,7 @@ def resnet50_train(feature_extraction_dir,
             # TODO test how well prediction works. use simple predict instead?
             # need to define `y_test`
             X_test, y_test = sp.feats.separate_dependent_var(data_test)
-            y_predicted = model.predict_generator(
+            y_predicted = model.predict(
                 test_generator.generator(),
                 steps = data_test.shape[0])
 
@@ -1357,6 +1357,8 @@ def envclassifier_extract_train(
         kwargs['window'] = 'hann'
     if 'zeropad' not in kwargs:
         kwargs['zeropad'] = True
+    if 'num_filters' not in kwargs:
+        kwargs['num_filters'] = 40
         
     # training will fail if patience set to a non-integer type
     if patience is None:
@@ -1485,7 +1487,7 @@ def envclassifier_extract_train(
     val_path = dataset_path.joinpath('val_data.npy')
     val_path_dict = dict([('val', val_path)])
 
-
+    print('\nExtracting validation data for use in training:')
     val_dict, val_path_dict = sp.feats.save_features_datasets(
         val_dict,
         val_path_dict,
@@ -1591,7 +1593,7 @@ def envclassifier_extract_train(
             print('\nNo augmentations applied.\n')
         print('-'*79)
         
-        history = envclassifier.fit_generator(
+        history = envclassifier.fit(
             train_generator.generator(),
             steps_per_epoch = len(dataset_dict['train']),
             callbacks = callbacks,
