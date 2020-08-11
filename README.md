@@ -6,11 +6,11 @@ SoundPy is an experimental framework for exploring sound as well as machine lear
 [![PyPI pyversions](https://img.shields.io/badge/python-3.6-yellow)](https://www.python.org/downloads/release/python-360/)
 
 
-## Documentation
+# Documentation
 
 For examples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>. 
 
-## Examples 
+# Examples 
 
 You can explore example code:
 
@@ -18,7 +18,11 @@ You can explore example code:
 
 <a href="https://aislynrose.bitbucket.io/example_cases.html">SoundPy Examples</a> 
 
-### Via Jupyter Notebook (after you install SoundPy locally - see below):
+### Via Jupyter Notebook 
+
+You can have a look at the notebooks in the folder <a href="https://github.com/a-n-rose/Python-Sound-Tool/tree/master/jupyter_notebooks">jupyter_notebooks</a>
+
+Or you can work with them interactively after you install SoundPy locally (see below):
 
 Install and run jupyter notebook:
 
@@ -55,7 +59,16 @@ Venture into the folder `jupyter_notebooks` and have a go!
 
 ## Requirements
 
-Python 3.6
+* CPU and GPU
+    - Python 3.6 (specifically 3.6.9, but other versions should probably work)
+    - libsndfile1 installed for Linux users (see note below)
+    
+* GPU (what worked on my KDE Neon 18.04 machine)
+    - NVIDIA
+    - CUDA Version: 10.2 
+    - Driver Version: 440.100
+    - Docker Version: 19.03.12
+    - (instructions for what worked on my computer below)
 
 ### For Linux users:
 
@@ -70,18 +83,19 @@ $ sudo apt-get install libsndfile1
 
 # Installation
 
-You can install SoundPy by cloning this repository. 
+Clone this repository. Set the working directory where you clone this repository. 
 
 You will be able to use the provided example audio and models in the folder `audiodata`.
 
-I suggest a virtual environment before installing:
+## CPU instructions
 
-```
-$ python3 -m venv env
-```
-or, to better control your python version:
+I suggest a virtual environment before installing:
 ```
 $ virtualenv -p python3.6 env
+```
+or
+```
+$ python3 -m venv env
 ```
 Then activate the environment
 ```
@@ -89,16 +103,68 @@ $ source env/bin/activate
 (env)..$
 ```
 
-## Install via cloning this repo
-
-Clone this repository. Set the working directory where you clone this repository.
-
 Then install the necessary dependencies via pip:
+
 ```
 (env)..$ pip install -r requirements.txt --use-feature=2020-resolver
 ```
 
-## About
+## GPU instructions
+
+### Get Docker Image Running
+
+Run the bash script 'build_aju_image.sh'
+```
+$ ./build_aju_image.sh
+```
+If you get this error:
+```
+bash: ./build_aju_image.sh: Permission denied
+```
+give the file execution rights:
+```
+$ chmod u+x build_aju_image.sh
+```
+This will run the Docker file and prepare everything for you. (This may take several minutes)
+
+Then run the setup file:
+
+```
+$ ./start_jup_env.sh
+```
+
+If you want to use a Jupyter Notebook to explore the code, enter the following into the interactive Docker container command line:
+
+```
+root@...:~/soundpy# jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
+```
+
+Otherwise you can run python files like normal or open an ipython console:
+```
+root@...:~/soundpy# ipython
+
+In [1]: import soundpy as sp
+In [2]: from soundpy import models as spdl
+```
+
+### Access to Datasets
+
+You should be able to access <a href="https://www.tensorflow.org/datasets/catalog/overview">TensorFlow datasets</a> but if you would like the Docker image to include a dataset located elsewhere on your machine you can indicate that in the following file:
+
+start_jup_env.sh
+
+Enter the audio data directory (replace "audiodir/data") so it appears like so:
+
+```
+docker run -it --rm \
+            --gpus all \
+            --privileged=true \
+            -v "$PWD":"/root/soundpy/" \
+            -v "/audiodir/data":"/root/soundpy/data" \
+            -p 8888:8888 aju
+```
+
+# About
 
 Note: as is, soundpy is not yet a stable framework, meaning changes might periodically be made without extreme focus on backwards compatibility. 
 
