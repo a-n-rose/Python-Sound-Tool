@@ -1547,8 +1547,8 @@ def envclassifier_extract_train(
             model_name = model_name,
             normalize = normalize,
             apply_log = False,
-            randomize = False, 
-            random_seed = 40,
+            randomize = True, # want the data order to be different for each iteration 
+            random_seed = None,
             input_shape = input_shape,
             batch_size = batch_size, 
             add_tensor_last = add_tensor_last, 
