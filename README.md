@@ -59,7 +59,7 @@ Venture into the folder `jupyter_notebooks` and have a go!
 
 ## Requirements
 
-* CPU and GPU
+* CPU or GPU
     - Python 3.6 (specifically 3.6.9, but other versions should probably work)
     - libsndfile1 installed for Linux users (see note below)
     
