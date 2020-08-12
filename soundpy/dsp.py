@@ -320,7 +320,9 @@ def stereo2mono(data):
     '''
     data_mono = data.copy()
     if len(data.shape) > 1 and data.shape[1] > 1:
-        data_mono = np.take(data,0,axis=-1) 
+        # ensure data is samples first, channels second
+        data_mono = sp.dsp.shape_samps_channels(data_mono)
+        data_mono = np.take(data_mono,0,axis=-1) 
     return data_mono
 
 def add_backgroundsound(audio_main, audio_background, sr, snr = None, 
