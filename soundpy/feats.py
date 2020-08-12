@@ -543,10 +543,13 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', use_beg_ms = 120,
                           extend_window_ms = 0, energy_thresh = 40, 
-                          freq_thresh = 185, sfm_thresh = 5, zeropad = True):
+                          freq_thresh = 185, sfm_thresh = 5, 
+                          zeropad = True, **kwargs):
     '''Returns STFT matrix and VAD matrix. STFT matrix contains only VAD sections.
+    
+    kwargs loadsound
     '''
-    # raise error if percent_overlap is not supported
+    # raise ValueError if percent_overlap is not supported
     if percent_overlap != 0 and percent_overlap < 0.5:
         raise ValueError('For this VAD function, `percent_overlap` ' +\
             'set to {} is not currently supported.\n'.format(percent_overlap) +\
@@ -562,9 +565,9 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
             'rates above 44100 Hz. Current `sr` set at {}.'.format(sr)
         warnings.warn(msg)
     if isinstance(sound, np.ndarray):
-        data = sound
+        data = sound.copy()
     else:
-        data, sr2 = sp.loadsound(sound, sr=sr)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
@@ -584,6 +587,10 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
     stft_matrix = sp.dsp.create_empty_matrix((num_subframes, total_rows),
                                               complex_vals = True)
     
+    # stereo sound --> average out channels for measuring energy
+    if len(data.shape) > 1 and data.shape[1] > 1:
+        data = sp.dsp.average_channels(data)
+        
     vad_matrix, (sr, e, f, sfm) = sp.dsp.vad(data, sr, 
                                                win_size_ms = win_size_ms,
                                                percent_overlap = percent_overlap, 
