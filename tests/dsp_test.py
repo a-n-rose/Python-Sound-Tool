@@ -401,3 +401,60 @@ def test_clip_at_zero_negative_to_positive_transition():
     assert b[1] > 0
     assert b[-2] < 0
     
+def test_apply_window_mono():
+    input_signal = np.array([ 0.        ,  0.36371897, -0.302721,
+                             -0.1117662 ,  0.3957433 ])
+    window_hamming = np.array([0.08, 0.54, 1.  , 0.54, 0.08])
+    got = sp.dsp.apply_window(input_signal, window_hamming)
+    expected = np.array([ 0.        ,  0.19640824, -0.302721  , -0.06035375,  0.03165946])
+    assert np.allclose(expected, got)
+    
+def test_apply_window_stereo_2channel():
+    input_signal = np.array([ 0.        ,  0.36371897, -0.302721,
+                             -0.1117662 ,  0.3957433 ])
+    input_signal = sp.dsp.add_channels(input_signal, 2)
+    window_hamming = np.array([0.08, 0.54, 1.  , 0.54, 0.08])
+    got = sp.dsp.apply_window(input_signal, window_hamming)
+    expected = np.array([[ 0.        ,  0.        ],
+       [ 0.19640824,  0.19640824],
+       [-0.302721  , -0.302721  ],
+       [-0.06035375, -0.06035375],
+       [ 0.03165946,  0.03165946]])
+    assert np.allclose(expected, got)
+    
+def test_apply_window_stereo_4channel():
+    input_signal = np.array([ 0.        ,  0.36371897, -0.302721,
+                             -0.1117662 ,  0.3957433 ])
+    input_signal = sp.dsp.add_channels(input_signal, 4)
+    window_hamming = np.array([0.08, 0.54, 1.  , 0.54, 0.08])
+    got = sp.dsp.apply_window(input_signal, window_hamming)
+    expected = np.array([[ 0.        ,  0.        , 0.        ,  0.     ],
+       [ 0.19640824,  0.19640824, 0.19640824,  0.19640824],
+       [-0.302721  , -0.302721  , -0.302721  , -0.302721  ],
+       [-0.06035375, -0.06035375, -0.06035375, -0.06035375],
+       [ 0.03165946,  0.03165946, 0.03165946,  0.03165946]])
+    assert np.allclose(expected, got)
+    
+def test_add_channels_one2two():
+    input_data = np.array([1,2,3,4,5])
+    got = sp.dsp.add_channels(input_data, 2)
+    expected = np.array([[1, 1],[2, 2],[3, 3],[4, 4],[5, 5]])
+    assert np.allclose(expected, got)
+    
+def test_add_channels_two2three():
+    input_data = np.array([[1, 1],[2, 2],[3, 3],[4, 4],[5, 5]])
+    got = sp.dsp.add_channels(input_data, 3)
+    expected = np.array([[1, 1, 1],[2, 2, 2],[3, 3, 3],[4, 4, 4],[5, 5, 5]])
+    assert np.allclose(expected, got)
+    
+def test_add_channels_too_few():
+    input_data = np.array([[1, 1],[2, 2],[3, 3],[4, 4],[5, 5]])
+    got = sp.dsp.add_channels(input_data, 1)
+    expected = input_data
+    assert np.allclose(expected, got)
+    
+def test_add_channels_no_change():
+    input_data = np.array([[1, 1],[2, 2],[3, 3],[4, 4],[5, 5]])
+    got = sp.dsp.add_channels(input_data, 2)
+    expected = input_data
+    assert np.allclose(expected, got)

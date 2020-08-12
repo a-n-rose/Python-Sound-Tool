@@ -689,13 +689,28 @@ def clip_at_zero(samples, samp_win = None):
     
 
 def remove_dc_bias(samples, samp_win = None):
-    '''
-    understanding-digital-signal-processing-third-edition-by-richard-g-lyons
-    13.23 DC Removal
+    '''Removes DC bias by subtracting mean from sample data.
     
     Seems to work best without samp_win.
     
     # TODO add moving average?
+    
+    Parameters
+    ----------
+    samples : np.ndarray [shape=(samples, num_channels) or (samples)]
+        The sample data to center around zero. This worsk on both mono and stero data.
+        
+    samp_win: int, optional
+        Apply subtraction of mean at windows - experimental. (default None)
+        
+    Returns
+    -------
+    samps : np.ndarray [shape=(samples, num_channels) or (samples)]
+        The `samples` with zero mean.
+        
+    Resources
+    ---------
+    Lyons, Richard. (2011). Understanding Digital Signal Processing (3rd Edition). 
     '''
     samps = samples.copy()
     if samp_win is not None:
@@ -1151,17 +1166,19 @@ def create_window(window_type, frame_length):
     return window
 
 def apply_window(samples, window, zeropad=False):
-    """Applies predefined window to a section of samples
+    """Applies predefined window to a section of samples. Mono or stereo sound checked.
 
     The length of the samples must be the same length as the window. 
 
     Parameters
     ----------
-    samples : ndarray
+    samples : ndarray [shape=(num_samples,) or (num_samples, num_channels)]
         series of samples with the length of input window
     
-    window : ndarray
-        window to be applied to the signal
+    window : ndarray [shape=(num_samples,) or (num_samples, num_channels)]
+        window to be applied to the signal. If window does not match number of 
+        channels of sample data, the missing channels will be applied to the window,
+        repeating the first channel.
 
 
     Returns
@@ -1182,14 +1199,95 @@ def apply_window(samples, window, zeropad=False):
     >>> apply_window(input_signal, window_hann)
     array([ 0.        ,  0.18185948, -0.302721  , -0.0558831 ,  0.        ])
     """
+    if len(samples.shape) == 1:
+        if len(window.shape) > 1:
+            window = window[:,0]
+    elif len(samples.shape) != len(window.shape) or samples.shape[1] != window.shape[1]:
+        window = sp.dsp.add_channels(window, samples.shape[1])
+        # in the off chance the window has more channels than samples:
+        if window.shape[1] > samples.shape[1]:
+            window = window[:,:samples.shape[1]]
     if zeropad:
         if samples.shape != window.shape:
-            temp_matrix = create_empty_matrix(
+            temp_matrix = sp.dsp.create_empty_matrix(
                 window.shape)
             temp_matrix[:len(samples)] = samples
             samples = temp_matrix
     samples_win = samples * window
     return samples_win
+
+def add_channels(samples, channels_total):
+    '''Copies columns of `samples` to create additional channels.
+    
+    Parameters
+    ----------
+    samples : np.ndarray [shape=(num_samples) or (num_samples,num_channels)]
+        The samples to add channels to.
+    
+    channels_total : int 
+        The total number of channels desired. For example, if `samples` already has
+        2 channels and you want it to have 3, set `channels_total` to 3.
+        
+    Returns
+    -------
+    x : np.ndarray [shape = (num_samples, channels_total)]
+        A copy of `samples` with desired number of channels.
+        
+    Examples
+    --------
+    >>> import numpy as np
+    >>> samps_mono = np.array([1,2,3,4,5])
+    >>> samps_stereo2 = add_channels(samps_mono, 2)
+    >>> samps_stereo2
+    array([[1, 1],
+    ...    [2, 2],
+    ...    [3, 3],
+    ...    [4, 4],
+    ...    [5, 5]])
+    >>> samps_stereo5 = add_channels(samps_stereo2, 5)
+    >>> samps_stereo5
+    array([[1, 1, 1, 1, 1],
+    ...    [2, 2, 2, 2, 2],
+    ...    [3, 3, 3, 3, 3],
+    ...    [4, 4, 4, 4, 4],
+    ...    [5, 5, 5, 5, 5]])
+    
+    Warning
+    -------
+    If `channels_total` is less than or equal to the number of channels already presesnt
+    in `samples`. No channels added in those cases.
+    '''
+    y = samples.copy()
+    if len(y.shape) == 1:
+        for i in range(channels_total):
+            if i == 0:
+                x = np.vstack((y, y))
+            elif i < channels_total-1:
+                x = np.vstack((x, y)) 
+    else:
+        if y.shape[1] == channels_total:
+            import warnings
+            msg = '\n\nWarning: provided `samples` already has {} channels.'.format(channels_total)+\
+                '\nTo add 1 channel to samples shaped (5, 1), set `channels_total` to 2.' +\
+                    '\nNo channels added.\n'
+            warnings.warn(msg)
+            return y
+        elif y.shape[1] > channels_total:
+            import warnings
+            msg = '\n\nWarning: function soundpy.dsp.add_channels adds channels. '+\
+                '`samples` currently has {} channels and provided`'.format(samples.shape[1]) +\
+                    ' `channels_total` is less than that: {}'.format(channels_total) +\
+                        '\nTo add 1 channel to samples shaped (5, 2), set `channels_total` to 3.'+\
+                            '\nNo channels added.\n'
+            warnings.warn(msg)
+        x = y.T
+        extra_channels = channels_total//samples.shape[1]
+        for i in range(extra_channels):
+            x = np.vstack((x, y.T))
+    x = x.T 
+    if x.shape[1] > channels_total:
+        x = x[:,:channels_total]
+    return x
 
 def calc_fft(signal_section, real_signal=None, norm=False, fft_bins = None):
     """Calculates the fast Fourier transform of a 1D time series
