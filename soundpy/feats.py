@@ -512,10 +512,15 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
     total_rows = fft_bins
-    #if real_signal:
-        #total_rows = fft_bins//2 +1
-    stft_matrix = sp.dsp.create_empty_matrix((num_subframes, total_rows),
-                                              complex_vals = True)
+    # if mono, only one channel; otherwise match num channels in sound signal
+    if sp.dsp.ismono(data):
+        stft_matrix = sp.dsp.create_empty_matrix(
+            (num_subframes, total_rows),
+            complex_vals = True)
+    else:
+        stft_matrix = sp.dsp.create_empty_matrix(
+            (num_subframes, total_rows, data.shape[1]),
+            complex_vals = True)
     section_start = 0
     window_frame = sp.dsp.create_window(window, frame_length)
     for frame in range(num_subframes):
@@ -584,14 +589,21 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                                                     zeropad = zeropad)
     
     total_rows = fft_bins
-    stft_matrix = sp.dsp.create_empty_matrix((num_subframes, total_rows),
-                                              complex_vals = True)
-    
-    # stereo sound --> average out channels for measuring energy
     if len(data.shape) > 1 and data.shape[1] > 1:
-        data = sp.dsp.average_channels(data)
-        
-    vad_matrix, (sr, e, f, sfm) = sp.dsp.vad(data, sr, 
+        stereo = True
+        stft_matrix = sp.dsp.create_empty_matrix(
+            (num_subframes, total_rows, data.shape[1]),
+            complex_vals = True)
+        # stereo sound --> average out channels for measuring energy
+        data_vad = sp.dsp.average_channels(data)
+    else:
+        stereo = False
+        stft_matrix = sp.dsp.create_empty_matrix(
+            (num_subframes, total_rows),
+            complex_vals = True)
+        data_vad = data
+    
+    vad_matrix, (sr, e, f, sfm) = sp.dsp.vad(data_vad, sr, 
                                                win_size_ms = win_size_ms,
                                                percent_overlap = percent_overlap, 
                                                use_beg_ms = use_beg_ms,
