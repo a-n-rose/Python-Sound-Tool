@@ -331,7 +331,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
                         random_seed = None, extend_window_ms = 0, 
                         remove_dc = False, mirror_sound = False, clip_at_zero = True,
                         **kwargs):
-    '''Adds a sound (i.e. background noise) to a target signal.
+    '''Adds a sound (i.e. background noise) to a target signal. Stereo sound should work.
     
     If the sample rates of the two audio samples do not match, the sample
     rate of `audio_main` will be applied. (i.e. the `audio_background` will
@@ -340,7 +340,7 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
     
     Parameters
     ----------
-    audio_main : str, pathlib.PosixPath, or np.ndarray [size=(num_samples,)]
+    audio_main : str, pathlib.PosixPath, or np.ndarray [size=(num_samples,) or (num_samples, num_channels)] 
         Sound file of the main sound (will not be modified; only delayed if 
         specified). If not path or string, should be a data samples corrresponding to the provided sample rate.
     
@@ -396,12 +396,12 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         (default False)
     
     **kwargs : additional keyword arguments
-        The keyword arguments for soundpy.files.loadsound (Note: )
-    
+        The keyword arguments for soundpy.files.loadsound 
+        
     
     Returns
     -------
-    combined : numpy.ndarray
+    combined : numpy.ndarray [shape=(num_samples) or (num_samples, num_channels)]
         The samples of the sounds added together
     
     snr : int, float 
@@ -1364,11 +1364,11 @@ def average_channels(data):
     else:
         return data
 
-def calc_fft(signal_section, real_signal=None, norm=False, fft_bins = None):
-    """Calculates the fast Fourier transform of a 1D time series
+def calc_fft(signal_section, real_signal=None, fft_bins = None, **kwargs):
+    """Calculates the fast Fourier transform of a time series. Should work with stereo signals.
 
     The length of the signal_section determines the number of frequency
-    bins analyzed. Therefore, if there are higher frequencies in the 
+    bins analyzed if `fft_bins` not set. Therefore, if there are higher frequencies in the 
     signal, the length of the `signal_section` should be long enough to 
     accommodate those frequencies. 
 
@@ -1380,41 +1380,41 @@ def calc_fft(signal_section, real_signal=None, norm=False, fft_bins = None):
 
     Parameters
     ----------
-    signal_section : ndarray
-        the series that the fft will be applied to
-    
-    norm : bool
-        whether or not normalization should be applied (default False)
-
+    signal_section : ndarray [shape = (num_samples) or (num_samples, num_channels)]
+        the series that the fft will be applied to. If stereo sound, will return a FFT 
+        for each channel.
+        
+    real_signal : bool 
+        If True, only half of the fft will be returned (the fft is mirrored). Otherwise the 
+        full fft will be returned.
+        
+    **kwargs : additional keyword arguments
+        keyword arguments for numpy.fft.fft or nump.fft.rfft
 
     Returns
     -------
-    fft_vals : ndarray (complex)
+    fft_vals : ndarray [shape=(num_fft_bins), or (num_fft_bins, num_channels), dtype=np.complex_]
         the series transformed into the frequency domain with the same
         shape as the input series
     """
-    if norm:
-        norm = 'ortho'
-    else:
-        norm = None
     if sp.dsp.ismono(signal_section):
         if real_signal:
-            fft_vals = rfft(signal_section, n = fft_bins, norm = norm)
+            fft_vals = rfft(signal_section, n = fft_bins, **kwargs)
         else:
-            fft_vals = fft(signal_section, n = fft_bins, norm = norm)
+            fft_vals = fft(signal_section, n = fft_bins, **kwargs)
     else:
         for channel in range(signal_section.shape[1]):
             if channel == 0:
                 if real_signal:
-                    fft_vals = rfft(signal_section[:,channel], n = fft_bins, norm = norm)
+                    fft_vals = rfft(signal_section[:,channel], n = fft_bins, **kwargs)
                 else:
-                    fft_vals = fft(signal_section[:,channel], n = fft_bins, norm = norm)
+                    fft_vals = fft(signal_section[:,channel], n = fft_bins, **kwargs)
                 x = fft_vals
             else:
                 if real_signal:
-                    fft_vals = rfft(signal_section[:,channel], n = fft_bins, norm = norm)
+                    fft_vals = rfft(signal_section[:,channel], n = fft_bins, **kwargs)
                 else:
-                    fft_vals = fft(signal_section[:,channel], n = fft_bins, norm = norm)
+                    fft_vals = fft(signal_section[:,channel], n = fft_bins, **kwargs)
                 x = np.stack((x, fft_vals), axis=-1)
         fft_vals = x
     return fft_vals
