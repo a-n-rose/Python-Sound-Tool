@@ -1357,11 +1357,35 @@ def calc_fft(signal_section, real_signal=None, norm=False, fft_bins = None):
         norm = 'ortho'
     else:
         norm = None
-    if real_signal:
-        fft_vals = rfft(signal_section, n = fft_bins, norm = norm)
+    if sp.dsp.ismono(signal_section):
+        if real_signal:
+            fft_vals = rfft(signal_section, n = fft_bins, norm = norm)
+        else:
+            fft_vals = fft(signal_section, n = fft_bins, norm = norm)
     else:
-        fft_vals = fft(signal_section, n = fft_bins, norm = norm)
+        for channel in range(signal_section.shape[1]):
+            if channel == 0:
+                if real_signal:
+                    fft_vals = rfft(signal_section[:,channel], n = fft_bins, norm = norm)
+                else:
+                    fft_vals = fft(signal_section[:,channel], n = fft_bins, norm = norm)
+                x = fft_vals
+            else:
+                if real_signal:
+                    fft_vals = rfft(signal_section[:,channel], n = fft_bins, norm = norm)
+                else:
+                    fft_vals = fft(signal_section[:,channel], n = fft_bins, norm = norm)
+                x = np.stack((x, fft_vals), axis=-1)
+        fft_vals = x
     return fft_vals
+
+def ismono(data):
+    # ensure channels last
+    data = sp.dsp.shape_samps_channels(data) 
+    if len(data.shape) > 1 and data.shape[1] > 1:
+        return False
+    else:
+        return True
 
 # TODO: https://github.com/biopython/biopython/issues/1496
 # Fix numpy array repr for Doctest. 
