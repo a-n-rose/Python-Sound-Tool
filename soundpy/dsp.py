@@ -1289,6 +1289,41 @@ def add_channels(samples, channels_total):
         x = x[:,:channels_total]
     return x
 
+def average_channels(data):
+    '''Averages all channels in a stereo signal into one channel.
+    
+    Parameters
+    ----------
+    data : np.ndarray [size=(num_samples, num_channels)]
+        The stereo data to average out. If mono data supplied, mono data is returned unchanged.
+        
+    Returns
+    -------
+    data averaged : np.ndarray [size=(num_samples)]
+        Copy of `data` averaged into one channel.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> input_samples1 = np.array([1,2,3,4,5])
+    >>> input_samples2 = np.array([1,1,3,3,5])
+    >>> input_2channels = np.vstack((input_samples1, input_samples2)).T
+    >>> input_averaged = average_channels(input_2channels)
+    >>> input_averaged
+    array([1. , 1.5, 3. , 3.5, 5. ])
+    '''
+    # average out channels
+    if len(data.shape) > 1 and data.shape[1] > 1:
+        data_summed = data[:,0].copy()
+        for channel in range(data.shape[1]):
+            if channel == 0:
+                pass
+            else:
+                data_summed += data[:,channel]
+        return data_summed / data.shape[1]
+    else:
+        return data
+
 def calc_fft(signal_section, real_signal=None, norm=False, fft_bins = None):
     """Calculates the fast Fourier transform of a 1D time series
 
