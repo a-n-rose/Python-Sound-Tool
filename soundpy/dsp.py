@@ -563,8 +563,8 @@ def clip_at_zero(samples, samp_win = None):
     
     Parameters
     ----------
-    samples : np.ndarray [shape = (num_samples, )]
-        The array containing sample data
+    samples : np.ndarray [shape = (num_samples, ) or (num_samples, num_channels)]
+        The array containing sample data. Should work on stereo sound. TODO: further testing.
         
     samp_win : int, optional
         The window of samples to apply when clipping at zero crossings. The zero 
@@ -606,7 +606,12 @@ def clip_at_zero(samples, samp_win = None):
     >>> b[-2] > 0 # before the last zero, values are negative
     False
     '''
+    original_shape = samples.shape
     samps = samples.copy()
+    if sp.dsp.ismono(samps) and len(samps.shape) == 1:
+        # make it easier to work with both mono and stereo sound
+        samps = samps.reshape(samps.shape + (1,))
+        
     #if len(samps.shape) > 1 and samps.shape[1] > 1:
         #import warnings
         #msg = 'soundpy.dsp.clip_at_zero does not yet support stereo data.'+\
@@ -614,9 +619,12 @@ def clip_at_zero(samples, samp_win = None):
         #warnings.warn(msg)
         #return samps
     if samp_win is not None:
-        samps_beg = samps[:samp_win]
-        samps_end = samps[-samp_win:]
-        # find last instance of zero within window at beginning of singal 
+        samps_beg = samps[:samp_win,:]
+        samps_end = samps[-samp_win:,:]
+        # to utilize all channel info, take average of all channels
+        samps_beg = sp.dsp.average_channels(samps_beg)
+        samps_end = sp.dsp.average_channels(samps_end)
+        # find last instance of zero within window at beginning of signal
         f_0 = np.argmax(np.abs(np.flip(samps_beg)) <= 0 + 1e-2)
         # find first instance of zero within window at end of signal 
         l_0 = np.argmax(np.abs(samps_end) <= 0+1e-2)
@@ -627,31 +635,41 @@ def clip_at_zero(samples, samp_win = None):
             msg = '\nWarning: `soundpy.dsp.clip_at_zero` found no samples close to zero.'+\
                 ' Original samples returned.\n'
             warnings.warn(msg)
+            # ensure samples maintain original shape
+            if len(original_shape) == 1:
+                # remove extra dimension 
+                samps = samps.reshape((samps.shape[0]))
             return samps
         # translate index of flipped array to non-flipped array
         f_0 = len(samps_beg) - 1 - f_0 
     else:
+        # if stereo, use all channels to find first instance of zero
+        samps_all = sp.dsp.average_channels(samps)
         # find first instance of zero:
-        f_0 = np.argmax(np.abs(samps) <= 0+1e-2)
-        l_0 = np.argmax(np.abs(np.flip(samps)) <= 0 + 1e-2)
+        f_0 = np.argmax(np.abs(samps_all) <= 0+1e-2)
+        l_0 = np.argmax(np.abs(np.flip(samps_all)) <= 0 + 1e-2)
         # did not find zeros
         if f_0 == 0 and l_0 == 0:
             import warnings
             msg = '\nWarning: `soundpy.dsp.clip_at_zero` found no samples close to zero.'+\
                 ' Clipping was not applied.\n'
             warnings.warn(msg)
+            if len(original_shape) == 1:
+                # remove extra dimension 
+                samps = samps.reshape((samps.shape[0]))
             return samps
         # translate index of flipped array to non-flipped array
         l_0 = len(samples) - 1 - l_0 
     
-    assert round(samples[f_0]) == 0
-    assert round(samples[l_0]) == 0
+    # if stereo sound, just look at first channel for zeros
+    assert round(samps[f_0,0]) == 0
+    assert round(samps[l_0,0]) == 0
     
     if l_0 == f_0:
         import warnings
         msg = '\n\nWarning: only one zero-crossing sample found. Beginning or ending sample '+\
             'may not be zero crossing.'
-        samps_test = samps[f_0:]
+        samps_test = samps[f_0:,:]
         if len(samps_test) / len(samples) < 0.5:
             msg = '\n\nWARNING: Subfunction `soundpy.dsp.clip_at_zero` no longer '+\
                 'implemented as too many samples would be removed.\nThe beginning or ending '+\
@@ -661,30 +679,52 @@ def clip_at_zero(samples, samp_win = None):
                                 'Try removing the DC bias from the signal first with: \n'+\
                                     'soundpy.dsp.remove_dc_bias(<your_data>).\n'
             warnings.warn(msg)
+            if len(original_shape) == 1:
+                # remove extra dimension 
+                samps = samps.reshape((samps.shape[0]))
             return samps
         else:
             warnings.warn(msg)
             samps = samps_test
+            if len(original_shape) == 1:
+                # remove extra dimension 
+                samps = samps.reshape((samps.shape[0]))
             return samps
     else:
-        samps = samps[f_0:l_0+1]
+        samps = samps[f_0:l_0+1,:]
     # ensure the zero crossings go from negative to positive
-    if samps[1] > 0:
-        if samps[-2] < 0:
+    # only look at first channel (only channel if mono)
+    if samps[1,0] > 0:
+        if samps[-2,0] < 0:
+            if len(original_shape) == 1:
+                # remove extra dimension 
+                samps = samps.reshape((samps.shape[0]))
             return samps
         else:
             # cut off the last zero and get the next one
             samps = samps[:-1] 
+            if len(original_shape) == 1:
+                # remove extra dimension 
+                samps = samps.reshape((samps.shape[0]))
             samps = clip_at_zero(samps)
     else:
-        if samps[-2] < 0:
+        if samps[-2,0] < 0:
             # cut off the first zero and get the next one
             samps = samps[1:]
+            if len(original_shape) == 1:
+                # remove extra dimension 
+                samps = samps.reshape((samps.shape[0]))
             samps = clip_at_zero(samps)
         else:
             # cut off both zeros and get the next ones
             samps = samps[1:-1]
+            if len(original_shape) == 1:
+                # remove extra dimension 
+                samps = samps.reshape((samps.shape[0]))
             samps = clip_at_zero(samps)
+    if len(original_shape) == 1:
+        # remove extra dimension 
+        samps = samps.reshape((samps.shape[0]))
     return samps
     
 
