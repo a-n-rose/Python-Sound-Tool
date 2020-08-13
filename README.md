@@ -13,7 +13,90 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 
 # Examples 
 
-You can explore example code:
+## Simple commands:
+
+```
+z, sr = sp.generate_sound(freq=500, dur_sec = 1, amplitude = 0.3)
+
+sp.plotsound(z[:200], sr=sr, feature_type='signal', title = '500 Hz Signal at Amplitude of 0.3')
+```
+
+![Imgur](https://i.imgur.com/U3VvINB.png)
+
+
+```
+n = sp.generate_noise(len(z), amplitude=0.05)
+
+sp.plotsound(n[:200], sr=sr, feature_type='signal', title = 'Random White Noise at mean Amplitude of 0.05')
+```
+![Imgur](https://i.imgur.com/G5gVJAF.png)
+
+```
+y = sp.dsp.add_channels(z, channels_total=2)
+
+v, snr = sp.dsp.add_backgroundsound(y[:,0], n, sr=sr, snr=20)
+
+y[:len(v),0] = v
+
+sp.plotsound(y[:200], sr=sr, feature_type='signal', title = '2 Channel Signal with Noise Added to First Channel at 20 SNR', x_label='Time (sec)', y_label='Energy')
+```
+![Imgur](https://i.imgur.com/kxe32x9.png)
+
+```
+sp.plotsound(y[:,0], sr=sr, feature_type='stft', fft_bins = sr, title = 'Short-Time Fourier Transform of Noisy First Channel\n500 Hz')
+```
+
+![Imgur](https://i.imgur.com/1DxLWY3.png)
+
+```
+w, sr = sp.generate_sound(freq=3000, dur_sec=1, amplitude = 0.6, sr=sr)
+a = w+z
+sp.plotsound(a[:200], sr=sr, feature_type='signal', 
+             title = '500 Hz and 3000 Hz Signals Combined')
+```
+![Imgur](https://i.imgur.com/HXgkRR7.png)
+
+```
+# Signal is constant over time; don't need small windows or overlapping
+# samples as in speech or other non-stationary sound signals.
+win_size_ms = 1000
+percent_overlap = 0
+feats = sp.feats.get_feats(a, sr=sr, feature_type='stft', 
+                           fft_bins = sr, real_signal = True, 
+                           win_size_ms = win_size_ms, 
+                           percent_overlap = percent_overlap) 
+sp.feats.plot(feats, feature_type = 'stft', 
+              sr=sr, win_size_ms = win_size_ms, # optional; useful in calculating Time
+              percent_overlap = percent_overlap, # optional; useful in calculating Time
+              title = 'Short-Time Fourier Transform of Combined Signals:\n'+\
+                  '500 Hz and 3000 Hz')
+```
+![Imgur](https://i.imgur.com/RqoIbhR.png)
+
+```
+feats = sp.feats.get_feats(a, sr=sr, feature_type='fbank', num_filters = 40,
+                           fft_bins = sr, real_signal = True, 
+                           win_size_ms = win_size_ms, percent_overlap = percent_overlap)
+sp.feats.plot(feats, feature_type = 'fbank', 
+              sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap, # optional; useful in calculating Time
+              title = 'Mel Frequency Filterbank Energies of Combined Signals:\n'+\
+                  '500 Hz and 3000 Hz')
+```
+
+![Imgur](https://i.imgur.com/Zy0zpEc.png)
+
+```
+feats = sp.feats.get_feats(a, sr=sr, feature_type='mfcc', num_mfcc=13,
+                           fft_bins = sr, real_signal = True, 
+                           win_size_ms = win_size_ms, percent_overlap = percent_overlap)
+sp.feats.plot(feats, feature_type = 'mfcc', 
+              sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap, # optional; useful in calculating Time
+              title = 'Mel Frequency Cepstral Coefficients of Combined Signals:\n'+\
+                  '500 Hz and 3000 Hz')
+```
+![Imgur](https://i.imgur.com/rzr5r16.png)
+
+## Explore more complex examples:
 
 ### Visually and Aurally in the Documentation:
 
