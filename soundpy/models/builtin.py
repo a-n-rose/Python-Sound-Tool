@@ -282,6 +282,16 @@ def denoiser_train(feature_extraction_dir,
     return model_dir, history
 
 ###############################################################################
+def make_gen_callable(_gen):
+    '''
+    https://stackoverflow.com/a/62186572
+    CC BY-SA 4.0
+    '''
+    def gen():
+        for x,y in _gen:
+                yield x,y
+    return gen
+
 
 # TODO include example extraction data in feature_extraction_dir?
 def envclassifier_train(feature_extraction_dir,
@@ -489,15 +499,57 @@ def envclassifier_train(feature_extraction_dir,
                                                   data_matrix2 = None,
                                                   normalized = normalized,
                                                     add_tensor_last = add_tensor_last)
+            # resource:
+            # https://www.tensorflow.org/guide/data
+            
+            feats, label = next(train_generator.generator())
+            #print(type(feats)) # np.ndarray
+            #print(type(label)) # np.ndarray
+            #print()
+            #print(feats.dtype) # float64
+            #print(label.dtype) # float64
+            #print()
+            #print(feats.shape) # (1, 101, 40, 1)
+            #print(label.shape) # (1, 1)
+            
 
-            train_generator.generator()
-            val_generator.generator()
-            test_generator.generator()
+            ds_train = tf.data.Dataset.from_generator(
+                make_gen_callable(train_generator.generator()),
+                output_types=(tf.float64, tf.float64), 
+                output_shapes=([feats.shape[0],
+                                feats.shape[1],
+                                feats.shape[2],
+                                feats.shape[3]], 
+                                [label.shape[0],
+                                 label.shape[1]]))
+            ds_val = tf.data.Dataset.from_generator(
+                make_gen_callable(val_generator.generator()),
+                output_types=(tf.float64, tf.float64), 
+                output_shapes=([feats.shape[0],
+                                feats.shape[1],
+                                feats.shape[2],
+                                feats.shape[3]], 
+                                [label.shape[0],
+                                 label.shape[1]]))
+            ds_test = tf.data.Dataset.from_generator(
+                make_gen_callable(test_generator.generator()),
+                output_types=(tf.float64, tf.float64), 
+                output_shapes=([feats.shape[0],
+                                feats.shape[1],
+                                feats.shape[2],
+                                feats.shape[3]], 
+                                [label.shape[0],
+                                 label.shape[1]]))
+
+            print(ds_train)
+            print(ds_val)
+            print(ds_test)
+            
             history = envclassifier.fit(
-                train_generator.generator(),
+                ds_train,
                 steps_per_epoch = data_train.shape[0],
                 callbacks = callbacks,
-                validation_data = val_generator.generator(),
+                validation_data = ds_val,
                 validation_steps = data_val.shape[0],
                 **kwargs)
             
@@ -505,7 +557,7 @@ def envclassifier_train(feature_extraction_dir,
             # need to define `y_test`
             X_test, y_test = sp.feats.separate_dependent_var(data_test)
             y_predicted = envclassifier.predict(
-                test_generator.generator(),
+                ds_train,
                 steps = data_test.shape[0])
 
         else:
@@ -1568,6 +1620,42 @@ def envclassifier_extract_train(
             add_tensor_last = True,
             adjust_shape = input_shape[:-1])
         
+        feats, label = next(train_generator.generator())
+        #print(type(feats)) # np.ndarray
+        #print(type(label)) # np.ndarray
+        #print()
+        #print(feats.dtype) # float64
+        #print(label.dtype) # float64
+        #print()
+        print()
+        print(feats.shape) # (1, 101, 40, 1)
+        print(label.shape) # (1, 1)
+        print()
+
+        ds_train = tf.data.Dataset.from_generator(
+            make_gen_callable(train_generator.generator()),
+            output_types=(tf.float64, tf.float64), 
+            output_shapes=([feats.shape[0],
+                            feats.shape[1],
+                            feats.shape[2],
+                            feats.shape[3]], 
+                            [label.shape[0],
+                             label.shape[1]]))
+        ds_val = tf.data.Dataset.from_generator(
+            make_gen_callable(val_generator.generator()),
+            output_types=(tf.float64, tf.float64), 
+            output_shapes=([feats.shape[0],
+                            feats.shape[1],
+                            feats.shape[2],
+                            feats.shape[3]], 
+                            [label.shape[0],
+                             label.shape[1]]))
+
+        print(ds_train)
+        print(ds_val)
+
+        
+        
         if i == 0:
             # Print how many epochs possible if several augmentations
             if len(augment_dict_list) > 1:
@@ -1594,11 +1682,11 @@ def envclassifier_extract_train(
         print('-'*79)
         
         history = envclassifier.fit(
-            train_generator.generator(),
+            ds_train,
             steps_per_epoch = len(dataset_dict['train']),
             callbacks = callbacks,
             epochs = epochs,
-            validation_data = val_generator.generator(),
+            validation_data = ds_val,
             validation_steps = val_data.shape[0]
             )
 

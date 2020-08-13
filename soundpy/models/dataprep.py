@@ -173,6 +173,8 @@ class Generator:
                 # needs to be 4 dimensions / have extra tensor
                 X_batch = X_batch.reshape((1,)+X_batch.shape)
                 y_batch = y_batch.reshape((1,)+y_batch.shape)
+            if len(y_batch.shape) == 1:
+                y_batch = y_batch.reshape((1,) + y_batch.shape)
             
             #send the batched and reshaped data to model
             self.counter += 1
@@ -666,6 +668,8 @@ class GeneratorFeatExtraction:
             if not self.add_tensor_first and not self.add_tensor_last:
                 X_batch = X_batch
                 y_batch = y_batch
+            if len(y_batch.shape) == 1:
+                y_batch = y_batch.reshape((1,) + y_batch.shape)
             
             self.counter += 1
             yield X_batch, y_batch 
