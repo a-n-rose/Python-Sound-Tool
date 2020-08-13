@@ -2,6 +2,7 @@
 
 SoundPy is an experimental framework for exploring sound as well as machine learning in the context of sound. 
 
+[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a2-blue)](https://pypi.org/project/soundpy/0.1.0a2/)
 [![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)](https://github.com/a-n-rose/Python-Sound-Tool/blob/master/LICENSE.md)
 [![PyPI pyversions](https://img.shields.io/badge/python-3.6-yellow)](https://www.python.org/downloads/release/python-360/)
 
@@ -103,13 +104,37 @@ $ source env/bin/activate
 (env)..$
 ```
 
+### Clone the repo 
+
+This will allow you to use the example data in the 'audiodata/' directory as well as explore the example code in 'jupyter_notebooks/'.
+
+Clone this repository and make the repository your current working directory.
+
 Then install the necessary dependencies via pip:
 
 ```
-(env)..$ pip install -r requirements.txt --use-feature=2020-resolver
+(env)..$ pip install -r requirements.txt
+```
+
+### Install the pypi package:
+
+This is easy but does not include latest developments or the 'audiodata/' and 'jupyter_notebooks/' directories.
+
+```
+(env)..$ pip install soundpy
+```
+
+### Install development branch via pip:
+
+This allows you to use more recent developments; however you still won't have direct access to the 'audiodata/' or the 'jupyter_notebooks/' directories.
+
+```
+(env)..$ pip install git+https://github.com/a-n-rose/Python-Sound-Tool.git@development
 ```
 
 ## GPU instructions
+
+Clone this repository and make it your current working directory.
 
 ### Get Docker Image Running
 
@@ -177,7 +202,7 @@ Those who might find this useful:
 * linguists
 * psycholinguists
 
-The main goal of soundpy is to provide the code and functionality with more context via visualization, research, and mathematics. Most of the resources used to build the functionality stems from publicly available research and datasets. (For a list of open datasets, see my ever growing <a href='https://a-n-rose.github.io/2019/01/06/resources-publicly-available-speech-databases.html'>collection</a>.)
+The main goal of soundpy is to provide the code and functionality with more context via visualization, research, and mathematics. Most of the resources used to build the functionality stems from publicly available research and datasets. (For a list of open datasets, see my ever growing <a href='https://a-n-rose.github.io/2019/01/06/resources-publicly-available-speech-databases/'>collection</a>.)
 
 As it covers quite a large range, from audio file conversion to implementation of trained neural networks, the purpose of soundpy is not to be the perfect implementation of all functions (although that is also a goal :P ), but rather a peak into how they *can* be implemented, hopefully offering others a foundation for trying out different ways of implementation (feature extraction, building neural networks, etc.).
 
