@@ -181,7 +181,7 @@ The main goal of soundpy is to provide the code and functionality with more cont
 
 As it covers quite a large range, from audio file conversion to implementation of trained neural networks, the purpose of soundpy is not to be the perfect implementation of all functions (although that is also a goal :P ), but rather a peak into how they *can* be implemented, hopefully offering others a foundation for trying out different ways of implementation (feature extraction, building neural networks, etc.).
 
-This project is still in the beginning stages and has a lot of room for growth, especially with contributers having a background / knowlege in data science, computer science, machine and deep learning, physics, acoustics, or dsp. Contributers from other backgrounds are also welcome! If you'd like soundpy to do something it doesn't, try making it or create an issue.
+This project is still in the beginning stages and has a lot of room for growth, especially with contributors having a background / knowlege in data science, computer science, machine and deep learning, physics, acoustics, or dsp. Contributors from other backgrounds are also welcome! If you'd like soundpy to do something it doesn't, try making it or create an issue.
 
 # Example datasets
 

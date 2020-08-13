@@ -574,7 +574,7 @@ def clip_at_zero(samples, samp_win = None):
     
     Warning 
     -------
-    If only one or no zeros found. Original samples are returned of no zeros found or if more than
+    If only one or no zeros found. Original samples are returned if no zeros found or if more than
     half the signal would be removed. 
     
     Examples
