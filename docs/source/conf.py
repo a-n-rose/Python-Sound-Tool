@@ -67,6 +67,17 @@ sphinx_gallery_conf = {
         
 autosummary_generate = False 
 
+intersphinx_mapping = {
+    "librosa":("https://librosa.org/doc/latest/index.html", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "np": ("https://numpy.org/doc/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
+    "matplotlib": ("https://matplotlib.org/", None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
+    "soundfile": ("https://pysoundfile.readthedocs.io/en/latest", None),
+    "sf": ("https://pysoundfile.readthedocs.io/en/latest", None)
+}
+
 # Generate plots for example sections
 numpydoc_use_plots = True
         
