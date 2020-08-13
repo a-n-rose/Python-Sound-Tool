@@ -34,6 +34,12 @@ This project is still in the beginning stages and has a lot of room for growth, 
    example_cases.rst
    readme.rst
 
+   
+.. toctree:: 
+   :maxdepth: 1
+   
+   changelog.rst
+   
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
