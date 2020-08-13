@@ -166,7 +166,7 @@ def plot(feature_matrix, feature_type,
 
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     percent_overlap = 0.5, fft_bins = None, num_filters=40, num_mfcc=40, sr=None,\
-        save_pic=False, name4pic=None, energy_scale='power_to_db', mono=None, **kwargs):
+        save_pic=False, name4pic=None, energy_scale='power_to_db', mono=None, real_signal=False, **kwargs):
     '''Visualize feature extraction depending on set parameters. Does not use Librosa.
     
     Parameters
@@ -211,7 +211,7 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     feats = sp.feats.get_feats(audiodata, feature_type=feature_type, 
                       win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                       fft_bins = fft_bins, num_filters=num_filters, num_mfcc = num_mfcc,
-                      sr=sr, mono = mono)
+                      sr=sr, mono = mono, real_signal = real_signal)
     sp.feats.plot(feats, feature_type=feature_type, sr=sr,
                     save_pic = save_pic, name4pic=name4pic, energy_scale = energy_scale,
                     win_size_ms = win_size_ms, percent_overlap = percent_overlap,
