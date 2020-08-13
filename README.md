@@ -171,6 +171,12 @@ Regardless of installation method, if you clone this repo, you will be able to u
 
 ## CPU instructions
 
+Installation options:
+
+* 1) Clone the Repo
+* 2) Get PyPI package via pip
+* 3) Get latest development version from git via pip
+
 I suggest a virtual environment before installing:
 ```
 $ virtualenv -p python3.6 env
@@ -185,7 +191,7 @@ $ source env/bin/activate
 (env)..$
 ```
 
-### Clone the repo 
+### Option 1: Clone the repo and install manually
 
 This will allow you to use the example data in the 'audiodata/' directory as well as explore the example code in 'jupyter_notebooks/'.
 
@@ -197,7 +203,7 @@ Then install the necessary dependencies via pip:
 (env)..$ pip install -r requirements.txt
 ```
 
-### Install the pypi package:
+### Option 2: Install the PyPi package:
 
 This is easy but does not include latest developments or the 'audiodata/' and 'jupyter_notebooks/' directories.
 
@@ -205,7 +211,7 @@ This is easy but does not include latest developments or the 'audiodata/' and 'j
 (env)..$ pip install soundpy
 ```
 
-### Install development branch via pip:
+### Option 3: Install development branch via pip:
 
 This allows you to use more recent developments; however you still won't have direct access to the 'audiodata/' or the 'jupyter_notebooks/' directories.
 
