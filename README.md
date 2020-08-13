@@ -167,9 +167,7 @@ $ sudo apt-get install libsndfile1
 
 # Installation
 
-Clone this repository. Set the working directory where you clone this repository. 
-
-You will be able to use the provided example audio and models in the folder `audiodata`.
+Regardless of installation method, if you clone this repo, you will be able to use the provided example audio and models in the folder `audiodata` and the jupyter notebooks in the folder `jupyter_notebooks`.
 
 ## CPU instructions
 
