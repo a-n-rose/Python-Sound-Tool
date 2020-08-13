@@ -145,25 +145,14 @@ Venture into the folder `jupyter_notebooks` and have a go!
 
 * CPU 
     - Python 3.6 (specifically 3.6.9, but other versions should probably work)
-    - libsndfile1 installed for Linux users (see note below)
+    - Linux users: ensure libsndfile1 pre-installed: `sudo apt-get install libsndfile1` 
     
-* GPU (what worked on my KDE Neon 18.04 machine)
+* GPU (what worked on my Ubuntu 18.04 and 20.04 machine (specfically KDE Neon 18.04 and 20.04))
     - NVIDIA
     - CUDA Version: 10.2 
     - Driver Version: 440.100
     - Docker Version: 19.03.12
     - (instructions for what worked on my computer below)
-
-### For Linux users:
-
-You must have `libsndfile1` installed in your system. 
-<a href="https://pypi.org/project/SoundFile/">Soundfile</a> uses this library.
-
-```
-$ sudo apt-get install libsndfile1
-```
-
-(This should automatically get installed for other operating systems during `pip install soundfile`, which is completed when installing the requirements; see below).
 
 # Installation
 
@@ -171,13 +160,13 @@ Regardless of installation method, if you clone this repo, you will be able to u
 
 ## CPU instructions
 
-Installation options:
+### Installation options:
 
-* 1) Clone the Repo
-* 2) Get PyPI package via pip
-* 3) Get latest development version from git via pip
+1) Clone the Repo and install manually
+2) Get PyPI package via pip
+3) Get latest development version from git via pip
 
-I suggest a virtual environment before installing:
+For any of these options, I suggest a virtual environment before installing:
 ```
 $ virtualenv -p python3.6 env
 ```
