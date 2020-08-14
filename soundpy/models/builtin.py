@@ -282,15 +282,6 @@ def denoiser_train(feature_extraction_dir,
     return model_dir, history
 
 ###############################################################################
-def make_gen_callable(_gen):
-    '''
-    https://stackoverflow.com/a/62186572
-    CC BY-SA 4.0
-    '''
-    def gen():
-        for x,y in _gen:
-                yield x,y
-    return gen
 
 
 # TODO include example extraction data in feature_extraction_dir?
@@ -514,32 +505,20 @@ def envclassifier_train(feature_extraction_dir,
             
 
             ds_train = tf.data.Dataset.from_generator(
-                make_gen_callable(train_generator.generator()),
-                output_types=(tf.float64, tf.float64), 
-                output_shapes=([feats.shape[0],
-                                feats.shape[1],
-                                feats.shape[2],
-                                feats.shape[3]], 
-                                [label.shape[0],
-                                 label.shape[1]]))
+                spdl.make_gen_callable(train_generator.generator()),
+                output_types=(feats.dtype, label.dtype), 
+                output_shapes=(feats.shape, 
+                                label.shape))
             ds_val = tf.data.Dataset.from_generator(
-                make_gen_callable(val_generator.generator()),
-                output_types=(tf.float64, tf.float64), 
-                output_shapes=([feats.shape[0],
-                                feats.shape[1],
-                                feats.shape[2],
-                                feats.shape[3]], 
-                                [label.shape[0],
-                                 label.shape[1]]))
+                spdl.make_gen_callable(val_generator.generator()),
+                output_types=(feats.dtype, label.dtype), 
+                output_shapes=(feats.shape, 
+                                label.shape))
             ds_test = tf.data.Dataset.from_generator(
-                make_gen_callable(test_generator.generator()),
-                output_types=(tf.float64, tf.float64), 
-                output_shapes=([feats.shape[0],
-                                feats.shape[1],
-                                feats.shape[2],
-                                feats.shape[3]], 
-                                [label.shape[0],
-                                 label.shape[1]]))
+                spdl.make_gen_callable(test_generator.generator()),
+                output_types=(feats.dtype, label.dtype), 
+                output_shapes=(feats.shape, 
+                                label.shape))
 
             print(ds_train)
             print(ds_val)
@@ -553,12 +532,15 @@ def envclassifier_train(feature_extraction_dir,
                 validation_steps = data_val.shape[0],
                 **kwargs)
             
-            # TODO test how well prediction works. use simple predict instead?
-            # need to define `y_test`
-            X_test, y_test = sp.feats.separate_dependent_var(data_test)
-            y_predicted = envclassifier.predict(
-                ds_train,
-                steps = data_test.shape[0])
+            ## TODO test how well prediction works. use simple predict instead?
+            ## need to define `y_test`
+            #X_test, y_test = sp.feats.separate_dependent_var(data_test)
+            #y_predicted = envclassifier.predict(
+                #ds_train,
+                #steps = data_test.shape[0])
+            score = envclassifier.evaluate(ds_test, steps=500) 
+            print('Test loss:', score[0]) 
+            print('Test accuracy:', score[1])
 
         else:
             # TODO make scaling data optional?
@@ -581,25 +563,25 @@ def envclassifier_train(feature_extraction_dir,
             y_predicted = envclassifier.predict(X_test)
             # which category did the model predict?
             
-    
-        y_pred = np.argmax(y_predicted, axis=1)
-        if len(y_pred.shape) > len(y_test.shape):
-            y_test = np.expand_dims(y_test, axis=1)
-        elif len(y_pred.shape) < len(y_test.shape):
-            y_pred = np.expand_dims(y_pred, axis=1)
-        try:
-            assert y_pred.shape == y_test.shape
-        except AssertionError:
-            raise ValueError('The shape of prediction data {}'.format(y_pred.shape) +\
-                ' does not match the `y_test` dataset {}'.format(y_test.shape) +\
-                    '\nThe shapes much match in order to measure accuracy.')
-                
-        match = sum(y_test == y_pred)
-        if len(match.shape) == 1:
-            match = match[0]
-        test_accuracy = round(match/len(y_test),4)
-        print('\nModel reached accuracy of {}%'.format(test_accuracy*100))
         
+            y_pred = np.argmax(y_predicted, axis=1)
+            if len(y_pred.shape) > len(y_test.shape):
+                y_test = np.expand_dims(y_test, axis=1)
+            elif len(y_pred.shape) < len(y_test.shape):
+                y_pred = np.expand_dims(y_pred, axis=1)
+            try:
+                assert y_pred.shape == y_test.shape
+            except AssertionError:
+                raise ValueError('The shape of prediction data {}'.format(y_pred.shape) +\
+                    ' does not match the `y_test` dataset {}'.format(y_test.shape) +\
+                        '\nThe shapes much match in order to measure accuracy.')
+                    
+            match = sum(y_test == y_pred)
+            if len(match.shape) == 1:
+                match = match[0]
+            test_accuracy = round(match/len(y_test),4)
+            print('\nModel reached accuracy of {}%'.format(test_accuracy*100))
+            
         end_session = time.time()
         total_dur_sec_session = round(end_session-start_session,2)
         model_features_dict = dict(model_path = model_path,
@@ -1339,6 +1321,7 @@ def envclassifier_extract_train(
     random_seed = None,
     visualize = False,
     vis_every_n_items = 50,
+    label_silence = False,
     **kwargs):
     '''Extract and augment features during training of a scene/environment/speech classifier
     
@@ -1454,7 +1437,7 @@ def envclassifier_extract_train(
         # create encoding and decoding dictionaries of labels:
         dict_encode, dict_decode = sp.datasets.create_dicts_labelsencoded(
             labels,
-            add_extra_label = True,
+            add_extra_label = label_silence,
             extra_label = 'silence')
     
         # save labels and their encodings
@@ -1535,18 +1518,25 @@ def envclassifier_extract_train(
         if not kwargs['use_scipy']:
             kwargs['fmax'] = kwargs['sr'] * 2.0
     # extract validation data (must already be extracted)
-    val_dict = dict([('val',dataset_dict['val'])])
+    extracted_data_dict = dict([('val',dataset_dict['val']),
+                     ('test',dataset_dict['test'])])
     val_path = dataset_path.joinpath('val_data.npy')
-    val_path_dict = dict([('val', val_path)])
-
+    test_path = dataset_path.joinpath('test_data.npy')
+    extracted_data_path_dict = dict([('val', val_path),
+                          ('test', test_path)])
+    # extract test data 
+    print()
+    print(kwargs)
+    print()
     print('\nExtracting validation data for use in training:')
-    val_dict, val_path_dict = sp.feats.save_features_datasets(
-        val_dict,
-        val_path_dict,
+    extracted_data_dict, extracted_data_path_dict = sp.feats.save_features_datasets(
+        extracted_data_dict,
+        extracted_data_path_dict,
         labeled_data = labeled_data,
         **kwargs)
 
-    val_data = np.load(val_path_dict['val'])
+    val_data = np.load(extracted_data_path_dict['val'])
+    test_data = np.load(extracted_data_path_dict['test'])
 
 
     # start training
@@ -1593,7 +1583,9 @@ def envclassifier_extract_train(
         normalize = True
         add_tensor_last = False
         add_tensor_first = True
-        
+        print()
+        print(kwargs)
+        print()
         train_generator = spdl.GeneratorFeatExtraction(
             datalist = dataset_dict['train'],
             model_name = model_name,
@@ -1612,7 +1604,7 @@ def envclassifier_extract_train(
             decode_dict = dict_decode,
             dataset = 'train',
             augment_dict = augment_dict,
-            label_silence = False,
+            label_silence = label_silence,
             **kwargs)
         
         val_generator = spdl.Generator(
@@ -1620,41 +1612,56 @@ def envclassifier_extract_train(
             add_tensor_last = True,
             adjust_shape = input_shape[:-1])
         
-        feats, label = next(train_generator.generator())
-        #print(type(feats)) # np.ndarray
-        #print(type(label)) # np.ndarray
-        #print()
-        #print(feats.dtype) # float64
-        #print(label.dtype) # float64
-        #print()
-        print()
-        print(feats.shape) # (1, 101, 40, 1)
-        print(label.shape) # (1, 1)
-        print()
+        test_generator = spdl.Generator(
+            data_matrix1 = test_data,
+            add_tensor_last = True,
+            adjust_shape = input_shape[:-1])
+        
+        feats_train, label_train = next(train_generator.generator())
+        print('train label: ', label_train)
+        print(feats_train.shape) # (1, 101, 40, 1)
+        print(label_train.shape) # (1, 1)
+        feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
+        sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
+                          name4pic='train_stft.png')
+        
+        feats_val, label_val = next(val_generator.generator())
+        print('val label: ', label_val)
+        print(feats_val.shape) # (1, 101, 40, 1)
+        print(label_val.shape) # (1, 1)
+        feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
+        sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
+                          name4pic='val_stft.png')
+        
+        feats_test, label_test = next(test_generator.generator())
+        print('test label: ', label_test)
+        print(feats_test.shape) # (1, 101, 40, 1)
+        print(label_test.shape) # (1, 1)
+        feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
+        sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
+                          name4pic='test_stft.png')
+        
+        
+    
 
         ds_train = tf.data.Dataset.from_generator(
-            make_gen_callable(train_generator.generator()),
-            output_types=(tf.float64, tf.float64), 
-            output_shapes=([feats.shape[0],
-                            feats.shape[1],
-                            feats.shape[2],
-                            feats.shape[3]], 
-                            [label.shape[0],
-                             label.shape[1]]))
+            spdl.make_gen_callable(train_generator.generator()),
+            output_types=(feats_train.dtype, label_train.dtype), 
+            output_shapes=(feats_train.shape, 
+                            label_train.shape))
         ds_val = tf.data.Dataset.from_generator(
-            make_gen_callable(val_generator.generator()),
-            output_types=(tf.float64, tf.float64), 
-            output_shapes=([feats.shape[0],
-                            feats.shape[1],
-                            feats.shape[2],
-                            feats.shape[3]], 
-                            [label.shape[0],
-                             label.shape[1]]))
-
+            spdl.make_gen_callable(val_generator.generator()),
+            output_types=(feats_val.dtype, label_val.dtype), 
+            output_shapes=(feats_val.shape, 
+                            label_val.shape))
+        ds_test = tf.data.Dataset.from_generator(
+            spdl.make_gen_callable(test_generator.generator()),
+            output_types=(feats_test.dtype, label_test.dtype), 
+            output_shapes=(feats_test.shape, 
+                            label_test.shape))
         print(ds_train)
         print(ds_val)
-
-        
+        print(ds_test)
         
         if i == 0:
             # Print how many epochs possible if several augmentations
@@ -1707,6 +1714,12 @@ def envclassifier_extract_train(
             dict2save = model_features_dict)
         print('\nFinished training the model. The model and associated files can be '+\
             'found here: \n{}'.format(model_dir))
+    
+    
+    score = envclassifier.evaluate(ds_test, steps=1000) 
+    print('Test loss:', score[0]) 
+    print('Test accuracy:', score[1])
+       
     finished_time = time.time()
     total_total_duration = finished_time - start
     time_new_units, units = sp.utils.adjust_time_units(total_total_duration)
