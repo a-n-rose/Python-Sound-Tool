@@ -61,7 +61,9 @@ sphinx_gallery_conf = {
             'sklearn': 'https://scikit-learn.org/stable',
             'soundfile': 'https://pysoundfile.readthedocs.io/en/latest/',
             'sf': 'https://pysoundfile.readthedocs.io/en/latest/',
-            'librosa' : 'https://librosa.org/librosa/'
+            'librosa' : 'https://librosa.org/librosa/',
+            'tensorflow' : 'https://www.tensorflow.org/api_docs/python/tf',
+            'tf' : 'https://www.tensorflow.org/api_docs/python/tf'
         }
     }
         
@@ -75,7 +77,9 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
     "soundfile": ("https://pysoundfile.readthedocs.io/en/latest", None),
-    "sf": ("https://pysoundfile.readthedocs.io/en/latest", None)
+    "sf": ("https://pysoundfile.readthedocs.io/en/latest", None),
+    'tensorflow' : ('https://www.tensorflow.org/api_docs/python/tf', None),
+    'tf' : ('https://www.tensorflow.org/api_docs/python/tf', None),
 }
 
 # Generate plots for example sections
