@@ -78,6 +78,8 @@ class Generator:
         if self.datay is None:
             # separate the label from the feature data
             self.datax, self.datay = sp.feats.separate_dependent_var(self.datax)
+            if self.datay.dtype == np.complex64 or self.datay.dtype == np.complex64:
+                self.datay = self.datay.astype(float)
             # assumes last column of features is the label column
             self.num_feats = self.datax.shape[-1] 
             self.labels = True
@@ -173,6 +175,12 @@ class Generator:
                 # needs to be 4 dimensions / have extra tensor
                 X_batch = X_batch.reshape((1,)+X_batch.shape)
                 y_batch = y_batch.reshape((1,)+y_batch.shape)
+            if len(y_batch.shape) == 1:
+                y_batch = y_batch.reshape((1,) + y_batch.shape)
+            
+            if self.labels:
+                if y_batch.dtype == np.complex64 or y_batch.dtype == np.complex128:
+                    y_batch = y_batch.astype(int)
             
             #send the batched and reshaped data to model
             self.counter += 1
@@ -186,7 +194,7 @@ class Generator:
 
 class GeneratorFeatExtraction:
     def __init__(self, datalist, datalist2 = None, model_name = None,  
-                 normalize = True, apply_log = False, randomize = False,
+                 normalize = True, apply_log = False, randomize = True,
                  random_seed=None, input_shape = None, batch_size = 1,
                  add_tensor_last = True, add_tensor_first = False,
                  gray2color = False, visualize = False,
@@ -502,22 +510,31 @@ class GeneratorFeatExtraction:
             # finding it difficult to work with librosa due to slight 
             # differences in padding, fft_bins etc.
             # perhaps more reliable to use non-librosa function for 'stft' extraction
-            elif 'stft'in self.kwargs['feature_type'] or \
-                'powspec' in self.kwargs['feature_type']:
-                feats = sp.feats.get_stft(
-                    augmented_data, 
-                    win_size_ms = self.kwargs['win_size_ms'],
-                    percent_overlap = self.kwargs['percent_overlap'],
-                    real_signal = self.kwargs['real_signal'],
-                    fft_bins = self.kwargs['fft_bins'],
-                    rate_of_change = self.kwargs['rate_of_change'],
-                    rate_of_acceleration = self.kwargs['rate_of_acceleration'],
-                    window = self.kwargs['window'],
-                    zeropad = self.kwargs['zeropad']
-                    )
+
+
+
+
+
+
+            #elif 'stft'in self.kwargs['feature_type'] or \
+                #'powspec' in self.kwargs['feature_type']:
+                #feats = sp.feats.get_stft(
+                    #augmented_data, 
+                    #win_size_ms = self.kwargs['win_size_ms'],
+                    #percent_overlap = self.kwargs['percent_overlap'],
+                    #real_signal = self.kwargs['real_signal'],
+                    #fft_bins = self.kwargs['fft_bins'],
+                    #rate_of_change = self.kwargs['rate_of_change'],
+                    #rate_of_acceleration = self.kwargs['rate_of_acceleration'],
+                    #window = self.kwargs['window'],
+                    #zeropad = self.kwargs['zeropad']
+                    #)
                 
-                if 'powspec' in self.kwargs['feature_type']:
-                    feats = np.abs(feats)**2
+                #if 'powspec' in self.kwargs['feature_type']:
+                    #feats = np.abs(feats)**2
+
+
+
             else:
                 try:
                     feats = sp.feats.get_feats(augmented_data, **self.kwargs)
@@ -625,19 +642,28 @@ class GeneratorFeatExtraction:
                             title = 'Output {} features \n'.format(
                                 label_pic, feature_type)+\
                                 '(item {})'.format(self.counter))
-                                        
+            
+            
+            ### problem area
+            feats = feats.reshape(feats.shape + (1,))
+            
             # reshape to input shape. Will be zeropadded or limited to this shape.
             if self.input_shape is not None:
-                if len(self.input_shape) != len(feats.shape):
-                    change_dims = True
-                else:
-                    change_dims = False
+                # FAULT IN FUNCTION w change_dims
+                #if len(self.input_shape) != len(feats.shape):
+                    #change_dims = True
+                #else:
+                change_dims = False
                 feats = sp.feats.adjust_shape(feats, self.input_shape, 
                                                 change_dims = change_dims)
                 if feats2 is not None:
                     feats2 = sp.feats.adjust_shape(feats2, self.input_shape, 
                                                      change_dims = change_dims)
-                    
+            
+            #sp.feats.saveplot(feature_matrix = feats[:,:,0], feature_type = 'stft', name4pic = './generator_stft_1.png')
+            
+            
+            
             # grayscale 2 color 
             # assumes already zeropadded with new channels, channels last
             if self.gray2color:
@@ -666,6 +692,16 @@ class GeneratorFeatExtraction:
             if not self.add_tensor_first and not self.add_tensor_last:
                 X_batch = X_batch
                 y_batch = y_batch
+            if len(y_batch.shape) == 1:
+                y_batch = y_batch.reshape((1,) + y_batch.shape)
+            
+            if self.normalize or self.X_batch.dtype == np.complex_:
+                # if complex data, power spectrum will be extracted
+                # power spectrum = np.abs(complex_data)**2
+                X_batch = sp.feats.normalize(X_batch)
+            
+            
+            #sp.feats.saveplot(feature_matrix = X_batch[0,:,:,0], feature_type = 'stft', name4pic = './generator_stft_2.png')
             
             self.counter += 1
             yield X_batch, y_batch 
@@ -852,7 +888,6 @@ def get_input_shape(kwargs_get_feats, labeled_data = False,
         num_filters = kwargs_get_feats['num_filters']
     except KeyError:
         raise ValueError('Missing `num_filters` key and value.')
-        num_filters = kwargs_get_feats['num_filters']
     try:
         num_mfcc = kwargs_get_feats['num_mfcc']
     except KeyError:
@@ -929,3 +964,30 @@ def get_input_shape(kwargs_get_feats, labeled_data = False,
                 orig_shape = (int(total_rows_per_wav), num_feats)
                 input_shape = orig_shape
     return input_shape
+
+def make_gen_callable(_gen):
+    '''Prepares Python generator for `tf.data.Dataset.from_generator`
+    
+    Bug fix: Python generator fails to work in Tensorflow 2.2.0 + 
+    
+    Parameters
+    ----------
+    _gen : generator
+        The generator function to feed to a deep neural network.
+        
+    Returns
+    -------
+    x : np.ndarray [shape=(batch_size, num_frames, num_features, 1)]
+        The feature data
+        
+    y : np.ndarray [shape=(1,1)]
+        The label for the feature data.
+    References
+    ----------
+    Shu, Nicolas (2020) https://stackoverflow.com/a/62186572
+    CC BY-SA 4.0
+    '''
+    def gen():
+        for x,y in _gen:
+                yield x,y
+    return gen

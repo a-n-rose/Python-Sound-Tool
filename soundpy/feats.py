@@ -461,11 +461,11 @@ def get_feats(sound,
                 'Please ensure one of the following is included in `feature_type`:\n- '+\
                     '\n- '.join(sp.feats.list_available_features()))
         if 'signal' not in feature_type:
-            if rate_of_change or rate_of_acceleration:
+            if rate_of_change is True or rate_of_acceleration is True:
                 d, d_d = sp.feats.get_change_acceleration_rate(feats)
-                if rate_of_change:
+                if rate_of_change is True:
                     feats = np.concatenate((feats, d), axis=1)
-                if rate_of_acceleration:
+                if rate_of_acceleration is True:
                     feats = np.concatenate((feats, d_d), axis=1)
             if subtract_mean:
                 feats -= (np.mean(feats, axis=0) + 1e-8)
@@ -536,11 +536,11 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
         stft_matrix[frame] = section_fft[:total_rows]
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:,:fft_bins//2]
-    if rate_of_change or rate_of_acceleration:
+    if rate_of_change is True or rate_of_acceleration is True:
         d, d_d = sp.feats.get_change_acceleration_rate(stft_matrix)
-        if rate_of_change:
+        if rate_of_change is True:
             stft_matrix = np.concatenate((stft_matrix, d), axis=1)
-        if rate_of_acceleration:
+        if rate_of_acceleration is True:
             stft_matrix = np.concatenate((stft_matrix, d_d), axis=1)
     return stft_matrix
 
@@ -1192,17 +1192,17 @@ def adjust_shape(data, desired_shape, change_dims = False):
             raise ValueError('Cannot adjust data to a different number of '+\
                 'dimensions.\nOriginal data shape: '+str(data.shape)+ \
                     '\nDesired shape: '+str(desired_shape))
-        total_desired_samples = 1
-        for i in desired_shape:
-            total_desired_samples *= i
-        data_flattened = data.flatten()
-        if len(data_flattened) < total_desired_samples:
-            data_flattened = sp.feats.zeropad_features(data_flattened, 
-                                                         desired_shape = (total_desired_samples,))
-        elif len(data_flattened) > total_desired_samples:
-            data_flattened = data_flattened[:total_desired_samples]
-        data_prepped = data_flattened.reshape(desired_shape)
-        return data_prepped
+        #total_desired_samples = 1
+        #for i in desired_shape:
+            #total_desired_samples *= i
+        #data_flattened = data.flatten()
+        #if len(data_flattened) < total_desired_samples:
+            #data_flattened = sp.feats.zeropad_features(data_flattened, 
+                                                         #desired_shape = (total_desired_samples,))
+        #elif len(data_flattened) > total_desired_samples:
+            #data_flattened = data_flattened[:total_desired_samples]
+        #data_prepped = data_flattened.reshape(desired_shape)
+        #return data_prepped
         
     # attempt to zeropad data:
     try:
@@ -1617,14 +1617,14 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
             # If 'rate_of_acceleration' or 'rate_of_change' in feature kwargs,
             # adapt input shape for that
             if 'rate_of_change' in kwargs:
-                if kwargs['rate_of_change']:
+                if kwargs['rate_of_change'] is True:
                     num_feats_model = num_feats + num_feats
                 else:
                     num_feats_model = num_feats
             else:
                 num_feats_model = num_feats
             if 'rate_of_acceleration' in kwargs:
-                if kwargs['rate_of_acceleration']:
+                if kwargs['rate_of_acceleration'] is True:
                     num_feats_model += num_feats
 
             # adjust shape for model
