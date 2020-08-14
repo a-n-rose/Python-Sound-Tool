@@ -143,3 +143,6 @@ def test_get_vad_samples_40SNR_50percentVAD_length_threshold():
         assert (example_speech_ms / vad_samples_ms) < 2
     elif example_speech_ms <= vad_samples_ms:
         assert (vad_samples_ms / example_speech_ms) < 2
+        
+def test_adjust_shape():
+    pass
