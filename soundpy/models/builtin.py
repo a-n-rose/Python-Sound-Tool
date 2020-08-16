@@ -1306,7 +1306,7 @@ def envclassifier_extract_train(
     model_name = 'env_classifier',
     dataset_dict = None,
     num_labels = None,
-    augment_dict_list = None,
+    augment_dict = None,
     audiodata_path = None,
     save_new_files_dir = None,
     frames_per_sample = None, # images_per_sample, sections_per_sample..? 
@@ -1335,10 +1335,11 @@ def envclassifier_extract_train(
         labels) as values. If None, will be created based on `audiodata_path`.
         (default None)
         
-    augment_dict_list : list of dicts, optional
-        List of dictionaries containing keys (e.g. 'add_white_noise'). See 
+    augment_dict : dict, optional
+        Dictionary containing keys (e.g. 'add_white_noise'). See 
         `soundpy.augment.list_augmentations`and corresponding True or False
-        values. If the value is True, the key / augmentation gets implemented. 
+        values. If the value is True, the key / augmentation gets implemented
+        at random, each epoch.
         (default None)
     
     audiodata_path : str, pathlib.PosixPath
@@ -1547,8 +1548,8 @@ def envclassifier_extract_train(
         num_labels = len(dict_encode) 
     # otherwise should arleady be specified
 
-    if augment_dict_list is None:
-        augment_dict_list = [dict()]
+    if augment_dict is None:
+        augment_dict = dict()
 
 
     # designate where to save model and related files
@@ -1568,153 +1569,142 @@ def envclassifier_extract_train(
                             loss = loss,
                             metrics = metrics)
 
-    for i, augment_dict in enumerate(augment_dict_list):
+    # should randomly apply augmentations in generator
 
-        # items that need to be called with each iteration:
-        # save best model for each iteration - don't want to be overwritten
-        # with worse model
-        best_modelname = str(model_path) + '_session{}.h5'.format(i)
-        callbacks = spdl.setup_callbacks(
-            patience = patience,
-            best_modelname = best_modelname, 
-            log_filename = model_dir.joinpath('log.csv'),
-            append = True)
+    # items that need to be called with each iteration:
+    # save best model for each iteration - don't want to be overwritten
+    # with worse model
+    best_modelname = str(model_path) + '.h5'
+    callbacks = spdl.setup_callbacks(
+        patience = patience,
+        best_modelname = best_modelname, 
+        log_filename = model_dir.joinpath('log.csv'),
+        append = True)
 
-        normalize = True
-        add_tensor_last = False
-        add_tensor_first = True
-        print()
-        print(kwargs)
-        print()
-        train_generator = spdl.GeneratorFeatExtraction(
-            datalist = dataset_dict['train'],
-            model_name = model_name,
-            normalize = normalize,
-            apply_log = False,
-            randomize = True, # want the data order to be different for each iteration 
-            random_seed = None,
-            input_shape = input_shape,
-            batch_size = batch_size, 
-            add_tensor_last = add_tensor_last, 
-            add_tensor_first = add_tensor_first,
-            gray2color = False,
-            visualize = visualize,
-            vis_every_n_items = vis_every_n_items,
-            visuals_dir = model_dir.joinpath('images'),
-            decode_dict = dict_decode,
-            dataset = 'train',
-            augment_dict = augment_dict,
-            label_silence = label_silence,
-            **kwargs)
-        
-        val_generator = spdl.Generator(
-            data_matrix1 = val_data,
-            add_tensor_last = True,
-            adjust_shape = input_shape[:-1])
-        
-        test_generator = spdl.Generator(
-            data_matrix1 = test_data,
-            add_tensor_last = True,
-            adjust_shape = input_shape[:-1])
-        
-        feats_train, label_train = next(train_generator.generator())
-        print('train label: ', label_train)
-        print(feats_train.shape) # (1, 101, 40, 1)
-        print(label_train.shape) # (1, 1)
-        feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
-        sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
-                          name4pic='train_stft.png')
-        
-        feats_val, label_val = next(val_generator.generator())
-        print('val label: ', label_val)
-        print(feats_val.shape) # (1, 101, 40, 1)
-        print(label_val.shape) # (1, 1)
-        feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
-        sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
-                          name4pic='val_stft.png')
-        
-        feats_test, label_test = next(test_generator.generator())
-        print('test label: ', label_test)
-        print(feats_test.shape) # (1, 101, 40, 1)
-        print(label_test.shape) # (1, 1)
-        feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
-        sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
-                          name4pic='test_stft.png')
-        
-        
+    normalize = True
+    add_tensor_last = False
+    add_tensor_first = True
+    print()
+    print(kwargs)
+    print()
+    train_generator = spdl.GeneratorFeatExtraction(
+        datalist = dataset_dict['train'],
+        model_name = model_name,
+        normalize = normalize,
+        apply_log = False,
+        randomize = True, # want the data order to be different for each iteration 
+        random_seed = None,
+        input_shape = input_shape,
+        batch_size = batch_size, 
+        add_tensor_last = add_tensor_last, 
+        add_tensor_first = add_tensor_first,
+        gray2color = False,
+        visualize = visualize,
+        vis_every_n_items = vis_every_n_items,
+        visuals_dir = model_dir.joinpath('images'),
+        decode_dict = dict_decode,
+        dataset = 'train',
+        augment_dict = augment_dict,
+        label_silence = label_silence,
+        **kwargs)
     
-
-        ds_train = tf.data.Dataset.from_generator(
-            spdl.make_gen_callable(train_generator.generator()),
-            output_types=(feats_train.dtype, label_train.dtype), 
-            output_shapes=(feats_train.shape, 
-                            label_train.shape))
-        ds_val = tf.data.Dataset.from_generator(
-            spdl.make_gen_callable(val_generator.generator()),
-            output_types=(feats_val.dtype, label_val.dtype), 
-            output_shapes=(feats_val.shape, 
-                            label_val.shape))
-        ds_test = tf.data.Dataset.from_generator(
-            spdl.make_gen_callable(test_generator.generator()),
-            output_types=(feats_test.dtype, label_test.dtype), 
-            output_shapes=(feats_test.shape, 
-                            label_test.shape))
-        print(ds_train)
-        print(ds_val)
-        print(ds_test)
-        
-        if i == 0:
-            # Print how many epochs possible if several augmentations
-            if len(augment_dict_list) > 1:
-                print('~'*79)
-                print('\nNOTE: due to several augmentations, total epochs possible:' + \
-                    '\n{} epochs\n'.format(len(augment_dict_list * epochs)))
-                print('~'*79)
-                print()
-        print('-'*79)
-        print('\nTRAINING SESSION ',i+1, ' out of ', len(augment_dict_list))
-        if augment_dict:
-            print('\nAugmentation(s) applied: \n')
-            for key, value in augment_dict.items():
-                if value == True:
-                    print('{}'.format(key).upper())
-                    try:
-                        settings = augment_dict['augment_settings_dict'][key]
-                        print('- Settings: {}'.format(settings))
-                    except KeyError:
-                        pass
-            print()
-        else:
-            print('\nNo augmentations applied.\n')
-        print('-'*79)
-        
-        history = envclassifier.fit(
-            ds_train,
-            steps_per_epoch = len(dataset_dict['train']),
-            callbacks = callbacks,
-            epochs = epochs,
-            validation_data = ds_val,
-            validation_steps = val_data.shape[0]
-            )
-
-        model_features_dict = dict(model_path = model_path,
-                                dataset_dict = dataset_dict,
-                                augment_dict = augment_dict)
-        model_features_dict.update(settings_dict)
-        model_features_dict.update(augment_dict)
-        end = time.time()
-        total_duration_seconds = round(end-start,2)
-        time_dict = dict(total_duration_seconds=total_duration_seconds)
-        model_features_dict.update(time_dict)
-
-        model_features_dict_path = model_dir.joinpath('info_{}_session{}.csv'.format(
-            model_name, i))
-        model_features_dict_path = sp.utils.save_dict(
-            filename = model_features_dict_path,
-            dict2save = model_features_dict)
-        print('\nFinished training the model. The model and associated files can be '+\
-            'found here: \n{}'.format(model_dir))
+    val_generator = spdl.Generator(
+        data_matrix1 = val_data,
+        add_tensor_last = True,
+        adjust_shape = input_shape[:-1])
     
+    test_generator = spdl.Generator(
+        data_matrix1 = test_data,
+        add_tensor_last = True,
+        adjust_shape = input_shape[:-1])
+    
+    feats_train, label_train = next(train_generator.generator())
+    print('train label: ', label_train)
+    print(feats_train.shape) # (1, 101, 40, 1)
+    print(label_train.shape) # (1, 1)
+    feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
+    sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
+                        name4pic='train_stft.png')
+    
+    feats_val, label_val = next(val_generator.generator())
+    print('val label: ', label_val)
+    print(feats_val.shape) # (1, 101, 40, 1)
+    print(label_val.shape) # (1, 1)
+    feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
+    sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
+                        name4pic='val_stft.png')
+    
+    feats_test, label_test = next(test_generator.generator())
+    print('test label: ', label_test)
+    print(feats_test.shape) # (1, 101, 40, 1)
+    print(label_test.shape) # (1, 1)
+    feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
+    sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
+                        name4pic='test_stft.png')
+
+
+    ds_train = tf.data.Dataset.from_generator(
+        spdl.make_gen_callable(train_generator.generator()),
+        output_types=(feats_train.dtype, label_train.dtype), 
+        output_shapes=(feats_train.shape, 
+                        label_train.shape))
+    ds_val = tf.data.Dataset.from_generator(
+        spdl.make_gen_callable(val_generator.generator()),
+        output_types=(feats_val.dtype, label_val.dtype), 
+        output_shapes=(feats_val.shape, 
+                        label_val.shape))
+    ds_test = tf.data.Dataset.from_generator(
+        spdl.make_gen_callable(test_generator.generator()),
+        output_types=(feats_test.dtype, label_test.dtype), 
+        output_shapes=(feats_test.shape, 
+                        label_test.shape))
+    print(ds_train)
+    print(ds_val)
+    print(ds_test)
+    
+    print('-'*79)
+    if augment_dict:
+        print('\nAugmentation(s) applied (at random): \n')
+        for key, value in augment_dict.items():
+            if value == True:
+                print('{}'.format(key).upper())
+                try:
+                    settings = augment_dict['augment_settings_dict'][key]
+                    print('- Settings: {}'.format(settings))
+                except KeyError:
+                    pass
+        print()
+    else:
+        print('\nNo augmentations applied.\n')
+    print('-'*79)
+    
+    history = envclassifier.fit(
+        ds_train,
+        steps_per_epoch = len(dataset_dict['train']),
+        callbacks = callbacks,
+        epochs = epochs,
+        validation_data = ds_val,
+        validation_steps = val_data.shape[0]
+        )
+
+    model_features_dict = dict(model_path = model_path,
+                            dataset_dict = dataset_dict,
+                            augment_dict = augment_dict)
+    model_features_dict.update(settings_dict)
+    model_features_dict.update(augment_dict)
+    end = time.time()
+    total_duration_seconds = round(end-start,2)
+    time_dict = dict(total_duration_seconds=total_duration_seconds)
+    model_features_dict.update(time_dict)
+
+    model_features_dict_path = model_dir.joinpath('info_{}.csv'.format(
+        model_name))
+    model_features_dict_path = sp.utils.save_dict(
+        filename = model_features_dict_path,
+        dict2save = model_features_dict)
+    print('\nFinished training the model. The model and associated files can be '+\
+        'found here: \n{}'.format(model_dir))
+
     
     score = envclassifier.evaluate(ds_test, steps=1000) 
     print('Test loss:', score[0]) 

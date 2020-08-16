@@ -388,10 +388,11 @@ class GeneratorFeatExtraction:
                     label_pic = self.decode_dict[label]
             # augment_data
             if self.augment_dict is not None:
+                aug_dict = randomize_augs(self.augment_dict)
                 try:
                     augmented_data, augmentation = augment_features(y, 
                                                                 self.sr, 
-                                                                **self.augment_dict)
+                                                                **aug_dict)
    
                 except librosa.util.exceptions.ParameterError:
                     # invalid audio for augmentation
@@ -432,7 +433,7 @@ class GeneratorFeatExtraction:
                         augmented_data, augmentation = augment_features(
                             y, 
                             self.sr, 
-                            **self.augment_dict)
+                            **aug_dict)
                     except librosa.util.exceptions.ParameterError:
                         print('Augmentation: ', augmentation)
                         print('Augmentation failed. No augmentation applied.')
@@ -512,28 +513,22 @@ class GeneratorFeatExtraction:
             # perhaps more reliable to use non-librosa function for 'stft' extraction
 
 
-
-
-
-
-            #elif 'stft'in self.kwargs['feature_type'] or \
-                #'powspec' in self.kwargs['feature_type']:
-                #feats = sp.feats.get_stft(
-                    #augmented_data, 
-                    #win_size_ms = self.kwargs['win_size_ms'],
-                    #percent_overlap = self.kwargs['percent_overlap'],
-                    #real_signal = self.kwargs['real_signal'],
-                    #fft_bins = self.kwargs['fft_bins'],
-                    #rate_of_change = self.kwargs['rate_of_change'],
-                    #rate_of_acceleration = self.kwargs['rate_of_acceleration'],
-                    #window = self.kwargs['window'],
-                    #zeropad = self.kwargs['zeropad']
-                    #)
+            elif 'stft'in self.kwargs['feature_type'] or \
+                'powspec' in self.kwargs['feature_type']:
+                feats = sp.feats.get_stft(
+                    augmented_data, 
+                    win_size_ms = self.kwargs['win_size_ms'],
+                    percent_overlap = self.kwargs['percent_overlap'],
+                    real_signal = self.kwargs['real_signal'],
+                    fft_bins = self.kwargs['fft_bins'],
+                    rate_of_change = self.kwargs['rate_of_change'],
+                    rate_of_acceleration = self.kwargs['rate_of_acceleration'],
+                    window = self.kwargs['window'],
+                    zeropad = self.kwargs['zeropad']
+                    )
                 
-                #if 'powspec' in self.kwargs['feature_type']:
-                    #feats = np.abs(feats)**2
-
-
+                if 'powspec' in self.kwargs['feature_type']:
+                    feats = np.abs(feats)**2
 
             else:
                 try:
@@ -717,6 +712,63 @@ def check4na(numpyarray):
         return True
     else:
         return False
+    
+    
+def randomize_augs(aug_dict, random_seed=None):
+    '''Creates copy of dict and chooses which augs applied randomly.
+    
+    Can apply random seed for number of augmentations applied and shuffling
+    order of possible augmentations.
+    '''
+    possible_augs = []
+    num_possible_aug = 0
+    if aug_dict is not None:
+        for key, value in aug_dict.items():
+            if value == True:
+                num_possible_aug += 1
+                possible_augs.append(key)
+               
+    if random_seed is not None:
+        np.random.seed(random_seed)
+    num_augs = np.random.choice(range(num_possible_aug+1))
+    
+    if num_augs == 0:
+        # no augmentations applied:
+        new_dict = dict(aug_dict)
+        for key, value in new_dict.items():
+            if value == True:
+                new_dict[key] = False
+        return new_dict
+    
+    if random_seed is not None:
+        random.seed(random_seed)
+    random.shuffle(possible_augs)
+    augs = possible_augs[:num_augs]
+    augs_leftover = augs[num_augs:]
+    if 'speed_increase' in augs and 'speed_decrease' in augs:
+        i1 = augs.index('speed_increase')
+        i2 = augs.index('speed_decrease')
+        x = [i1, i2]
+        random.shuffle(x)
+        speed2remove = augs.pop(x[0])
+        if augs_leftover:
+            aug_added = augs_leftover.pop(0)
+            augs.append(aug_added)
+    if 'pitch_increase' in augs and 'pitch_decrease' in augs:
+        i1 = augs.index('pitch_increase')
+        i2 = augs.index('pitch_decrease')
+        x = [i1, i2]
+        random.shuffle(x)
+        pitch2remove = augs.pop(x[0])
+        if augs_leftover:
+            aug_added = augs_leftover.pop(0)
+            augs.append(aug_added)
+    new_dict = dict(aug_dict)
+    for key, value in new_dict.items():
+        if value == True:
+            if key not in augs:
+                new_dict[key] = False
+    return new_dict
 
 def augment_features(sound,
                      sr,
@@ -735,11 +787,15 @@ def augment_features(sound,
                      vtlp = False,
                      bilinear_warp = True,
                      augment_settings_dict = None,
+                     random_seed = None,
                      ):
+    '''Randomly applies augmentations to audio
+    '''
     if augment_settings_dict is not None:
         aug_settings = dict(augment_settings_dict)
     else:
         aug_settings = augment_settings_dict
+
     if speed_increase and speed_decrease:
         raise ValueError('Cannot have both speed_increase and speed_decrease'+\
             ' as augmentation options. Set just one to True.')
