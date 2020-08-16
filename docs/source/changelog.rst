@@ -6,6 +6,23 @@ v0.1.0a
 =======
 
 
+v0.1.0a3
+--------
+
+
+Bug fixes
+   -  training with generator now works with Tensorflow 2.2.0+: use `tf.data.Dataset.from_generator`.
+   -  feature extraction and augmentation generator now works: problem in `soundpy.dsp.adjust_shape` and parameter `change_dims`. Removed option to `change_dims`.
+   
+Features
+   -  `soundpy.models.builtin.envclassifier_extract_train` and 
+   `soundpy.models.dataprep.GeneratorFeatExtraction` apply augmentations at random; 
+   no longer a set of augmentations per epoch.
+   -  added `soundpy.feats.get_fbank` for increased consistency in feature extraction process (especially when applying augmentations)
+   
+
+
+
 v0.1.0a2
 --------
 2020-08-13
