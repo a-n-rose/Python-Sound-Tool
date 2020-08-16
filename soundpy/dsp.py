@@ -555,6 +555,55 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         combined = np.concatenate((combined, ending_sound))
     return combined, new_snr
 
+
+def hz_to_mel(freq):
+    '''
+    References
+    ----------
+    https://en.wikipedia.org/wiki/Mel_scale#Formula
+    
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    mel = (2595 * np.log10(1 + freq / 700))
+    return mel
+
+def mel_to_hz(mel):
+    '''Converts Mel item or list to frequency/ies.
+    
+    Parameters
+    ----------
+    mel : int, float, or list of ints / floats
+        Mel item(s) to be converted to Hz.
+        
+    Returns
+    -------
+    freq : int, float, or list of ints / floats
+        The converted frequency/ies 
+    
+    References
+    ----------
+    https://en.wikipedia.org/wiki/Mel_scale#Formula
+    
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    freq = (700 * (10**(mel / 2595) -1))
+    return freq
+
+def fbank_filters(fmin, fmax, num_filters):
+    '''
+    References
+    ----------
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    if fmin > 0:
+        low_freq_mel = sp.dsp.hz_to_mel(fmin)
+    else:
+        low_freq_mel = 0
+    high_freq_mel = sp.dsp.hz_to_mel(fmax)
+    mel_points = np.linspace(low_freq_mel, high_freq_mel, num_filters +2)
+    return mel_points
+
+
 def clip_at_zero(samples, samp_win = None):
     '''Clips the signal at samples close to zero.
     

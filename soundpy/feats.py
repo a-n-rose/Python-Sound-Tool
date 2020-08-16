@@ -535,7 +535,7 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                                         )
         stft_matrix[frame] = section_fft[:total_rows]
         section_start += (frame_length - num_overlap_samples)
-    stft_matrix = stft_matrix[:,:fft_bins//2]
+    stft_matrix = stft_matrix[:,:fft_bins//2 + 1]
     if rate_of_change is True or rate_of_acceleration is True:
         d, d_d = sp.feats.get_change_acceleration_rate(stft_matrix)
         if rate_of_change is True:
@@ -543,6 +543,79 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
         if rate_of_acceleration is True:
             stft_matrix = np.concatenate((stft_matrix, d_d), axis=1)
     return stft_matrix
+
+def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **kwargs):
+    '''
+    
+    Parameters
+    ----------
+    sound : np.ndarray [size=(num_samples,) or (num_samples, num_features)]
+        Sound in either raw samples or as a short-time-fourier-transform or power
+        spectrum.
+        
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.feats.get_stft`.
+    
+    References
+    ----------
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    if isinstance(sound, np.ndarray):
+        if sound.dtype == np.complex64 or sound.dtype == np.complex128:
+            stft = True
+        else:
+            stft = False
+    else:
+        raise TypeError('Function `soundpy.feats.get_fbank` expected `sound` '+\
+            'to be of type np.ndarray, not type {}'.format(type(sound)))
+    if fmin is None:
+        fmin = 0
+    if fmax is None:
+        fmax = sr/2
+
+    mel_points = sp.dsp.fbank_filters(fmin, fmax, num_filters = num_filters)
+    hz_points = sp.dsp.mel_to_hz(mel_points)
+    
+    if fft_bins is None:
+        if stft is True:
+            # assumes number of fft bins is the length of second column
+            fft_bins = sound.shape[1]
+        else:
+            # otherwise set as default: 512
+            fft_bins = 1024
+        
+    freq_bins = np.floor((fft_bins + 1) * hz_points / sr)
+    
+    fbank = np.zeros((num_filters, int(np.floor(fft_bins / 2 + 1))))
+    for m in range(1, num_filters + 1):
+        f_m_minus = int(freq_bins[m - 1]) # left
+        f_m = int(freq_bins[m]) # center
+        f_m_plus = int(freq_bins[m + 1]) # right
+        
+        for k in range(f_m_minus, f_m):
+            fbank[m - 1, k] = (k - freq_bins[m - 1]) / (freq_bins[m] - freq_bins[m -1])
+            for k in range(f_m, f_m_plus):
+                fbank[m - 1, k] = (freq_bins[m + 1] - k) / (freq_bins[m + 1] - freq_bins[m])
+    if stft:
+        if np.min(sound) < 0:
+            powspec = sp.dsp.calc_power(sound)
+    else:
+        sound_stft = sp.feats.get_stft(sound, sr=sr, fft_bins = fft_bins, **kwargs)
+        powspec = sp.dsp.calc_power(sound_stft)
+    
+    sp.feats.plot(powspec, sr=sr, feature_type='stft')
+    filter_banks = np.dot(powspec, fbank.T)
+    sp.feats.plot(filter_banks, sr=sr, feature_type='fbank', energy_scale=None)
+    filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks) # numerical stability
+    return filter_banks
+
+def get_mfcc():
+    '''
+    References
+    ----------
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    pass
 
 def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           real_signal = False, fft_bins = 1024, 
