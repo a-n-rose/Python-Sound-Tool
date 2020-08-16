@@ -603,6 +603,17 @@ def fbank_filters(fmin, fmax, num_filters):
     mel_points = np.linspace(low_freq_mel, high_freq_mel, num_filters +2)
     return mel_points
 
+def sinosoidal_liftering(mfccs, cep_lifter = 22):
+    '''
+    References
+    ----------
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    (nframes, ncoeff) = mfccs.shape
+    n = np.arange(ncoeff)
+    lift = 1 + (cep_lifter / 2) * np.sin(np.pi * n / cep_lifter)
+    mfccs *= lift
+    return mfccs
 
 def clip_at_zero(samples, samp_win = None):
     '''Clips the signal at samples close to zero.

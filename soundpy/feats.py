@@ -15,6 +15,7 @@ import numpy as np
 import math
 import librosa
 from scipy.signal import hann, hamming
+from scipy.fftpack import dct
 import pathlib
 from python_speech_features import fbank, mfcc
 from sklearn.preprocessing import StandardScaler
@@ -565,7 +566,7 @@ def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **k
             stft = True
         # probably a power spectrum without complex values...
         # TODO improve
-        elif sound.shape[1] > sound.shape[0]:
+        elif len(sound.shape) > 1 and sound.shape[1] > sound.shape[0]:
             stft = True
         else:
             stft = False
@@ -617,13 +618,20 @@ def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **k
     filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks) # numerical stability
     return filter_banks
 
-def get_mfcc():
+def get_mfcc(sound, sr, num_mfcc, remove_first_coefficient=False, **kwargs):
     '''
     References
     ----------
     Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
     '''
-    pass
+    fbank = sp.feats.get_fbank(sound, sr=sr, **kwargs)
+    mfcc = dct(fbank, type=2, axis=1, norm='ortho')
+    if remove_first_coefficient is True:
+        mfcc = mfcc[:,1:num_mfcc+1]
+    else:
+        mfcc = mfcc[:,:num_mfcc+1]
+    return mfcc
+    
 
 def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           real_signal = False, fft_bins = 1024, 
