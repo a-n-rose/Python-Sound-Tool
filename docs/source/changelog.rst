@@ -18,7 +18,7 @@ Features
    -  `soundpy.models.builtin.envclassifier_extract_train` and 
    `soundpy.models.dataprep.GeneratorFeatExtraction` apply augmentations at random; 
    no longer a set of augmentations per epoch.
-   -  added `soundpy.feats.get_fbank` for increased consistency in feature extraction process (especially when applying augmentations)
+   -  added `soundpy.feats.get_fbank` and `soundpy.feats.get_mfcc` for increased consistency in feature extraction process (especially when applying augmentations)
    
 
 
