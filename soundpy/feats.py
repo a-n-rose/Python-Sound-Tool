@@ -563,6 +563,10 @@ def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **k
     if isinstance(sound, np.ndarray):
         if sound.dtype == np.complex64 or sound.dtype == np.complex128:
             stft = True
+        # probably a power spectrum without complex values...
+        # TODO improve
+        elif sound.shape[1] > sound.shape[0]:
+            stft = True
         else:
             stft = False
     else:
@@ -579,14 +583,18 @@ def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **k
     if fft_bins is None:
         if stft is True:
             # assumes number of fft bins is the length of second column
-            fft_bins = sound.shape[1]
+            fft_bins = sound.shape[1] * 2 
         else:
             # otherwise set as default: 512
             fft_bins = 1024
         
     freq_bins = np.floor((fft_bins + 1) * hz_points / sr)
     
-    fbank = np.zeros((num_filters, int(np.floor(fft_bins / 2 + 1))))
+    if stft:
+        # use number of fft columns in stft as reference
+        fbank = np.zeros((num_filters, sound.shape[1]))
+    else:
+        fbank = np.zeros((num_filters, int(np.floor(fft_bins / 2 + 1))))
     for m in range(1, num_filters + 1):
         f_m_minus = int(freq_bins[m - 1]) # left
         f_m = int(freq_bins[m]) # center
@@ -599,13 +607,13 @@ def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **k
     if stft:
         if np.min(sound) < 0:
             powspec = sp.dsp.calc_power(sound)
+        else:
+            powspec = sound
     else:
         sound_stft = sp.feats.get_stft(sound, sr=sr, fft_bins = fft_bins, **kwargs)
         powspec = sp.dsp.calc_power(sound_stft)
-    
-    sp.feats.plot(powspec, sr=sr, feature_type='stft')
+
     filter_banks = np.dot(powspec, fbank.T)
-    sp.feats.plot(filter_banks, sr=sr, feature_type='fbank', energy_scale=None)
     filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks) # numerical stability
     return filter_banks
 
