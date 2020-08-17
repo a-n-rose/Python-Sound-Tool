@@ -228,7 +228,9 @@ def get_feats(sound,
               window = 'hann',
               fft_bins = None,
               num_filters = 40,
-              num_mfcc = None, 
+              num_mfcc = None,
+              remove_first_coefficient = False,
+              sinosoidal_liftering = False,
               dur_sec = None,
               mono = None,
               rate_of_change = False,
@@ -410,15 +412,17 @@ def get_feats(sound,
         else:
             feats = data
         
-    # TODO test
+    # TODO test difference between python_speech_features and librosa
     if not 'signal' in feature_type:
         if subtract_mean is True:
             feats -= (np.mean(feats, axis=0) + 1e-8)
         if rate_of_change is True:
-            d1 = delta(feats, N=2)
+            #d1 = delta(feats, N=2)
+            d1 = librosa.feature.delta(feats.T).T
             feats = np.concatenate((feats, d1), axis=1)
         if rate_of_acceleration is True:
-            d2 = delta(delta(feats, N=2), N=2)
+            #d2 = delta(delta(feats, N=2), N=2)
+            d2 = librosa.feature.delta(feats.T, order=2).T
             feats = np.concatenate((feats, d2), axis=1)
 
     if 'powspec' in feature_type:
@@ -1639,7 +1643,7 @@ def get_feature_matrix_shape(sr, dur_sec, feature_type,
         elif rate_of_change is True or rate_of_acceleration is True:
             num_feats += num_feats
     
-        if context_window is not None:
+        if context_window:
             subframes = context_window * 2 + 1
             batches = math.ceil(total_rows_per_wav/subframes)
             feature_matrix_model = (
@@ -1705,8 +1709,8 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
         datadir = string2pathlib(datadir)
     if dataset is not None and iteration is not None:
         save_pic_path = datadir.joinpath(
-            'images',dataset,'{}_sample{}'.format(
-                kwargs['feature_type'], iteration))
+            'images',dataset,'{}_sample{}_{}'.format(
+                kwargs['feature_type'], iteration, label))
         title = '{} {} features: label {}'.format(
                         dataset, kwargs['feature_type'].upper(),
                         label)
@@ -1798,7 +1802,6 @@ def apply_context_window(feats, context_window, percent_overlap = 0.5):
     '''
     pass
     
-
 def save_features_datasets(datasets_dict, datasets_path2save_dict, 
                             context_window=None, labeled_data=False, 
                             subsection_data=False, divide_factor=None,

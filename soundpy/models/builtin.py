@@ -7,6 +7,7 @@ import random
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam
+import librosa
 
 import os, sys
 import inspect
@@ -130,9 +131,12 @@ def denoiser_train(feature_extraction_dir,
     # load smaller dataset to determine input size:
     data_val_noisy = np.load(val_paths_noisy[0])
     # expect shape (num_audiofiles, batch_size, num_frames, num_features)
-    input_shape = data_val_noisy.shape[2:] + (1,)
+    if len(data_val_noisy.shape) == 4:
+        input_shape = data_val_noisy.shape[2:] + (1,)
+    # expect shape (num_audiofiles, num_frames, num_features)
+    elif len(data_val_noisy.shape) == 3:
+        input_shape = data_val_noisy.shape[1:] + (1,)
     del data_val_noisy
-
     
     # setup model 
     denoiser, settings_dict = spdl.autoencoder_denoise(
@@ -171,6 +175,7 @@ def denoiser_train(feature_extraction_dir,
                 epochs = kwargs['epochs']
             else:
                 epochs = 10 # default in Keras
+                kwargs['epochs'] = epochs
             total_epochs = epochs * len(train_paths_noisy)
             print('\n\nThe model will be trained {} epochs per '.format(epochs)+\
                 'training session. \nTotal possible epochs: {}\n\n'.format(total_epochs))
@@ -216,14 +221,29 @@ def denoiser_train(feature_extraction_dir,
                 normalized = normalized,
                 add_tensor_last = True)
 
-            train_generator.generator()
-            val_generator.generator()
+
+            feats_noisy, feats_clean = next(train_generator.generator())
+            
+            ds_train = tf.data.Dataset.from_generator(
+                spdl.make_gen_callable(train_generator.generator()),
+                output_types=(feats_noisy.dtype, feats_clean.dtype), 
+                output_shapes=(feats_noisy.shape, 
+                                feats_clean.shape))
+            ds_val = tf.data.Dataset.from_generator(
+                spdl.make_gen_callable(val_generator.generator()),
+                output_types=(feats_noisy.dtype, feats_clean.dtype), 
+                output_shapes=(feats_noisy.shape, 
+                                feats_clean.shape))
+                
+            print(ds_train)
+            print(ds_val)
+                
             try:
                 history = denoiser.fit(
-                    train_generator.generator(),
+                    ds_train,
                     steps_per_epoch = data_train_noisy.shape[0],
                     callbacks = callbacks,
-                    validation_data = val_generator.generator(),
+                    validation_data = ds_val,
                     validation_steps = data_val_noisy.shape[0], 
                     **kwargs)
             except ValueError as e:
@@ -539,8 +559,6 @@ def envclassifier_train(feature_extraction_dir,
                 #ds_train,
                 #steps = data_test.shape[0])
             score = envclassifier.evaluate(ds_test, steps=500) 
-            print('Test loss:', score[0]) 
-            print('Test accuracy:', score[1])
 
         else:
             # TODO make scaling data optional?
@@ -559,29 +577,10 @@ def envclassifier_train(feature_extraction_dir,
                                         validation_data = (X_val, y_val),
                                         **kwargs)
             
-            envclassifier.evaluate(X_test, y_test)
-            y_predicted = envclassifier.predict(X_test)
-            # which category did the model predict?
+            score = envclassifier.evaluate(X_test, y_test)
             
-        
-            y_pred = np.argmax(y_predicted, axis=1)
-            if len(y_pred.shape) > len(y_test.shape):
-                y_test = np.expand_dims(y_test, axis=1)
-            elif len(y_pred.shape) < len(y_test.shape):
-                y_pred = np.expand_dims(y_pred, axis=1)
-            try:
-                assert y_pred.shape == y_test.shape
-            except AssertionError:
-                raise ValueError('The shape of prediction data {}'.format(y_pred.shape) +\
-                    ' does not match the `y_test` dataset {}'.format(y_test.shape) +\
-                        '\nThe shapes much match in order to measure accuracy.')
-                    
-            match = sum(y_test == y_pred)
-            if len(match.shape) == 1:
-                match = match[0]
-            test_accuracy = round(match/len(y_test),4)
-            print('\nModel reached accuracy of {}%'.format(test_accuracy*100))
-            
+        print('Test loss:', score[0]) 
+        print('Test accuracy:', score[1])
         end_session = time.time()
         total_dur_sec_session = round(end_session-start_session,2)
         model_features_dict = dict(model_path = model_path,
@@ -590,6 +589,7 @@ def envclassifier_train(feature_extraction_dir,
                                 data_test_path = data_test_path, 
                                 total_dur_sec_session = total_dur_sec_session,
                                 use_generator = use_generator,
+                                score = score,
                                 kwargs = kwargs)
         model_features_dict.update(settings_dict)
         if i == len(train_paths)-1:
@@ -642,6 +642,10 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
         How features are transformed back tino audio samples.
     '''
     # if values saved as strings, restore them to original type
+    if 'kwargs' in feat_settings_dict:
+        kwargs = sp.utils.restore_dictvalue(feat_settings_dict['kwargs'])
+        feat_settings_dict.update(kwargs)
+    print(feat_settings_dict)
     feature_type = sp.utils.restore_dictvalue(
         feat_settings_dict['feature_type'])
     win_size_ms = sp.utils.restore_dictvalue(
@@ -653,17 +657,31 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     try:
         window = sp.utils.restore_dictvalue(feat_settings_dict['window'])
     except KeyError:
-        window = None
-    frames_per_sample = sp.utils.restore_dictvalue(
-        feat_settings_dict['frames_per_sample'])
-    input_shape = sp.utils.restore_dictvalue(
-        feat_settings_dict['input_shape'])
+        window = 'hann'
+    try:
+        frames_per_sample = sp.utils.restore_dictvalue(
+            feat_settings_dict['frames_per_sample'])
+    except KeyError:
+        frames_per_sample = None
+    try:
+        input_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['input_shape'])
+    except KeyError:
+        input_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['feat_model_shape'])
+    try:
+        base_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['desired_shape'])
+    except KeyError:
+        base_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['feat_base_shape'])
     dur_sec = sp.utils.restore_dictvalue(
         feat_settings_dict['dur_sec'])
-    num_feats = sp.utils.restore_dictvalue(
-        feat_settings_dict['num_feats'])
-    desired_shape = sp.utils.restore_dictvalue(
-        feat_settings_dict['desired_shape'])
+    try:
+        num_feats = sp.utils.restore_dictvalue(
+            feat_settings_dict['num_feats'])
+    except KeyError:
+        num_feats = base_shape[-1]
     
     feats = sp.feats.get_feats(new_audio, sr=sr, 
                                 feature_type = feature_type,
@@ -691,7 +709,7 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
         original_phase = None
     
     if 'signal' in feature_type:
-        feats_zeropadded = np.zeros(desired_shape)
+        feats_zeropadded = np.zeros(base_shape)
         feats_zeropadded = feats_zeropadded.flatten()
         if len(feats.shape) > 1:
             feats_zeropadded = feats_zeropadded.reshape(feats_zeropadded.shape[0],
@@ -700,55 +718,76 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
             feats = feats[:len(feats_zeropadded)]
         feats_zeropadded[:len(feats)] += feats
         # reshape here to avoid memory issues if total # samples is large
-        feats = feats_zeropadded.reshape(desired_shape)
+        feats = feats_zeropadded.reshape(base_shape)
     
     feats = sp.feats.prep_new_audiofeats(feats,
-                                           desired_shape,
+                                           base_shape,
                                            input_shape)
+
     # ensure same shape as feats
     if original_phase is not None:
         original_phase = sp.feats.prep_new_audiofeats(original_phase,
-                                                        desired_shape,
+                                                        base_shape,
                                                         input_shape)
     
     
     feats_normed = sp.feats.normalize(feats)
+    
+    print(feats_normed.shape)
+    print(base_shape)
+    print(input_shape)
+    
     denoiser = load_model(model)
-    cleaned_feats = denoiser.predict(feats_normed, batch_size = frames_per_sample)
-    
-    # need to change shape back to 2D
-    # current shape is (batch_size, num_frames, num_features, 1)
-    # need (num_frames, num_features)
-
-    # remove last tensor dimension
-    if feats_normed.shape[-1] == 1:
-        feats_normed = feats_normed.reshape(feats_normed.shape[:-1])
-    feats_flattened = feats_normed.reshape(-1, 
-                                            feats_normed.shape[-1])
-    audio_shape = (feats_flattened.shape)
-    
-    cleaned_feats = cleaned_feats.reshape(audio_shape)
-    if original_phase is not None:
-        original_phase = original_phase.reshape(audio_shape)
-    
-    # now combine them to create audio samples:
-    cleaned_audio = sp.feats.feats2audio(cleaned_feats, 
-                                           feature_type = feature_type,
-                                           sr = sr, 
-                                           win_size_ms = win_size_ms,
-                                           percent_overlap = percent_overlap,
-                                           phase = original_phase)
-    if not isinstance(new_audio, np.ndarray):
-        noisy_audio, __ = sp.loadsound(new_audio, sr=sr, remove_dc=remove_dc)
+    if len(feats_normed.shape) == 3:
+        batch_size = feats_normed.shape[0]
+        feats_normed = feats_normed.reshape((1,)+feats_normed.shape)
+        print(feats_normed.shape)
+        cleaned_feats = denoiser.predict(feats_normed, batch_size = batch_size)
     else:
-        noisy_audio = new_audio
-    if len(cleaned_audio) > len(noisy_audio):
-        cleaned_audio = cleaned_audio[:len(noisy_audio)]
+        feats_normed = feats_normed.reshape((1,)+feats_normed.shape)
+        print(feats_normed.shape)
+        cleaned_feats = denoiser.predict(feats_normed)
     
-    max_energy_original = np.max(noisy_audio)
-    # match the scale of the original audio:
-    cleaned_audio = sp.dsp.scalesound(cleaned_audio, max_val = max_energy_original)
-    return cleaned_audio, sr
+    try:
+        # need to change shape back to 2D
+        # current shape is (batch_size, num_frames, num_features, 1)
+        # need (num_frames, num_features)
+
+        # remove last tensor dimension
+        if feats_normed.shape[-1] == 1:
+            feats_normed = feats_normed.reshape(feats_normed.shape[:-1])
+        feats_flattened = feats_normed.reshape(-1, 
+                                                feats_normed.shape[-1])
+        audio_shape = (feats_flattened.shape)
+        
+        cleaned_feats = cleaned_feats.reshape(audio_shape)
+        if original_phase is not None:
+            original_phase = original_phase.reshape(audio_shape)
+        
+        # now combine them to create audio samples:
+        cleaned_audio = sp.feats.feats2audio(cleaned_feats, 
+                                            feature_type = feature_type,
+                                            sr = sr, 
+                                            win_size_ms = win_size_ms,
+                                            percent_overlap = percent_overlap,
+                                            phase = original_phase)
+        if not isinstance(new_audio, np.ndarray):
+            noisy_audio, __ = sp.loadsound(new_audio, sr=sr, remove_dc=remove_dc)
+        else:
+            noisy_audio = new_audio
+        if len(cleaned_audio) > len(noisy_audio):
+            cleaned_audio = cleaned_audio[:len(noisy_audio)]
+        
+        max_energy_original = np.max(noisy_audio)
+        # match the scale of the original audio:
+        cleaned_audio = sp.dsp.scalesound(cleaned_audio, max_val = max_energy_original)
+        feature_type = 'signal'
+    except librosa.ParameterError as e:
+        print('\nlibrosa.ParameterError: ',e)
+        print('\nUnable to convert to raw audio samples, likely to low `fft_bins` count. '+\
+            '\nReturning cleaned audio in {} features.'.format(feature_type))
+        cleaned_audio = cleaned_feats
+    return cleaned_audio, sr, feature_type
 
 
     
@@ -786,11 +825,23 @@ def collect_classifier_settings(feature_extraction_dir):
     
     settings_dict = sp.utils.load_dict(
         dataset_path.joinpath('log_extraction_settings.csv'))
-    num_feats = sp.utils.restore_dictvalue(settings_dict['num_feats'])
+    if 'kwargs' in settings_dict:
+        kwargs = sp.utils.restore_dictvalue(settings_dict['kwargs'])
+        settings_dict.update(kwargs)
     # should the shape include the label column or not?
     # currently not
-    feat_shape = sp.utils.restore_dictvalue(settings_dict['desired_shape'])
-    feature_type = settings_dict['feat_type']
+    try:
+        feat_shape = sp.utils.restore_dictvalue(settings_dict['desired_shape'])
+    except KeyError:
+        feat_shape = sp.utils.restore_dictvalue(settings_dict['feat_base_shape'])
+    try:
+        num_feats = sp.utils.restore_dictvalue(settings_dict['num_feats'])
+    except KeyError:
+        num_feats = feat_shape[-1]
+    try:
+        feature_type = settings_dict['feat_type']
+    except KeyError:
+        feature_type = settings_dict['feature_type']
     return datasets, num_labels, feat_shape, num_feats, feature_type
 
 def cnnlstm_train(feature_extraction_dir,
@@ -915,23 +966,37 @@ def cnnlstm_train(feature_extraction_dir,
                                                   adjust_shape = input_shape,
                                                   add_tensor_last = add_tensor_last)
 
-            train_generator.generator()
-            val_generator.generator()
-            test_generator.generator()
+            feats, label = next(train_generator.generator())
+
+            ds_train = tf.data.Dataset.from_generator(
+                spdl.make_gen_callable(train_generator.generator()),
+                output_types=(feats.dtype, label.dtype), 
+                output_shapes=(feats.shape, 
+                                label.shape))
+            ds_val = tf.data.Dataset.from_generator(
+                spdl.make_gen_callable(val_generator.generator()),
+                output_types=(feats.dtype, label.dtype), 
+                output_shapes=(feats.shape, 
+                                label.shape))
+            ds_test = tf.data.Dataset.from_generator(
+                spdl.make_gen_callable(test_generator.generator()),
+                output_types=(feats.dtype, label.dtype), 
+                output_shapes=(feats.shape, 
+                                label.shape))
+                
+            print(ds_train)
+            print(ds_val)
+            print(ds_test)
+
             history = model.fit(
-                train_generator.generator(),
+                ds_train,
                 steps_per_epoch = data_train.shape[0],
                 callbacks = callbacks,
-                validation_data = val_generator.generator(),
+                validation_data = ds_val,
                 validation_steps = data_val.shape[0],
                 **kwargs)
             
-            # TODO test how well prediction works. use simple predict instead?
-            # need to define `y_test`
-            X_test, y_test = sp.feats.separate_dependent_var(data_test)
-            y_predicted = model.predict(
-                test_generator.generator(),
-                steps = data_test.shape[0])
+            score = model.evaluate(ds_test, steps=500) 
 
         else:
             # TODO make scaling data optional?
@@ -967,29 +1032,10 @@ def cnnlstm_train(feature_extraction_dir,
                                         validation_data = (X_val, y_val),
                                         **kwargs)
             
-            model.evaluate(X_test, y_test)
-            y_predicted = model.predict(X_test)
-            # which category did the model predict?
+            score = model.evaluate(X_test, y_test)
             
-    
-        y_pred = np.argmax(y_predicted, axis=1)
-        if len(y_pred.shape) > len(y_test.shape):
-            y_test = np.expand_dims(y_test, axis=1)
-        elif len(y_pred.shape) < len(y_test.shape):
-            y_pred = np.expand_dims(y_pred, axis=1)
-        try:
-            assert y_pred.shape == y_test.shape
-        except AssertionError:
-            raise ValueError('The shape of prediction data {}'.format(y_pred.shape) +\
-                ' does not match the `y_test` dataset {}'.format(y_test.shape) +\
-                    '\nThe shapes much match in order to measure accuracy.')
-                
-        match = sum(y_test == y_pred)
-        if len(match.shape) == 1:
-            match = match[0]
-        test_accuracy = round(match/len(y_test),4)
-        print('\nModel reached accuracy of {}%'.format(test_accuracy*100))
-        
+        print('Test loss:', score[0]) 
+        print('Test accuracy:', score[1])
         end_session = time.time()
         total_dur_sec_session = round(end_session-start_session,2)
         model_features_dict = dict(model_path = model_path,
@@ -998,6 +1044,7 @@ def cnnlstm_train(feature_extraction_dir,
                                 data_test_path = data_test_path, 
                                 total_dur_sec_session = total_dur_sec_session,
                                 use_generator = use_generator,
+                                score = score,
                                 kwargs = kwargs)
         model_features_dict.update(settings)
         model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
@@ -1136,24 +1183,38 @@ def resnet50_train(feature_extraction_dir,
                                                   add_tensor_last = add_tensor_last,
                                                     gray2color = True)
 
-            train_generator.generator()
-            val_generator.generator()
-            test_generator.generator()
+            feats, label = next(train_generator.generator())
+            
+            ds_train = tf.data.Dataset.from_generator(
+                spdl.make_gen_callable(train_generator.generator()),
+                output_types=(feats.dtype, label.dtype), 
+                output_shapes=(feats.shape, 
+                                label.shape))
+            ds_val = tf.data.Dataset.from_generator(
+                spdl.make_gen_callable(val_generator.generator()),
+                output_types=(feats.dtype, label.dtype), 
+                output_shapes=(feats.shape, 
+                                label.shape))
+            ds_test = tf.data.Dataset.from_generator(
+                spdl.make_gen_callable(test_generator.generator()),
+                output_types=(feats.dtype, label.dtype), 
+                output_shapes=(feats.shape, 
+                                label.shape))
+
+
+            print(ds_train)
+            print(ds_val)
+            print(ds_test)
+
             history = model.fit(
-                train_generator.generator(),
+                ds_train,
                 steps_per_epoch = data_train.shape[0],
                 callbacks = callbacks,
-                validation_data = val_generator.generator(),
+                validation_data = ds_val,
                 validation_steps = data_val.shape[0],
                 **kwargs)
             
-            # TODO test how well prediction works. use simple predict instead?
-            # need to define `y_test`
-            X_test, y_test = sp.feats.separate_dependent_var(data_test)
-            y_predicted = model.predict(
-                test_generator.generator(),
-                steps = data_test.shape[0])
-
+            score = model.evaluate(ds_test, steps=500) 
         else:
             # TODO make scaling data optional?
             # data is separated and shaped for this classifier in scale_X_y..
@@ -1196,29 +1257,11 @@ def resnet50_train(feature_extraction_dir,
                                         validation_data = (X_val, y_val),
                                         **kwargs)
             
-            model.evaluate(X_test, y_test)
-            y_predicted = model.predict(X_test)
-            # which category did the model predict?
-            
+            score = model.evaluate(X_test, y_test)
+         
     
-        y_pred = np.argmax(y_predicted, axis=1)
-        if len(y_pred.shape) > len(y_test.shape):
-            y_test = np.expand_dims(y_test, axis=1)
-        elif len(y_pred.shape) < len(y_test.shape):
-            y_pred = np.expand_dims(y_pred, axis=1)
-        try:
-            assert y_pred.shape == y_test.shape
-        except AssertionError:
-            raise ValueError('The shape of prediction data {}'.format(y_pred.shape) +\
-                ' does not match the `y_test` dataset {}'.format(y_test.shape) +\
-                    '\nThe shapes much match in order to measure accuracy.')
-                
-        match = sum(y_test == y_pred)
-        if len(match.shape) == 1:
-            match = match[0]
-        test_accuracy = round(match/len(y_test),4)
-        print('\nModel reached accuracy of {}%'.format(test_accuracy*100))
-        
+        print('Test loss:', score[0]) 
+        print('Test accuracy:', score[1])
         end_session = time.time()
         total_dur_sec_session = round(end_session-start_session,2)
         model_features_dict = dict(model_path = model_path,
@@ -1227,6 +1270,7 @@ def resnet50_train(feature_extraction_dir,
                                 data_test_path = data_test_path, 
                                 total_dur_sec_session = total_dur_sec_session,
                                 use_generator = use_generator,
+                                score = score,
                                 kwargs = kwargs)
         model_features_dict.update(settings)
         model_features_dict_path = model_dir.joinpath('info_{}_{}.csv'.format(
@@ -1309,12 +1353,9 @@ def envclassifier_extract_train(
     augment_dict = None,
     audiodata_path = None,
     save_new_files_dir = None,
-    frames_per_sample = None, # images_per_sample, sections_per_sample..? 
     labeled_data = True,
+    ignore_label_marker = None,
     batch_size = 10,
-    use_librosa = True, 
-    center = True, 
-    mode = 'reflect', 
     epochs = 5,
     patience = 15,
     callbacks = None,
@@ -1361,10 +1402,10 @@ def envclassifier_extract_train(
             'parameter `feature_type` to be set as one of the following:\n'+ \
                 '- signal\n- stft\n- powspec\n- fbank\n- mfcc\n') 
     
-    if 'stft' not in kwargs['feature_type'] and 'powspec' not in kwargs['feature_type']:
-        raise ValueError('Function `envclassifier_extract_train` can only reliably '+\
-            'work if `feature_type` parameter is set to "stft" or "powspec".'+\
-                ' In future versions the other feature types will be made available.')
+    #if 'stft' not in kwargs['feature_type'] and 'powspec' not in kwargs['feature_type']:
+        #raise ValueError('Function `envclassifier_extract_train` can only reliably '+\
+            #'work if `feature_type` parameter is set to "stft" or "powspec".'+\
+                #' In future versions the other feature types will be made available.')
     
     # ensure defaults are set if not included in kwargs:
     if 'win_size_ms' not in kwargs:
@@ -1395,6 +1436,8 @@ def envclassifier_extract_train(
         kwargs['zeropad'] = True
     if 'num_filters' not in kwargs:
         kwargs['num_filters'] = 40
+    if 'num_mfcc' not in kwargs:
+        kwrags['num_mfcc'] = 40
         
     # training will fail if patience set to a non-integer type
     if patience is None:
@@ -1431,6 +1474,12 @@ def envclassifier_extract_train(
             if label.suffix:
                 # avoid adding unwanted files in the directory
                 # want only directory names
+                continue
+            if ignore_label_marker is not None:
+                if ignore_label_marker in label.stem:
+                    continue
+            # ignores hidden directories
+            if label.stem[0] == '.':
                 continue
             labels.append(label.stem)
         labels = set(labels)
@@ -1503,21 +1552,28 @@ def envclassifier_extract_train(
         # don't have the label data available
         dict_encode, dict_decode = None, None
         
-
-    input_shape = spdl.dataprep.get_input_shape(kwargs, labeled_data = labeled_data,
-                                  frames_per_sample = frames_per_sample,
-                                  use_librosa = use_librosa)
+    feat_base_shape, input_shape = sp.feats.get_feature_matrix_shape(
+        labeled_data = labeled_data,
+        **kwargs)
+    #input_shape = spdl.dataprep.get_input_shape(kwargs, labeled_data = labeled_data,
+                                  #frames_per_sample = frames_per_sample,
+                                  #use_librosa = use_librosa)
     
     # update num_fft_bins to input_shape's last column, expecting it to be freq bins  / feats: 
     if kwargs['real_signal']:
-        kwargs['fft_bins'] = input_shape[-1] 
+        if labeled_data:
+            kwargs['fft_bins'] = input_shape[-1] -1
+        else:
+            kwargs['fft_bins'] = input_shape[-1] 
     else:
-        kwargs['fft_bins'] = input_shape[-1] * 2 -1
+        if labeled_data:
+            kwargs['fft_bins'] = input_shape[-1] * 2 -1 -1
+        else:
+            kwargs['fft_bins'] = input_shape[-1] * 2 -1
         
-    # currently unnecessary as 'fbank' and 'mfcc' are not supported yet.
+
     if 'fbank' in kwargs['feature_type'] or 'mfcc' in kwargs['feature_type']:
-        if not kwargs['use_scipy']:
-            kwargs['fmax'] = kwargs['sr'] * 2.0
+        kwargs['fmax'] = kwargs['sr'] * 2.0
     # extract validation data (must already be extracted)
     extracted_data_dict = dict([('val',dataset_dict['val']),
                      ('test',dataset_dict['test'])])
