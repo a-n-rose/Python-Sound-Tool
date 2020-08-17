@@ -557,7 +557,19 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
 
 
 def hz_to_mel(freq):
-    '''
+    '''Converts frequency to Mel scale
+    
+    Parameters
+    ----------
+    freq : int or float or array like of ints / floats
+        The frequency/ies to convert to Mel scale.
+        
+    Returns
+    -------
+    mel : int or float or array of ints / floats
+        The frequency/ies in Mel scale.
+    
+    
     References
     ----------
     https://en.wikipedia.org/wiki/Mel_scale#Formula
@@ -590,7 +602,25 @@ def mel_to_hz(mel):
     return freq
 
 def fbank_filters(fmin, fmax, num_filters):
-    '''
+    '''Calculates the mel filterbanks given a min and max frequency and `num_filters`. 
+    
+    Parameters
+    ----------
+    fmin : int, float 
+        Minimum frequency relevant in signal.
+        
+    fmax : int, float 
+        Maximum frequency relevant in signal. 
+        
+    num_filters : int 
+        The number of evenly spaced filters (according to mel scale) between the `fmin`
+        and `fmax` frequencies.
+        
+    Returns
+    -------
+    mel_points : np.ndarray [size=(num_filters,)]
+        An array of floats containing evenly spaced filters (according to mel scale).
+    
     References
     ----------
     Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
@@ -604,7 +634,16 @@ def fbank_filters(fmin, fmax, num_filters):
     return mel_points
 
 def sinosoidal_liftering(mfccs, cep_lifter = 22):
-    '''
+    '''Reduces influence of higher coefficients; found useful in automatic speech rec.
+    
+    Parameters
+    ----------
+    mfccs : np.ndarray [shape=(num_samples, num_mfcc)]
+        The matrix containing mel-frequency cepstral coefficients.
+        
+    cep_lifter : int 
+        The amount to apply `sinosoidal_liftering`. (default 22)
+    
     References
     ----------
     Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html

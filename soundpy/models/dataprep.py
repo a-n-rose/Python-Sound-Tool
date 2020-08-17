@@ -506,17 +506,17 @@ class GeneratorFeatExtraction:
                 'powspec' in self.kwargs['feature_type']:
                 feats = augmented_data
                 if 'powspec' in self.kwargs['feature_type']:
-                    feats = np.abs(feats)**2
+                    feats = sp.dsp.calc_power(feats)
                     
             # finding it difficult to work with librosa due to slight 
             # differences in padding, fft_bins etc.
             # perhaps more reliable to use non-librosa function for 'stft' extraction
 
-
             elif 'stft'in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
                 feats = sp.feats.get_stft(
                     augmented_data, 
+                    sr = self.kwargs['sr'],
                     win_size_ms = self.kwargs['win_size_ms'],
                     percent_overlap = self.kwargs['percent_overlap'],
                     real_signal = self.kwargs['real_signal'],
@@ -526,50 +526,80 @@ class GeneratorFeatExtraction:
                     window = self.kwargs['window'],
                     zeropad = self.kwargs['zeropad']
                     )
-                
                 if 'powspec' in self.kwargs['feature_type']:
-                    feats = np.abs(feats)**2
+                    feats = sp.dsp.calc_power(feats)
+                    
+            elif 'fbank' in self.kwargs['feature_type']:
+                feats = sp.feats.get_fbank(
+                    augmented_data,
+                    sr = self.kwargs['sr'],
+                    num_filters = self.kwargs['num_filters'],
+                    win_size_ms = self.kwargs['win_size_ms'],
+                    percent_overlap = self.kwargs['percent_overlap'],
+                    real_signal = self.kwargs['real_signal'],
+                    fft_bins = self.kwargs['fft_bins'],
+                    rate_of_change = self.kwargs['rate_of_change'],
+                    rate_of_acceleration = self.kwargs['rate_of_acceleration'],
+                    window = self.kwargs['window'],
+                    zeropad = self.kwargs['zeropad']
+                    )
+            
+            elif 'mfcc' in self.kwargs['feature_type']:
+                feats = sp.feats.get_mfcc(
+                    augmented_data,
+                    sr = self.kwargs['sr'],
+                    num_mfcc = self.kwargs['num_mfcc'],
+                    num_filters = self.kwargs['num_filters'],
+                    win_size_ms = self.kwargs['win_size_ms'],
+                    percent_overlap = self.kwargs['percent_overlap'],
+                    real_signal = self.kwargs['real_signal'],
+                    fft_bins = self.kwargs['fft_bins'],
+                    rate_of_change = self.kwargs['rate_of_change'],
+                    rate_of_acceleration = self.kwargs['rate_of_acceleration'],
+                    window = self.kwargs['window'],
+                    zeropad = self.kwargs['zeropad']
+                    )
 
-            else:
-                try:
-                    feats = sp.feats.get_feats(augmented_data, **self.kwargs)
-                except TypeError as e:
-                    print(e)
-                    # invalid audio for feature_extraction
-                    print('Are any non-nan? ',np.isfinite(augmented_data).any())
-                    print('Are all non-nan? ',np.isfinite(augmented_data).all())
-                    print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                    print('File {} contains invalid sample data,'.format(audiopath)+\
-                        ' incompatible with augmentation techniques. Removing NAN values.')
-                    feats = sp.feats.get_feats(np.nan_to_num(augmented_data), **self.kwargs)
-                    if self.decode_dict is not None:
-                        if not self.ignore_invalid:
-                            label_invalid = len(self.decode_dict)-1
-                            label_pic = self.decode_dict[label_invalid]
-                            if label_pic == 'invalid':
-                                print('Encoded label {} adjusted to {}'.format(label,
-                                                                                label_invalid))
-                                label = label_invalid
-                                print('Label adjusted to `invalid`')
-                                print('NOTE: If you would like to ignore invalid data, '+\
-                                    'set `ignore_invalid` to True.\n')
-                            else:
-                                label_pic = self.decode_dict[label]
-                                import Warnings
-                                msg = '\nWARNING: Label dict does not include `invalid` label. '+\
-                                    'Invalid audiofile {} will be fed '.format(audiopath)+\
-                                        'to the network under {} label.\n'.format(self.decode_dict[label])
-                                Warnings.warn(msg)
-                        else:
-                            print('Invalid data ignored (no `invalid` label applied)')
-                            print('NOTE: If you do not want to ignore invalid data, '+\
-                                'set `ignore_invalid` to False.\n')
-                    else:
-                        import Warnings
-                        msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
-                            'No label dictionary with `invalid` label supplied. Therefore '+\
-                                'model will be fed possibly invalid data with label {}\n'.format(
-                                    label)
+            #else:
+                #try:
+                    #feats = sp.feats.get_feats(augmented_data, **self.kwargs)
+                #except TypeError as e:
+                    #print(e)
+                    ## invalid audio for feature_extraction
+                    #print('Are any non-nan? ',np.isfinite(augmented_data).any())
+                    #print('Are all non-nan? ',np.isfinite(augmented_data).all())
+                    #print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    #print('File {} contains invalid sample data,'.format(audiopath)+\
+                        #' incompatible with augmentation techniques. Removing NAN values.')
+                    #feats = sp.feats.get_feats(np.nan_to_num(augmented_data), **self.kwargs)
+                    #if self.decode_dict is not None:
+                        #if not self.ignore_invalid:
+                            #label_invalid = len(self.decode_dict)-1
+                            #label_pic = self.decode_dict[label_invalid]
+                            #if label_pic == 'invalid':
+                                #print('Encoded label {} adjusted to {}'.format(label,
+                                                                                #label_invalid))
+                                #label = label_invalid
+                                #print('Label adjusted to `invalid`')
+                                #print('NOTE: If you would like to ignore invalid data, '+\
+                                    #'set `ignore_invalid` to True.\n')
+                            #else:
+                                #label_pic = self.decode_dict[label]
+                                #import Warnings
+                                #msg = '\nWARNING: Label dict does not include `invalid` label. '+\
+                                    #'Invalid audiofile {} will be fed '.format(audiopath)+\
+                                        #'to the network under {} label.\n'.format(self.decode_dict[label])
+                                #Warnings.warn(msg)
+                        #else:
+                            #print('Invalid data ignored (no `invalid` label applied)')
+                            #print('NOTE: If you do not want to ignore invalid data, '+\
+                                #'set `ignore_invalid` to False.\n')
+                    #else:
+                        #import Warnings
+                        #msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
+                            #'No label dictionary with `invalid` label supplied. Therefore '+\
+                                #'model will be fed possibly invalid data with label {}\n'.format(
+                                    #label)
                 
             if self.apply_log:
                 # TODO test

@@ -795,8 +795,6 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
 def envclassifier_feats(
     data_dir,
     data_features_dir = None,
-    feature_type = None,
-    dur_sec = 1,
     perc_train = 0.8,
     ignore_label_marker = None,
     **kwargs):
@@ -847,12 +845,8 @@ def envclassifier_feats(
     '''
     if data_features_dir is None:
         data_features_dir = './audiodata/example_feats_models/envclassifier/'
-    if feature_type is None:
-        feature_type = 'fbank'
-    if 'signal' in feature_type:
-        raise ValueError('Feature type "signal" is not yet supported for this model.')
 
-    feat_extraction_dir = 'features_'+ feature_type + '_' + sp.utils.get_date()
+    feat_extraction_dir = 'features_' + sp.utils.get_date()
 
     # collect labels 
     labels = []
@@ -886,12 +880,9 @@ def envclassifier_feats(
     dict_encdodedlabel2audio_path = feat_extraction_dir.joinpath('dict_encdodedlabel2audio.csv')
     
     # designate where to save train, val, and test data
-    data_train_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('train',
-                                                                        feature_type))
-    data_val_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('val',
-                                                                        feature_type))
-    data_test_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('test',
-                                                                        feature_type))
+    data_train_path = feat_extraction_dir.joinpath('{}_data.npy'.format('train'))
+    data_val_path = feat_extraction_dir.joinpath('{}_data.npy'.format('val'))
+    data_test_path = feat_extraction_dir.joinpath('{}_data.npy'.format('test'))
 
     # create and save encoding/decoding labels dicts
     dict_encode, dict_decode = sp.datasets.create_dicts_labelsencoded(labels)
@@ -913,12 +904,13 @@ def envclassifier_feats(
     dict_encdodedlabel2audio_path = sp.utils.save_dict(
         dict2save = dict_encodedlabel2audio, 
         filename = dict_encdodedlabel2audio_path, 
-        overwrite=False)
+        overwrite = False)
     # assign audiofiles into train, validation, and test datasets
-    train, val, test = sp.datasets.audio2datasets(dict_encdodedlabel2audio_path,
-                                                perc_train=perc_train,
-                                                limit=None,
-                                                seed=40)
+    train, val, test = sp.datasets.audio2datasets(
+        dict_encdodedlabel2audio_path,
+        perc_train = perc_train,
+        limit = None,
+        seed = 40)
 
     # save audiofiles for each dataset to dict and save
     dataset_dict = dict([('train',train),('val', val),('test',test)])
@@ -940,8 +932,7 @@ def envclassifier_feats(
         datasets_dict = dataset_dict,
         datasets_path2save_dict = datasets_path2save_dict,
         labeled_data = True,
-        feature_type = feature_type,
-        dur_sec = dur_sec,
+        decode_dict = dict_decode,
         **kwargs)
 
     end = time.time()
@@ -953,8 +944,8 @@ def envclassifier_feats(
     # save which audiofiles were extracted for each dataset
     # save where extracted data were saved
     # save how long feature extraction took
-    dataprep_settings = dict(dataset_dict=dataset_dict,
-                            datasets_path2save_dict=datasets_path2save_dict,
+    dataprep_settings = dict(dataset_dict = dataset_dict,
+                            datasets_path2save_dict = datasets_path2save_dict,
                             total_dur_sec = total_dur_sec)
     dataprep_settings_path = sp.utils.save_dict(
         dict2save = dataprep_settings,
