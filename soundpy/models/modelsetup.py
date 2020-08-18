@@ -15,7 +15,7 @@ import soundpy as sp
 
 ###############################################################################
 
-def setup_layers(num_features, num_layers, kernel_shape = (3,3), max_feature_map = 128):
+def setup_layers(num_features, num_layers, kernel_shape = (3,3), max_feature_map = 64):
     '''Sets up `feature_maps` and `kernels` for 1 or more layered convolutional neural networks.
     
     Parameters
