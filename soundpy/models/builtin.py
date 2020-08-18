@@ -682,14 +682,18 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
             feat_settings_dict['num_feats'])
     except KeyError:
         num_feats = base_shape[-1]
+    fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['fft_bins'])
     
-    feats = sp.feats.get_feats(new_audio, sr=sr, 
+    feats = sp.feats.get_feats(new_audio, 
+                               sr=sr, 
                                 feature_type = feature_type,
                                 win_size_ms = win_size_ms,
                                 percent_overlap = percent_overlap,
                                 window = window, 
                                 dur_sec = dur_sec,
-                                num_filters = num_feats)
+                                num_filters = num_feats,
+                                fft_bins = fft_bins)
+    
     # are phase data still present? (only in stft features)
     if feats.dtype == np.complex and np.min(feats) < 0:
         original_phase = sp.dsp.calc_phase(feats,
@@ -702,7 +706,8 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
                                           percent_overlap = percent_overlap,
                                           window = window, 
                                           dur_sec = dur_sec,
-                                          num_filters = num_feats)
+                                          num_filters = num_feats,
+                                          fft_bins = fft_bins)
         original_phase = sp.dsp.calc_phase(feats_stft,
                                                radians = False)
     else:
@@ -723,7 +728,6 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     feats = sp.feats.prep_new_audiofeats(feats,
                                            base_shape,
                                            input_shape)
-
     # ensure same shape as feats
     if original_phase is not None:
         original_phase = sp.feats.prep_new_audiofeats(original_phase,
@@ -732,10 +736,6 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     
     
     feats_normed = sp.feats.normalize(feats)
-    
-    print(feats_normed.shape)
-    print(base_shape)
-    print(input_shape)
     
     denoiser = load_model(model)
     if len(feats_normed.shape) == 3:
