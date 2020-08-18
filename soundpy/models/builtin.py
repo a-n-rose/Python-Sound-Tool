@@ -82,6 +82,11 @@ def denoiser_train(feature_extraction_dir,
     soundpy.models.template_models.autoencoder_denoise
         Template model architecture for basic autoencoder denoiser.
     '''
+    if use_generator is False:
+        import warnings
+        msg = '\nWARNING: It is advised to set `use_generator` to True '+\
+            'as memory issues are avoided and training is more reliable. '+\
+                'There may be bugs in the functionality set to False. '
     dataset_path = sp.utils.check_dir(feature_extraction_dir, make=False)
     
     # designate where to save model and related files
@@ -254,9 +259,15 @@ def denoiser_train(feature_extraction_dir,
                         ' to either True, False, or None.')
 
         else:
-            #reshape to mix samples and batchsizes:
-            train_shape = (data_train_noisy.shape[0]*data_train_noisy.shape[1],)+ data_train_noisy.shape[2:] + (1,)
-            val_shape = (data_val_noisy.shape[0]*data_val_noisy.shape[1],)+ data_val_noisy.shape[2:] + (1,)
+            # reshape to mix samples and batchsizes:
+            # if batch sizes are prevalent
+            # need better way to distinguish this
+            if len(data_train_noisy.shape) > 3:
+                train_shape = (data_train_noisy.shape[0]*data_train_noisy.shape[1],)+ data_train_noisy.shape[2:] + (1,)
+                val_shape = (data_val_noisy.shape[0]*data_val_noisy.shape[1],)+ data_val_noisy.shape[2:] + (1,)
+            else:
+                train_shape = data_train_noisy.shape + (1,)
+                val_shape = data_val_noisy.shape + (1,)
             
             if not normalized:
                 data_train_noisy = sp.feats.normalize(data_train_noisy)
