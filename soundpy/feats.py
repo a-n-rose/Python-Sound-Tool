@@ -1540,7 +1540,7 @@ def get_feature_matrix_shape(sr, dur_sec, feature_type,
                              win_size_ms = None, percent_overlap = None,
                              fft_bins = None, num_mfcc = None, num_filters = None,
                              rate_of_change = False, rate_of_acceleration = False,
-                             context_window = None, zeropad = True, labeled_data = False):
+                             context_window = None, zeropad = True, labeled_data = False, remove_first_coefficient = False):
     '''Returns expected shapes of feature matrix depending on several parameters.
     
     Parameters
@@ -1591,6 +1591,10 @@ def get_feature_matrix_shape(sr, dur_sec, feature_type,
     labeled_data : bool 
         If True, a label will be added to the output shape of features. 
         
+    remove_first_coefficient : bool 
+        If True, the first mfcc coefficient will not be included in feature
+        matrix.
+        
     Returns
     -------
     feature_matrix_base : tuple
@@ -1627,6 +1631,8 @@ def get_feature_matrix_shape(sr, dur_sec, feature_type,
                 num_feats = 40
             else:
                 num_feats = num_mfcc
+            if remove_first_coefficient is True:
+                num_feats -= 1
         elif 'fbank' in feature_type:
             if num_filters is None:
                 num_feats = 40
