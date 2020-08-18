@@ -1897,6 +1897,8 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
             complex_vals = True
         else:
             complex_vals = False
+            
+        total_audiofiles = 0
 
         for key, value in datasets_dict.items():
             # get parent directory of where data should be saved (i.e. for saving pics)
@@ -1914,6 +1916,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
                 complex_vals=complex_vals)
             
             audio_list = value.copy()
+            total_audiofiles += len(audio_list)
             # shuffle audiofiles:
             if random_seed is not None:
                 random.seed(random_seed)
@@ -1992,6 +1995,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
                 vis_every_n_frames = vis_every_n_frames,
                 subsection_data = subsection_data,
                 divide_factor = divide_factor,
+                total_audiofiles = total_audiofiles,
                 kwargs = kwargs
                 )
             feat_settings_path = sp.utils.save_dict(
