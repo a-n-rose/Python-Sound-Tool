@@ -15,6 +15,61 @@ import soundpy as sp
 
 ###############################################################################
 
+def setup_layers(num_features, num_layers, kernel_shape = (3,3), max_feature_map = 128):
+    '''Sets up `feature_maps` and `kernels` for 1 or more layered convolutional neural networks.
+    
+    Parameters
+    ----------
+    num_features : int 
+        The number of features used to train the model. This will be used to set the number 
+        of `feature_maps` for each layer. 
+        
+    num_layers : int 
+        The number of layers desired 
+        
+    kernel_shape : tuple or int 
+        The shape of the desired kernel 
+        
+    max_feature_map : int 
+        The maximum size of feature map / filter. This depends on the system and is relevant for
+        processing higher definition features, such as STFT features. If this is set too large 
+        given memory restraints, training may be 'killed'.
+        
+    Returns
+    -------
+    feature_maps : list 
+        List of feature maps or filters that will be applied to each layer of the network.
+        
+    kernels : list 
+        List of kernels that will be applied to each layer of the network. Matches length of 
+        `feature_maps`
+        
+    Warning
+    -------
+    If `num_features` is larger than the `max_feature_map`. The `num_features` is usually used to
+    set the first feature map, but if too large, will be reduced to be lower than `max_feature_map`.
+        
+    '''
+    if num_features > max_feature_map:
+        num_features_orig = num_features
+        while num_features > max_feature_map:
+            num_features //= 1.1
+        import warnings
+        msg = '\nWARNING: feature maps will not be set according to `num_features` '+\
+            'as `num_features` is too high ({})'.format(num_features_orig)+\
+                ' The first feature map will be reduced to {}'.format(num_features)
+        warnings.warn(msg)
+    feature_maps = []
+    kernels = []
+    for i in range(num_layers):
+        if i == 0:
+            feature_maps.append(num_features)
+            kernels.append(kernel_shape)
+        else:
+            feature_maps.append(feature_maps[i-1]//2)
+            kernels.append(kernel_shape)
+    return feature_maps, kernels
+
 def setup_callbacks(early_stop=True, patience=15, log=True,
                         log_filename=None, append=True, save_bestmodel=True, 
                         best_modelname=None,monitor='val_loss', verbose=1, save_best_only=True, mode='min', tensorboard=True,
