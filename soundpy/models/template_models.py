@@ -149,7 +149,8 @@ def cnn_classifier(feature_maps = [40, 20, 10],
     except ValueError:
         import warnings
         msg = '\nWARNING: number of layers ({}) incompatible with number'.format(len(feature_maps))+\
-            ' of features. Reducing number of layers until model and number features is compatible.'
+            ' of features or filters ({}). Reducing number of layers until'.format(feature_maps[0])+\
+                ' model and number features / filters is compatible.'
         warnings.warn(msg)
         num_layers_orig = len(feature_maps)
         try:
