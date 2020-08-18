@@ -1139,7 +1139,9 @@ def denoiser_feats(
                             dataset_paths_noisy_dict = dataset_paths_noisy_dict,
                             dataset_dict_clean = dataset_dict_clean,
                             dataset_paths_clean_dict = dataset_paths_clean_dict,
-                            total_dur_sec = total_dur_sec)
+                            total_dur_sec = total_dur_sec,
+                            limit = limit, 
+                            perc_train = perc_train)
     dataprep_settings_path = sp.utils.save_dict(
         dict2save = dataprep_settings,
         filename = feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
