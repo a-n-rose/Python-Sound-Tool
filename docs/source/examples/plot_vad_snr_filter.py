@@ -1,9 +1,9 @@
 
 # coding: utf-8
 """
-===========================================
-Voice Activity Detection (upcoming release)
-===========================================
+========================
+Voice Activity Detection
+========================
 
 Plot the VAD in signals and remove silences.
 
