@@ -146,3 +146,23 @@ def test_get_vad_samples_40SNR_50percentVAD_length_threshold():
         
 def test_adjust_shape():
     pass
+
+
+def test_get_feature_matrix_shape():
+    feature = 'signal'
+    sr = 22050
+    dur_sec = 1
+    win_size_ms = 20
+    percent_overlap = 0.5
+    labeled_data = False
+    got_base_shape, got_model_shape = sp.feats.get_feature_matrix_shape(feature_type = feature,
+                                            sr = sr,
+                                            dur_sec = dur_sec,
+                                            win_size_ms = win_size_ms,
+                                            percent_overlap = percent_overlap,
+                                            labeled_data = labeled_data)
+    expected_base_shape = (22050,)
+    expected_model_shape = (50, 441)
+    assert expected_base_shape == got_base_shape
+    assert expected_model_shape == got_model_shape
+    
