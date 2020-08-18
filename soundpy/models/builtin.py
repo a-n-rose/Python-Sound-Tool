@@ -323,6 +323,7 @@ def envclassifier_train(feature_extraction_dir,
                         normalized = False,
                         patience = 15,
                         add_tensor_last = True,
+                        num_layers = 3,
                         **kwargs):
     '''Collects training features and trains cnn environment classifier.
     
@@ -356,6 +357,9 @@ def envclassifier_train(feature_extraction_dir,
         
     patience : int 
         Number of epochs to train without improvement before early stopping.
+        
+    num_layers : int 
+        The number of convolutional neural network layers desired. (default 3)
         
     **kwargs : additional keyword arguments
         The keyword arguments for keras.fit(). Note, 
@@ -438,9 +442,18 @@ def envclassifier_train(feature_extraction_dir,
     del data_val
     
     # setup model 
+
+    
+    feature_maps, kernels = spdl.setup_layers(num_features = input_shape[-2], 
+                                              num_layers = num_layers)    
+    
     envclassifier, settings_dict = spdl.cnn_classifier(
+        feature_maps = feature_maps,
+        kernel_size = kernels,
         input_shape = input_shape,
         num_labels = num_labels)
+    if envclassifier is None:
+        raise sp.errors.numfeatures_incompatible_templatemodel()
     
     # create callbacks variable if not in kwargs
     # allow users to use different callbacks if desired
@@ -656,7 +669,6 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     if 'kwargs' in feat_settings_dict:
         kwargs = sp.utils.restore_dictvalue(feat_settings_dict['kwargs'])
         feat_settings_dict.update(kwargs)
-    print(feat_settings_dict)
     feature_type = sp.utils.restore_dictvalue(
         feat_settings_dict['feature_type'])
     win_size_ms = sp.utils.restore_dictvalue(
@@ -752,11 +764,9 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     if len(feats_normed.shape) == 3:
         batch_size = feats_normed.shape[0]
         feats_normed = feats_normed.reshape((1,)+feats_normed.shape)
-        print(feats_normed.shape)
         cleaned_feats = denoiser.predict(feats_normed, batch_size = batch_size)
     else:
         feats_normed = feats_normed.reshape((1,)+feats_normed.shape)
-        print(feats_normed.shape)
         cleaned_feats = denoiser.predict(feats_normed)
     
     try:
