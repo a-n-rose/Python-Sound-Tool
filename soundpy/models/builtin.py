@@ -435,9 +435,12 @@ def envclassifier_train(feature_extraction_dir,
     
     # load smaller dataset to determine input size:
     data_val = np.load(val_paths[0])
+    # expect shape (num_audiofiles, batch_size, num_frames, num_features + label_column)
+    if len(data_val.shape) == 4:
+        input_shape =  (data_val.shape[2], data_val.shape[3] - 1, 1) 
     # expect shape (num_audiofiles, num_frames, num_features + label_column)
-    # subtract the label column and add dimension for 'color scale' 
-    input_shape = (data_val.shape[1], data_val.shape[2] - 1, 1) 
+    elif len(data_val.shape) == 3:
+        input_shape = (data_val.shape[1], data_val.shape[2] - 1, 1) 
     # remove unneeded variable
     del data_val
     
