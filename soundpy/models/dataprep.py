@@ -121,7 +121,7 @@ class Generator:
             batch_x = self.datax[self.counter] 
             batch_y = self.datay[self.counter]
             # expects only 1 label or vector to contain identical labels
-            if len(batch_y) > 1:
+            if isinstance(batch_y, np.ndarray) and len(batch_y) > 1:
                 batch_y = batch_y[0]
             # TODO: is there a difference between taking log of stft before 
             # or after normalization?
