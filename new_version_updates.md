@@ -1,3 +1,15 @@
+# Updates of v0.1.0a3 release:
+
+## Breaking changes:
+- parameter (denoiser): frames_per_sample to context_window 
+- return cleaned_feats, sr, feature_type with soundpy.models.builtin.implement_denoiser() instead of cleaned_feats, sr
+- perhaps due to the feature extraction change... old feature extractions aren't compaitble with new ones...??? Like the denoiser?
+
+
+
+
+
+
 
 ## Updates of v0.1.0a2 release:
 
