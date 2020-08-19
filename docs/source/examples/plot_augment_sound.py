@@ -203,7 +203,7 @@ ipd.Audio(h,rate=sr)
 
 ##########################################################
 sp.plotsound(h, sr=sr, feature_type='stft', 
-               title='Car Horn Sound')
+               title='Car Horn')
 
 ##########################################################
 # Change Speed

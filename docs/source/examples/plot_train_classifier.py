@@ -59,7 +59,7 @@ for f in files:
 feat_settings = sp.utils.load_dict(
     feature_extraction_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' ---> ', value)
+    print(key, ' --> ', value)
     
 #########################################################
 # For more about these settings, see `soundpy.feats.save_features_datasets`.
@@ -84,8 +84,8 @@ for key, value in audio_datasets.items():
 #############################################################
 model_dir, history = spdl.envclassifier_train(
     feature_extraction_dir = feature_extraction_dir,
-    epochs = 50,
-    patience = 30)
+    epochs = 30,
+    patience = 15)
 
 #############################################################
 # Where the model and logs are located:

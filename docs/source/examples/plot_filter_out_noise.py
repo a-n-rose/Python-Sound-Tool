@@ -49,8 +49,8 @@ noisy, snr_measured = sp.dsp.add_backgroundsound(
     noise, 
     sr = sr, 
     snr = 10, 
-    total_len_sec = 3, 
-    pad_mainsound_sec = 0.75)
+    total_len_sec = 2, 
+    pad_mainsound_sec = 0.5)
 
 ##########################################################
 # Hear and see the noisy speech 

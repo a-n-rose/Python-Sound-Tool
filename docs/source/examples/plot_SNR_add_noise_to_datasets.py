@@ -180,7 +180,7 @@ noisyspeech_20snr, snr20 = sp.dsp.add_backgroundsound(
     noise_sample,
     sr = sr,
     snr = 20,
-    total_len_sec = 0.5)
+    total_len_sec = 0.75)
 
 ##########################################################
 ipd.Audio(noisyspeech_20snr,rate=sr)

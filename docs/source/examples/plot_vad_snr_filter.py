@@ -249,7 +249,7 @@ ipd.Audio(clipped_samples, rate= sr)
 # Check VAD through entire signal
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sp.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = False,
-                    percent_overlap = 0.5, 
+                    percent_overlap = percent_overlap, 
                     win_size_ms = win_size_ms)
 
 ######################################################
@@ -264,12 +264,12 @@ ipd.Audio(vad_samples, rate = sr)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sp.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = False,
                    extend_window_ms = 300, use_beg_ms = use_beg_ms, 
-                    percent_overlap = 0, win_size_ms = win_size_ms)
+                    percent_overlap = percent_overlap, win_size_ms = win_size_ms)
 
 #######################################################
 vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr20, sr=sr, use_beg_ms = use_beg_ms, extend_window_ms = 300,
-    percent_overlap = 0.5, win_size_ms = win_size_ms)
+    percent_overlap = percent_overlap, win_size_ms = win_size_ms)
 sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(vad_samples, rate = sr)
 
@@ -322,12 +322,12 @@ ipd.Audio(clipped_samples, rate= sr)
 # Check VAD through entire signal
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sp.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = False,
-                    percent_overlap = 0.5, win_size_ms = win_size_ms)
+                    percent_overlap = percent_overlap, win_size_ms = win_size_ms)
 
 ######################################################
 vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr05, sr=sr, use_beg_ms = use_beg_ms, 
-    percent_overlap = 0.5, win_size_ms = win_size_ms)
+    percent_overlap = percent_overlap, win_size_ms = win_size_ms)
 sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(vad_samples, rate = sr)
 
@@ -336,12 +336,12 @@ ipd.Audio(vad_samples, rate = sr)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sp.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = False,
                     extend_window_ms = 300, use_beg_ms = use_beg_ms, 
-                    percent_overlap = 0, win_size_ms = win_size_ms)
+                    percent_overlap = percent_overlap, win_size_ms = win_size_ms)
 
 #######################################################
 vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr05, sr=sr, use_beg_ms = use_beg_ms, extend_window_ms = 300,
-    percent_overlap = 0.5, win_size_ms = win_size_ms)
+    percent_overlap = percent_overlap, win_size_ms = win_size_ms)
 sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
 ipd.Audio(vad_samples, rate = sr)
 

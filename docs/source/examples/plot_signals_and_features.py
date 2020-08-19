@@ -61,7 +61,7 @@ sp.plotsound(sig3, sr=sr, feature_type = 'signal',
 
 #########################################################################
 # Create noise to add to the signal:
-noise = sp.generate_noise(len(sig3), amplitude=0.025, random_seed=40)
+noise = sp.generate_noise(len(sig3), amplitude=0.02, random_seed=40)
 sp.plotsound(noise, sr=sr, feature_type = 'signal',
                title='Random Noise')
 

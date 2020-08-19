@@ -62,7 +62,7 @@ for f in files:
 feat_settings = sp.utils.load_dict(
     feature_extraction_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' ---> ', value)
+    print(key, ' --> ', value)
     
 #########################################################
 # For more about these settings, see `soundpy.feats.save_features_datasets`.
@@ -74,7 +74,7 @@ audio_datasets = sp.utils.load_dict(
     feature_extraction_dir.joinpath('audiofiles_datasets_clean.csv'))
 count = 0
 for key, value in audio_datasets.items():
-    print(key, ' ---> ', value)
+    print(key, ' --> ', value)
     count += 1
     if count > 5:
         break
@@ -87,7 +87,7 @@ for key, value in audio_datasets.items():
 #############################################################
 model_dir, history = spdl.denoiser_train(
     feature_extraction_dir = feature_extraction_dir,
-    epochs = 50)
+    epochs = 30)
 
 #########################################################
 

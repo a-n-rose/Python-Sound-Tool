@@ -38,7 +38,7 @@ data_features_dir = './audiodata/example_feats_models/denoiser/'
 # We can extract 'mfcc', 'fbank', 'powspec', and 'stft'.
 # if you are working with speech, I suggest 'fbank', 'powspec', or 'stft'.
 
-feature_type = 'stft'
+feature_type = 'fbank'
 sr = 22050
 
 ######################################################
@@ -53,8 +53,9 @@ dur_sec = 3
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # How many sections should each sample be broken into? (optional)
 # Some research papers include a 'context window' or the like, 
-# which this refers to.
-frames_per_sample = 11
+# which this refers to. This will result in subframe sizes:
+# context_window * 2 + 1. (The context windows surrounding a central frame)
+context_window = 5
 
 #######################################################################
 # Option 1: Built-In Functionality: soundpy does everything for you
@@ -76,7 +77,7 @@ extraction_dir = sp.denoiser_feats(
     sr = sr,
     feature_type = feature_type, 
     dur_sec = dur_sec,
-    frames_per_sample = frames_per_sample,
+    context_window = context_window,
     perc_train = perc_train,
     limit = 200,
     visualize=True);
