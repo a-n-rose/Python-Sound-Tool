@@ -138,7 +138,10 @@ def plot(feature_matrix, feature_type,
             # the xticks basically show time but need to be multiplied by 0.01
             plt.xlabel('Time (sec)') 
             locs, labels = plt.xticks()
-            new_labels=[str(round(i*0.001*win_size_ms*percent_overlap,1)) for i in locs]
+            if percent_overlap == 0:
+                new_labels=[str(round(i*0.001*win_size_ms,1)) for i in locs]
+            else:
+                new_labels=[str(round(i*0.001*win_size_ms*percent_overlap,1)) for i in locs]
             plt.xticks(ticks=locs,labels=new_labels)
         else:
             plt.xlabel('Number frames')
