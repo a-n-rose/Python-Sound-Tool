@@ -230,7 +230,7 @@ def get_feats(sound,
               percent_overlap = 0.5,
               window = 'hann',
               fft_bins = None,
-              num_filters = 40,
+              num_filters = None,
               num_mfcc = None,
               remove_first_coefficient = False,
               sinosoidal_liftering = False,
@@ -280,15 +280,15 @@ def get_feats(sound,
     
     num_filters : int
         Number of mel-filters to be used when applying mel-scale. For 
-        'fbank' features, 20-128 are common, with 40 being very common.
-        (default 40)
+        'fbank' features, 20-128 are common, with 40 being very common. If None, will 
+        be set to 40.
+        (default None)
     
     num_mfcc : int
         Number of mel frequency cepstral coefficients. First coefficient
         pertains to loudness; 2-13 frequencies relevant for speech; 13-40
         for acoustic environment analysis or non-linguistic information.
-        Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
-        is set to 40, all 40 coefficients will be included.
+        If None, will be set to `num_filters` or 40.
         (default None). 
     
     dur_sec : float, optional
@@ -375,6 +375,8 @@ def get_feats(sound,
             zeropad = zeropad
             )
     elif 'fbank' in feature_type:
+        if num_filters is None:
+            num_filters = 40
         feats = sp.feats.get_fbank(
             sound = data, 
             sr = sr, 
@@ -388,6 +390,11 @@ def get_feats(sound,
             )
         
     elif 'mfcc' in feature_type:
+        if num_mfcc is None:
+            if num_filters is not None:
+                num_mfcc = num_filters
+            else:
+                num_mfcc = 40
         feats = sp.feats.get_mfcc(
             sound = data, 
             sr = sr, 
