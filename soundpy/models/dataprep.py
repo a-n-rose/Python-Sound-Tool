@@ -48,11 +48,6 @@ class Generator:
             or limited). If tuple, the entire data shape will be adjusted (all columns). 
             If the int or shape is larger than that of the data provided, data will 
             be zeropadded. If the int or shape is smaller, the data will be restricted.
-        batches : bool 
-            If the data is expected to be separated in batches. If True, data should have 
-            shape (num_samples, batch_size, num_frames, num_features); if False, data
-            should have shape (num_samples, num_frames, num_features+label_column).
-            (default False)
         '''
         self.batch_size = 1
         self.samples_per_epoch = data_matrix1.shape[0]
@@ -125,6 +120,9 @@ class Generator:
             # will be size (batch_size, num_frames, num_features)
             batch_x = self.datax[self.counter] 
             batch_y = self.datay[self.counter]
+            # expects only 1 label or vector to contain identical labels
+            if len(batch_y) > 1:
+                batch_y = batch_y[0]
             # TODO: is there a difference between taking log of stft before 
             # or after normalization?
             if not self.normalized or self.datax.dtype == np.complex_:
@@ -189,7 +187,6 @@ class Generator:
             #restart counter to yeild data in the next epoch as well
             if self.counter >= self.number_of_batches:
                 self.counter = 0
-
 
 
 class GeneratorFeatExtraction:
