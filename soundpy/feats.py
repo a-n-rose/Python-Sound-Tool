@@ -395,6 +395,8 @@ def get_feats(sound,
                 num_mfcc = num_filters
             else:
                 num_mfcc = 40
+        if num_filters is None:
+            num_filters = 40
         feats = sp.feats.get_mfcc(
             sound = data, 
             sr = sr, 
@@ -1554,7 +1556,7 @@ def scale_X_y(matrix, is_train=True, scalars=None):
 def list_available_features():
     return ['stft', 'powspec', 'fbank', 'mfcc', 'signal']
 
-def get_feature_matrix_shape(sr, dur_sec, feature_type,
+def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
                              win_size_ms = None, percent_overlap = None,
                              fft_bins = None, num_mfcc = None, num_filters = None,
                              rate_of_change = False, rate_of_acceleration = False,
@@ -1623,6 +1625,20 @@ def get_feature_matrix_shape(sr, dur_sec, feature_type,
         The shape relevant to training models. For example, one including space for a
         context window and label. 
     '''
+    if sr is None:
+        raise TypeError('Function `soundpy.feats.get_feature_matrix_shape` expects'+\
+            ' parameter `sr` to be of type `int`, not type None.')
+    if dur_sec is None:
+        raise TypeError('Function `soundpy.feats.get_feature_matrix_shape` expects'+\
+            ' parameter `dur_sec` to be of type `int` or `float`, not type None.')
+    if win_size_ms is None:
+        raise TypeError('Function `soundpy.feats.get_feature_matrix_shape` expects'+\
+            ' parameter `win_size_ms` to be of type `int` or `float`, not type None.')
+    if feature_type is None:
+        raise TypeError('Function `soundpy.feats.get_feature_matrix_shape` expected'+\
+            ' parameter `feature_type` to be one of the following: '+\
+                ','.join(sp.feats.list_available_features())+\
+                    '\nInstead got None.')
     total_samples = sp.dsp.calc_frame_length(dur_sec*1000, sr=sr)
     frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
     # all we need to know if signal is feature
@@ -1690,7 +1706,7 @@ def get_feature_matrix_shape(sr, dur_sec, feature_type,
         
         
 def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
-                              datadir = None, subsections = False,**kwargs):
+                              datadir = None, subsections = False, **kwargs):
     '''Saves plots of features during feature extraction or training of models.
     
     Parameters
@@ -1730,7 +1746,7 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
     if datadir is None:
         datadir = './'
     if not isinstance(datadir, pathlib.PosixPath):
-        datadir = string2pathlib(datadir)
+        datadir = sp.utils.string2pathlib(datadir)
     if dataset is not None and iteration is not None:
         save_pic_path = datadir.joinpath(
             'images',dataset,'{}_sample{}_{}'.format(
@@ -1911,6 +1927,27 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
     # save where data was extracted from:
     dataset_dirs = []
     try:
+        # sr must be set. Set to default value.
+        if not 'sr' in kwargs or kwargs['sr'] is None:
+            import warnings
+            msg = '\nWARNING: sample rate was not set. Setting it at 44100 Hz.'
+            warnings.warn(msg)
+            kwargs['sr'] = 44100
+            
+        # win_size_ms must be set. Set to default value.
+        if not 'win_size_ms' in kwargs or kwargs['win_size_ms'] is None:
+            import warnings
+            msg = '\nWARNING: `win_size_ms` was not set. Setting it to 20 ms'
+            warnings.warn(msg)
+            kwargs['win_size_ms'] = 20
+            
+        # percent_overlap must be set. Set to default value.
+        if not 'percent_overlap' in kwargs or kwargs['percent_overlap'] is None:
+            import warnings
+            msg = '\nWARNING: `percent_overlap` was not set. Setting it to 0.5'
+            warnings.warn(msg)
+            kwargs['percent_overlap'] = 0.5
+            
         feat_base_shape, feat_model_shape = sp.feats.get_feature_matrix_shape(
             context_window = context_window,
             labeled_data = labeled_data,
