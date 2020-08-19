@@ -713,8 +713,12 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     except KeyError:
         # newer version of soundpy: 0.1.0a3
         num_feats = base_shape[-1]
-    fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['fft_bins'])
-    
+    try:
+        # newer version soundpy 0.1.0v3
+        fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['fft_bins'])
+    except KeyError:
+        # older version soundpy 0.1.0v2
+        fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['n_fft'])
     feats = sp.feats.get_feats(new_audio, 
                                sr=sr, 
                                 feature_type = feature_type,
@@ -759,20 +763,31 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     feats = sp.feats.prep_new_audiofeats(feats,
                                            base_shape,
                                            input_shape)
+
     # ensure same shape as feats
     if original_phase is not None:
         original_phase = sp.feats.prep_new_audiofeats(original_phase,
                                                         base_shape,
                                                         input_shape)
     
-    
     feats_normed = sp.feats.normalize(feats)
-    
     denoiser = load_model(model)
-    if len(feats_normed.shape) == 3:
+    if len(feats_normed.shape) >= 3:
         batch_size = feats_normed.shape[0]
-        feats_normed = feats_normed.reshape((1,)+feats_normed.shape)
-        cleaned_feats = denoiser.predict(feats_normed, batch_size = batch_size)
+        # newer version soundpy 0.1.0a3
+        feats_normed = feats_normed.reshape((1,) + feats_normed.shape)
+        try:
+            cleaned_feats = denoiser.predict(feats_normed, batch_size = batch_size)
+        except ValueError:
+            # newer version soundpy 0.1.0a3
+            import warnings 
+            msg = '\nWARNING: adjustments to feature extraction in a more recent'+\
+                ' SoundPy version may result in imperfect feature alignmnet '+\
+                    'with a model trained with features generated with a previous'+\
+                        ' SoundPy version. Sincerest apologies!'
+            warnings.warn(msg)
+            feats_normed = feats_normed.reshape(feats_normed.shape[1:])
+            cleaned_feats = denoiser.predict(feats_normed, batch_size = batch_size)
     else:
         feats_normed = feats_normed.reshape((1,)+feats_normed.shape)
         cleaned_feats = denoiser.predict(feats_normed)
