@@ -1271,9 +1271,17 @@ def reduce_num_features(feats, desired_shape):
 # TODO test
 def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False):
     if len(data.shape) != len(desired_shape):
-        raise ValueError('Currently cannot adjust data to a different number of '+\
-            'dimensions.\nOriginal data shape: '+str(data.shape)+ \
-                '\nDesired shape: '+str(desired_shape))
+        data_shape_orig = data.shape
+        if desired_shape[0] == 1:
+            if data.shape[0] != 1:
+                data = data.reshape((1,)+data.shape)
+        if desired_shape[-1] == 1:
+            if data.shape[-1] != 1:
+                data = data.reshape(data.shape + (1,))
+        if len(data.shape) != len(desired_shape):   
+            raise ValueError('Currently cannot adjust data to a different number of '+\
+                'dimensions.\nOriginal data shape: '+str(data_shape_orig)+ \
+                    '\nDesired shape: '+str(desired_shape))
         
     # attempt to zeropad data:
     try:
