@@ -667,11 +667,14 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
         
     soundpy.feats.feats2audio
         How features are transformed back tino audio samples.
-    '''
-    # if values saved as strings, restore them to original type
+    '''    
+    # newer version of soundpy: 0.1.0a3
+    # store get_feats kwargs under `kwargs` key
     if 'kwargs' in feat_settings_dict:
         kwargs = sp.utils.restore_dictvalue(feat_settings_dict['kwargs'])
         feat_settings_dict.update(kwargs)
+    # if values saved as strings and should be a list or tuple, restore them to original type: 
+    # see `soundpy.utils.restore_dictvalue`
     feature_type = sp.utils.restore_dictvalue(
         feat_settings_dict['feature_type'])
     win_size_ms = sp.utils.restore_dictvalue(
@@ -683,30 +686,32 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     try:
         window = sp.utils.restore_dictvalue(feat_settings_dict['window'])
     except KeyError:
+        # set default here...
         window = 'hann'
     try:
-        frames_per_sample = sp.utils.restore_dictvalue(
-            feat_settings_dict['frames_per_sample'])
-    except KeyError:
-        frames_per_sample = None
-    try:
+        # older version of soundpy: 0.1.0a2
         input_shape = sp.utils.restore_dictvalue(
             feat_settings_dict['input_shape'])
     except KeyError:
+        # newer version of soundpy: 0.1.0a3
         input_shape = sp.utils.restore_dictvalue(
             feat_settings_dict['feat_model_shape'])
     try:
+        # older version of soundpy: 0.1.0a2
         base_shape = sp.utils.restore_dictvalue(
             feat_settings_dict['desired_shape'])
     except KeyError:
+        # newer version of soundpy: 0.1.0a3
         base_shape = sp.utils.restore_dictvalue(
             feat_settings_dict['feat_base_shape'])
     dur_sec = sp.utils.restore_dictvalue(
         feat_settings_dict['dur_sec'])
     try:
+        # older version of soundpy: 0.1.0a2
         num_feats = sp.utils.restore_dictvalue(
             feat_settings_dict['num_feats'])
     except KeyError:
+        # newer version of soundpy: 0.1.0a3
         num_feats = base_shape[-1]
     fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['fft_bins'])
     
