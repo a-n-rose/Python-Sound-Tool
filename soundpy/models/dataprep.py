@@ -120,9 +120,11 @@ class Generator:
             # will be size (batch_size, num_frames, num_features)
             batch_x = self.datax[self.counter] 
             batch_y = self.datay[self.counter]
+            
             # expects only 1 label or vector to contain identical labels
-            if isinstance(batch_y, np.ndarray) and len(batch_y) > 1:
-                batch_y = batch_y[0]
+            if self.labels:
+                if isinstance(batch_y, np.ndarray) and len(batch_y) > 1:
+                    batch_y = batch_y[0]
             # TODO: is there a difference between taking log of stft before 
             # or after normalization?
             if not self.normalized or self.datax.dtype == np.complex_:
@@ -141,6 +143,7 @@ class Generator:
             # TODO test
             # if need greater number of features --> zero padding
             # could this be applied to including both narrowband and wideband data?
+            
             if self.desired_shape is not None:
                 batch_x = sp.feats.adjust_shape(batch_x, self.desired_shape, change_dims=True)
                 
