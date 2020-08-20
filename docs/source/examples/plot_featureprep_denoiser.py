@@ -38,7 +38,7 @@ data_features_dir = './audiodata/example_feats_models/denoiser/'
 # We can extract 'mfcc', 'fbank', 'powspec', and 'stft'.
 # if you are working with speech, I suggest 'fbank', 'powspec', or 'stft'.
 
-feature_type = 'fbank'
+feature_type = 'stft'
 sr = 22050
 
 ######################################################
@@ -55,7 +55,8 @@ dur_sec = 3
 # Some research papers include a 'context window' or the like, 
 # which this refers to. This will result in subframe sizes:
 # context_window * 2 + 1. (The context windows surrounding a central frame)
-context_window = 5
+# For this example we'll not use it.
+context_window = None
 
 #######################################################################
 # Option 1: Built-In Functionality: soundpy does everything for you

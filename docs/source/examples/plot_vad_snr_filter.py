@@ -106,7 +106,7 @@ sp_dir = package_dir
 # Note: this file is available in the soundpy repo.
 
 # VAD and filtering work best with high sample rates 
-sr = 44100
+sr = 48000
 python = '{}audiodata/python.wav'.format(sp_dir, sr=sr)
 y_p, sr = sp.loadsound(python, sr=sr)
 ipd.Audio(y_p, rate = sr)

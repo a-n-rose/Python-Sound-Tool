@@ -48,7 +48,7 @@ data_dir = '/home/airos/Projects/Data/sound/speech_commands_small_section/'
 # We can extract 'mfcc', 'fbank', 'powspec', and 'stft'.
 # if you are working with speech, I suggest 'fbank', 'powspec', or 'stft'.
 
-feature_type = 'mfcc'
+feature_type = 'fbank'
 
 ######################################################
 # Set Duration of Audio 

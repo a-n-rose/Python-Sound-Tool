@@ -60,7 +60,7 @@ ipd.Audio(noisy,rate=sr)
 
 ##########################################################
 sp.plotsound(noisy, sr=sr, feature_type='signal', 
-               title='Noisy Speech ')
+               title='Noisy Speech')
 
 
 ##########################################################
@@ -71,7 +71,7 @@ ipd.Audio(s,rate=sr)
 
 ##########################################################
 sp.plotsound(s, sr=sr, feature_type='signal', 
-               title='Clean Speech ')
+               title='Clean Speech')
 
 
 ##########################################################

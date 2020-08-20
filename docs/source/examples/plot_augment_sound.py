@@ -50,7 +50,7 @@ f, sr = sp.loadsound(speech, sr=sr)
 ipd.Audio(f,rate=sr)
 
 ##########################################################
-sp.plotsound(f, sr=sr, feature_type='stft', title='Female Speech "Python"')
+sp.plotsound(f, sr=sr, feature_type='stft', title='Female Speech: "Python"')
 
 ##########################################################
 # Change Speed
