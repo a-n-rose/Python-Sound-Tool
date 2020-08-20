@@ -472,7 +472,7 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
-    total_rows = fft_bins
+    total_rows = fft_bins // 2 + 1
     # if mono, only one channel; otherwise match num channels in sound signal
     if sp.dsp.ismono(data):
         stft_matrix = sp.dsp.create_empty_matrix(
@@ -492,11 +492,11 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
         
         section_fft = sp.dsp.calc_fft(section, 
                                         real_signal = real_signal,
-                                        fft_bins = fft_bins * 2 +1,
+                                        fft_bins = fft_bins,
                                         )
         stft_matrix[frame] = section_fft[:total_rows]
         section_start += (frame_length - num_overlap_samples)
-    stft_matrix = stft_matrix[:,:fft_bins//2 + 1]
+    #stft_matrix = stft_matrix[:,:fft_bins//2 + 1]
     return stft_matrix
 
 def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **kwargs):
@@ -637,7 +637,6 @@ def get_mfcc(sound, sr, num_mfcc, remove_first_coefficient=False,
     else:
         mfcc = mfcc[:,:num_mfcc+1]
     return mfcc
-    
 
 def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           real_signal = False, fft_bins = 1024, 
@@ -1560,7 +1559,7 @@ def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
                              win_size_ms = None, percent_overlap = None,
                              fft_bins = None, num_mfcc = None, num_filters = None,
                              rate_of_change = False, rate_of_acceleration = False,
-                             context_window = None, zeropad = True, labeled_data = False, remove_first_coefficient = False):
+                             context_window = None, zeropad = True, labeled_data = False, remove_first_coefficient = False, real_signal = False):
     '''Returns expected shapes of feature matrix depending on several parameters.
     
     Parameters
