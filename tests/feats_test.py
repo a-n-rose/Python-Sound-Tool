@@ -21,7 +21,6 @@ def test_separate_dependent_var_2d():
     with pytest.raises(ValueError):
         X, y = sp.feats.separate_dependent_var(data)
     
-    
 def test_separate_dependent_var_3d():
     data = np.array(range(12)).reshape(2,2,3)
     X, y = sp.feats.separate_dependent_var(data)
@@ -134,6 +133,36 @@ def test_get_vad_samples_40SNR_50percentVAD_length_threshold():
                                                 random_seed = snr,
                                                 remove_dc = False)
     vad_samples, vad_vector = sp.feats.get_vad_samples(speech_snr, 
+                                           sr = sr,
+                                           win_size_ms = win_size_ms,
+                                           percent_overlap = percent_overlap)
+    vad_samples_ms = len(vad_samples) / sr / 0.001
+    example_speech_ms = len(speech_only) / sr / 0.001
+    if example_speech_ms >= vad_samples_ms:
+        assert (example_speech_ms / vad_samples_ms) < 2
+    elif example_speech_ms <= vad_samples_ms:
+        assert (vad_samples_ms / example_speech_ms) < 2
+        
+def test_get_samples_clipped_40SNR_50percentVAD_length_threshold():
+    sr = 48000
+    win_size_ms = 50
+    percent_overlap = 0
+    snr = 40
+    speech, sr = sp.loadsound(test_python, sr = sr, remove_dc=False)
+    # get just speech segment, no surrounding silence:
+    # goal VAD
+    speech_only, sr = sp.loadsound('{}python_speech_only.wav'.format(test_dir), 
+                                     sr = sr, remove_dc=False)
+    noise = sp.generate_noise(len(speech), random_seed = 40)
+    speech_snr, snr_measured = sp.dsp.add_backgroundsound(speech,
+                                                noise,
+                                                sr = sr,
+                                                snr = snr,
+                                                delay_mainsound_sec = 1,
+                                                total_len_sec = 3,
+                                                random_seed = snr,
+                                                remove_dc = False)
+    vad_samples, vad_vector = sp.feats.get_samples_clipped(speech_snr, 
                                            sr = sr,
                                            win_size_ms = win_size_ms,
                                            percent_overlap = percent_overlap)
