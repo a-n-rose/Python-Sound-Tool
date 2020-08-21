@@ -1370,6 +1370,7 @@ def feats_shape_context_window(feature_matrix_shape, context_window,
     Returns
     -------
     new_shape : tuple [size=(num_subframes, frame_size, num_feats)]
+    
     '''
     frame_size = context_window * 2 + 1
     if axis < 0:
@@ -1394,18 +1395,13 @@ def feats_shape_context_window(feature_matrix_shape, context_window,
 def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = True):
     '''Reshapes `feature_matrix` to allow for `context_window`. 
     
-    Note: expects context window to be applied to the axis preceding the features
-    column. Dimensions of `feature_matrix` can be up to 4, but only with extra
-    dimensions with length of 1. For example shape (5,10) (1,5,10), (5,10,1) or 
-    (1,5,10,1), etc. are acceptable. The axis would have to be adjusted to where the 
-    number of frames are located, e.g. if num_frames was 5, the axis for data shaped
-    (1,5,10) would have to be set to `axis` = 1.
-    
+    Note: Dimensions of `feature_matrix` must be at least 2 and can be up to 5, 
+    returning a matrix with one additional dimension. 
     
     Parameters
     ----------
     feature_matrix : np.ndarray [size(num_frames, num_features) ]
-        Expects 2D matrix (with extra dimensions of length 1) and returns 3D matrix.
+        Expects minimum 2D, maximum 5D matrix.
         
     context_window : int 
         The number of frames surrounding a central frame. A `context_window` of 3 
@@ -1422,12 +1418,70 @@ def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = Tru
     Returns
     -------
     feats_reshaped : np.ndarray [size(num_subframes, context_window*2+1, num_features)]
-        The maximum number of dimensions applied: 5
+        The `feature_matrix` returned with `axis` subdivided into 2 dimensions, the number of subframes and the other length `context_window` * 2 + 1. 
         
-    Warning
-    -------
-        
+    Raises
+    ------
+    ValueError if number of dimensions of `feature_matrix` is below 2 or exceeds 5.
+    
+    Examples
+    --------
+    >>> import numpy as np
+    >>> matrix = np.arange(24).reshape(3,4,2)
+    >>> # apply context_window to dimension of length 4 (i.e. axis 1)
+    >>> matrix_zp = apply_context_window(matrix, context_window = 1, axis = 1)
+    >>> matrix_zp.shape
+    (3, 2, 3, 2)
+    >>> matrix_zp
+    array([[[[ 0,  1],
+            [ 2,  3],
+            [ 4,  5]],
+
+            [[ 6,  7],
+            [ 0,  0],
+            [ 0,  0]]],
+
+
+        [[[ 8,  9],
+            [10, 11],
+            [12, 13]],
+
+            [[14, 15],
+            [ 0,  0],
+            [ 0,  0]]],
+
+
+        [[[16, 17],
+            [18, 19],
+            [20, 21]],
+
+            [[22, 23],
+            [ 0,  0],
+            [ 0,  0]]]])
+    >>> matrix_nozp = apply_context_window(matrix, context_window = 1, axis = 1,
+    ...                                    zeropad=False)
+    >>> matrix_nozp.shape
+    (3, 1, 3, 2)
+    >>> matrix_nozp
+    array([[[[ 0,  1],
+            [ 2,  3],
+            [ 4,  5]]],
+
+
+        [[[ 8,  9],
+            [10, 11],
+            [12, 13]]],
+
+
+        [[[16, 17],
+            [18, 19],
+            [20, 21]]]])
+
     '''
+    if len(feature_matrix.shape) < 2 or len(feature_matrix.shape) > 5:
+        raise ValueError('Function `soundpy.feats.apply_context_window` '+\
+            'can only be applied to matrices between 2 and 5 dimensions.')
+    
     datatype = feature_matrix.dtype
     if axis < 0:
         # get the axis number if using -1 or -2, etc.
@@ -1436,38 +1490,30 @@ def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = Tru
                                            context_window = context_window,
                                            axis = axis,
                                            zeropad = zeropad)
-
     total_new_samples = np.prod(new_shape)
     current_samples = np.prod(feature_matrix.shape)
     
     # zeropad or reduce feature_matrix to match number of current samples
     diff = total_new_samples - current_samples
-    # if axis is last column, raise error
-    if axis == len(feature_matrix.shape) - 1:
-        raise ValueError('Function `apply_context_window` expects the window '+\
-            'to be applied to the axis or column preceding the features column. '+\
-                'The context window cannot be applied to the last axis.')
-    if axis == 0:
-        # expects num_frames to be in first axis and num_features in second axis
-        if zeropad is True:
-            diff = math.ceil(diff / feature_matrix.shape[1])
+
+    for i, item in enumerate(feature_matrix.shape):
+        if i != axis:
+            diff /= item
+    if zeropad is True:
+        if diff >= 0:
+            diff = math.ceil(diff)
         else:
-            diff = int(diff/feature_matrix.shape[1])        
+            diff = int(diff)
+    else:
+        if diff >= 0:
+            diff = int(diff)
+        else:
+            diff = math.ceil(diff)
+    if axis == 0:
         feature_matrix = sp.feats.adjust_shape(
             feature_matrix,
             ((feature_matrix.shape[0] + diff,) + feature_matrix.shape[1:]))
     elif axis > 0:
-        # expects num_frames to be in this axis and num_features in following axis
-        if zeropad is True:
-            if diff >= 0:
-                diff = math.ceil(diff / feature_matrix.shape[axis + 1])
-            else:
-                diff = int(diff/feature_matrix.shape[axis + 1]) 
-        else:
-            if diff >= 0:
-                diff = int(diff/feature_matrix.shape[axis + 1]) 
-            else:
-                diff = math.ceil(diff / feature_matrix.shape[axis + 1])
         feature_matrix = sp.feats.adjust_shape(
             feature_matrix,
             (feature_matrix.shape[:axis] + (feature_matrix.shape[axis] + diff, ) + \
