@@ -176,7 +176,169 @@ def test_get_samples_clipped_40SNR_50percentVAD_length_threshold():
 def test_adjust_shape():
     pass
 
+def test_apply_context_window_defaults():
+    matrix_input = np.arange(15).reshape(5,3,1)
+    got = sp.feats.apply_context_window(
+        matrix_input, 
+        context_window = 1)
+    expected = np.array([[[[ 0],
+         [ 1],
+         [ 2]],
 
+        [[ 3],
+         [ 4],
+         [ 5]],
+
+        [[ 6],
+         [ 7],
+         [ 8]]],
+
+
+       [[[ 9],
+         [10],
+         [11]],
+
+        [[12],
+         [13],
+         [14]],
+
+        [[ 0],
+         [ 0],
+         [ 0]]]])
+    assert np.array_equal(expected, got)
+
+
+def test_apply_context_window_axis1():
+    matrix_input = np.arange(15).reshape(1,5,3,1)
+    got = sp.feats.apply_context_window(
+        matrix_input, 
+        context_window = 1,
+        axis = 1)
+    expected = np.array([[[[[ 0],
+          [ 1],
+          [ 2]],
+
+         [[ 3],
+          [ 4],
+          [ 5]],
+
+         [[ 6],
+          [ 7],
+          [ 8]]],
+
+
+        [[[ 9],
+          [10],
+          [11]],
+
+         [[12],
+          [13],
+          [14]],
+
+         [[ 0],
+          [ 0],
+          [ 0]]]]])
+
+    assert np.array_equal(expected, got)
+
+
+def test_apply_context_window_no_zeropad():
+    matrix_input = np.arange(15).reshape(1,5,3,1)
+    got = sp.feats.apply_context_window(
+        matrix_input, 
+        context_window = 1,
+        axis = 1,
+        zeropad = False)
+    expected = np.array([[[[[0],
+          [1],
+          [2]],
+
+         [[3],
+          [4],
+          [5]],
+
+         [[6],
+          [7],
+          [8]]]]])
+
+    assert np.array_equal(expected, got)
+
+def test_apply_context_window_2D():
+    matrix_input = np.arange(15).reshape(5,3)
+    got = sp.feats.apply_context_window(
+        matrix_input, 
+        context_window = 1,
+        axis = 0)
+    expected = np.array([[[ 0,  1,  2],
+        [ 3,  4,  5],
+        [ 6,  7,  8]],
+
+       [[ 9, 10, 11],
+        [12, 13, 14],
+        [ 0,  0,  0]]])
+
+    assert np.array_equal(expected, got)
+    
+
+def test_apply_context_window_2D_no_zeropad():
+    matrix_input = np.arange(15).reshape(5,3)
+    got = sp.feats.apply_context_window(
+        matrix_input, 
+        context_window = 1,
+        axis = 0,
+        zeropad = False)
+    expected = np.array([[[0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8]]])
+
+    assert np.array_equal(expected, got)
+    
+def test_apply_context_window_last_axis_valueerror():
+    matrix_input = np.arange(15).reshape(5,3)
+    with pytest.raises(ValueError):
+        sp.feats.apply_context_window(
+            matrix_input, 
+            context_window = 1,
+            axis = 1,
+            zeropad = False)
+    
+def test_apply_context_window_2D_negative_axis():
+    matrix_input = np.arange(15).reshape(3,5)
+    got = sp.feats.apply_context_window(
+        matrix_input, 
+        context_window = 1,
+        axis = -2,
+        zeropad = False)
+    expected = np.array([[[ 0,  1,  2,  3,  4],
+        [ 5,  6,  7,  8,  9],
+        [10, 11, 12, 13, 14]]])
+    got2 = sp.feats.apply_context_window(
+        matrix_input, 
+        context_window = 1,
+        axis = 0,
+        zeropad = False)
+    assert np.array_equal(expected, got)
+    assert np.array_equal(got, got2)
+    
+def test_apply_context_window_4D_axis3():
+    matrix_input = np.arange(32).reshape(2,2,4,2)
+    got = sp.feats.apply_context_window(
+        matrix_input, 
+        context_window = 2,
+        axis = -2,
+        zeropad = False)
+    expected = np.array([[[ 0,  1,  2,  3,  4],
+        [ 5,  6,  7,  8,  9],
+        [10, 11, 12, 13, 14]]])
+    got2 = sp.feats.apply_context_window(
+        matrix_input, 
+        context_window = 1,
+        axis = 3,
+        zeropad = False)
+    assert np.array_equal(expected, got)
+    assert np.array_equal(got, got2)
+    
+    
 def test_get_feature_matrix_shape():
     feature = 'signal'
     sr = 22050
@@ -184,12 +346,13 @@ def test_get_feature_matrix_shape():
     win_size_ms = 20
     percent_overlap = 0.5
     labeled_data = False
-    got_base_shape, got_model_shape = sp.feats.get_feature_matrix_shape(feature_type = feature,
-                                            sr = sr,
-                                            dur_sec = dur_sec,
-                                            win_size_ms = win_size_ms,
-                                            percent_overlap = percent_overlap,
-                                            labeled_data = labeled_data)
+    got_base_shape, got_model_shape = sp.feats.get_feature_matrix_shape(
+        feature_type = feature,
+        sr = sr,
+        dur_sec = dur_sec,
+        win_size_ms = win_size_ms,
+        percent_overlap = percent_overlap,
+        labeled_data = labeled_data)
     expected_base_shape = (22050,)
     expected_model_shape = (50, 441)
     assert expected_base_shape == got_base_shape
