@@ -825,13 +825,13 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
         max_energy_original = np.max(noisy_audio)
         # match the scale of the original audio:
         cleaned_audio = sp.dsp.scalesound(cleaned_audio, max_val = max_energy_original)
-        feature_type = 'signal'
     except librosa.ParameterError as e:
-        print('\nlibrosa.ParameterError: ',e)
-        print('\nUnable to convert to raw audio samples, likely to low `fft_bins` count. '+\
-            '\nReturning cleaned audio in {} features.'.format(feature_type))
+        import warnings
+        msg = '\nlibrosa.ParameterError: {}'.format(e)+\
+            '\nUnable to convert cleaned features to raw audio samples.'+\
+                '\nReturning cleaned audio in {} features.'.format(feature_type))
         cleaned_audio = cleaned_feats
-    return cleaned_audio, sr, feature_type
+    return cleaned_audio, sr
 
 
     
@@ -925,10 +925,10 @@ def cnnlstm_train(feature_extraction_dir,
     model_name += '.h5'
     model_path = model_dir.joinpath(model_name)
     
-    if context_window is not None or frames_per_sample is not None:
-        raise DeprecationWarning('In future versions, the `frames_per_sample` and '+\
-            '`context_window` parameters will be no longer used in feature extraction.\n'+\
-                ' Instead features can be segmented in generator functions using the '+\
+    if frames_per_sample is not None:
+        raise DeprecationWarning('In future versions, the `frames_per_sample` '+\
+            'parameter will be no longer used.\n'+\
+                'Instead features can be segmented in generator functions using the '+\
                     'parameter `context_window`: `soundpy.models.dataprep.Generator`.')
         
     if context_window is not None:
