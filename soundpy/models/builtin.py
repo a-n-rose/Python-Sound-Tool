@@ -895,6 +895,7 @@ def cnnlstm_train(feature_extraction_dir,
                   patience = 15,
                   timesteps = 10,
                   context_window = 5,
+                  frames_per_sample = 11,
                   colorscale = 1,
                   total_training_sessions = None,
                   add_tensor_last = False,
@@ -924,7 +925,16 @@ def cnnlstm_train(feature_extraction_dir,
     model_name += '.h5'
     model_path = model_dir.joinpath(model_name)
     
-    frame_width = context_window * 2 + 1 # context window w central frame
+    if context_window is not None or frames_per_sample is not None:
+        raise DeprecationWarning('In future versions, the `frames_per_sample` and '+\
+            '`context_window` parameters will be no longer used in feature extraction.\n'+\
+                ' Instead features can be segmented in generator functions using the '+\
+                    'parameter `context_window`: `soundpy.models.dataprep.Generator`.')
+        
+    if context_window is not None:
+        frame_width = context_window * 2 + 1 # context window w central frame
+    elif frames_per_sample is not None:
+        frame_width = frames_per_sample
     input_shape = (timesteps, frame_width, num_feats, colorscale)
     model, settings = spdl.cnnlstm_classifier(num_labels = num_labels, 
                                                     input_shape = input_shape, 

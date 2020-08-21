@@ -1559,7 +1559,7 @@ def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
                              win_size_ms = None, percent_overlap = None,
                              fft_bins = None, num_mfcc = None, num_filters = None,
                              rate_of_change = False, rate_of_acceleration = False,
-                             context_window = None, zeropad = True, labeled_data = False, remove_first_coefficient = False, real_signal = False):
+                             context_window = None, frames_per_sample = None, zeropad = True, labeled_data = False, remove_first_coefficient = False, real_signal = False):
     '''Returns expected shapes of feature matrix depending on several parameters.
     
     Parameters
@@ -1601,8 +1601,13 @@ def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
         
     context_window : int
         The size of `context_window` or number of samples padding a central frame.
-        This may be useful for models training on small changes occuring in the signal, 
-        e.g. to break up the image of sound into smaller parts.
+        This may be useful for models training on small changes occuring in the signal, e.g. to break up the image of sound into smaller parts. 
+        
+    frames_per_sample : int
+        The previous keyword argument for sugementing audio into smaller parts.
+        Will be removed in future versions and available in generator functions as 
+        `context_window`. `frames_per_sample` equals 2 * `context_window` + 1. See 
+        `soundpy.models.dataprep.Generator`
         
     zeropad : bool 
         If True, windows and frames will be zeropadded to avoid losing any sample data.
@@ -1682,8 +1687,17 @@ def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
         elif rate_of_change is True or rate_of_acceleration is True:
             num_feats += num_feats
     
-        if context_window:
-            subframes = context_window * 2 + 1
+        if frames_per_sample is not None or context_window is not None:
+            raise DeprecationWarning('In future versions, the `frames_per_sample` and '+\
+                '`context_window` parameters will be no longer used in feature extraction.\n'+\
+                    ' Instead features can be segmented in generator functions using the '+\
+                        'parameter `context_window`: `soundpy.models.dataprep.Generator`.')
+        
+        if context_window or frames_per_sample:
+            if context_window:
+                subframes = context_window * 2 + 1
+            else:
+                subframes = frames_per_sample
             batches = math.ceil(total_rows_per_wav/subframes)
             feature_matrix_model = (
                 batches,
@@ -1821,28 +1835,9 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
                     title = title,
                     name4pic = save_pic_path)
     return None
-
-# TODO how to best apply context window 
-def apply_context_window(feats, context_window, percent_overlap = 0.5):
-    '''Applies context window to each frame with overlapping windows.
-    
-    Parameters
-    ----------
-    feats : np.ndarray [shape=(num_frames, num_features)]
-        The features to apply the context window to
-        
-    context_window : int 
-        The number of frames surrounding a central frame 
-        
-    percent_overlap : float 
-        The amount of overlap between context windows. 0.5 overlap is symmetrical,
-        lower has more previous frames surrounding the frame of focus, above has more 
-        'future' frames surrounding the frame of focus.
-    '''
-    pass
     
 def save_features_datasets(datasets_dict, datasets_path2save_dict, 
-                            context_window=None, labeled_data=False, 
+                            context_window=None, frames_per_sample = None, labeled_data=False, 
                             subsection_data=False, divide_factor=None,
                             visualize=False, vis_every_n_frames=50, 
                             log_settings=True, decode_dict = None, 
@@ -1864,9 +1859,15 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
         features of that dataset will be saved.
         E.g. {'train': './data/train.npy', 'val': './data/val.npy', 'test': './data/test.npy'}
     
-    context_window : int, optional 
-        If you want to section each audio file feature data into smaller frames. This might be 
-        useful for speech related contexts. (Can avoid this by simply reshaping data later)
+    context_window : int
+        The size of `context_window` or number of samples padding a central frame.
+        This may be useful for models training on small changes occuring in the signal, e.g. to break up the image of sound into smaller parts, to feed 
+        to a long short-term memory network (LSTM), for example.
+        (Can avoid this by simply reshaping data later). 
+        
+    frames_per_sample : int
+        The previous keyword argument for sugementing audio into smaller parts.
+        Will be removed in future versions. This equals 2 * `context_window` + 1
     
     labeled_data : bool 
         If True, expects each audiofile to be accompanied by an integer label. See example 
@@ -1949,6 +1950,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
             
         feat_base_shape, feat_model_shape = sp.feats.get_feature_matrix_shape(
             context_window = context_window,
+            frames_per_sample = frames_per_sample,
             labeled_data = labeled_data,
             **kwargs)
     
@@ -2049,6 +2051,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
                 feat_model_shape = feat_model_shape,
                 complex_vals = complex_vals,
                 context_window = context_window,
+                frames_per_sample = frames_per_sample,
                 labeled_data = labeled_data,
                 decode_dict = decode_dict,
                 visualize = visualize,
@@ -2071,6 +2074,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
             datasets_dict = datasets_dict, 
             datasets_path2save_dict = datasets_path2save_dict,
             context_window = context_window,
+            frames_per_sample = frames_per_sample,
             labeled_data = labeled_data,
             subsection_data = subsection_data,
             divide_factor = divide_factor,

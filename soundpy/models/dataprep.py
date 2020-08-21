@@ -15,13 +15,20 @@ import librosa
 
 ###############################################################################
 
-
+def apply_context_window(feature_matrix, context_window, zeropad = True):
+    '''
+    Parameters
+    ----------
+    feature_matrix : np.ndarray [size=(num_frames, num_features)]
+    '''
+    return feature_matrix
 
 #feed data to models
 class Generator:
     def __init__(self, data_matrix1, data_matrix2=None, 
-                 normalized=False, apply_log = False, adjust_shape = None,
-                 labeled_data = False, add_tensor_last = None, gray2color = False):
+                 normalized=False, apply_log = False, context_window = None,
+                 adjust_shape = None, labeled_data = False, 
+                 add_tensor_last = None, gray2color = False, zeropad = True):
         '''
         This generator pulls data out in sections (i.e. batch sizes). Prepared for 3 dimensional data.
         
@@ -42,12 +49,17 @@ class Generator:
             by the generator. (default False)
         apply_log : bool 
             If True, log will be applied to the data.
+        context_window : int
+            The size of `context_window` or number of samples padding a central frame.
+            This may be useful for models training on small changes occuring in the signal, e.g. to break up the image of sound into smaller parts. 
         adjust_shape : int or tuple, optional
             The desired number of features or shape of data to feed a neural network.
             If type int, only the last column of features will be adjusted (zeropadded
             or limited). If tuple, the entire data shape will be adjusted (all columns). 
             If the int or shape is larger than that of the data provided, data will 
             be zeropadded. If the int or shape is smaller, the data will be restricted.
+        zeropad : bool 
+            If features should be zeropadded in reshaping functions.
         '''
         self.batch_size = 1
         self.samples_per_epoch = data_matrix1.shape[0]
@@ -57,6 +69,8 @@ class Generator:
         self.datay = data_matrix2
         self.normalized = normalized
         self.apply_log = apply_log
+        self.context_window = context_window
+        self.zeropad = zeropad
         self.add_tensor_last = add_tensor_last
         self.gray2color = gray2color # if need to change grayscale data to rgb
         if len(self.datax.shape) == 4:
@@ -139,6 +153,14 @@ class Generator:
                 # don't need to touch label data
                 if self.labels is None:
                     batch_y = np.log(np.abs(batch_y))
+
+            if self.context_window is not None:
+                batch_x = apply_context_window(batch_x, self.context_window, 
+                                               zeropad = self.zeropad)
+                if self.labels is None:
+                    batch_y = apply_context_window(batch_y, self.context_window,
+                                                   zeropad = self.zeropad)
+
 
             # TODO test
             # if need greater number of features --> zero padding
