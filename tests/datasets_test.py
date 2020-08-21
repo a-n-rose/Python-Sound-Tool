@@ -191,6 +191,7 @@ def test_loadsound_librosa_mp3():
     samples, sr = sp.loadsound(test_mp3, use_scipy=False, remove_dc=False)
     expected = np.array([ 0.000e+00, -1.5258789e-05,  0.000e+00, 
                          0.00e+00,0.0000000e+00])
+    print('\nIF ERROR: could be due to update in Librosa from 0.7.2 to 0.8.0')
     assert np.allclose(samples[:5], expected)
     assert sr==44100
     
@@ -330,8 +331,15 @@ def test_adjust_feature_shape_1dim_limit():
     assert np.array_equal(input_adjusted, expected)
     assert input_adjusted.shape == desired_shape 
     
-def test_adjust_feature_shape_adding_extra_dimensions():
+def test_adjust_feature_shape_adding_extra_dimension_length1():
     desired_shape = (3,2,2,1)
+    input_data = np.ones((3,3,3))
+    input_adjusted = sp.feats.adjust_shape(input_data, 
+                                        desired_shape = desired_shape)
+    assert input_adjusted.shape == desired_shape 
+    
+def test_adjust_feature_shape_adding_extra_dimension_length3_value_error():
+    desired_shape = (3,2,2,3)
     input_data = np.ones((3,3,3))
     with pytest.raises(ValueError):
         input_adjusted = sp.feats.adjust_shape(input_data, 
