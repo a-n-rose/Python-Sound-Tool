@@ -1,11 +1,11 @@
 # Updates of v0.1.0a3 release:
 
-## Breaking changes:
-- parameter (denoiser): frames_per_sample to context_window 
-- return cleaned_feats, sr, feature_type with soundpy.models.builtin.implement_denoiser() instead of cleaned_feats, sr
-- perhaps due to the feature extraction change... old feature extractions aren't compaitble with new ones...??? Like the denoiser?
-
-
+## Updates
+- don't use librosa for feature extraction anymore. But compatible with previous versions.
+- parameter: frames_per_sample and context_window, with depreciation warning
+Just remove these parameters from feature extraction and limit to generators. Otherwise too messy and complex
+- soundpy.models.builtin.implement_denoiser() raise warning if cleaned features cannot be 
+converted to raw audio samples.
 
 
 
