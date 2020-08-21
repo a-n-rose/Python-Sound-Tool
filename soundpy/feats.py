@@ -2282,6 +2282,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
             **kwargs)
     return datasets_dict, datasets_path2save_dict
 
+# TODO: update / consolidate
 def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict, 
                                     extract_dir, dur_sec,
                                     feature_type='fbank', num_feats=None, sr=22050, 
