@@ -1281,6 +1281,17 @@ def reduce_num_features(feats, desired_shape):
 # TODO remove warning for 'operands could not be broadcast together with shapes..'
 # TODO test
 def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False):
+    if change_dims:
+        raise DeprecationWarning('Function `soundpy.feats.adjust_shape` will not '+\
+            'use the parameter `change_dims` in future versions. \nIf extra dimensions '+\
+                'of length 1 are to be added to the `data`, this will be completed. '+\
+                    'However extra dims of greater length are not covered in this function.')
+    
+    if complex_vals:
+        raise DeprecationWarning('Function `soundpy.feats.adjust_shape` will not '+\
+            'use the parameter `complex_vals` in future versions. This will be '+\
+                'implicitly conducted within the function using `numpy.dtype`.')
+    
     if len(data.shape) != len(desired_shape):
         data_shape_orig = data.shape
         if desired_shape[0] == 1:
@@ -1293,6 +1304,14 @@ def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False)
             raise ValueError('Currently cannot adjust data to a different number of '+\
                 'dimensions.\nOriginal data shape: '+str(data_shape_orig)+ \
                     '\nDesired shape: '+str(desired_shape))
+    
+    # if complex values are in data, set complex_vals to True
+    if data.dtype == np.complex_:
+        if not complex_vals:
+            print('\nFunction `soundpy.feats.adjust_shape` received the parameter '+\
+                '`complex_vals` as False, however complex values found in `data`.'+\
+                    '\nTherefore, set `complex_vals` to True.')
+            complex_vals = True
         
     # attempt to zeropad data:
     try:
@@ -1326,6 +1345,139 @@ def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False)
         data_prepped = sp.feats.reduce_num_features(data, 
                                                  desired_shape = desired_shape)
     return data_prepped
+
+
+def feats_shape_context_window(feature_matrix_shape, context_window, 
+                               zeropad = True, axis=0):
+    '''Subdivides features from (num_frames, num_feats) to (frame_size, num_frames, num_feats)
+    
+    Parameters
+    ----------
+    feature_matrix_shape : tuple [size=(num_frames, num_features)]
+        Feature matrix shape to be subdivided. Can be multidimensional.
+        
+    context_window : int 
+        The number of frames surrounding a central frame. Will result in a 
+        `frame_size` 2 * `context_window` + 1.
+    
+    zeropad : bool 
+        If True, frames that don't completely fill a `frame_size` will be 
+        zeropadded. Otherwise, those frames will be discarded. (default True)
+        
+    axis : int 
+        The axis where the `context_window` should be applied. (default 0)
+        
+    Returns
+    -------
+    new_shape : tuple [size=(num_subframes, frame_size, num_feats)]
+    '''
+    frame_size = context_window * 2 + 1
+    if axis < 0:
+        # get the axis number if using -1 or -2, etc.
+        axis = len(feature_matrix_shape) + axis
+    original_dim_length = feature_matrix_shape[axis]
+    if zeropad is True:
+        subsection_frames = math.ceil(original_dim_length / frame_size)
+    else:
+        subsection_frames = original_dim_length // frame_size
+    new_shape = []
+    for i, ax in enumerate(feature_matrix_shape):
+        if i == axis:
+            new_shape.append(subsection_frames)
+            new_shape.append(frame_size)
+        else:
+            new_shape.append(ax)
+    new_shape = tuple(new_shape)
+    return new_shape
+
+
+def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = True):
+    '''Reshapes `feature_matrix` to allow for `context_window`. 
+    
+    Note: expects context window to be applied to the axis preceding the features
+    column. Dimensions of `feature_matrix` can be up to 4, but only with extra
+    dimensions with length of 1. For example shape (5,10) (1,5,10), (5,10,1) or 
+    (1,5,10,1), etc. are acceptable. The axis would have to be adjusted to where the 
+    number of frames are located, e.g. if num_frames was 5, the axis for data shaped
+    (1,5,10) would have to be set to `axis` = 1.
+    
+    
+    Parameters
+    ----------
+    feature_matrix : np.ndarray [size(num_frames, num_features) ]
+        Expects 2D matrix (with extra dimensions of length 1) and returns 3D matrix.
+        
+    context_window : int 
+        The number of frames surrounding a central frame. A `context_window` of 3 
+        will result in a frame_size of 3*2+1 or 7. 
+        
+    axis : int 
+        The axis to apply the `context_window`. (default 0)
+
+    zeropad : bool 
+        If True, the feature_matrix will be zeropadded to include frames that do not 
+        fill entire frame_size, given the `context_window`. If False, feature_matrix
+        will not include the last zeropadded frame. (default True)
+        
+    Returns
+    -------
+    feats_reshaped : np.ndarray [size(num_subframes, context_window*2+1, num_features)]
+        The maximum number of dimensions applied: 5
+        
+    Warning
+    -------
+        
+    '''
+    datatype = feature_matrix.dtype
+    if axis < 0:
+        # get the axis number if using -1 or -2, etc.
+        axis = len(feature_matrix.shape) + axis
+    new_shape = feats_shape_context_window(feature_matrix.shape,
+                                           context_window = context_window,
+                                           axis = axis,
+                                           zeropad = zeropad)
+
+    total_new_samples = np.prod(new_shape)
+    current_samples = np.prod(feature_matrix.shape)
+    
+    # zeropad or reduce feature_matrix to match number of current samples
+    diff = total_new_samples - current_samples
+    print(diff)
+    # if axis is last column, raise error
+    if axis == len(feature_matrix.shape) - 1:
+        raise ValueError('Function `apply_context_window` expects the window '+\
+            'to be applied to the axis or column preceding the features column. '+\
+                'The context window cannot be applied to the last axis.')
+    if axis == 0:
+        # expects num_frames to be in first axis and num_features in second axis
+        if zeropad is True:
+            diff = math.ceil(diff / feature_matrix.shape[1])
+        else:
+            diff = int(diff/feature_matrix.shape[1])        
+        feature_matrix = sp.feats.adjust_shape(
+            feature_matrix,
+            ((feature_matrix.shape[0] + diff,) + feature_matrix.shape[1:]))
+    elif axis > 0:
+        # expects num_frames to be in this axis and num_features in following axis
+        if zeropad is True:
+            if diff >= 0:
+                diff = math.ceil(diff / feature_matrix.shape[axis + 1])
+            else:
+                diff = int(diff/feature_matrix.shape[axis + 1]) 
+        else:
+            if diff >= 0:
+                diff = int(diff/feature_matrix.shape[axis + 1]) 
+            else:
+                diff = math.ceil(diff / feature_matrix.shape[axis + 1])
+        feature_matrix = sp.feats.adjust_shape(
+            feature_matrix,
+            (feature_matrix.shape[:axis] + (feature_matrix.shape[axis] + diff, ) + \
+                feature_matrix.shape[axis+1:]))
+    
+    feats_reshaped = feature_matrix.reshape(new_shape)
+    feats_reshaped = feats_reshaped.astype(datatype)
+    return feats_reshaped
+
 
 def check_percent_overlap(percent_overlap):
     '''Ensures percent_overlap is between 0 and 1.
