@@ -8,6 +8,7 @@ currentdir = os.path.dirname(os.path.abspath(
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 import numpy as np
+import math
 import random
 import soundpy as sp
 import librosa
@@ -15,19 +16,11 @@ import librosa
 
 ###############################################################################
 
-def apply_context_window(feature_matrix, context_window, zeropad = True):
-    '''
-    Parameters
-    ----------
-    feature_matrix : np.ndarray [size=(num_frames, num_features)]
-    '''
-    return feature_matrix
-
 #feed data to models
 class Generator:
     def __init__(self, data_matrix1, data_matrix2=None, 
                  normalized=False, apply_log = False, context_window = None,
-                 adjust_shape = None, labeled_data = False, 
+                 axis_context_window = 0, adjust_shape = None, labeled_data = False, 
                  add_tensor_last = None, gray2color = False, zeropad = True):
         '''
         This generator pulls data out in sections (i.e. batch sizes). Prepared for 3 dimensional data.
@@ -70,6 +63,7 @@ class Generator:
         self.normalized = normalized
         self.apply_log = apply_log
         self.context_window = context_window
+        self.axis = axis_context_window
         self.zeropad = zeropad
         self.add_tensor_last = add_tensor_last
         self.gray2color = gray2color # if need to change grayscale data to rgb
@@ -154,13 +148,19 @@ class Generator:
                 if self.labels is None:
                     batch_y = np.log(np.abs(batch_y))
 
+            # reshape features to allow for context window / subsection features
             if self.context_window is not None:
-                batch_x = apply_context_window(batch_x, self.context_window, 
-                                               zeropad = self.zeropad)
+                batch_x = sp.feats.apply_context_window(
+                    batch_x, 
+                    self.context_window, 
+                    zeropad = self.zeropad,
+                    axis = self.axis)
                 if self.labels is None:
-                    batch_y = apply_context_window(batch_y, self.context_window,
-                                                   zeropad = self.zeropad)
-
+                    batch_y = apply_context_window(
+                        batch_y, 
+                        self.context_window, 
+                        zeropad = self.zeropad,
+                        axis = self.axis)
 
             # TODO test
             # if need greater number of features --> zero padding
