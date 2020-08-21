@@ -1442,7 +1442,6 @@ def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = Tru
     
     # zeropad or reduce feature_matrix to match number of current samples
     diff = total_new_samples - current_samples
-    print(diff)
     # if axis is last column, raise error
     if axis == len(feature_matrix.shape) - 1:
         raise ValueError('Function `apply_context_window` expects the window '+\
