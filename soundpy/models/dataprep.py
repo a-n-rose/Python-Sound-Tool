@@ -34,23 +34,33 @@ class Generator:
         data_matrix1 : np.ndarray [size=(num_samples, batch_size, num_frames, num_features) or (num_samples, num_frames, num_features+label_column)]
             The training data. This can contain the feature and label data or 
             just the input feature data. 
+        
         data_matrix2 : np.ndarray [size = (num_samples, ) `data_matrix1`.shape], optional
             Either label data for `data_matrix1` or, for example, the clean 
             version of `data_matrix1` if training an autoencoder. (default None)
+        
         normalized : bool 
             If True, the data has already been normalized and won't be normalized
             by the generator. (default False)
+        
         apply_log : bool 
             If True, log will be applied to the data.
+        
         context_window : int
             The size of `context_window` or number of samples padding a central frame.
             This may be useful for models training on small changes occuring in the signal, e.g. to break up the image of sound into smaller parts. 
+            
+        axis_context_window : int 
+            The axis to `apply_context_window`, if `context_window` is not None. 
+            (default 0)
+        
         adjust_shape : int or tuple, optional
             The desired number of features or shape of data to feed a neural network.
             If type int, only the last column of features will be adjusted (zeropadded
             or limited). If tuple, the entire data shape will be adjusted (all columns). 
             If the int or shape is larger than that of the data provided, data will 
             be zeropadded. If the int or shape is smaller, the data will be restricted.
+        
         zeropad : bool 
             If features should be zeropadded in reshaping functions.
         '''
