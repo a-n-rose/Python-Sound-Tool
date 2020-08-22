@@ -18,10 +18,11 @@ import librosa
 
 #feed data to models
 class Generator:
-    def __init__(self, data_matrix1, data_matrix2=None, 
-                 normalized=False, apply_log = False, context_window = None,
-                 axis_context_window = 0, adjust_shape = None, labeled_data = False, 
-                 add_tensor_last = None, gray2color = False, zeropad = True):
+    def __init__(self, data_matrix1, data_matrix2=None, timestep = None,
+                 axis_timestep = 0, normalized=False, apply_log = False, 
+                 context_window = None, axis_context_window = -2, labeled_data = False, 
+                 add_tensor_last = None, gray2color = False, zeropad = True,
+                 desired_input_shape = None):
         '''
         This generator pulls data out in sections (i.e. batch sizes). Prepared for 3 dimensional data.
         
@@ -46,23 +47,31 @@ class Generator:
         apply_log : bool 
             If True, log will be applied to the data.
         
+        timestep : int 
+            The number of frames to constitute a timestep.
+            
+        axis_timestep : int 
+            The axis to apply the `timestep` to. (default 0)
+        
         context_window : int
             The size of `context_window` or number of samples padding a central frame.
             This may be useful for models training on small changes occuring in the signal, e.g. to break up the image of sound into smaller parts. 
             
         axis_context_window : int 
             The axis to `apply_context_window`, if `context_window` is not None. 
-            (default 0)
+            Ideally should be in axis preceding feature column.
+            (default -2)
         
-        adjust_shape : int or tuple, optional
+        zeropad : bool 
+            If features should be zeropadded in reshaping functions.
+        
+        desired_input_shape : int or tuple, optional
             The desired number of features or shape of data to feed a neural network.
             If type int, only the last column of features will be adjusted (zeropadded
             or limited). If tuple, the entire data shape will be adjusted (all columns). 
             If the int or shape is larger than that of the data provided, data will 
             be zeropadded. If the int or shape is smaller, the data will be restricted.
-        
-        zeropad : bool 
-            If features should be zeropadded in reshaping functions.
+            (default None)
         '''
         self.batch_size = 1
         self.samples_per_epoch = data_matrix1.shape[0]
@@ -72,22 +81,13 @@ class Generator:
         self.datay = data_matrix2
         self.normalized = normalized
         self.apply_log = apply_log
+        self.timestep = timestep
+        self.axis_timestep = axis_timestep
         self.context_window = context_window
-        self.axis = axis_context_window
+        self.axis_context = axis_context_window
         self.zeropad = zeropad
         self.add_tensor_last = add_tensor_last
         self.gray2color = gray2color # if need to change grayscale data to rgb
-        if len(self.datax.shape) == 4:
-            # expects shape (num_samples, batch_size, num_frames, num_feats)
-            self.batches_per_sample = self.datax.shape[1]
-            self.num_frames = self.datax.shape[2]
-        elif len(self.datax.shape) == 3:
-            # expects shape (num_samples, num_frames, num_feats)
-            self.batches_per_sample = None
-            self.num_frames = self.datax.shape[1]
-        else:
-            raise ValueError('Expected 4 or 3 dimensional data, not data '+\
-                'with shape {}.'.format(self.datax.shape))
         if self.datay is None:
             # separate the label from the feature data
             self.datax, self.datay = sp.feats.separate_dependent_var(self.datax)
@@ -100,35 +100,7 @@ class Generator:
             self.labels = None
         if labeled_data:
             self.labels = True
-        if adjust_shape is not None:
-            if isinstance(adjust_shape, int):
-                if self.batches_per_sample is not None:
-                    self.desired_shape = (self.batches_per_sample, 
-                                        self.num_frames,
-                                        adjust_shape)
-                else:
-                    self.desired_shape = (self.num_frames,
-                                        adjust_shape)
-            elif isinstance(adjust_shape, tuple):
-                self.desired_shape = adjust_shape
-            else:
-                self.desired_shape = None
-        else:
-            self.desired_shape = None
-        # raise warnings if data will be significantly adjusted 
-        # TODO test this or delete it
-        if self.desired_shape is not None:
-            if len(self.desired_shape)+1 != len(self.datax.shape):
-                import warnings
-                message = '\nWARNING: The number of dimensions will be adjusted in the '+\
-                    'generator.\nOriginal data has ' + str(len(self.datax.shape))+\
-                        ' dimensions\nAdjusted data has ' + str(len(self.desired_shape)+1) +\
-                            'dimensions'
-            if self.desired_shape < self.datax.shape[1:]:
-                import warnings
-                message = '\nWARNING: Desired shape '+ str(self.desired_shape) +\
-                    ' is smaller than the original data shape ' + str(self.datax.shape[1:])+\
-                        '. Some data will therefore be removed, NOT ZEROPADDED.'
+        self.desired_shape = desired_input_shape
 
     def generator(self):
         '''Shapes, norms, and feeds data depending on labeled or non-labeled data.
@@ -139,10 +111,13 @@ class Generator:
             batch_x = self.datax[self.counter] 
             batch_y = self.datay[self.counter]
             
-            # expects only 1 label or vector to contain identical labels
+            # ensure label is shape (1,)
             if self.labels:
                 if isinstance(batch_y, np.ndarray) and len(batch_y) > 1:
-                    batch_y = batch_y[0]
+                    batch_y = batch_y[:0]
+                if not isinstance(batch_y, np.ndarray):
+                    batch_y = np.expand_dims(batch_y, axis=0)
+                    
             # TODO: is there a difference between taking log of stft before 
             # or after normalization?
             if not self.normalized or self.datax.dtype == np.complex_:
@@ -158,29 +133,33 @@ class Generator:
                 if self.labels is None:
                     batch_y = np.log(np.abs(batch_y))
 
+            # reshape features to allow for timestep / subsection features
+            if self.timestep is not None:
+                batch_x = sp.feats.apply_new_subframe(
+                    batch_x, 
+                    new_frame_size = self.timestep, 
+                    zeropad = self.zeropad,
+                    axis = self.axis_timestep)
+                if self.labels is None:
+                    batch_y = apply_new_subframe(
+                        batch_y, 
+                        new_frame_size = self.timestep, 
+                        zeropad = self.zeropad,
+                        axis = self.axis_timestep)
+
             # reshape features to allow for context window / subsection features
             if self.context_window is not None:
-                batch_x = sp.feats.apply_context_window(
+                batch_x = sp.feats.apply_new_subframe(
                     batch_x, 
-                    self.context_window, 
+                    new_frame_size = self.context_window * 2 + 1, 
                     zeropad = self.zeropad,
-                    axis = self.axis)
+                    axis = self.axis_context)
                 if self.labels is None:
-                    batch_y = apply_context_window(
+                    batch_y = apply_new_subframe(
                         batch_y, 
-                        self.context_window, 
+                        new_frame_size = self.context_window * 2 + 1, 
                         zeropad = self.zeropad,
-                        axis = self.axis)
-
-            # TODO test
-            # if need greater number of features --> zero padding
-            # could this be applied to including both narrowband and wideband data?
-            
-            if self.desired_shape is not None:
-                batch_x = sp.feats.adjust_shape(batch_x, self.desired_shape, change_dims=True)
-                
-                if self.labels is None:
-                    batch_y = sp.feats.adjust_shape(batch_y, self.desired_shape, change_dims=True)
+                        axis = self.axis_context)
             
             if self.gray2color:
                 # expects colorscale to be last column.
@@ -191,33 +170,45 @@ class Generator:
                 if self.labels is None:
                     batch_y = sp.feats.gray2color(batch_y, 
                                                     colorscale = batch_y.shape[-1])
-            ## add tensor dimension
-            if self.add_tensor_last is True:
-                # e.g. for some conv model
-                X_batch = batch_x.reshape(batch_x.shape + (1,))
-                y_batch = batch_y.reshape(batch_y.shape + (1,))
-            elif self.add_tensor_last is False:
-                # e.g. for some lstm models
-                X_batch = batch_x.reshape((1,)+batch_x.shape)
-                y_batch = batch_y.reshape((1,)+batch_y.shape)
-            else:
-                X_batch = batch_x
-                y_batch = batch_y
             
-            if len(X_batch.shape) == 3:
-                # needs to be 4 dimensions / have extra tensor
-                X_batch = X_batch.reshape((1,)+X_batch.shape)
-                y_batch = y_batch.reshape((1,)+y_batch.shape)
-            if len(y_batch.shape) == 1:
-                y_batch = y_batch.reshape((1,) + y_batch.shape)
+            # can be applied in desired_input_shape
+            ### add tensor dimension
+            #if self.add_tensor_last is True:
+                ## e.g. for some conv model
+                #X_batch = batch_x.reshape(batch_x.shape + (1,))
+                #y_batch = batch_y.reshape(batch_y.shape + (1,))
+            #elif self.add_tensor_last is False:
+                ## e.g. for some lstm models
+                #X_batch = batch_x.reshape((1,)+batch_x.shape)
+                #y_batch = batch_y.reshape((1,)+batch_y.shape)
+            #else:
+                #X_batch = batch_x
+                #y_batch = batch_y
+            
+            #if len(X_batch.shape) == 3:
+                ## needs to be 4 dimensions / have extra tensor
+                #X_batch = X_batch.reshape((1,)+X_batch.shape)
+                #y_batch = y_batch.reshape((1,)+y_batch.shape)
+            #if len(y_batch.shape) == 1:
+                #y_batch = y_batch.reshape((1,) + y_batch.shape)
             
             if self.labels:
-                if y_batch.dtype == np.complex64 or y_batch.dtype == np.complex128:
-                    y_batch = y_batch.astype(int)
+                if batch_y.dtype == np.complex64 or batch_y.dtype == np.complex128:
+                    batch_y = batch_y.astype(int)
+            
+            # TODO test
+            # if need greater number of features --> zero padding
+            # could this be applied to including both narrowband and wideband data?
+            # check to ensure batches match desired input shape
+            if self.desired_shape is not None:
+                # can add dimensions of length 1 to first and last axis:
+                batch_x = sp.feats.adjust_shape(batch_x, self.desired_shape)
+                if self.labels is None:
+                    batch_y = sp.feats.adjust_shape(batch_y, self.desired_shape)
             
             #send the batched and reshaped data to model
             self.counter += 1
-            yield X_batch, y_batch
+            yield batch_x, batch_y
 
             #restart counter to yeild data in the next epoch as well
             if self.counter >= self.number_of_batches:
