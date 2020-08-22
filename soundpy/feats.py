@@ -633,9 +633,9 @@ def get_mfcc(sound, sr, num_mfcc, remove_first_coefficient=False,
     fbank = sp.feats.get_fbank(sound, sr=sr, **kwargs)
     mfcc = dct(fbank, type=2, axis=1, norm='ortho')
     if remove_first_coefficient is True:
-        mfcc = mfcc[:,1:num_mfcc+1]
+        mfcc = mfcc[:,1:num_mfcc]
     else:
-        mfcc = mfcc[:,:num_mfcc+1]
+        mfcc = mfcc[:,:num_mfcc]
     return mfcc
 
 def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
