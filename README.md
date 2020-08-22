@@ -112,6 +112,59 @@ sp.feats.plot(feats, feature_type = 'mfcc',
 ```
 ![Imgur](https://i.imgur.com/kGSNaFt.png)
 
+
+### Features and Speech: 
+
+```
+python, sr = sp.loadsound('audiodata/python.wav', sr=22050)
+sp.feats.plot(python, sr = sr, feature_type = 'signal', title = 'Speech: "python"')
+```
+
+![Imgur](https://i.imgur.com/SLx6qzB.png)
+
+```
+# for speech, smaller windows are necessary:
+win_size_ms = 20
+percent_overlap = 0.5
+stft = sp.feats.get_feats(python, sr = sr, win_size_ms = win_size_ms,
+                          percent_overlap = percent_overlap, feature_type = 'stft')
+sp.feats.plot(stft, sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+              feature_type = 'stft', title = 'Speech: "python" in STFT features')
+```
+![Imgur](https://i.imgur.com/ObQeNGn.png)
+
+```
+# just for comparison:
+win_size_ms = 500
+percent_overlap = 0
+stft = sp.feats.get_feats(python, sr = sr, win_size_ms = win_size_ms,
+                          percent_overlap = percent_overlap, feature_type = 'stft')
+sp.feats.plot(stft, sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+              feature_type = 'stft', title = 'Speech: "python" in STFT features\n(large window and no overlap)')
+```
+![Imgur](https://i.imgur.com/msbXG8l.png)
+
+```
+win_size_ms = 20
+percent_overlap = 0.5
+fbank = sp.feats.get_feats(python, sr = sr, win_size_ms = win_size_ms,
+                          percent_overlap = percent_overlap, feature_type = 'fbank')
+sp.feats.plot(fbank, sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+              feature_type = 'fbank', title = 'Speech: "python" in FBANK features')
+```
+
+![Imgur](https://i.imgur.com/9FCS2Se.png)
+
+```
+mfcc = sp.feats.get_feats(python, sr = sr, win_size_ms = win_size_ms,
+                          percent_overlap = percent_overlap, feature_type = 'mfcc',
+                          num_mfcc = 13, remove_first_coefficient = True)
+sp.feats.plot(mfcc, sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+              feature_type = 'mfcc', title = 'Speech: "python" in MFCC features')
+```
+
+![Imgur](https://i.imgur.com/CqZwtgB.png)
+
 ## Explore more complex examples:
 
 ### Visually and Aurally in the Documentation:
