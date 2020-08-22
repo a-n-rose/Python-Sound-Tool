@@ -16,7 +16,9 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 ## Simple commands:
 
 ```
-z, sr = sp.generate_sound(freq=500, dur_sec = 1, amplitude = 0.3)
+import soundpy as sp
+
+z, sr = sp.generate_sound(freq=500, dur_sec = 1, amplitude = 0.3, sr = 8000)
 
 sp.plotsound(z[:200], sr=sr, feature_type='signal', title = '500 Hz Signal at Amplitude of 0.3')
 ```
@@ -43,10 +45,24 @@ sp.plotsound(y[:200], sr=sr, feature_type='signal', title = '2 Channel Signal wi
 ![Imgur](https://i.imgur.com/kxe32x9.png)
 
 ```
-sp.plotsound(y[:,0], sr=sr, feature_type='stft', fft_bins = sr, title = 'Short-Time Fourier Transform of Noisy First Channel\n500 Hz')
+for channel in range(y.shape[1]):
+    stft = sp.feats.get_feats(y[:,channel], sr=sr, feature_type='stft',
+                              fft_bins = sr, win_size_ms = 1000, percent_overlap=0)
+    sp.feats.visualize_feat_extraction(stft, feature_type = 'stft', sr=sr, 
+                                       win_size_ms = 1000, percent_overlap = 0,
+                                       label = 'Channel {}'.format(channel+1),
+                                       datadir = './two_channel_stft/')
 ```
+The above command will save the following plots of the STFT in the folder 'two_channel_stft/images/'
 
-![Imgur](https://i.imgur.com/1DxLWY3.png)
+### Noisy first channel:
+
+![Imgur](https://i.imgur.com/5ieiFgl.png)
+
+
+### Clean second channel: 
+
+![Imgur](https://i.imgur.com/kJ3hIvY.png)
 
 ```
 w, sr = sp.generate_sound(freq=3000, dur_sec=1, amplitude = 0.6, sr=sr)
@@ -71,7 +87,7 @@ sp.feats.plot(feats, feature_type = 'stft',
               title = 'Short-Time Fourier Transform of Combined Signals:\n'+\
                   '500 Hz and 3000 Hz')
 ```
-![Imgur](https://i.imgur.com/RqoIbhR.png)
+![Imgur](https://i.imgur.com/hXovle3.png)
 
 ```
 feats = sp.feats.get_feats(a, sr=sr, feature_type='fbank', num_filters = 40,
@@ -83,7 +99,7 @@ sp.feats.plot(feats, feature_type = 'fbank',
                   '500 Hz and 3000 Hz')
 ```
 
-![Imgur](https://i.imgur.com/Zy0zpEc.png)
+![Imgur](https://i.imgur.com/3ZZK0mk.png)
 
 ```
 feats = sp.feats.get_feats(a, sr=sr, feature_type='mfcc', num_mfcc=13,
@@ -94,7 +110,7 @@ sp.feats.plot(feats, feature_type = 'mfcc',
               title = 'Mel Frequency Cepstral Coefficients of Combined Signals:\n'+\
                   '500 Hz and 3000 Hz')
 ```
-![Imgur](https://i.imgur.com/rzr5r16.png)
+![Imgur](https://i.imgur.com/kGSNaFt.png)
 
 ## Explore more complex examples:
 
