@@ -14,6 +14,7 @@ sys.path.insert(0, packagedir)
 import numpy as np
 import math
 import random
+import matplotlib
 import librosa
 from scipy.signal import hann, hamming
 from scipy.fftpack import dct
@@ -24,21 +25,11 @@ from sklearn import preprocessing
 import soundpy as sp
 
 
-def saveplot(**kwargs):
-    '''Saves plots while training ussing Agg as backend
-    '''
-    import matplotlib
-    matplotlib.use('Agg')
-    # must save the plot using 'Agg' backend; cannot simply plot it
-    kwargs['save_pic'] = True
-    sp.feats.plot(**kwargs)
-
-
 # TODO Clean up   
 def plot(feature_matrix, feature_type, 
         save_pic=False, name4pic=None, energy_scale='power_to_db',
         title=None, sr=None, win_size_ms=None, percent_overlap=None,
-        x_label=None, y_label=None):
+        x_label=None, y_label=None, use_tkinter=True):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
     
     Parameters
@@ -66,6 +57,23 @@ def plot(feature_matrix, feature_type,
         Useful for plotting a signal type feature matrix. Allows x-axis to be
         presented as time in seconds.
     '''
+    if use_tkinter:
+        # can show plots
+        # interferes with training models though
+        matplotlib.use("TkAgg")
+    else:
+        # does not interfere with training models
+        matplotlib.use('Agg')
+        if save_pic is False:
+            import warnings
+            save_pic = True
+            if name4pic is None:
+                location = 'current working directory'
+            else:
+                location = name4pic
+            msg = 'Due to matplotlib using AGG backend, cannot display plot. '+\
+                'Therefore, the plot will be saved here: {}'.format(location)
+            warnings.warn(msg)
     import matplotlib.pyplot as plt
     # ensure real numbers
     if feature_matrix.dtype == np.complex64 or feature_matrix.dtype == np.complex128:
@@ -155,7 +163,8 @@ def plot(feature_matrix, feature_type,
     if y_label is not None:
         plt.ylabel(y_label)
     if save_pic:
-        outputname = name4pic or 'visualize{}feats'.format(feature_type.upper())
+        outputname = name4pic or 'visualize{}feats_{}'.format(feature_type.upper(),
+                                                              sp.utils.get_date())
         outputname = sp.utils.string2pathlib(outputname)
         if outputname.suffix:
             if outputname.suffix != '.png':

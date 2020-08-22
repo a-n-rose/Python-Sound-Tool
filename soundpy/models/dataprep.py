@@ -658,7 +658,7 @@ class GeneratorFeatExtraction:
                             energy_scale = 'power_to_db'
                     else:
                         energy_scale = None
-                    sp.feats.saveplot(
+                    sp.feats.plot(
                         feature_matrix = feats, 
                         feature_type = feature_type, 
                         sr = sr, 
@@ -666,13 +666,14 @@ class GeneratorFeatExtraction:
                         energy_scale = energy_scale, save_pic = True, 
                         name4pic = save_visuals_path,
                         title = 'Label {} {} features \n'.format(label_pic, feature_type)+\
-                            '(item {})'.format(self.counter))
+                            '(item {})'.format(self.counter),
+                        use_tkinter=False) #use Agg backend for plotting
                     if feats2 is not None:
                         # add '_2' to pathway
                         p = sp.utils.string2pathlib(save_visuals_path)
                         p2 = p.name.stem
                         save_visuals_path2 = p.parent.joinpath(p2+'_2'+p.name.suffix)
-                        sp.feats.saveplot(
+                        sp.feats.plot(
                             feature_matrix = feats2, 
                             feature_type = feature_type, 
                             sr = sr, 
@@ -681,7 +682,8 @@ class GeneratorFeatExtraction:
                             name4pic = save_visuals_path2,
                             title = 'Output {} features \n'.format(
                                 label_pic, feature_type)+\
-                                '(item {})'.format(self.counter))
+                                '(item {})'.format(self.counter),
+                            use_tkinter=False)
             
             
             ### problem area
