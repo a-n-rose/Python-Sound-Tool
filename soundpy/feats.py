@@ -1280,16 +1280,21 @@ def reduce_num_features(feats, desired_shape):
 # TODO remove warning for 'operands could not be broadcast together with shapes..'
 # TODO test
 def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False):
-    if change_dims:
-        raise DeprecationWarning('Function `soundpy.feats.adjust_shape` will not '+\
-            'use the parameter `change_dims` in future versions. \nIf extra dimensions '+\
-                'of length 1 are to be added to the `data`, this will be completed. '+\
-                    'However extra dims of greater length are not covered in this function.')
-    
-    if complex_vals:
-        raise DeprecationWarning('Function `soundpy.feats.adjust_shape` will not '+\
-            'use the parameter `complex_vals` in future versions. This will be '+\
-                'implicitly conducted within the function using `numpy.dtype`.')
+    try:
+        if change_dims:
+            raise DeprecationWarning('\nWARNING: Function `soundpy.feats.adjust_shape` will not '+\
+                'use the parameter `change_dims` in future versions. \nIf extra dimensions '+\
+                    'of length 1 are to be added to the `data`, this will be completed. '+\
+                        'However extra dims of greater length are not covered in this function.')
+    except DeprecationWarning as e:
+        print(e)
+    try:
+        if complex_vals:
+            raise DeprecationWarning('\nWARNING: Function `soundpy.feats.adjust_shape` will not '+\
+                'use the parameter `complex_vals` in future versions. This will be '+\
+                    'implicitly conducted within the function using `numpy.dtype`.')
+    except DeprecationWarning as e:
+        print(e)
     
     if len(data.shape) != len(desired_shape):
         data_shape_orig = data.shape
@@ -1881,13 +1886,14 @@ def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
             num_feats += 2 * num_feats
         elif rate_of_change is True or rate_of_acceleration is True:
             num_feats += num_feats
-    
-        if frames_per_sample is not None or context_window is not None:
-            raise DeprecationWarning('In future versions, the `frames_per_sample` and '+\
-                '`context_window` parameters will be no longer used in feature extraction.\n'+\
-                    ' Instead features can be segmented in generator functions using the '+\
-                        'parameter `context_window`: `soundpy.models.dataprep.Generator`.')
-        
+        try:
+            if frames_per_sample is not None or context_window is not None:
+                raise DeprecationWarning('\nWARNING: In future versions, the `frames_per_sample` and '+\
+                    '`context_window` parameters will be no longer used in feature extraction.\n'+\
+                        ' Instead features can be segmented in generator functions using the '+\
+                            'parameter `context_window`: `soundpy.models.dataprep.Generator`.')
+        except DeprecationWarning as e:
+            print(e)
         if context_window or frames_per_sample:
             if context_window:
                 subframes = context_window * 2 + 1
