@@ -829,7 +829,8 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
         import warnings
         msg = '\nlibrosa.ParameterError: {}'.format(e)+\
             '\nUnable to convert cleaned features to raw audio samples.'+\
-                '\nReturning cleaned audio in {} features.'.format(feature_type))
+                '\nReturning cleaned audio in {} features.'.format(feature_type)
+        warnings.warn(msg)
         cleaned_audio = cleaned_feats
     return cleaned_audio, sr
 
@@ -895,7 +896,7 @@ def cnnlstm_train(feature_extraction_dir,
                   patience = 15,
                   timesteps = 10,
                   context_window = 5,
-                  frames_per_sample = 11,
+                  frames_per_sample = None,
                   colorscale = 1,
                   total_training_sessions = None,
                   add_tensor_last = False,
@@ -931,14 +932,31 @@ def cnnlstm_train(feature_extraction_dir,
                 'Instead features can be segmented in generator functions using the '+\
                     'parameter `context_window`: `soundpy.models.dataprep.Generator`.')
         
-    if context_window is not None:
-        frame_width = context_window * 2 + 1 # context window w central frame
+    if context_window is not None: # by default it is not None
+        if frames_per_sample is None:
+            frame_width = context_window * 2 + 1 # context window w central frame
+        else:
+            frame_width = frames_per_sample
     elif frames_per_sample is not None:
         frame_width = frames_per_sample
     input_shape = (timesteps, frame_width, num_feats, colorscale)
     model, settings = spdl.cnnlstm_classifier(num_labels = num_labels, 
                                                     input_shape = input_shape, 
                                                     lstm_cells = num_feats)
+    
+    print('cnnlstm desired input shape: ', input_shape)
+    #cnnlstm desired input shape:  (10, 11, 221, 1)
+    #train data shape:  (7433, 99, 222)
+    
+    #start
+    #(99, 221)
+    #timestep
+    #(10, 10, 221)
+    #context_window
+    #(10, 11, 221)
+
+
+
     
 
     # create callbacks variable if not in kwargs
@@ -990,6 +1008,9 @@ def cnnlstm_train(feature_extraction_dir,
         data_val = np.load(data_val_path)
         data_test = np.load(data_test_path)
         
+        print('\ntrain data shape: ', data_train.shape)
+        print()
+        
         # shuffle data_train, just to ensure random
         np.random.shuffle(data_train) 
         
@@ -1007,20 +1028,43 @@ def cnnlstm_train(feature_extraction_dir,
             train_generator = spdl.Generator(data_matrix1 = data_train, 
                                                     data_matrix2 = None,
                                                     normalized = normalized,
-                                                    adjust_shape = input_shape,
-                                                    add_tensor_last = add_tensor_last)
+                                                    timestep = timesteps,
+                                                    axis_timestep = 0,
+                                                    context_window = context_window,
+                                                    axis_context_window = -2, 
+                                                    desired_input_shape = (1,)+input_shape,
+                                                    )
+                                                    #expecting features in last axis
+                                                    #add_tensor_last = add_tensor_last)
             val_generator = spdl.Generator(data_matrix1 = data_val,
                                                 data_matrix2 = None,
                                                 normalized = normalized,
-                                                adjust_shape = input_shape,
-                                                    add_tensor_last = add_tensor_last)
+                                                timestep = timesteps,
+                                                axis_timestep = 0,
+                                                context_window = context_window,
+                                                axis_context_window = -2, 
+                                                desired_input_shape = (1,)+input_shape,
+                                                )
+                                                    #add_tensor_last = add_tensor_last)
             test_generator = spdl.Generator(data_matrix1 = data_test,
                                                   data_matrix2 = None,
                                                   normalized = normalized,
-                                                  adjust_shape = input_shape,
-                                                  add_tensor_last = add_tensor_last)
+                                                    timestep = timesteps,
+                                                    axis_timestep = 0,
+                                                    context_window = context_window,
+                                                    axis_context_window = -2, 
+                                                    desired_input_shape = (1,)+input_shape,
+                                                    )
 
             feats, label = next(train_generator.generator())
+            print('generator items:')
+            print('feature shape')
+            print(feats.shape)
+            print('label')
+            print(label)
+            #sp.feats.plot(feats, feature_type='stft', save_pic = True,
+                          #name4pic = 'cnnlstm_test.png')
+
 
             ds_train = tf.data.Dataset.from_generator(
                 spdl.make_gen_callable(train_generator.generator()),
