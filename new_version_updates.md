@@ -6,7 +6,9 @@
 Just remove these parameters from feature extraction and limit to generators. Otherwise too messy and complex
 - soundpy.models.builtin.implement_denoiser() raise warning if cleaned features cannot be 
 converted to raw audio samples.
-
+- BUG FIX: soundpy.feats.plot can now be used from within generator using backend Agg and 
+then switch to Tkinker backend using use_tkinker parameter for normal use outside of training.
+- require additional tensors to be added to the desired shape and then supplied to generator to make shape process more explicit in generator.
 
 
 
