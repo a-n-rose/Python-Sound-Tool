@@ -142,10 +142,11 @@ def denoiser_train(feature_extraction_dir,
         input_shape = (data_val_noisy.shape[1] * data_val_noisy.shape[2], 
                        data_val_noisy.shape[3], 
                        1)
+        combine_axes_0_1 = True
     # expect shape (num_audiofiles, num_frames, num_features)
     elif len(data_val_noisy.shape) == 3:
         input_shape = data_val_noisy.shape[1:] + (1,)
-
+        combine_axes_0_1 = False
     del data_val_noisy
     
     # setup model 
@@ -225,13 +226,13 @@ def denoiser_train(feature_extraction_dir,
                 data_matrix2 = data_train_clean,
                 normalized = normalized,
                 desired_input_shape = tensor + input_shape,
-                combine_axes_0_1 = True) # don't need batchsize / context window
+                combine_axes_0_1 = combine_axes_0_1) # don't need batchsize / context window
             val_generator = spdl.Generator(
                 data_matrix1 = data_val_noisy,
                 data_matrix2 = data_val_clean,
                 normalized = normalized,
                 desired_input_shape = tensor + input_shape,
-                combine_axes_0_1 = True) # don't need batchsize / context window
+                combine_axes_0_1 = combine_axes_0_1) # don't need batchsize / context window
 
             feats_noisy, feats_clean = next(train_generator.generator())
             
