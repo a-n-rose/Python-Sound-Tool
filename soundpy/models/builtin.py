@@ -1179,7 +1179,6 @@ def resnet50_train(feature_extraction_dir,
                    patience = 15,
                    colorscale = 3,
                    total_training_sessions = None,
-                   add_tensor_last = None,
                    **kwargs):
     datasets, num_labels, feat_shape, num_feats, feature_type =\
         collect_classifier_settings(feature_extraction_dir)
@@ -1264,25 +1263,26 @@ def resnet50_train(feature_extraction_dir,
                 # apply callbacks set in **kwargs
                 callbacks = kwargs['callbacks']
 
+        tensor = (1,)
         if use_generator:
-            train_generator = spdl.Generator(data_matrix1 = data_train, 
-                                                    data_matrix2 = None,
-                                                    normalized = normalized,
-                                                    adjust_shape = input_shape,
-                                                    add_tensor_last = add_tensor_last,
-                                                    gray2color = True)
-            val_generator = spdl.Generator(data_matrix1 = data_val,
-                                                data_matrix2 = None,
-                                                normalized = normalized,
-                                                adjust_shape = input_shape,
-                                                    add_tensor_last = add_tensor_last,
-                                                    gray2color = True)
-            test_generator = spdl.Generator(data_matrix1 = data_test,
-                                                  data_matrix2 = None,
-                                                  normalized = normalized,
-                                                  adjust_shape = input_shape,
-                                                  add_tensor_last = add_tensor_last,
-                                                    gray2color = True)
+            train_generator = spdl.Generator(
+                data_matrix1 = data_train, 
+                data_matrix2 = None,
+                normalized = normalized,
+                desired_input_shape = tensor + input_shape,
+                gray2color = True)
+            val_generator = spdl.Generator(
+                data_matrix1 = data_val,
+                data_matrix2 = None,
+                normalized = normalized,
+                desired_input_shape = tensor + input_shape,
+                gray2color = True)
+            test_generator = spdl.Generator(
+                data_matrix1 = data_test,
+                data_matrix2 = None,
+                normalized = normalized,
+                desired_input_shape = tensor + input_shape,
+                gray2color = True)
 
             feats, label = next(train_generator.generator())
             
