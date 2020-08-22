@@ -361,7 +361,7 @@ def get_feats(sound,
         raise ValueError('`percent_overlap` {} is too high. '.format(percent_overlap)+\
             'The signal cannot be processed with 0 or negative window shift / hop length.')
     if fft_bins is None:
-        # from Librosa
+        # base on frame length / window: larger windows --> higher freq resolution
         fft_bins = int(win_size_ms * sr // 1000)
     if 'stft' in feature_type or 'powspec' in feature_type:
         feats = sp.feats.get_stft(
@@ -496,7 +496,6 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                                         )
         stft_matrix[frame] = section_fft[:total_rows]
         section_start += (frame_length - num_overlap_samples)
-    #stft_matrix = stft_matrix[:,:fft_bins//2 + 1]
     return stft_matrix
 
 def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **kwargs):
