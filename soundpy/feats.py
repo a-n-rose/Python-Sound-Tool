@@ -406,7 +406,7 @@ def get_feats(sound,
             percent_overlap = percent_overlap,
             real_signal = real_signal,
             fft_bins = fft_bins,
-            window = window, 
+            window = window,
             zeropad = zeropad
             )
     elif 'fbank' in feature_type:
