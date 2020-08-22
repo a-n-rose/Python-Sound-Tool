@@ -531,33 +531,29 @@ def envclassifier_train(feature_extraction_dir,
                 # apply callbacks set in **kwargs
                 callbacks = kwargs['callbacks']
 
+        # might need to add tensor dimension to `desired_input_shape`
+        tensor = (1,)
         if use_generator:
-            train_generator = spdl.Generator(data_matrix1 = data_train, 
-                                                    data_matrix2 = None,
-                                                    normalized = normalized,
-                                                    add_tensor_last = add_tensor_last)
-            val_generator = spdl.Generator(data_matrix1 = data_val,
-                                                data_matrix2 = None,
-                                                normalized = normalized,
-                                                    add_tensor_last = add_tensor_last)
-            test_generator = spdl.Generator(data_matrix1 = data_test,
-                                                  data_matrix2 = None,
-                                                  normalized = normalized,
-                                                    add_tensor_last = add_tensor_last)
+            train_generator = spdl.Generator(
+                data_matrix1 = data_train, 
+                data_matrix2 = None,
+                normalized = normalized,
+                desired_input_shape = tensor + input_shape)
+            val_generator = spdl.Generator(
+                data_matrix1 = data_val,
+                data_matrix2 = None,
+                normalized = normalized,
+                desired_input_shape = tensor + input_shape)
+            test_generator = spdl.Generator(
+                data_matrix1 = data_test,
+                data_matrix2 = None,
+                normalized = normalized,
+                desired_input_shape = tensor + input_shape)
             # resource:
             # https://www.tensorflow.org/guide/data
             
             feats, label = next(train_generator.generator())
-            #print(type(feats)) # np.ndarray
-            #print(type(label)) # np.ndarray
-            #print()
-            #print(feats.dtype) # float64
-            #print(label.dtype) # float64
-            #print()
-            #print(feats.shape) # (1, 101, 40, 1)
-            #print(label.shape) # (1, 1)
-            
-
+        
             ds_train = tf.data.Dataset.from_generator(
                 spdl.make_gen_callable(train_generator.generator()),
                 output_types=(feats.dtype, label.dtype), 
