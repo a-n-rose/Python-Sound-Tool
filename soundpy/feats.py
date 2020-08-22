@@ -2029,12 +2029,14 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
         for i, feat_section in enumerate(feats_temp):
             new_name = orig_name + '_frame_{}'.format(i)
             save_pic_path = save_pic_path.parent.joinpath(new_name)
-            sp.feats.saveplot(feature_matrix = feat_section, 
+            sp.feats.plot(feature_matrix = feat_section, 
                             feature_type = kwargs['feature_type'],
                             win_size_ms = kwargs['win_size_ms'],
                             percent_overlap = kwargs['percent_overlap'],
                             title = title + ' frame {}'.format(i),
-                            name4pic = save_pic_path)
+                            name4pic = save_pic_path,
+                            save_pic = True,
+                            use_tkinter = False)
         return None
     
     # then raw signal data; needs parameter `subsections` set to True
@@ -2055,21 +2057,25 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
             for i, feat_section in enumerate(feats_temp):
                 new_name = orig_name + '_frame_{}'.format(i)
                 save_pic_path = save_pic_path.parent.joinpath(new_name)
-                sp.feats.saveplot(feature_matrix = feat_section, 
+                sp.feats.plot(feature_matrix = feat_section, 
                                     feature_type = kwargs['feature_type'],
                                     win_size_ms = kwargs['win_size_ms'],
                                     percent_overlap = kwargs['percent_overlap'],
                                     title = title + ' frame {}'.format(i),
-                                    name4pic = save_pic_path.joinpath('frame {}'.format(i)))
+                                    save_pic = True,
+                                    name4pic = save_pic_path.joinpath('frame {}'.format(i)),
+                                    use_tkinter = False)
             return None
     
     # otherwise save features in a single plot
-    sp.feats.saveplot(feature_matrix = feats, 
+    sp.feats.plot(feature_matrix = feats, 
                     feature_type = kwargs['feature_type'],
                     win_size_ms = kwargs['win_size_ms'],
                     percent_overlap = kwargs['percent_overlap'],
                     title = title,
-                    name4pic = save_pic_path)
+                    save_pic = True,
+                    name4pic = save_pic_path,
+                    use_tkinter = False)
     return None
     
 def save_features_datasets(datasets_dict, datasets_path2save_dict, 
