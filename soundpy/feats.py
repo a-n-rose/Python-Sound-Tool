@@ -1345,54 +1345,54 @@ def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False)
                                                  desired_shape = desired_shape)
     return data_prepped
 
-
-def feats_shape_context_window(feature_matrix_shape, context_window, 
-                               zeropad = True, axis=0):
-    '''Subdivides features from (num_frames, num_feats) to (frame_size, num_frames, num_feats)
+def featshape_new_subframe(feature_matrix_shape, new_frame_size, 
+                               zeropad = True, axis=0, include_dim_size_1=False):
+    '''Subdivides features from (num_frames, num_feats) to (new_frame_size, num_frames, num_feats)
     
     Parameters
     ----------
     feature_matrix_shape : tuple [size=(num_frames, num_features)]
         Feature matrix shape to be subdivided. Can be multidimensional.
         
-    context_window : int 
-        The number of frames surrounding a central frame. Will result in a 
-        `frame_size` 2 * `context_window` + 1.
+    new_frame_size : int 
+        The number of subframes to section axis into.
     
     zeropad : bool 
-        If True, frames that don't completely fill a `frame_size` will be 
+        If True, frames that don't completely fill a `new_frame_size` will be 
         zeropadded. Otherwise, those frames will be discarded. (default True)
         
     axis : int 
-        The axis where the `context_window` should be applied. (default 0)
+        The axis where the `new_frame_size` should be applied. (default 0)
         
     Returns
     -------
-    new_shape : tuple [size=(num_subframes, frame_size, num_feats)]
+    new_shape : tuple [size=(num_subframes, new_frame_size, num_feats)]
     
     '''
-    frame_size = context_window * 2 + 1
     if axis < 0:
         # get the axis number if using -1 or -2, etc.
         axis = len(feature_matrix_shape) + axis
     original_dim_length = feature_matrix_shape[axis]
     if zeropad is True:
-        subsection_frames = math.ceil(original_dim_length / frame_size)
+        subsection_frames = math.ceil(original_dim_length / new_frame_size)
     else:
-        subsection_frames = original_dim_length // frame_size
+        subsection_frames = original_dim_length // new_frame_size
     new_shape = []
     for i, ax in enumerate(feature_matrix_shape):
         if i == axis:
-            new_shape.append(subsection_frames)
-            new_shape.append(frame_size)
+            if subsection_frames == 1 and include_dim_size_1 is False:
+                # don't include extra dimension if length 1
+                new_shape.append(new_frame_size)
+            else:
+                new_shape.append(subsection_frames)
+                new_shape.append(new_frame_size)                
         else:
             new_shape.append(ax)
     new_shape = tuple(new_shape)
     return new_shape
 
-
-def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = True):
-    '''Reshapes `feature_matrix` to allow for `context_window`. 
+def apply_new_subframe(feature_matrix, new_frame_size, zeropad=True, axis=0):
+    '''Reshapes `feature_matrix` to allow for `new_frame_size`. 
     
     Note: Dimensions of `feature_matrix` must be at least 2 and can be up to 5, 
     returning a matrix with one additional dimension. 
@@ -1402,22 +1402,21 @@ def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = Tru
     feature_matrix : np.ndarray [size(num_frames, num_features) ]
         Expects minimum 2D, maximum 5D matrix.
         
-    context_window : int 
-        The number of frames surrounding a central frame. A `context_window` of 3 
-        will result in a frame_size of 3*2+1 or 7. 
+    new_frame_size : int 
+        The number of subframes to section axis into.
         
     axis : int 
-        The axis to apply the `context_window`. (default 0)
+        The axis to apply the `new_frame_size`. (default 0)
 
     zeropad : bool 
         If True, the feature_matrix will be zeropadded to include frames that do not 
-        fill entire frame_size, given the `context_window`. If False, feature_matrix
+        fill entire frame_size, given the `new_frame_size`. If False, feature_matrix
         will not include the last zeropadded frame. (default True)
         
     Returns
     -------
-    feats_reshaped : np.ndarray [size(num_subframes, context_window*2+1, num_features)]
-        The `feature_matrix` returned with `axis` subdivided into 2 dimensions, the number of subframes and the other length `context_window` * 2 + 1. 
+    feats_reshaped : np.ndarray [size(num_subframes, new_frame_size, num_features)]
+        The `feature_matrix` returned with `axis` subdivided into 2 dimensions, the number of subframes and the other length `new_frame_size`. 
         
     Raises
     ------
@@ -1427,8 +1426,8 @@ def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = Tru
     --------
     >>> import numpy as np
     >>> matrix = np.arange(24).reshape(3,4,2)
-    >>> # apply context_window to dimension of length 4 (i.e. axis 1)
-    >>> matrix_zp = apply_context_window(matrix, context_window = 1, axis = 1)
+    >>> # apply new_frame_size to dimension of length 4 (i.e. axis 1)
+    >>> matrix_zp = apply_new_subframe(matrix, new_frame_size = 3, axis = 1)
     >>> matrix_zp.shape
     (3, 2, 3, 2)
     >>> matrix_zp
@@ -1457,7 +1456,7 @@ def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = Tru
             [[22, 23],
             [ 0,  0],
             [ 0,  0]]]])
-    >>> matrix_nozp = apply_context_window(matrix, context_window = 1, axis = 1,
+    >>> matrix_nozp = apply_new_subframe(matrix, new_frame_size = 3, axis = 1,
     ...                                    zeropad=False)
     >>> matrix_nozp.shape
     (3, 1, 3, 2)
@@ -1485,8 +1484,8 @@ def apply_context_window(feature_matrix, context_window, axis = 0, zeropad = Tru
     if axis < 0:
         # get the axis number if using -1 or -2, etc.
         axis = len(feature_matrix.shape) + axis
-    new_shape = feats_shape_context_window(feature_matrix.shape,
-                                           context_window = context_window,
+    new_shape = featshape_new_subframe(feature_matrix.shape,
+                                           new_frame_size = new_frame_size,
                                            axis = axis,
                                            zeropad = zeropad)
     total_new_samples = np.prod(new_shape)
