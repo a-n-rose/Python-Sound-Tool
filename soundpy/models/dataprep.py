@@ -19,9 +19,9 @@ import librosa
 #feed data to models
 class Generator:
     def __init__(self, data_matrix1, data_matrix2=None, timestep = None,
-                 axis_timestep = 0, normalized=False, apply_log = False, 
-                 context_window = None, axis_context_window = -2, labeled_data = False, 
-                 add_tensor_last = None, gray2color = False, zeropad = True,
+                 axis_timestep = 0, normalize=True, apply_log = False, 
+                 context_window = None, axis_context_window = -2, labeled_data = False,
+                 gray2color = False, zeropad = True,
                  desired_input_shape = None, combine_axes_0_1=False):
         '''
         This generator pulls data out in sections (i.e. batch sizes). Prepared for 3 dimensional data.
@@ -40,9 +40,9 @@ class Generator:
             Either label data for `data_matrix1` or, for example, the clean 
             version of `data_matrix1` if training an autoencoder. (default None)
         
-        normalized : bool 
-            If True, the data has already been normalized and won't be normalized
-            by the generator. (default False)
+        normalize : bool 
+            If False, the data has already been normalized and won't be normalized
+            by the generator. (default True)
         
         apply_log : bool 
             If True, log will be applied to the data.
@@ -79,14 +79,13 @@ class Generator:
         self.counter = 0
         self.datax = data_matrix1
         self.datay = data_matrix2
-        self.normalized = normalized
+        self.normalize = normalize
         self.apply_log = apply_log
         self.timestep = timestep
         self.axis_timestep = axis_timestep
         self.context_window = context_window
         self.axis_context = axis_context_window
         self.zeropad = zeropad
-        self.add_tensor_last = add_tensor_last
         self.gray2color = gray2color # if need to change grayscale data to rgb
         if self.datay is None:
             # separate the label from the feature data
@@ -121,7 +120,7 @@ class Generator:
                     
             # TODO: is there a difference between taking log of stft before 
             # or after normalization?
-            if not self.normalized or self.datax.dtype == np.complex_:
+            if self.normalize or self.datax.dtype == np.complex_:
                 # if complex data, power spectrum will be extracted
                 # power spectrum = np.abs(complex_data)**2
                 batch_x = sp.feats.normalize(batch_x)
@@ -163,14 +162,13 @@ class Generator:
                         axis = self.axis_context)
             
             if self.gray2color:
-                # expects colorscale to be last column.
-                # will copy first channel into the other (assumed empty) channels.
-                # the empty channels were created in sp.feats.adjust_shape
+                # expects colorscale to be rgb (i.e. 3)
+                # will copy first channel into the other color channels
                 batch_x = sp.feats.grayscale2color(batch_x, 
-                                                     colorscale = batch_x.shape[-1])
+                                                     colorscale = 3)
                 if self.labels is None:
-                    batch_y = sp.feats.gray2color(batch_y, 
-                                                    colorscale = batch_y.shape[-1])
+                    batch_y = sp.feats.grayscale2color(batch_y, 
+                                                    colorscale = 3)
             
             if self.labels:
                 if batch_y.dtype == np.complex64 or batch_y.dtype == np.complex128:
@@ -207,16 +205,17 @@ class Generator:
                 self.counter = 0
 
 
-class GeneratorFeatExtraction:
+class GeneratorFeatExtraction(Generator):
     def __init__(self, datalist, datalist2 = None, model_name = None,  
                  normalize = True, apply_log = False, randomize = True,
-                 random_seed=None, input_shape = None, batch_size = 1,
-                 add_tensor_last = True, add_tensor_first = False,
+                 random_seed=None, desired_input_shape = None, 
+                 timestep = None, axis_timestep = 0, context_window = None,
+                 axis_context_window = -2, batch_size = 1,
                  gray2color = False, visualize = False,
                  vis_every_n_items = 50, visuals_dir = None,
                  decode_dict = None, dataset='train', 
                  augment_dict = None, label_silence = False,
-                 vad_start_end = False,**kwargs):
+                 vad_start_end = False, **kwargs):
         '''
         Do not add extra tensor dimensions to expected input_shape.
         
@@ -267,11 +266,13 @@ class GeneratorFeatExtraction:
         self.counter = 0
         self.audiolist = datalist
         self.audiolist2 = datalist2
+        self.context_window = context_window
+        self.axis_context = axis_context_window
+        self.timestep = timestep
+        self.axis_timestep = axis_timestep
         self.normalize = normalize
         self.apply_log = apply_log
-        self.input_shape = input_shape
-        self.add_tensor_last = add_tensor_last
-        self.add_tensor_first = add_tensor_first
+        self.desired_input_shape = desired_input_shape
         self.gray2color = gray2color
         self.visualize = visualize
         self.vis_every_n_items = vis_every_n_items
@@ -296,11 +297,9 @@ class GeneratorFeatExtraction:
         if 'sr' in kwargs:
             self.sr = kwargs['sr']
         else:
-            self.sr = 44100
+            self.sr = 22050
             kwargs['sr'] = self.sr
         self.kwargs = kwargs
-        
-
         
         # Ensure `feature_type` and `sr` are provided in **kwargs
         try:
@@ -404,63 +403,10 @@ class GeneratorFeatExtraction:
             # augment_data
             if self.augment_dict is not None:
                 aug_dict = randomize_augs(self.augment_dict)
-                try:
-                    augmented_data, augmentation = augment_features(y, 
-                                                                self.sr, 
-                                                                **aug_dict)
-   
-                except librosa.util.exceptions.ParameterError:
-                    # invalid audio for augmentation
-                    print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                    print('File {} contains invalid sample data,'.format(audiopath)+\
-                        ' incompatible with augmentation techniques. Trying again.')
-                    if self.decode_dict is not None:
-                        # relabel data to non-label (e.g. silence)
-                        if not self.ignore_invalid:
-                            label_invalid = len(self.decode_dict)-1
-                            label_pic = self.decode_dict[label_invalid]
-                            if label_pic == 'invalid':
-                                print('Encoded label {} adjusted to {}'.format(label,
-                                                                               label_invalid))
-                                label = label_invalid
-                                print('Label adjusted to `invalid`')
-                                print('NOTE: If you would like to ignore invalid data, '+\
-                                    'set `ignore_invalid` to True.\n')
-                            else:
-                                label_pic = self.decode_dict[label]
-                                import Warnings
-                                msg = '\nWARNING: Label dict does not include `invalid` label. '+\
-                                    'Invalid audiofile {} will be fed '.format(audiopath)+\
-                                        'to the network under {} label.\n'.format(self.decode_dict[label])
-                                Warnings.warn(msg)
-                        else:
-                            print('Invalid data ignored (no `invalid` label applied)')
-                            print('NOTE: If you do not want to ignore invalid data, '+\
-                                'set `ignore_invalid` to False.\n')
-                    else:
-                        import Warnings
-                        msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
-                            'No label dictionary with `invalid` label supplied. Therefore '+\
-                                'model will be fed possibly invalid data with label {}\n'.format(
-                                    label)
-                    y = np.nan_to_num(y)
-                    try:
-                        augmented_data, augmentation = augment_features(
-                            y, 
-                            self.sr, 
-                            **aug_dict)
-                    except librosa.util.exceptions.ParameterError:
-                        print('Augmentation: ', augmentation)
-                        print('Augmentation failed. No augmentation applied.')
-                        if not self.ignore_invalid:
-                            print('Setting samples to zero.')
-                            augmented_data, augmentation = np.zeros(len(y)), ''
-                        else:
-                            print('Caution: invalid data is ignored. Label unchanged.'+\
-                                ' To label such data as '+\
-                                '`invalid`, set `ignore_invalid` to False.')
-                            augmented_data, augmentation = y, ''
-                
+
+                augmented_data, augmentation = augment_features(y, 
+                                                            self.sr, 
+                                                            **aug_dict)
             else:
                 augmented_data, augmentation = y, ''
             # extract features
@@ -502,31 +448,13 @@ class GeneratorFeatExtraction:
                                           window = window,
                                           real_signal = real_signal,
                                           expected_shape = expected_shape)
-                
-                ## TODO improve efficiency / issues with vtlp stft matrix and librosa
-                ## Had issues converting vtlp stft into fbank or mfcc. 
-                ## First turn into audio samples, then into fbank or mfcc or leave as samples.
-                ## terribly slow and inefficient.
-                #if 'stft' not in self.kwargs['feature_type'] and 'powspec' not in \
-                    #self.kwargs['feature_type']:
-                    #augmented_data = sp.feats.feats2audio(
-                        #feats = augmented_data, 
-                        #feature_type = 'stft',
-                        #sr = self.sr,
-                        #win_size_ms = win_size_ms,
-                        #percent_overlap = percent_overlap)
-                #augmentation += 'alpha{}'.format(alpha)
             
             if self.vtlp and 'stft' in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
                 feats = augmented_data
                 if 'powspec' in self.kwargs['feature_type']:
                     feats = sp.dsp.calc_power(feats)
-                    
-            # finding it difficult to work with librosa due to slight 
-            # differences in padding, fft_bins etc.
-            # perhaps more reliable to use non-librosa function for 'stft' extraction
-
+                
             elif 'stft'in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
                 feats = sp.feats.get_stft(
@@ -574,61 +502,20 @@ class GeneratorFeatExtraction:
                     window = self.kwargs['window'],
                     zeropad = self.kwargs['zeropad']
                     )
-
-            #else:
-                #try:
-                    #feats = sp.feats.get_feats(augmented_data, **self.kwargs)
-                #except TypeError as e:
-                    #print(e)
-                    ## invalid audio for feature_extraction
-                    #print('Are any non-nan? ',np.isfinite(augmented_data).any())
-                    #print('Are all non-nan? ',np.isfinite(augmented_data).all())
-                    #print('\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                    #print('File {} contains invalid sample data,'.format(audiopath)+\
-                        #' incompatible with augmentation techniques. Removing NAN values.')
-                    #feats = sp.feats.get_feats(np.nan_to_num(augmented_data), **self.kwargs)
-                    #if self.decode_dict is not None:
-                        #if not self.ignore_invalid:
-                            #label_invalid = len(self.decode_dict)-1
-                            #label_pic = self.decode_dict[label_invalid]
-                            #if label_pic == 'invalid':
-                                #print('Encoded label {} adjusted to {}'.format(label,
-                                                                                #label_invalid))
-                                #label = label_invalid
-                                #print('Label adjusted to `invalid`')
-                                #print('NOTE: If you would like to ignore invalid data, '+\
-                                    #'set `ignore_invalid` to True.\n')
-                            #else:
-                                #label_pic = self.decode_dict[label]
-                                #import Warnings
-                                #msg = '\nWARNING: Label dict does not include `invalid` label. '+\
-                                    #'Invalid audiofile {} will be fed '.format(audiopath)+\
-                                        #'to the network under {} label.\n'.format(self.decode_dict[label])
-                                #Warnings.warn(msg)
-                        #else:
-                            #print('Invalid data ignored (no `invalid` label applied)')
-                            #print('NOTE: If you do not want to ignore invalid data, '+\
-                                #'set `ignore_invalid` to False.\n')
-                    #else:
-                        #import Warnings
-                        #msg = '\nWARNING: Invalid data in audiofile {}. \n'.format(audiopath)+\
-                            #'No label dictionary with `invalid` label supplied. Therefore '+\
-                                #'model will be fed possibly invalid data with label {}\n'.format(
-                                    #label)
                 
             if self.apply_log:
                 # TODO test
                 if feats[0].any() < 0:
                         feats = np.abs(feats)
                 feats = np.log(feats)
-            #if self.normalize:
-                #feats = sp.feats.normalize(feats)
+            if self.normalize:
+                feats = sp.feats.normalize(feats)
             if not labeled_data and self.audiolist2 is not None:
                 feats2 = sp.feats.get_feats(audiopath2, **self.kwargs)
                 if self.apply_log:
                     # TODO test
                     if feats2[0].any() < 0:
-                            feats2 = np.abs(feats2)
+                        feats2 = np.abs(feats2)
                     feats2 = np.log(feats2)
                 if self.normalize:
                     feats2 = sp.feats.normalize(feats2)
@@ -685,66 +572,60 @@ class GeneratorFeatExtraction:
                                 '(item {})'.format(self.counter),
                             use_tkinter=False)
             
-            
-            ### problem area
-            feats = feats.reshape(feats.shape + (1,))
-            
-            # reshape to input shape. Will be zeropadded or limited to this shape.
-            if self.input_shape is not None:
-                # FAULT IN FUNCTION w change_dims
-                #if len(self.input_shape) != len(feats.shape):
-                    #change_dims = True
-                #else:
-                change_dims = False
-                feats = sp.feats.adjust_shape(feats, self.input_shape, 
-                                                change_dims = change_dims)
-                if feats2 is not None:
-                    feats2 = sp.feats.adjust_shape(feats2, self.input_shape, 
-                                                     change_dims = change_dims)
-            
-            #sp.feats.saveplot(feature_matrix = feats[:,:,0], feature_type = 'stft', name4pic = './generator_stft_1.png')
-            
-            
-            
+            batch_x = feats
+            batch_y = feats2
+
+            # reshape features to allow for timestep / subsection features
+            if self.timestep is not None:
+                batch_x = sp.feats.apply_new_subframe(
+                    batch_x, 
+                    new_frame_size = self.timestep, 
+                    zeropad = self.zeropad,
+                    axis = self.axis_timestep)
+                if batch_y is not None:
+                    batch_y = sp.feats.apply_new_subframe(
+                        batch_y, 
+                        new_frame_size = self.timestep, 
+                        zeropad = self.zeropad,
+                        axis = self.axis_timestep)
+
+            # reshape features to allow for context window / subsection features
+            if self.context_window is not None:
+                batch_x = sp.feats.apply_new_subframe(
+                    batch_x, 
+                    new_frame_size = self.context_window * 2 + 1, 
+                    zeropad = self.zeropad,
+                    axis = self.axis_context)
+                if batch_y is not None:
+                    batch_y = apply_new_subframe(
+                        batch_y, 
+                        new_frame_size = self.context_window * 2 + 1, 
+                        zeropad = self.zeropad,
+                        axis = self.axis_context)
+                    
             # grayscale 2 color 
-            # assumes already zeropadded with new channels, channels last
             if self.gray2color:
-                feats = sp.feats.grayscale2color(feats, colorscale = feats.shape[-1])
-                if feats2 is not None:
-                    feats2 = sp.feats.grayscale2color(feats2, colorscale = feats2.shape[-1])
+                batch_x = sp.feats.grayscale2color(batch_x,
+                                                   colorscale = 3) # default colorscale is 3
+                if batch_y is not None:
+                    batch_y = sp.feats.grayscale2color(batch_y, 
+                                                       colorscale = 3)
+
+            # reshape to input shape. Will be zeropadded or limited to this shape.
+            # tensor dimensions on either side can be added here as well.
+            if self.desired_input_shape is not None:
+                batch_x = sp.feats.adjust_shape(batch_x, self.desired_input_shape)
+                if batch_y is not None:
+                    batch_y = sp.feats.adjust_shape(batch_y, self.desired_input_shape)
             
             # prepare data to be fed to network:
-            X_batch = feats
             if labeled_data:
-                y_batch = np.array(label)
-            elif feats2 is not None:
-                y_batch = feats2
+                batch_y = np.array(label)
+            elif batch_y is not None:
+                pass
             else:
                 raise ValueError('No independent variable provided.')
-            
-            # add tensor dimension
-            if self.add_tensor_last is True:
-                # e.g. for some conv model
-                X_batch = X_batch.reshape(X_batch.shape+(1,))
-                y_batch = y_batch.reshape(y_batch.shape+(1,))
-            if self.add_tensor_first is True:
-                # e.g. for some lstm models
-                X_batch = X_batch.reshape((1,)+X_batch.shape)
-                y_batch = y_batch.reshape((1,)+y_batch.shape)
-            if not self.add_tensor_first and not self.add_tensor_last:
-                X_batch = X_batch
-                y_batch = y_batch
-            if len(y_batch.shape) == 1:
-                y_batch = y_batch.reshape((1,) + y_batch.shape)
-            
-            if self.normalize or self.X_batch.dtype == np.complex_:
-                # if complex data, power spectrum will be extracted
-                # power spectrum = np.abs(complex_data)**2
-                X_batch = sp.feats.normalize(X_batch)
-            
-            
-            #sp.feats.saveplot(feature_matrix = X_batch[0,:,:,0], feature_type = 'stft', name4pic = './generator_stft_2.png')
-            
+
             self.counter += 1
             yield X_batch, y_batch 
             
