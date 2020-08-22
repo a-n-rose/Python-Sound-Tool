@@ -22,7 +22,7 @@ class Generator:
                  axis_timestep = 0, normalized=False, apply_log = False, 
                  context_window = None, axis_context_window = -2, labeled_data = False, 
                  add_tensor_last = None, gray2color = False, zeropad = True,
-                 desired_input_shape = None):
+                 desired_input_shape = None, combine_axes_0_1=False):
         '''
         This generator pulls data out in sections (i.e. batch sizes). Prepared for 3 dimensional data.
         
@@ -101,6 +101,7 @@ class Generator:
         if labeled_data:
             self.labels = True
         self.desired_shape = desired_input_shape
+        self.combine_axes_0_1 = combine_axes_0_1
 
     def generator(self):
         '''Shapes, norms, and feeds data depending on labeled or non-labeled data.
@@ -141,7 +142,7 @@ class Generator:
                     zeropad = self.zeropad,
                     axis = self.axis_timestep)
                 if self.labels is None:
-                    batch_y = apply_new_subframe(
+                    batch_y = sp.feats.apply_new_subframe(
                         batch_y, 
                         new_frame_size = self.timestep, 
                         zeropad = self.zeropad,
@@ -171,27 +172,6 @@ class Generator:
                     batch_y = sp.feats.gray2color(batch_y, 
                                                     colorscale = batch_y.shape[-1])
             
-            # can be applied in desired_input_shape
-            ### add tensor dimension
-            #if self.add_tensor_last is True:
-                ## e.g. for some conv model
-                #X_batch = batch_x.reshape(batch_x.shape + (1,))
-                #y_batch = batch_y.reshape(batch_y.shape + (1,))
-            #elif self.add_tensor_last is False:
-                ## e.g. for some lstm models
-                #X_batch = batch_x.reshape((1,)+batch_x.shape)
-                #y_batch = batch_y.reshape((1,)+batch_y.shape)
-            #else:
-                #X_batch = batch_x
-                #y_batch = batch_y
-            
-            #if len(X_batch.shape) == 3:
-                ## needs to be 4 dimensions / have extra tensor
-                #X_batch = X_batch.reshape((1,)+X_batch.shape)
-                #y_batch = y_batch.reshape((1,)+y_batch.shape)
-            #if len(y_batch.shape) == 1:
-                #y_batch = y_batch.reshape((1,) + y_batch.shape)
-            
             if self.labels:
                 if batch_y.dtype == np.complex64 or batch_y.dtype == np.complex128:
                     batch_y = batch_y.astype(int)
@@ -200,12 +180,24 @@ class Generator:
             # if need greater number of features --> zero padding
             # could this be applied to including both narrowband and wideband data?
             # check to ensure batches match desired input shape
+            if self.combine_axes_0_1 is True:
+                batch_x = batch_x.reshape((batch_x.shape[0]*batch_x.shape[1],)+ batch_x.shape[2:])
+                if self.labels is None:
+                    batch_y = batch_y.reshape((batch_y.shape[0]*batch_y.shape[1],)+ batch_y.shape[2:])
+                
             if self.desired_shape is not None:
                 # can add dimensions of length 1 to first and last axis:
-                batch_x = sp.feats.adjust_shape(batch_x, self.desired_shape)
-                if self.labels is None:
-                    batch_y = sp.feats.adjust_shape(batch_y, self.desired_shape)
-            
+                try:
+                    batch_x = sp.feats.adjust_shape(batch_x, self.desired_shape)
+                    if self.labels is None:
+                        batch_y = sp.feats.adjust_shape(batch_y, self.desired_shape)
+                except ValueError:
+                    raise ValueError('Data batch with shape {}'.format(batch_x.shape))+\
+                        ' cannot be reshaped to match `desired_input_shape` of '+\
+                            '{}. Perhaps try setting '.format(self.desired_shape) +\
+                                'parameter `combine_axes_0_1` to True or False. ' +\
+                                    '(default is False)'
+
             #send the batched and reshaped data to model
             self.counter += 1
             yield batch_x, batch_y

@@ -136,11 +136,16 @@ def denoiser_train(feature_extraction_dir,
     # load smaller dataset to determine input size:
     data_val_noisy = np.load(val_paths_noisy[0])
     # expect shape (num_audiofiles, batch_size, num_frames, num_features)
+    # but don't need batch size for denoiser... combine w num_frames in generator
+    # with 'combine_axes_0_1' = True
     if len(data_val_noisy.shape) == 4:
-        input_shape = data_val_noisy.shape[2:] + (1,)
+        input_shape = (data_val_noisy.shape[1] * data_val_noisy.shape[2], 
+                       data_val_noisy.shape[3], 
+                       1)
     # expect shape (num_audiofiles, num_frames, num_features)
     elif len(data_val_noisy.shape) == 3:
         input_shape = data_val_noisy.shape[1:] + (1,)
+
     del data_val_noisy
     
     # setup model 
@@ -213,19 +218,20 @@ def denoiser_train(feature_extraction_dir,
             #else:
                 ## apply callbacks set in **kwargs
                 #callbacks = kwargs['callbacks']
-
+        tensor = (1,)
         if use_generator:
             train_generator = spdl.Generator(
                 data_matrix1 = data_train_noisy, 
                 data_matrix2 = data_train_clean,
                 normalized = normalized,
-                add_tensor_last = True)
+                desired_input_shape = tensor + input_shape,
+                combine_axes_0_1 = True) # don't need batchsize / context window
             val_generator = spdl.Generator(
                 data_matrix1 = data_val_noisy,
                 data_matrix2 = data_val_clean,
                 normalized = normalized,
-                add_tensor_last = True)
-
+                desired_input_shape = tensor + input_shape,
+                combine_axes_0_1 = True) # don't need batchsize / context window
 
             feats_noisy, feats_clean = next(train_generator.generator())
             
@@ -1171,7 +1177,7 @@ def cnnlstm_train(feature_extraction_dir,
 
 def resnet50_train(feature_extraction_dir,
                    model_name = 'model_resnet50_classifier',
-                   use_generator = False,
+                   use_generator = True,
                    normalized = False,
                    patience = 15,
                    colorscale = 3,
