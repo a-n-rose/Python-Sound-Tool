@@ -37,6 +37,7 @@ def plot(feature_matrix, feature_type,
     feature_matrix : np.ndarray [shape=(num_samples,), (num_samples, num_channels), or (num_features, num_frames), dtype=np.float].
         Matrix of features. If the features are not of type 'signal' and the
         shape is 1 D, one dimension will be added to be plotted with a colormesh.
+        
     feature_type : str
         Options: 'signal', 'stft', 'mfcc', or 'fbank' features, or 
         what user would like to name the feature set.
@@ -44,18 +45,43 @@ def plot(feature_matrix, feature_type,
         STFT: short-time Fourier transform
         MFCC: mel frequency cepstral coefficients.
         FBANK: mel-log filterbank energies (default 'fbank').
+
     save_pic : bool
-        True to save image as .png; False to just plot it.
+        True to save image as .png; False to just plot it. If `use_tkinter` is 
+        False, `save_pic` will automatically be set to True.
+
     name4pic : str, optional
         If `save_pic` set to True, the name the image should be saved under.
+        
     energy_scale : str, optional
         If features need to be adjusted, e.g. from power to decibels. 
         Default is 'power_to_db'.
+        
     title : str, optional
         The title for the graph. If None, `feature_type` is used.
+
     sr : int, optional
-        Useful for plotting a signal type feature matrix. Allows x-axis to be
-        presented as time in seconds.
+        Useful in plotting the time for features.
+        
+    win_size_ms : int, float, optional
+        Useful in plotting the time for features in the frequency domain (e.g. 
+        STFT, FBANK, MFCC features)
+        
+    percent_overlap : int, float, optional
+        Useful in plotting the time for features in the frequency domain (e.g. 
+        STFT, FBANK, MFCC features)
+        
+    x_label : str, optional 
+        The label to be applied to the x axis. 
+        
+    y_label : str, optional 
+        The label to be applied to the y axis.
+        
+    use_tkinter : bool 
+        The backend that should be used by matplotlib. If False, use Agg instead.
+        This option is available due to issues of multi-threading and tkinter, for 
+        example, during the training of models and plotting within the generator.
+        (default True)
     '''
     if use_tkinter:
         # can show plots
