@@ -477,7 +477,7 @@ def get_feats(sound,
     return feats
 
 # allows for more control over fft bins / resolution of each iteration.
-def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
+def get_stft(sound, sr=22050, win_size_ms = 50, percent_overlap = 0.5,
                 real_signal = False, fft_bins = 1024, 
                 window = 'hann', zeropad = True, **kwargs):
     '''Returns short-time Fourier transform matrix.
@@ -497,6 +497,12 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
     `soundpy.augment.vtlp`.
     '''
     if isinstance(sound, np.ndarray):
+        if sound.dtype == np.complex_:
+            import warnings
+            msg = '\nWARNING: data provided to `soundpy.feats.get_stft` is already'+\
+                ' a STFT matrix. Returning original data.'
+            warnings.warn(msg)
+            return sound
         data = sound
     else:
         data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
@@ -507,6 +513,9 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
+    
+    if fft_bins is None:
+        fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins // 2 + 1
     # if mono, only one channel; otherwise match num channels in sound signal
     if sp.dsp.ismono(data):
@@ -597,10 +606,10 @@ def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **k
     if fft_bins is None:
         if stft is True:
             # assumes number of fft bins is the length of second column
-            fft_bins = sound.shape[1] * 2 
+            # https://librosa.org/doc/latest/generated/librosa.istft.html?highlight=istf#librosa.istft
+            fft_bins = (sound.shape[1]-1) * 2 
         else:
-            # otherwise set as default: 1024
-            fft_bins = 1024
+            fft_bins = int(win_size_ms * sr // 1000)
         
     freq_bins = np.floor((fft_bins + 1) * hz_points / sr)
     
@@ -1790,13 +1799,16 @@ def scale_X_y(matrix, is_train=True, scalars=None):
 def list_available_features():
     return ['stft', 'powspec', 'fbank', 'mfcc', 'signal']
 
+# TODO REMOVE context_window for next release.
+# don't apply context window and such during feature extraction phase
+# TODO check if `real_signal` influences change of shape or not
 def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
                              win_size_ms = None, percent_overlap = None,
                              fft_bins = None, num_mfcc = None, num_filters = None,
                              rate_of_change = False, rate_of_acceleration = False,
-                             context_window = None, frames_per_sample = None, zeropad = True, labeled_data = False, remove_first_coefficient = False, real_signal = False):
+                             context_window = None, frames_per_sample = None, zeropad = True, labeled_data = False, remove_first_coefficient = False, real_signal = False, **kwargs):
     '''Returns expected shapes of feature matrix depending on several parameters.
-    
+     
     Parameters
     ----------
     sr : int 
@@ -1854,6 +1866,10 @@ def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
         If True, the first mfcc coefficient will not be included in feature
         matrix.
         
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.feats.get_feats`. These may not be used in this
+        function as they may not influence the size of the feature matrix.
+        
     Returns
     -------
     feature_matrix_base : tuple
@@ -1896,7 +1912,7 @@ def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
         win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
         hop_length = int(win_shift_ms * 0.001 * sr)
         if fft_bins is None:
-            fft_bins = frame_length
+            fft_bins = int(win_size_ms * sr // 1000)
         # https://librosa.org/doc/latest/generated/librosa.util.frame.html#librosa.util.frame
         total_rows_per_wav = int(1 + (total_samples - fft_bins)//hop_length)
         if 'mfcc' in feature_type:
@@ -2172,9 +2188,9 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
         # sr must be set. Set to default value.
         if not 'sr' in kwargs or kwargs['sr'] is None:
             import warnings
-            msg = '\nWARNING: sample rate was not set. Setting it at 44100 Hz.'
+            msg = '\nWARNING: sample rate was not set. Setting it at 22050 Hz.'
             warnings.warn(msg)
-            kwargs['sr'] = 44100
+            kwargs['sr'] = 22050
             
         # win_size_ms must be set. Set to default value.
         if not 'win_size_ms' in kwargs or kwargs['win_size_ms'] is None:
@@ -2189,6 +2205,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
             msg = '\nWARNING: `percent_overlap` was not set. Setting it to 0.5'
             warnings.warn(msg)
             kwargs['percent_overlap'] = 0.5
+        
             
         feat_base_shape, feat_model_shape = sp.feats.get_feature_matrix_shape(
             context_window = context_window,
@@ -2240,8 +2257,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict,
                 # zeropad or clip feats if too short or long:
                 feats = sp.feats.adjust_shape(
                     feats, 
-                    desired_shape = feat_base_shape,
-                    complex_vals = complex_vals)
+                    desired_shape = feat_base_shape)
                 
                 # add label column to feature matrix
                 if labeled_data:
