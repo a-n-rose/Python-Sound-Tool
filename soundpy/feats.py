@@ -609,7 +609,10 @@ def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **k
             # https://librosa.org/doc/latest/generated/librosa.istft.html?highlight=istf#librosa.istft
             fft_bins = (sound.shape[1]-1) * 2 
         else:
-            fft_bins = int(win_size_ms * sr // 1000)
+            try:
+                fft_bins = int(kwargs['win_size_ms'] * sr // 1000)
+            except KeyError:
+                fft_bins = 512
         
     freq_bins = np.floor((fft_bins + 1) * hz_points / sr)
     
