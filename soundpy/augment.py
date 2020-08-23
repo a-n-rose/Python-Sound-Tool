@@ -227,12 +227,12 @@ def pitch_decrease(sound, sr, num_semitones = 2, **kwargs):
     y_d = librosa.effects.pitch_shift(data, sr=sr, n_steps = -num_semitones)
     return y_d
       
-# TODO pad similarly to librosa?
-# only seems to work with sr=16000
+# TODO how to control output size without losing frequency data?
+# basically how to scale down dimension of frequencies after warping?
 def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann',
-         zeropad = True, expected_shape = None):
+         zeropad = True, expected_shape = None, visualize = False):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
     
     References
@@ -271,13 +271,11 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
     
-
     max_freq = sr/2.
     if expected_shape is not None:
         # expects last column to represent the number of relevant frequency bins
         fft_bins = expected_shape[-1]
-        if not real_signal:
-            fft_bins = expected_shape[-1] * 2 -1
+        fft_bins = (expected_shape[-1]-1) * 2 
     if fft_bins is None:
         fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins * oversize_factor
@@ -300,22 +298,24 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         else:
             section_warped = sp.dsp.piecewise_linear_warp(section_fft, vtlp_a,
                                                                 max_freq = max_freq)
-        
-        if real_signal:
-            section_warped = section_warped[:len(section_warped)]
-        else:
-            section_warped = section_warped[:len(section_warped)]
-            #section_warped = section_warped[:len(section_warped)//2]
+        section_warped = section_warped[:len(section_warped)]
         stft_matrix[frame][:len(section_warped)] = section_warped
         section_start += (frame_length - num_overlap_samples)
     if expected_shape is not None:
-        stft_matrix = stft_matrix[:expected_shape[0],:expected_shape[1]*oversize_factor]
-        limit = expected_shape[1]*oversize_factor // 2 + 1
-        if real_signal:
-            limit = limit // 2 + 1
-        stft_matrix = stft_matrix[:expected_shape[0],:limit]
+        # TODO: find out how to reduce resolution of frequency
+        # this technically works but is 1) slow and 2) loses lots of info
+        if oversize_factor > 1:
+            for i in np.arange(0, int(np.sqrt(oversize_factor))):
+                stft_matrix = sp.feats.reduce_dim(stft_matrix, axis=1)
+        # ensures matches expected_shape
+        stft_matrix = sp.feats.adjust_shape(stft_matrix, expected_shape)# stft_matrix[:expected_shape[0],:expected_shape[1]]
     else:
         stft_matrix = stft_matrix[:,:len(section_warped)]
+    if visualize:
+        sp.feats.plot(stft_matrix, feature_type = 'stft', use_tkinter=False, 
+                    name4pic = 'vtlp_{}.png'.format(sp.utils.get_date()),
+                    title = 'size: {}'.format(stft_matrix.shape),
+                    save_pic=True)
     return stft_matrix, vtlp_a
 
 def get_augmentation_dict():
