@@ -11,6 +11,21 @@ To see how soundpy implements this, see `soundpy.models.builtin.envclassifier_tr
 
 ###############################################################################################
 #
+import os, sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(
+    inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+parparentdir = os.path.dirname(parentdir)
+packagedir = os.path.dirname(parparentdir)
+sys.path.insert(0, packagedir)
+
+import matplotlib.pyplot as plt
+import IPython.display as ipd
+package_dir = '../../../'
+os.chdir(package_dir)
+sp_dir = package_dir
+
 
 #####################################################################
 # Let's import soundpy for handling sound
@@ -26,7 +41,6 @@ from soundpy import models as spdl
 
 ##########################################################
 # Set path relevant for audio data for this example
-sp_dir = '../../../'
 
 ######################################################
 # I will load previously extracted features (from the Speech Commands Dataset) 
@@ -84,8 +98,8 @@ for key, value in audio_datasets.items():
 #############################################################
 model_dir, history = spdl.envclassifier_train(
     feature_extraction_dir = feature_extraction_dir,
-    epochs = 30,
-    patience = 15)
+    epochs = 10,
+    patience = 5)
 
 #############################################################
 # Where the model and logs are located:
@@ -101,4 +115,4 @@ plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'val'], loc='upper right')
-plt.show()
+plt.savefig('accuracy.png')

@@ -160,13 +160,11 @@ model_dir, history = spdl.envclassifier_extract_train(
     epochs = 10, 
     patience = 5,
     visualize = True,
+    vis_every_n_items = 1,
     **get_feats_kwargs)
 
 #############################################################
 # Let's plot how the model performed (on this small dataset)
-import matplotlib
-matplotlib.use("TkAgg")
-import matplotlib.pyplot as plt
 plt.clf()
 plt.plot(history.history['accuracy'])
 plt.plot(history.history['val_accuracy'])
@@ -174,4 +172,4 @@ plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'val'], loc='upper right')
-plt.show()
+plt.savefig('accuracy.png')

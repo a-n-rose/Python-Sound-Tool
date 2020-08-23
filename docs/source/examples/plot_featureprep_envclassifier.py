@@ -25,12 +25,12 @@ parparentdir = os.path.dirname(parentdir)
 packagedir = os.path.dirname(parparentdir)
 sys.path.insert(0, packagedir)
 
-import matplotlib.pyplot as plt
 import soundpy as sp 
 import IPython.display as ipd
 package_dir = '../../../'
 os.chdir(package_dir)
 sp_dir = package_dir
+
 ######################################################
 # Prepare for Extraction: Data Organization
 # -----------------------------------------
@@ -40,7 +40,7 @@ sp_dir = package_dir
 
 ##########################################################
 # Designate path relevant for accessing audiodata
-data_dir = '/home/airos/Projects/Data/sound/speech_commands_small_section/'
+data_dir = '{}../mini-audio-datasets/speech_commands/'.format(sp_dir)
 
 ######################################################
 # Choose Feature Type 
@@ -60,7 +60,7 @@ dur_sec = 1
 
 #############################################################
 # Built-In Functionality - soundpy extracts the features for you
-# ----------------------------------------------------------------------------
+# ---------------------------------------------------------------
 
 ############################################################
 # Define which data to use and which features to extract
@@ -81,4 +81,31 @@ extraction_dir = sp.envclassifier_feats(data_dir,
 extraction_dir
 
 ############################################################
-# And that's it!
+# Logged Information
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Let's have a look at the files in the extraction_dir. The files ending 
+# with .npy extension contain the feature data; the .csv files contain 
+# logged information. 
+featfiles = list(extraction_dir.glob('*.*'))
+for f in featfiles:
+    print(f.name)
+  
+############################################################
+# Feature Settings
+# ~~~~~~~~~~~~~~~~~~
+# Since much was conducted behind the scenes, it's nice to know how the features
+# were extracted, for example, the sample rate and number of frequency bins applied, etc.
+feat_settings = sp.utils.load_dict(
+    extraction_dir.joinpath('log_extraction_settings.csv'))
+for key, value in feat_settings.items():
+    print(key, ' --> ', value)
+    
+    
+############################################################
+# Labeled Data
+# ~~~~~~~~~~~~~~~~~~
+# These are the labels and their encoded values:
+encode_dict = sp.utils.load_dict(
+    extraction_dir.joinpath('dict_encode.csv'))
+for key, value in encode_dict.items():
+    print(key, ' --> ', value)

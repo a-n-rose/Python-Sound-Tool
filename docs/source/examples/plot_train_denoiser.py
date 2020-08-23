@@ -13,6 +13,20 @@ To see how soundpy implements this, see `soundpy.models.builtin.denoiser_train`,
 
 ###############################################################################################
 # 
+import os, sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(
+    inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+parparentdir = os.path.dirname(parentdir)
+packagedir = os.path.dirname(parparentdir)
+sys.path.insert(0, packagedir)
+
+import matplotlib.pyplot as plt
+import IPython.display as ipd
+package_dir = '../../../'
+os.chdir(package_dir)
+sp_dir = package_dir
 
 
 #####################################################################
@@ -29,7 +43,6 @@ from soundpy import models as spdl
 
 ##########################################################
 # Designate path relevant for accessing audiodata
-sp_dir = '../../../'
 
 
 ######################################################
@@ -87,7 +100,7 @@ for key, value in audio_datasets.items():
 #############################################################
 model_dir, history = spdl.denoiser_train(
     feature_extraction_dir = feature_extraction_dir,
-    epochs = 30)
+    epochs = 10)
 
 #########################################################
 
@@ -99,7 +112,6 @@ model_dir
 
 #############################################################
 # Let's plot how the model performed (on this mini dataset)
-
 import matplotlib.pyplot as plt
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
@@ -107,4 +119,4 @@ plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'val'], loc='upper right')
-plt.show()
+plt.savefig('loss.png')
