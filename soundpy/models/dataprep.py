@@ -443,7 +443,7 @@ class GeneratorFeatExtraction(Generator):
                                           window = window,
                                           real_signal = real_signal,
                                           expected_shape = expected_stft_shape,
-                                          oversize_factor = 1,
+                                          oversize_factor = 16,
                                           visualize=True) 
             
             if self.vtlp and 'stft' in self.kwargs['feature_type'] or \

@@ -229,6 +229,8 @@ def pitch_decrease(sound, sr, num_semitones = 2, **kwargs):
       
 # TODO how to control output size without losing frequency data?
 # basically how to scale down dimension of frequencies after warping?
+# https://docs.scipy.org/doc/scipy/reference/tutorial/ndimage.html#interpolation-functions
+# scikit-image resize (only powerspectrum)
 def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann',
@@ -270,11 +272,10 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
-    
     max_freq = sr/2.
     if expected_shape is not None:
         # expects last column to represent the number of relevant frequency bins
-        fft_bins = expected_shape[-1]
+        #fft_bins = expected_shape[-1]
         fft_bins = (expected_shape[-1]-1) * 2 
     if fft_bins is None:
         fft_bins = int(win_size_ms * sr // 1000)
@@ -298,17 +299,29 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         else:
             section_warped = sp.dsp.piecewise_linear_warp(section_fft, vtlp_a,
                                                                 max_freq = max_freq)
-        section_warped = section_warped[:len(section_warped)]
+        if real_signal:
+            section_warped = section_warped[:len(section_warped)]
+        else:
+            section_warped = section_warped[:len(section_warped)//2 + 1]
         stft_matrix[frame][:len(section_warped)] = section_warped
         section_start += (frame_length - num_overlap_samples)
     if expected_shape is not None:
+        stft_matrix = stft_matrix[:,:len(section_warped)]
         # TODO: find out how to reduce resolution of frequency
         # this technically works but is 1) slow and 2) loses lots of info
         if oversize_factor > 1:
-            for i in np.arange(0, int(np.sqrt(oversize_factor))):
-                stft_matrix = sp.feats.reduce_dim(stft_matrix, axis=1)
+            import skimage
+            from skimage.transform import resize
+            power_matrix = sp.dsp.calc_power(stft_matrix)
+            stft_matrix = resize(power_matrix, expected_shape)
+            import warnings
+            msg = '\nWARNING: Only the power spectrum of the VTLP augmented signal'+\
+                ' can be returned.'
+            warnings.warn(msg)
+            #for i in np.arange(0, int(np.sqrt(oversize_factor))):
+                #stft_matrix = sp.feats.reduce_dim(stft_matrix, axis=1)
         # ensures matches expected_shape
-        stft_matrix = sp.feats.adjust_shape(stft_matrix, expected_shape)# stft_matrix[:expected_shape[0],:expected_shape[1]]
+        stft_matrix = sp.feats.adjust_shape(stft_matrix, expected_shape)
     else:
         stft_matrix = stft_matrix[:,:len(section_warped)]
     if visualize:
