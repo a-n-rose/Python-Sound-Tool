@@ -23,7 +23,7 @@ def denoiser_train(feature_extraction_dir,
                    model_name = 'model_autoencoder_denoise',
                    feature_type = None,
                    use_generator = True,
-                   normalized = False,
+                   normalize = True,
                    patience = 10, 
                    **kwargs):
     '''Collects training features and train autoencoder denoiser.
@@ -48,8 +48,8 @@ def denoiser_train(feature_extraction_dir,
         the entire training data will be used to train the model all at once.
         (default True)
         
-    normalized : bool 
-        If False, the data will be normalized before feeding to the model.
+    normalize : bool 
+        If True, the data will be normalized before feeding to the model.
         (default False)
         
     patience : int 
@@ -224,13 +224,13 @@ def denoiser_train(feature_extraction_dir,
             train_generator = spdl.Generator(
                 data_matrix1 = data_train_noisy, 
                 data_matrix2 = data_train_clean,
-                normalized = normalized,
+                normalize = normalize,
                 desired_input_shape = tensor + input_shape,
                 combine_axes_0_1 = combine_axes_0_1) # don't need batchsize / context window
             val_generator = spdl.Generator(
                 data_matrix1 = data_val_noisy,
                 data_matrix2 = data_val_clean,
-                normalized = normalized,
+                normalize = normalize,
                 desired_input_shape = tensor + input_shape,
                 combine_axes_0_1 = combine_axes_0_1) # don't need batchsize / context window
 
@@ -276,7 +276,7 @@ def denoiser_train(feature_extraction_dir,
                 train_shape = data_train_noisy.shape + (1,)
                 val_shape = data_val_noisy.shape + (1,)
             
-            if not normalized:
+            if normalize:
                 data_train_noisy = sp.feats.normalize(data_train_noisy)
                 data_train_clean = sp.feats.normalize(data_train_clean)
                 data_val_noisy = sp.feats.normalize(data_val_noisy)
@@ -327,7 +327,7 @@ def envclassifier_train(feature_extraction_dir,
                         model_name = 'model_cnn_classifier',
                         feature_type = None,
                         use_generator = True,
-                        normalized = False,
+                        normalize = True,
                         patience = 15,
                         add_tensor_last = True,
                         num_layers = 3,
@@ -358,8 +358,8 @@ def envclassifier_train(feature_extraction_dir,
         the entire training data will be used to train the model all at once.
         (default True)
         
-    normalized : bool 
-        If False, the data will be normalized before feeding to the model.
+    normalize : bool 
+        If True, the data will be normalized before feeding to the model.
         (default False)
         
     patience : int 
@@ -537,17 +537,17 @@ def envclassifier_train(feature_extraction_dir,
             train_generator = spdl.Generator(
                 data_matrix1 = data_train, 
                 data_matrix2 = None,
-                normalized = normalized,
+                normalize = normalize,
                 desired_input_shape = tensor + input_shape)
             val_generator = spdl.Generator(
                 data_matrix1 = data_val,
                 data_matrix2 = None,
-                normalized = normalized,
+                normalize = normalize,
                 desired_input_shape = tensor + input_shape)
             test_generator = spdl.Generator(
                 data_matrix1 = data_test,
                 data_matrix2 = None,
-                normalized = normalized,
+                normalize = normalize,
                 desired_input_shape = tensor + input_shape)
             # resource:
             # https://www.tensorflow.org/guide/data
@@ -895,7 +895,7 @@ def collect_classifier_settings(feature_extraction_dir):
 def cnnlstm_train(feature_extraction_dir,
                   model_name = 'model_cnnlstm_classifier',
                   use_generator = True,
-                  normalized = False,
+                  normalize = True,
                   patience = 15,
                   timesteps = 10,
                   context_window = 5,
@@ -1030,7 +1030,7 @@ def cnnlstm_train(feature_extraction_dir,
         if use_generator:
             train_generator = spdl.Generator(data_matrix1 = data_train, 
                                                     data_matrix2 = None,
-                                                    normalized = normalized,
+                                                    normalize = normalize,
                                                     timestep = timesteps,
                                                     axis_timestep = 0,
                                                     context_window = context_window,
@@ -1041,7 +1041,7 @@ def cnnlstm_train(feature_extraction_dir,
                                                     #add_tensor_last = add_tensor_last)
             val_generator = spdl.Generator(data_matrix1 = data_val,
                                                 data_matrix2 = None,
-                                                normalized = normalized,
+                                                normalize = normalize,
                                                 timestep = timesteps,
                                                 axis_timestep = 0,
                                                 context_window = context_window,
@@ -1051,7 +1051,7 @@ def cnnlstm_train(feature_extraction_dir,
                                                     #add_tensor_last = add_tensor_last)
             test_generator = spdl.Generator(data_matrix1 = data_test,
                                                   data_matrix2 = None,
-                                                  normalized = normalized,
+                                                  normalize = normalize,
                                                     timestep = timesteps,
                                                     axis_timestep = 0,
                                                     context_window = context_window,
@@ -1175,7 +1175,7 @@ def cnnlstm_train(feature_extraction_dir,
 def resnet50_train(feature_extraction_dir,
                    model_name = 'model_resnet50_classifier',
                    use_generator = True,
-                   normalized = False,
+                   normalize = True,
                    patience = 15,
                    colorscale = 3,
                    total_training_sessions = None,
@@ -1268,19 +1268,19 @@ def resnet50_train(feature_extraction_dir,
             train_generator = spdl.Generator(
                 data_matrix1 = data_train, 
                 data_matrix2 = None,
-                normalized = normalized,
+                normalize = normalize,
                 desired_input_shape = tensor + input_shape,
                 gray2color = True)
             val_generator = spdl.Generator(
                 data_matrix1 = data_val,
                 data_matrix2 = None,
-                normalized = normalized,
+                normalize = normalize,
                 desired_input_shape = tensor + input_shape,
                 gray2color = True)
             test_generator = spdl.Generator(
                 data_matrix1 = data_test,
                 data_matrix2 = None,
-                normalized = normalized,
+                normalize = normalize,
                 desired_input_shape = tensor + input_shape,
                 gray2color = True)
 
@@ -1510,25 +1510,25 @@ def envclassifier_extract_train(
     
     # ensure defaults are set if not included in kwargs:
     if 'win_size_ms' not in kwargs:
-        kwargs['win_size_ms'] = 25
+        kwargs['win_size_ms'] = 20
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
-    if 'mono' not in kwargs:
-        kwargs['mono'] = True
     if 'rate_of_change' not in kwargs:
         kwargs['rate_of_change'] = False
     if 'rate_of_acceleration' not in kwargs:
         kwargs['rate_of_acceleration'] = False
-    if 'subtract_mean' not in kwargs:
-        kwargs['subtract_mean'] = False
     if 'dur_sec' not in kwargs:
         raise ValueError('Function `envclassifier_extract_train``requires ' +\
             'the keyword argument `dur_sec` to be set. How many seconds of audio '+\
                 'from each audio file would you like to use for training?')
     if 'sr' not in kwargs:
-        kwargs['sr'] = 48000
+        kwargs['sr'] = 22050
     if 'fft_bins' not in kwargs:
-        kwargs['fft_bins'] = None
+        import warnings
+        fft_bins = int(kwargs['win_size_ms'] * kwargs['sr'] // 1000)
+        msg = '\nWARNING: `fft_bins` was not set. Setting it to {}'.format(fft_bins)
+        warnings.warn(msg)
+        kwargs['fft_bins'] = fft_bins
     if 'real_signal' not in kwargs:
         kwargs['real_signal'] = True
     if 'window' not in kwargs:
@@ -1538,7 +1538,7 @@ def envclassifier_extract_train(
     if 'num_filters' not in kwargs:
         kwargs['num_filters'] = 40
     if 'num_mfcc' not in kwargs:
-        kwrags['num_mfcc'] = 40
+        kwargs['num_mfcc'] = 40
         
     # training will fail if patience set to a non-integer type
     if patience is None:
@@ -1653,28 +1653,15 @@ def envclassifier_extract_train(
         # don't have the label data available
         dict_encode, dict_decode = None, None
         
-    feat_base_shape, input_shape = sp.feats.get_feature_matrix_shape(
+    feat_base_shape, shape_with_label = sp.feats.get_feature_matrix_shape(
         labeled_data = labeled_data,
         **kwargs)
-    #input_shape = spdl.dataprep.get_input_shape(kwargs, labeled_data = labeled_data,
-                                  #frames_per_sample = frames_per_sample,
-                                  #use_librosa = use_librosa)
-    
-    # update num_fft_bins to input_shape's last column, expecting it to be freq bins  / feats: 
-    if kwargs['real_signal']:
-        if labeled_data:
-            kwargs['fft_bins'] = input_shape[-1] -1
-        else:
-            kwargs['fft_bins'] = input_shape[-1] 
-    else:
-        if labeled_data:
-            kwargs['fft_bins'] = input_shape[-1] * 2 -1 -1
-        else:
-            kwargs['fft_bins'] = input_shape[-1] * 2 -1
-        
+    tensor = (1,)
+    input_shape = feat_base_shape + tensor
+    print(input_shape)
 
     if 'fbank' in kwargs['feature_type'] or 'mfcc' in kwargs['feature_type']:
-        kwargs['fmax'] = kwargs['sr'] * 2.0
+        kwargs['fmax'] = kwargs['sr'] / 2.0 # Niquist theorem
     # extract validation data (must already be extracted)
     extracted_data_dict = dict([('val',dataset_dict['val']),
                      ('test',dataset_dict['test'])])
@@ -1700,7 +1687,6 @@ def envclassifier_extract_train(
     # start training
     start = time.time()
 
-    input_shape = input_shape + (1,)
     if dict_encode is not None:
         num_labels = len(dict_encode) 
     # otherwise should arleady be specified
@@ -1739,11 +1725,10 @@ def envclassifier_extract_train(
         append = True)
 
     normalize = True
-    add_tensor_last = False
-    add_tensor_first = True
     print()
     print(kwargs)
     print()
+    tensor = (1,)
     train_generator = spdl.GeneratorFeatExtraction(
         datalist = dataset_dict['train'],
         model_name = model_name,
@@ -1751,10 +1736,8 @@ def envclassifier_extract_train(
         apply_log = False,
         randomize = True, # want the data order to be different for each iteration 
         random_seed = None,
-        input_shape = input_shape,
+        desired_input_shape = tensor + input_shape,
         batch_size = batch_size, 
-        add_tensor_last = add_tensor_last, 
-        add_tensor_first = add_tensor_first,
         gray2color = False,
         visualize = visualize,
         vis_every_n_items = vis_every_n_items,
@@ -1767,37 +1750,35 @@ def envclassifier_extract_train(
     
     val_generator = spdl.Generator(
         data_matrix1 = val_data,
-        add_tensor_last = True,
-        adjust_shape = input_shape[:-1])
+        desired_input_shape = tensor + input_shape[:-1])
     
     test_generator = spdl.Generator(
         data_matrix1 = test_data,
-        add_tensor_last = True,
-        adjust_shape = input_shape[:-1])
+        desired_input_shape = tensor + input_shape[:-1])
     
     feats_train, label_train = next(train_generator.generator())
     print('train label: ', label_train)
     print(feats_train.shape) # (1, 101, 40, 1)
     print(label_train.shape) # (1, 1)
-    feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
-    sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
-                        name4pic='train_stft.png')
+    #feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
+    #sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
+                        #name4pic='train_stft.png')
     
     feats_val, label_val = next(val_generator.generator())
     print('val label: ', label_val)
     print(feats_val.shape) # (1, 101, 40, 1)
     print(label_val.shape) # (1, 1)
-    feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
-    sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
-                        name4pic='val_stft.png')
+    #feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
+    #sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
+                        #name4pic='val_stft.png')
     
     feats_test, label_test = next(test_generator.generator())
     print('test label: ', label_test)
     print(feats_test.shape) # (1, 101, 40, 1)
     print(label_test.shape) # (1, 1)
-    feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
-    sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
-                        name4pic='test_stft.png')
+    #feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
+    #sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
+                        #name4pic='test_stft.png')
 
 
     ds_train = tf.data.Dataset.from_generator(
