@@ -1658,6 +1658,7 @@ def envclassifier_extract_train(
         **kwargs)
     tensor = (1,)
     input_shape = feat_base_shape + tensor
+    print('model input shape')
     print(input_shape)
 
     if 'fbank' in kwargs['feature_type'] or 'mfcc' in kwargs['feature_type']:
@@ -1750,35 +1751,54 @@ def envclassifier_extract_train(
     
     val_generator = spdl.Generator(
         data_matrix1 = val_data,
-        desired_input_shape = tensor + input_shape[:-1])
+        desired_input_shape = tensor + input_shape)
     
     test_generator = spdl.Generator(
         data_matrix1 = test_data,
-        desired_input_shape = tensor + input_shape[:-1])
+        desired_input_shape = tensor + input_shape)
+    
+
+    if 'stft' in kwargs['feature_type'] or 'fbank' in kwargs['feature_type'] \
+        or 'powspec' in kwargs['feature_type']:
+            energy_scale = 'power_to_db'
+    else:
+        energy_scale = None
     
     feats_train, label_train = next(train_generator.generator())
     print('train label: ', label_train)
     print(feats_train.shape) # (1, 101, 40, 1)
     print(label_train.shape) # (1, 1)
-    #feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
-    #sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
-                        #name4pic='train_stft.png')
+    feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
+    sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
+                  title='{} features label "{}"'.format(kwargs['feature_type'], 
+                                                      dict_decode[label_train[0]]),
+                        name4pic='train_feats{}.png'.format(sp.utils.get_date()),
+                        use_tkinter=False,
+                        energy_scale = energy_scale)
     
     feats_val, label_val = next(val_generator.generator())
     print('val label: ', label_val)
     print(feats_val.shape) # (1, 101, 40, 1)
     print(label_val.shape) # (1, 1)
-    #feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
-    #sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
-                        #name4pic='val_stft.png')
+    feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
+    sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
+                  title='{} features label "{}"'.format(kwargs['feature_type'], 
+                                                      dict_decode[label_val[0]]),
+                        name4pic='val_feats{}.png'.format(sp.utils.get_date()),
+                        use_tkinter=False,
+                        energy_scale = energy_scale)
     
     feats_test, label_test = next(test_generator.generator())
     print('test label: ', label_test)
     print(feats_test.shape) # (1, 101, 40, 1)
     print(label_test.shape) # (1, 1)
-    #feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
-    #sp.feats.saveplot(feature_matrix = feats_vis, feature_type='stft',
-                        #name4pic='test_stft.png')
+    feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
+    sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
+                  title='{} features label "{}"'.format(kwargs['feature_type'], 
+                                                      dict_decode[label_test[0]]),
+                        name4pic='test_feats{}.png'.format(sp.utils.get_date()),
+                        use_tkinter=False,
+                        energy_scale = energy_scale)
 
 
     ds_train = tf.data.Dataset.from_generator(

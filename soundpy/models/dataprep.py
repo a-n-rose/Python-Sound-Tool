@@ -433,13 +433,18 @@ class GeneratorFeatExtraction(Generator):
                     zeropad = zeropad,
                     real_signal = real_signal)
                 
+                # TODO bug fix: oversize_factor higher than 1:
+                # how to reduce dimension back to `expected_stft_shape` without
+                # shaving off data?
                 augmented_data, alpha = sp.augment.vtlp(augmented_data, self.sr, 
                                           win_size_ms = win_size_ms,
                                           percent_overlap = percent_overlap, 
                                           fft_bins = fft_bins,
                                           window = window,
                                           real_signal = real_signal,
-                                          expected_shape = expected_stft_shape)
+                                          expected_shape = expected_stft_shape,
+                                          oversize_factor = 1,
+                                          visualize=True) 
             
             if self.vtlp and 'stft' in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
@@ -612,6 +617,7 @@ class GeneratorFeatExtraction(Generator):
             
             # prepare data to be fed to network:
             if labeled_data:
+                # has to be at least (1,)
                 batch_y = np.expand_dims(np.array(label), axis=0)
                 
             elif batch_y is not None:
