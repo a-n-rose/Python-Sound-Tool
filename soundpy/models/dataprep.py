@@ -286,23 +286,11 @@ class GeneratorFeatExtraction(Generator):
         if augment_dict is None:
             augment_dict = dict()
         self.augment_dict = augment_dict
-        # if vtlp should be used as stft matrix
-        if 'vtlp' in augment_dict:
-            self.vtlp = augment_dict['vtlp']
-        else:
-            self.vtlp = None
-        # ensure 'sr' is in keyword arguments
-        # if not, set it to 16000
-        if 'sr' in kwargs:
-            self.sr = kwargs['sr']
-        else:
-            self.sr = 22050
-            kwargs['sr'] = self.sr
         self.kwargs = kwargs
         
         # Ensure `feature_type` and `sr` are provided in **kwargs
         try:
-            f = kwargs['feature_type']
+            feature_type = kwargs['feature_type']
         except KeyError:
             raise KeyError('Feature type not indicated. '+\
                 'Please set `feature_type` to one of the following: '+\
@@ -311,23 +299,13 @@ class GeneratorFeatExtraction(Generator):
             sr = kwargs['sr']
         except KeyError:
             raise KeyError('Sample rate is not indicated. '+\
-                'Please set `sr` (e.g. sr = 16000)')
-        
-        # if these are present, great. If not, set to None
-        # useful for plotting features with time in seconds
-        try: 
-            win_size_ms = kwargs['win_size_ms']
-        except KeyError:
-            kwargs['win_size_ms'] = None
-        try: 
-            percent_overlap = kwargs['percent_overlap']
-        except KeyError:
-            kwargs['percent_overlap'] = None
+                'Please set `sr` (e.g. sr = 22050)')
         
     def generator(self):
         '''Extracts features and feeds them to model according to `desired_input_shape`.
         '''
         while 1:
+            augmentation = ''
             audioinfo = self.audiolist[self.counter]
             # does the list contain label audiofile pairs?
             if isinstance(audioinfo, tuple):
@@ -379,7 +357,7 @@ class GeneratorFeatExtraction(Generator):
                 label_pic = None
         
             # ensure audio is valid:
-            y, sr = sp.loadsound(audiopath, self.sr)
+            y, sr = sp.loadsound(audiopath, self.kwargs['sr'])
             
             if self.label_silence:
                 if self.vad_start_end:
@@ -404,14 +382,15 @@ class GeneratorFeatExtraction(Generator):
                 aug_dict = randomize_augs(self.augment_dict)
 
                 augmented_data, augmentation = augment_features(y, 
-                                                            self.sr, 
+                                                            self.kwargs['sr'], 
                                                             **aug_dict)
             else:
                 augmented_data, augmentation = y, ''
+                aug_dict = dict()
             # extract features
             # will be shape (num_frames, num_features)
-            if self.vtlp:
-
+            if 'vtlp' in aug_dict and aug_dict['vtlp']:
+                sr = self.kwargs['sr']
                 win_size_ms = sp.utils.restore_dictvalue(self.kwargs['win_size_ms'])
                 percent_overlap = sp.utils.restore_dictvalue(self.kwargs['percent_overlap'])
                 fft_bins =  sp.utils.restore_dictvalue(self.kwargs['fft_bins'])
@@ -424,7 +403,7 @@ class GeneratorFeatExtraction(Generator):
                 # need to tell vtlp the size of fft we need, in order to 
                 # be able to extract fbank and mfcc features as well
                 expected_stft_shape, __ = sp.feats.get_feature_matrix_shape(
-                    sr = self.sr,
+                    sr = sr,
                     dur_sec = dur_sec, 
                     feature_type = feature_type_vtlp,
                     win_size_ms = win_size_ms,
@@ -437,7 +416,7 @@ class GeneratorFeatExtraction(Generator):
                 # how to reduce dimension back to `expected_stft_shape` without
                 # shaving off data?
                 oversize_factor = 16
-                augmented_data, alpha = sp.augment.vtlp(augmented_data, self.sr, 
+                augmented_data, alpha = sp.augment.vtlp(augmented_data, sr, 
                                           win_size_ms = win_size_ms,
                                           percent_overlap = percent_overlap, 
                                           fft_bins = fft_bins,
@@ -450,18 +429,20 @@ class GeneratorFeatExtraction(Generator):
                 # add the value that was applied
                 augmentation += '_vtlp'+str(alpha) 
             
-            if self.vtlp and 'stft' in self.kwargs['feature_type'] or \
-                'powspec' in self.kwargs['feature_type']:
-                if 'stft' in self.kwargs['feature_type'] and oversize_factor > 1:
-                    import warnings
-                    msg = '\nWARNING: due to resizing of STFT matrix due to '+\
-                        ' `oversize_factor` {}, converted to '.format(oversize_factor)+\
-                        'power spectrum. Phase information has been removed.'
-                    warnings.warn(msg)
-                feats = augmented_data
-                if 'powspec' in self.kwargs['feature_type']:
-                    feats = sp.dsp.calc_power(feats)
-                
+            if 'vtlp' in aug_dict and aug_dict['vtlp']:
+                if 'stft' in self.kwargs['feature_type'] or \
+                    'powspec' in self.kwargs['feature_type']:
+                    if 'stft' in self.kwargs['feature_type'] and oversize_factor > 1:
+                        import warnings
+                        msg = '\nWARNING: due to resizing of STFT matrix due to '+\
+                            ' `oversize_factor` {}, converted to '.format(oversize_factor)+\
+                            'power spectrum. Phase information has been removed.'
+                        warnings.warn(msg)
+                    feats = augmented_data
+                    if 'powspec' in self.kwargs['feature_type'] and oversize_factor == 1:
+                        # otherwise already a power spectrum
+                        feats = sp.dsp.calc_power(feats)
+                    
             elif 'stft'in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
                 feats = sp.feats.get_stft(
@@ -479,7 +460,7 @@ class GeneratorFeatExtraction(Generator):
                 if 'powspec' in self.kwargs['feature_type']:
                     feats = sp.dsp.calc_power(feats)
                     
-            elif 'fbank' in self.kwargs['feature_type']:
+            if 'fbank' in self.kwargs['feature_type']:
                 feats = sp.feats.get_fbank(
                     augmented_data,
                     sr = self.kwargs['sr'],
@@ -541,7 +522,7 @@ class GeneratorFeatExtraction(Generator):
                         augs2 = ', '.join(augs2)
                     else:
                         augs1 = augments_vis[0]
-                        agus2 = ''
+                        augs2 = ''
                     if self.visuals_dir is not None:
                         save_visuals_path = sp.check_dir(self.visuals_dir, make=True)
                     else:
