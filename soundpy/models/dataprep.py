@@ -217,8 +217,7 @@ class GeneratorFeatExtraction(Generator):
                  augment_dict = None, label_silence = False,
                  vad_start_end = False, **kwargs):
         '''
-        Do not add extra tensor dimensions to expected input_shape.
-        
+    
         Parameters
         ----------
         datalist : list 
@@ -239,10 +238,10 @@ class GeneratorFeatExtraction(Generator):
         **kwargs : additional keyword arguments
             Keyword arguments for soundpy.feats.get_feats
         '''
-        if input_shape is None and 'dur_sec' not in kwargs.keys():
+        if desired_input_shape is None and 'dur_sec' not in kwargs.keys():
             raise ValueError('No information pertaining to amount of audio data '+\
                 'to be extracted is supplied. Please specify `sample_length`, '+\
-                    '`input_shape`, or `dur_sec`.')
+                    '`desired_input_shape`, or `dur_sec`.')
         if randomize:
             if random_seed is not None:
                 random.seed(random_seed)
@@ -326,7 +325,7 @@ class GeneratorFeatExtraction(Generator):
             kwargs['percent_overlap'] = None
         
     def generator(self):
-        '''Extracts features and feeds them to model according to `input_shape`.
+        '''Extracts features and feeds them to model according to `desired_input_shape`.
         '''
         while 1:
             audioinfo = self.audiolist[self.counter]
@@ -412,42 +411,35 @@ class GeneratorFeatExtraction(Generator):
             # extract features
             # will be shape (num_frames, num_features)
             if self.vtlp:
-                try:
-                    win_size_ms = sp.utils.restore_dictvalue(self.kwargs['win_size_ms'])
-                except KeyError:
-                    raise ValueError('win_size_ms not set for feature extraction.')
-                try:
-                    percent_overlap = sp.utils.restore_dictvalue(self.kwargs['percent_overlap'])
-                except KeyError:
-                    percent_overlap = 0.5
-                try:
-                    fft_bins =  sp.utils.restore_dictvalue(self.kwargs['fft_bins'])
-                except KeyError:
-                    fft_bins = None
-                try:
-                    window = sp.utils.restore_dictvalue(self.kwargs['window'])
-                except KeyError:
-                    window = 'hann'
-                try:
-                    real_signal = sp.utils.restore_dictvalue(self.kwargs['real_signal'])
-                except KeyError:
-                    real_signal = False
-                # get vtlp
-                # for 'stft' or 'powspec', can use as feats but needs to be correct size:
-                if 'stft' in self.kwargs['feature_type'] or 'powspec' in \
-                    self.kwargs['feature_type']:
-                    expected_shape = self.input_shape[:-1]
-                # for fbank, mfcc, signal features, must be able to put vtlp stft matrix
-                # back into samples, therefore keep as much info as possible
-                else:
-                    expected_shape = None
+
+                win_size_ms = sp.utils.restore_dictvalue(self.kwargs['win_size_ms'])
+                percent_overlap = sp.utils.restore_dictvalue(self.kwargs['percent_overlap'])
+                fft_bins =  sp.utils.restore_dictvalue(self.kwargs['fft_bins'])
+                window = sp.utils.restore_dictvalue(self.kwargs['window'])
+                real_signal = sp.utils.restore_dictvalue(self.kwargs['real_signal'])
+                feature_type_vtlp = 'stft' 
+                dur_sec = sp.utils.restore_dictvalue(self.kwargs['dur_sec'])
+                zeropad = sp.utils.restore_dictvalue(self.kwargs['zeropad'])
+                
+                # need to tell vtlp the size of fft we need, in order to 
+                # be able to extract fbank and mfcc features as well
+                expected_stft_shape, __ = sp.feats.get_feature_matrix_shape(
+                    sr = self.sr,
+                    dur_sec = dur_sec, 
+                    feature_type = feature_type_vtlp,
+                    win_size_ms = win_size_ms,
+                    percent_overlap = percent_overlap,
+                    fft_bins = fft_bins,
+                    zeropad = zeropad,
+                    real_signal = real_signal)
+                
                 augmented_data, alpha = sp.augment.vtlp(augmented_data, self.sr, 
                                           win_size_ms = win_size_ms,
                                           percent_overlap = percent_overlap, 
                                           fft_bins = fft_bins,
                                           window = window,
                                           real_signal = real_signal,
-                                          expected_shape = expected_shape)
+                                          expected_shape = expected_stft_shape)
             
             if self.vtlp and 'stft' in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
@@ -620,14 +612,16 @@ class GeneratorFeatExtraction(Generator):
             
             # prepare data to be fed to network:
             if labeled_data:
-                batch_y = np.array(label)
+                batch_y = np.expand_dims(np.array(label), axis=0)
+                
             elif batch_y is not None:
                 pass
             else:
                 raise ValueError('No independent variable provided.')
 
+
             self.counter += 1
-            yield X_batch, y_batch 
+            yield batch_x, batch_y 
             
             #restart counter to yield data in the next epoch as well
             if self.counter >= self.number_of_batches:
