@@ -1323,9 +1323,9 @@ def reduce_num_features(feats, desired_shape):
 
 # TODO remove warning for 'operands could not be broadcast together with shapes..'
 # TODO test
-def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False):
+def adjust_shape(data, desired_shape, change_dims = None, complex_vals = None):
     try:
-        if change_dims:
+        if change_dims is not None:
             raise DeprecationWarning('\nWARNING: Function `soundpy.feats.adjust_shape` will not '+\
                 'use the parameter `change_dims` in future versions. \nIf extra dimensions '+\
                     'of length 1 are to be added to the `data`, this will be completed. '+\
@@ -1333,7 +1333,7 @@ def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False)
     except DeprecationWarning as e:
         print(e)
     try:
-        if complex_vals:
+        if complex_vals is not None:
             raise DeprecationWarning('\nWARNING: Function `soundpy.feats.adjust_shape` will not '+\
                 'use the parameter `complex_vals` in future versions. This will be '+\
                     'implicitly conducted within the function using `numpy.dtype`.')
@@ -1355,11 +1355,9 @@ def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False)
     
     # if complex values are in data, set complex_vals to True
     if data.dtype == np.complex_:
-        if not complex_vals:
-            print('\nFunction `soundpy.feats.adjust_shape` received the parameter '+\
-                '`complex_vals` as False, however complex values found in `data`.'+\
-                    '\nTherefore, set `complex_vals` to True.')
-            complex_vals = True
+        complex_vals = True
+    else:
+        complex_vals = False
         
     # attempt to zeropad data:
     try:
@@ -1393,6 +1391,36 @@ def adjust_shape(data, desired_shape, change_dims = False, complex_vals = False)
         data_prepped = sp.feats.reduce_num_features(data, 
                                                  desired_shape = desired_shape)
     return data_prepped
+
+
+def reduce_dim(matrix, axis=0):
+    import math
+    import numpy as np
+    if axis < 0:
+        axis = len(matrix.shape) + axis
+    if axis == 0:
+        new_matrix = np.zeros((math.ceil(matrix.shape[0]/2),)+matrix.shape[1:])
+        row = 0
+        for i in np.arange(0, matrix.shape[0], 2):
+            if i < matrix.shape[0] - 2:
+                new_matrix[row] = (matrix[i] + matrix[i+1]) / 2
+                row += 1
+            else:
+                new_matrix[row] = matrix[i]
+    elif axis == 1:
+        new_matrix = np.zeros(matrix.shape[:1] + (math.ceil(matrix.shape[1]/2),))
+        col = 0
+        for i in np.arange(0, matrix.shape[1], 2):
+            if i < matrix.shape[1] - 2:
+                new_matrix[:, col] = (matrix[:, i] + matrix[:, i+1]) / 2
+                col += 1
+            else:
+                new_matrix[:, col] = matrix[:, i]
+    else:
+        raise ValueError('Function `reduce_dim` only accepts 2D data. Axis {}'.format(axis),
+                         ' is out of bounds.')
+    return new_matrix
+
 
 def featshape_new_subframe(feature_matrix_shape, new_frame_size, 
                                zeropad = True, axis=0, include_dim_size_1=False):
@@ -1439,6 +1467,7 @@ def featshape_new_subframe(feature_matrix_shape, new_frame_size,
             new_shape.append(ax)
     new_shape = tuple(new_shape)
     return new_shape
+
 
 def apply_new_subframe(feature_matrix, new_frame_size, zeropad=True, axis=0):
     '''Reshapes `feature_matrix` to allow for `new_frame_size`. 
