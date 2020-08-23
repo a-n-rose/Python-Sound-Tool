@@ -231,6 +231,7 @@ def pitch_decrease(sound, sr, num_semitones = 2, **kwargs):
 # basically how to scale down dimension of frequencies after warping?
 # https://docs.scipy.org/doc/scipy/reference/tutorial/ndimage.html#interpolation-functions
 # scikit-image resize (only powerspectrum)
+# https://stackoverflow.com/questions/23918036/interpolate-whole-arrays-of-complex-numbers
 def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann',
@@ -371,5 +372,4 @@ def get_augmentation_settings_dict(augmentation):
     elif augmentation == 'vtlp':
         aug_defaults = sp.utils.get_default_args(sp.augment.vtlp)
     return aug_defaults
-    
     
