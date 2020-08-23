@@ -445,7 +445,10 @@ class GeneratorFeatExtraction(Generator):
                                           real_signal = real_signal,
                                           expected_shape = expected_stft_shape,
                                           oversize_factor = oversize_factor,
-                                          visualize=True) 
+                                          visualize=False) 
+                # vtlp was last augmentation to be added to `augmentation` string
+                # add the value that was applied
+                augmentation += '_vtlp'+str(alpha) 
             
             if self.vtlp and 'stft' in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
@@ -529,6 +532,16 @@ class GeneratorFeatExtraction(Generator):
             # Save visuals if desired
             if self.visualize:
                 if self.counter % self.vis_every_n_items == 0:
+                    # make augmentation string more legible.
+                    augments_vis = augmentation[1:].split('_')
+                    if len(augments_vis) > 1:
+                        augs1 = augments_vis[:len(augments_vis)//2]
+                        augs2 = augments_vis[len(augments_vis)//2:]
+                        augs1 = ', '.join(augs1)
+                        augs2 = ', '.join(augs2)
+                    else:
+                        augs1 = augments_vis[0]
+                        agus2 = ''
                     if self.visuals_dir is not None:
                         save_visuals_path = sp.check_dir(self.visuals_dir, make=True)
                     else:
@@ -556,9 +569,12 @@ class GeneratorFeatExtraction(Generator):
                         win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                         energy_scale = energy_scale, save_pic = True, 
                         name4pic = save_visuals_path,
-                        title = 'Label {} {} features \n'.format(label_pic, feature_type)+\
-                            '(item {})'.format(self.counter),
-                        use_tkinter=False) #use Agg backend for plotting
+                        title = '"{}" {} Aug: {}-\n{}'.format(
+                            label_pic, 
+                            feature_type.upper(),
+                            augs1,
+                            augs2),
+                            use_tkinter=False) #use Agg backend for plotting
                     if feats2 is not None:
                         # add '_2' to pathway
                         p = sp.utils.string2pathlib(save_visuals_path)
@@ -571,9 +587,8 @@ class GeneratorFeatExtraction(Generator):
                             win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                             energy_scale = energy_scale, save_pic = True, 
                             name4pic = save_visuals_path2,
-                            title = 'Output {} features \n'.format(
-                                label_pic, feature_type)+\
-                                '(item {})'.format(self.counter),
+                            title = 'Output {} features {}'.format(
+                                label_pic, feature_type),
                             use_tkinter=False)
             
             batch_x = feats
@@ -829,9 +844,9 @@ def augment_features(sound,
 
 
     # all augmentation techniques return sample data except for vtlp
-    # therefore vtlp will be handled outside of this function (returns stft matrix)
+    # therefore vtlp will be handled outside of this function (returns stft or powspec)
     if vtlp:
-        augmentation += '_vtlp'
+        pass
 
     samples_augmented = sp.dsp.set_signal_length(samples_augmented, len(samples))
 
