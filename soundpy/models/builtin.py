@@ -1656,10 +1656,9 @@ def envclassifier_extract_train(
     feat_base_shape, shape_with_label = sp.feats.get_feature_matrix_shape(
         labeled_data = labeled_data,
         **kwargs)
-    tensor = (1,)
-    input_shape = feat_base_shape + tensor
-    print('model input shape')
-    print(input_shape)
+    
+    color_dimension = (1,) # our data is in grayscale
+    input_shape = feat_base_shape + color_dimension
 
     if 'fbank' in kwargs['feature_type'] or 'mfcc' in kwargs['feature_type']:
         kwargs['fmax'] = kwargs['sr'] / 2.0 # Niquist theorem
@@ -1671,9 +1670,6 @@ def envclassifier_extract_train(
     extracted_data_path_dict = dict([('val', val_path),
                           ('test', test_path)])
     # extract test data 
-    print()
-    print(kwargs)
-    print()
     print('\nExtracting validation data for use in training:')
     extracted_data_dict, extracted_data_path_dict = sp.feats.save_features_datasets(
         extracted_data_dict,
@@ -1726,9 +1722,6 @@ def envclassifier_extract_train(
         append = True)
 
     normalize = True
-    print()
-    print(kwargs)
-    print()
     tensor = (1,)
     train_generator = spdl.GeneratorFeatExtraction(
         datalist = dataset_dict['train'],
@@ -1765,41 +1758,34 @@ def envclassifier_extract_train(
         energy_scale = None
     
     feats_train, label_train = next(train_generator.generator())
-    print('train label: ', label_train)
-    print(feats_train.shape) # (1, 101, 40, 1)
-    print(label_train.shape) # (1, 1)
+
     feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
     sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
-                  title='{} features label "{}"'.format(kwargs['feature_type'], 
+                  title='Train: {} features label "{}"'.format(kwargs['feature_type'], 
                                                       dict_decode[label_train[0]]),
                         name4pic='train_feats{}.png'.format(sp.utils.get_date()),
                         use_tkinter=False,
                         energy_scale = energy_scale)
     
     feats_val, label_val = next(val_generator.generator())
-    print('val label: ', label_val)
-    print(feats_val.shape) # (1, 101, 40, 1)
-    print(label_val.shape) # (1, 1)
+
     feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
     sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
-                  title='{} features label "{}"'.format(kwargs['feature_type'], 
+                  title='Val: {} features label "{}"'.format(kwargs['feature_type'], 
                                                       dict_decode[label_val[0]]),
                         name4pic='val_feats{}.png'.format(sp.utils.get_date()),
                         use_tkinter=False,
                         energy_scale = energy_scale)
     
     feats_test, label_test = next(test_generator.generator())
-    print('test label: ', label_test)
-    print(feats_test.shape) # (1, 101, 40, 1)
-    print(label_test.shape) # (1, 1)
+
     feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
     sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
-                  title='{} features label "{}"'.format(kwargs['feature_type'], 
+                  title='Test: {} features label "{}"'.format(kwargs['feature_type'], 
                                                       dict_decode[label_test[0]]),
                         name4pic='test_feats{}.png'.format(sp.utils.get_date()),
                         use_tkinter=False,
                         energy_scale = energy_scale)
-
 
     ds_train = tf.data.Dataset.from_generator(
         spdl.make_gen_callable(train_generator.generator()),
@@ -1816,9 +1802,12 @@ def envclassifier_extract_train(
         output_types=(feats_test.dtype, label_test.dtype), 
         output_shapes=(feats_test.shape, 
                         label_test.shape))
+        
+    print('\nShapes of X and y data from the train, val, and test generators:')
     print(ds_train)
     print(ds_val)
     print(ds_test)
+    print()
     
     print('-'*79)
     if augment_dict:
