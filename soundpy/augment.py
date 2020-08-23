@@ -316,7 +316,8 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
             stft_matrix = resize(power_matrix, expected_shape)
             import warnings
             msg = '\nWARNING: Only the power spectrum of the VTLP augmented signal'+\
-                ' can be returned.'
+                ' can be returned due to resizing the augmentation from '+\
+                    '{} to {}'.format(power_matrix.shape, expected_shape)
             warnings.warn(msg)
             #for i in np.arange(0, int(np.sqrt(oversize_factor))):
                 #stft_matrix = sp.feats.reduce_dim(stft_matrix, axis=1)

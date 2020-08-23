@@ -436,6 +436,7 @@ class GeneratorFeatExtraction(Generator):
                 # TODO bug fix: oversize_factor higher than 1:
                 # how to reduce dimension back to `expected_stft_shape` without
                 # shaving off data?
+                oversize_factor = 16
                 augmented_data, alpha = sp.augment.vtlp(augmented_data, self.sr, 
                                           win_size_ms = win_size_ms,
                                           percent_overlap = percent_overlap, 
@@ -443,11 +444,17 @@ class GeneratorFeatExtraction(Generator):
                                           window = window,
                                           real_signal = real_signal,
                                           expected_shape = expected_stft_shape,
-                                          oversize_factor = 16,
+                                          oversize_factor = oversize_factor,
                                           visualize=True) 
             
             if self.vtlp and 'stft' in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
+                if 'stft' in self.kwargs['feature_type'] and oversize_factor > 1:
+                    import warnings
+                    msg = '\nWARNING: due to resizing of STFT matrix due to '+\
+                        ' `oversize_factor` {}, converted to '.format(oversize_factor)+\
+                        'power spectrum. Phase information has been removed.'
+                    warnings.warn(msg)
                 feats = augmented_data
                 if 'powspec' in self.kwargs['feature_type']:
                     feats = sp.dsp.calc_power(feats)
