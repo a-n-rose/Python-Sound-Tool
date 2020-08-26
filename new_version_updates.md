@@ -10,6 +10,7 @@ converted to raw audio samples.
 then switch to Tkinker backend using use_tkinker parameter for normal use outside of training.
 - require additional tensors to be added to the desired shape and then supplied to generator to make shape process more explicit in generator.
 
+changed parameter (Generator) normalized to normalize (opposite bool); removed add_tensor_last parameter, adjusted grayscale2color sections: can be applied to 2D data; set sr default to 22050
 
 
 
