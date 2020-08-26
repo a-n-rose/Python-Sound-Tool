@@ -555,7 +555,7 @@ class GeneratorFeatExtraction(Generator):
                             feature_type.upper(),
                             augs1,
                             augs2),
-                            use_tkinter=False) #use Agg backend for plotting
+                            sub_process=True) #use Agg backend for plotting
                     if feats2 is not None:
                         # add '_2' to pathway
                         p = sp.utils.string2pathlib(save_visuals_path)
@@ -570,7 +570,7 @@ class GeneratorFeatExtraction(Generator):
                             name4pic = save_visuals_path2,
                             title = 'Output {} features {}'.format(
                                 label_pic, feature_type),
-                            use_tkinter=False)
+                            sub_process=True)
             
             batch_x = feats
             batch_y = feats2

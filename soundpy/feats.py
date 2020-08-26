@@ -29,7 +29,7 @@ import soundpy as sp
 def plot(feature_matrix, feature_type, 
         save_pic=False, name4pic=None, energy_scale='power_to_db',
         title=None, sr=None, win_size_ms=None, percent_overlap=None,
-        x_label=None, y_label=None, use_tkinter=True):
+        x_label=None, y_label=None, sub_process=False):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
     
     Parameters
@@ -47,8 +47,8 @@ def plot(feature_matrix, feature_type,
         FBANK: mel-log filterbank energies (default 'fbank').
 
     save_pic : bool
-        True to save image as .png; False to just plot it. If `use_tkinter` is 
-        False, `save_pic` will automatically be set to True.
+        True to save image as .png; False to just plot it. If `sub_process` is 
+        True, `save_pic` will automatically be set to True.
 
     name4pic : str, optional
         If `save_pic` set to True, the name the image should be saved under.
@@ -77,16 +77,17 @@ def plot(feature_matrix, feature_type,
     y_label : str, optional 
         The label to be applied to the y axis.
         
-    use_tkinter : bool 
-        The backend that should be used by matplotlib. If False, use Agg instead.
-        This option is available due to issues of multi-threading and tkinter, for 
-        example, during the training of models and plotting within the generator.
-        (default True)
+    sub_process : bool 
+        If `sub_process` is True, matplotlib will use backend 'Agg', which only allows plots to be saved.
+        If `sub_process` is False, the default backend 'TkAgg' will be used, which allows plots to be 
+        generated live as well as saved. The 'Agg' backend is useful if one wants to visualize sound
+        while a main process is being performed, for example, while a model is being trained.
+        (default False)
     '''
-    if use_tkinter:
+    if not sub_process:
         # can show plots
         # interferes with training models though
-        matplotlib.use("TkAgg")
+        matplotlib.use('TkAgg')
     else:
         # does not interfere with training models
         matplotlib.use('Agg')
@@ -2084,7 +2085,7 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
                             title = title + ' frame {}'.format(i),
                             name4pic = save_pic_path,
                             save_pic = True,
-                            use_tkinter = False)
+                            sub_process = True)
         return None
     
     # then raw signal data; needs parameter `subsections` set to True
@@ -2112,7 +2113,7 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
                                     title = title + ' frame {}'.format(i),
                                     save_pic = True,
                                     name4pic = save_pic_path.joinpath('frame {}'.format(i)),
-                                    use_tkinter = False)
+                                    sub_process = True)
             return None
     
     # otherwise save features in a single plot
@@ -2123,7 +2124,7 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
                     title = title,
                     save_pic = True,
                     name4pic = save_pic_path,
-                    use_tkinter = False)
+                    sub_process = True)
     return None
     
 def save_features_datasets(datasets_dict, datasets_path2save_dict, 

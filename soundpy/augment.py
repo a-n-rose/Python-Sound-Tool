@@ -327,7 +327,7 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
     else:
         stft_matrix = stft_matrix[:,:len(section_warped)]
     if visualize:
-        sp.feats.plot(stft_matrix, feature_type = 'stft', use_tkinter=False, 
+        sp.feats.plot(stft_matrix, feature_type = 'stft', sub_process=True, 
                     name4pic = 'vtlp_{}.png'.format(sp.utils.get_date()),
                     title = 'size: {}'.format(stft_matrix.shape),
                     save_pic=True)
