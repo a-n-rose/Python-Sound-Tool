@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:2.1.0-gpu-py3
+FROM tensorflow/tensorflow:2.2.0-gpu
 
 RUN apt update && apt upgrade -y
 
@@ -8,7 +8,9 @@ RUN pip3 install -U soundfile \
                     librosa \
                     python_speech_features \
                     notebook \
-                    matplotlib
+                    matplotlib 
+                    
+RUN pip3 install -U sounddevice
                     
 RUN mkdir /root/soundpy/
 
