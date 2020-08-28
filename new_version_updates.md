@@ -12,6 +12,8 @@ then switch to Tkinker backend using use_tkinker parameter for normal use outsid
 
 changed parameter (Generator) normalized to normalize (opposite bool); removed add_tensor_last parameter, adjusted grayscale2color sections: can be applied to 2D data; set sr default to 22050
 
+- added recordsound, playsound, record_and_save functions to dsp module
+
 
 
 ## Updates of v0.1.0a2 release:
