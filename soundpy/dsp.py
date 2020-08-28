@@ -10,6 +10,7 @@ from numpy.fft import fft, rfft, ifft, irfft
 from scipy.signal import hamming, hann, resample, iirfilter, lfilter
 import librosa
 import math
+import sounddevice as sd
 
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
@@ -17,6 +18,83 @@ packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
 import soundpy as sp
+
+
+def recordsound(sec, message = None, sr=16000, channels=1,
+                 clip_ends = True, clip_sec = 0.5):
+    '''Records sound for a given number of `sec`.
+    
+    Parameters
+    ----------
+    sec : int, float
+        The amount of time in seconds to record 
+        
+    message : str 
+        The message to print out as recording. 
+        
+    sr : int 
+        The sample rate to apply when recording. 
+        (default 16000)
+        
+    channels : int 
+        The number of channels the audio should be recorded with.
+        
+    clip_ends : bool 
+        If the beginning and ending of the recorded sound 
+        should be clipped. This helps to keep samples centered 
+        at zero. (default True)
+    
+    clip_sec : int, float
+        The amount of time in seconds to clip from beginning
+        and and of the recording (default 0.25)
+        
+    Returns
+    -------
+    sound : np.ndarray [shape = (num_samples, num_channels)]
+        The recorded samples length int(sr * sec).
+    
+    sr : int 
+        The sample rate applied when recording.
+        
+    Examples
+    --------
+    >>> y, sr = record_sound(3)
+    Recording for 3 seconds..
+    >>> y.shape
+    (48000, 1)
+    >>> cheese, sr = record_sound(2.5, message = 'Say "cheese"!', channels=2)
+    Say "cheese"! (2.5 seconds..)
+    >>> cheese.shape
+    (40000, 2)
+    '''
+    if message is None:
+        message = 'Recording'
+    print(message+" ({} seconds..)".format(sec))
+    sound = sd.rec(int((sec+1)*sr),samplerate=sr,channels=channels)
+    sd.wait()
+    if clip_ends:
+        num_samps_clip = int(clip_sec * sr)
+        sound = sound[num_samps_clip:-num_samps_clip]
+    return sound, sr
+
+def playsound(samples, sr):
+    sd.default.samplerate = sr
+    sd.play(samples)
+    return None
+
+def record_and_save(filename, sec, sr, message=None, overwrite=False):
+    y, sr = sp.recordsound(sec, sr=sr, message=message)
+    sp.playsound(y, sr)
+    sp.plotsound(y, sr=sr, feature_type='signal')
+    save = input('Save sound? Enter yes or no: ')
+    if 'yes' in save.lower():
+        sp.savesound(filename, y, sr=sr, overwrite=overwrite)
+    else:
+        print('Try again')
+        y, sr = record_and_save(filename, sec, sr, message=message,
+                                overwrite=overwrite)
+    return y, sr
+
 
 def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
     '''Generates a sound signal with the provided parameters. Signal begins at 0.
@@ -56,8 +134,8 @@ def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
     #The variable `time` holds the expected number of measurements taken: 
     time = get_time_points(dur_sec, sr=sr)
     # unit circle: 2pi equals a full circle
+    # https://www.marksmath.org/visualization/unit_circle/
     full_circle = 2 * np.pi
-    #TODO: add namedtuple
     sound_samples = amplitude * np.sin((freq*full_circle)*time)
     return sound_samples, sr
 
@@ -745,8 +823,8 @@ def clip_at_zero(samples, samp_win = None):
         # if stereo, use all channels to find first instance of zero
         samps_all = sp.dsp.average_channels(samps)
         # find first instance of zero:
-        f_0 = np.argmax(np.abs(samps_all) <= 0+1e-2)
-        l_0 = np.argmax(np.abs(np.flip(samps_all)) <= 0 + 1e-2)
+        f_0 = np.argmax(np.abs(samps_all) <= 0+1e-1)
+        l_0 = np.argmax(np.abs(np.flip(samps_all)) <= 0 + 1e-1)
         # did not find zeros
         if f_0 == 0 and l_0 == 0:
             import warnings
@@ -761,9 +839,16 @@ def clip_at_zero(samples, samp_win = None):
         l_0 = len(samples) - 1 - l_0 
     
     # if stereo sound, just look at first channel for zeros
-    assert round(samps[f_0,0]) == 0
-    assert round(samps[l_0,0]) == 0
-    
+    try:
+        assert np.round(samps[f_0],decimals=0) == 0
+        assert np.round(samps[l_0],decimals=0) == 0
+    except AssertionError:
+        print('First index ({}) identifies {} as closest to zero.'.format(
+            f_0, samps[f_0]))
+        print('Second index ({}) identifies {} as closest to zero.'.format(
+            l_0, samps[l_0]))
+        raise AssertionError('At least one of these does not equal zero. '+\
+            'Try extending `samp_win`.')
     if l_0 == f_0:
         import warnings
         msg = '\n\nWarning: only one zero-crossing sample found. Beginning or ending sample '+\
