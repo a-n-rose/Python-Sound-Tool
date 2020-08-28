@@ -381,6 +381,10 @@ def get_feats(sound,
             raise ValueError('No samplerate given. Either provide '+\
                 'filename or appropriate samplerate.')
         data, sr = sound, sr
+        if len(data.shape) > 1:
+            print('Only one channel can be currently used for feature '+\
+                'extraction. Using the first channel.')
+            data = data[:,0]
         if dur_sec:
             data = data[:int(sr*dur_sec)]
     
@@ -1465,8 +1469,8 @@ def featshape_new_subframe(feature_matrix_shape, new_frame_size,
                 # don't include extra dimension if length 1
                 new_shape.append(new_frame_size)
             else:
+                new_shape.append(new_frame_size) 
                 new_shape.append(subsection_frames)
-                new_shape.append(new_frame_size)                
         else:
             new_shape.append(ax)
     new_shape = tuple(new_shape)
@@ -1559,7 +1563,7 @@ def apply_new_subframe(feature_matrix, new_frame_size, zeropad=True, axis=0):
 
     '''
     if len(feature_matrix.shape) < 2 or len(feature_matrix.shape) > 5:
-        raise ValueError('Function `soundpy.feats.apply_context_window` '+\
+        raise ValueError('Function `soundpy.feats.apply_new_subframe` '+\
             'can only be applied to matrices between 2 and 5 dimensions.')
     
     datatype = feature_matrix.dtype
