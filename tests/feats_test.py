@@ -173,14 +173,12 @@ def test_get_samples_clipped_40SNR_50percentVAD_length_threshold():
     elif example_speech_ms <= vad_samples_ms:
         assert (vad_samples_ms / example_speech_ms) < 2
         
-def test_adjust_shape():
-    pass
-
-def test_apply_context_window_defaults():
+def test_apply_new_subframe_defaults():
     matrix_input = np.arange(15).reshape(5,3,1)
-    got = sp.feats.apply_context_window(
+    got = sp.feats.apply_new_subframe(
         matrix_input, 
-        context_window = 1)
+        new_frame_size = 2)
+    expected_shape = (2, 3, 3, 1)
     expected = np.array([[[[ 0],
          [ 1],
          [ 2]],
@@ -205,15 +203,17 @@ def test_apply_context_window_defaults():
         [[ 0],
          [ 0],
          [ 0]]]])
+    assert expected_shape == got.shape
     assert np.array_equal(expected, got)
 
 
-def test_apply_context_window_axis1():
+def test_apply_new_subframe_axis1():
     matrix_input = np.arange(15).reshape(1,5,3,1)
-    got = sp.feats.apply_context_window(
+    got = sp.feats.apply_new_subframe(
         matrix_input, 
-        context_window = 1,
+        new_frame_size = 2,
         axis = 1)
+    expected_shape = (1, 2, 3, 3, 1)
     expected = np.array([[[[[ 0],
           [ 1],
           [ 2]],
@@ -238,194 +238,199 @@ def test_apply_context_window_axis1():
          [[ 0],
           [ 0],
           [ 0]]]]])
-
+    assert expected_shape == got.shape
     assert np.array_equal(expected, got)
 
 
-def test_apply_context_window_no_zeropad():
+def test_apply_new_subframe_no_zeropad():
     matrix_input = np.arange(15).reshape(1,5,3,1)
-    got = sp.feats.apply_context_window(
+    got = sp.feats.apply_new_subframe(
         matrix_input, 
-        context_window = 1,
+        new_frame_size = 2,
         axis = 1,
         zeropad = False)
-    expected = np.array([[[[[0],
-          [1],
-          [2]],
+    expected_shape = (1, 2, 2, 3, 1)
+    expected = np.array([[[[[ 0],
+          [ 1],
+          [ 2]],
 
-         [[3],
-          [4],
-          [5]],
+         [[ 3],
+          [ 4],
+          [ 5]]],
 
-         [[6],
-          [7],
-          [8]]]]])
 
-    assert np.array_equal(expected, got)
+        [[[ 6],
+          [ 7],
+          [ 8]],
 
-def test_apply_context_window_2D():
-    matrix_input = np.arange(15).reshape(5,3)
-    got = sp.feats.apply_context_window(
-        matrix_input, 
-        context_window = 1,
-        axis = 0)
-    expected = np.array([[[ 0,  1,  2],
-        [ 3,  4,  5],
-        [ 6,  7,  8]],
-
-       [[ 9, 10, 11],
-        [12, 13, 14],
-        [ 0,  0,  0]]])
-
+         [[ 9],
+          [10],
+          [11]]]]])
+    assert expected_shape == got.shape
     assert np.array_equal(expected, got)
     
-
-def test_apply_context_window_2D_no_zeropad():
+def test_apply_new_subframe_last_axis():
     matrix_input = np.arange(15).reshape(5,3)
-    got = sp.feats.apply_context_window(
-        matrix_input, 
-        context_window = 1,
-        axis = 0,
-        zeropad = False)
-    expected = np.array([[[0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8]]])
-
-    assert np.array_equal(expected, got)
-    
-def test_apply_context_window_last_axis():
-    matrix_input = np.arange(15).reshape(5,3)
-    got = sp.feats.apply_context_window(
+    got = sp.feats.apply_new_subframe(
             matrix_input, 
-            context_window = 1,
+            new_frame_size = 2,
+            axis = 1,
+            zeropad = True)
+    expected_shape = (5, 2, 2)
+    expected = np.array([[[ 0,  1],
+        [ 2,  0]],
+
+       [[ 3,  4],
+        [ 5,  0]],
+
+       [[ 6,  7],
+        [ 8,  0]],
+
+       [[ 9, 10],
+        [11,  0]],
+
+       [[12, 13],
+        [14,  0]]])
+    assert expected_shape == got.shape
+    assert np.array_equal(expected, got)
+    
+def test_apply_new_subframe_last_axis_no_zeropad():
+    matrix_input = np.arange(15).reshape(5,3)
+    got = sp.feats.apply_new_subframe(
+            matrix_input, 
+            new_frame_size = 2,
             axis = 1,
             zeropad = False)
-    expected = np.array([[[ 0,  1,  2]],
-
-       [[ 3,  4,  5]],
-
-       [[ 6,  7,  8]],
-
-       [[ 9, 10, 11]],
-
-       [[12, 13, 14]]])
+    expected_shape = (5, 2)
+    expected = np.array([[ 0,  1],
+       [ 3,  4],
+       [ 6,  7],
+       [ 9, 10],
+       [12, 13]])
+    assert expected_shape == got.shape
     assert np.array_equal(expected, got)
     
-def test_apply_context_window_2D_negative_axis():
+def test_apply_new_subframe_2D_negative_axis():
     matrix_input = np.arange(15).reshape(3,5)
-    got = sp.feats.apply_context_window(
+    got = sp.feats.apply_new_subframe(
         matrix_input, 
-        context_window = 1,
+        new_frame_size = 2,
         axis = -2,
         zeropad = False)
-    expected = np.array([[[ 0,  1,  2,  3,  4],
-        [ 5,  6,  7,  8,  9],
-        [10, 11, 12, 13, 14]]])
-    got2 = sp.feats.apply_context_window(
+    expected_shape = (2, 5)
+    expected = np.array([[0, 1, 2, 3, 4],
+       [5, 6, 7, 8, 9]])
+    got2 = sp.feats.apply_new_subframe(
         matrix_input, 
-        context_window = 1,
+        new_frame_size = 2,
         axis = 0,
         zeropad = False)
+    assert expected_shape == got.shape
     assert np.array_equal(expected, got)
     assert np.array_equal(got, got2)
     
-def test_apply_context_window_4D_axis3_zeropad():
+def test_apply_new_subframe_4D_axis3_zeropad():
     matrix_input = np.arange(32).reshape(2,2,4,2)
-    got = sp.feats.apply_context_window(
+    got = sp.feats.apply_new_subframe(
         matrix_input, 
-        context_window = 1,
+        new_frame_size = 3,
         axis = -2,
         zeropad = True)
+    expected_shape = (2, 2, 3, 2, 2)
     expected = np.array([[[[[ 0,  1],
-          [ 2,  3],
-          [ 4,  5]],
+          [ 2,  3]],
 
-         [[ 6,  7],
-          [ 0,  0],
+         [[ 4,  5],
+          [ 6,  7]],
+
+         [[ 0,  0],
           [ 0,  0]]],
 
 
         [[[ 8,  9],
-          [10, 11],
-          [12, 13]],
+          [10, 11]],
 
-         [[14, 15],
-          [ 0,  0],
+         [[12, 13],
+          [14, 15]],
+
+         [[ 0,  0],
           [ 0,  0]]]],
 
 
 
        [[[[16, 17],
-          [18, 19],
-          [20, 21]],
+          [18, 19]],
 
-         [[22, 23],
-          [ 0,  0],
+         [[20, 21],
+          [22, 23]],
+
+         [[ 0,  0],
           [ 0,  0]]],
 
 
         [[[24, 25],
-          [26, 27],
-          [28, 29]],
+          [26, 27]],
 
-         [[30, 31],
-          [ 0,  0],
+         [[28, 29],
+          [30, 31]],
+
+         [[ 0,  0],
           [ 0,  0]]]]])
-    got2 = sp.feats.apply_context_window(
+    got2 = sp.feats.apply_new_subframe(
         matrix_input, 
-        context_window = 1,
+        new_frame_size = 3,
         axis = 2,
         zeropad = True)
+    assert expected_shape == got.shape
     assert np.array_equal(expected, got)
     assert np.array_equal(got, got2)
 
 
-def test_apply_context_window_4D_axis3_NO_zeropad():
+def test_apply_new_subframe_4D_axis3_NO_zeropad():
     matrix_input = np.arange(32).reshape(2,2,4,2)
-    got = sp.feats.apply_context_window(
+    got = sp.feats.apply_new_subframe(
         matrix_input, 
-        context_window = 1,
+        new_frame_size = 3,
         axis = -2,
         zeropad = False)
-    expected = np.array([[[[[ 0,  1],
-          [ 2,  3],
-          [ 4,  5]]],
+    expected_shape = (2, 2, 3, 2)
+    expected = np.array([[[[ 0,  1],
+         [ 2,  3],
+         [ 4,  5]],
+
+        [[ 8,  9],
+         [10, 11],
+         [12, 13]]],
 
 
-        [[[ 8,  9],
-          [10, 11],
-          [12, 13]]]],
+       [[[16, 17],
+         [18, 19],
+         [20, 21]],
 
-
-
-       [[[[16, 17],
-          [18, 19],
-          [20, 21]]],
-
-
-        [[[24, 25],
-          [26, 27],
-          [28, 29]]]]])
-    got2 = sp.feats.apply_context_window(
+        [[24, 25],
+         [26, 27],
+         [28, 29]]]])
+    got2 = sp.feats.apply_new_subframe(
         matrix_input, 
-        context_window = 1,
+        new_frame_size = 3,
         axis = 2,
         zeropad = False)
+    assert expected_shape == got.shape
     assert np.array_equal(expected, got)
     assert np.array_equal(got, got2)
     
     
-def test_apply_context_window_6D_valueerror():
+def test_apply_new_subframe_6D_valueerror():
     matrix_input = np.arange(160).reshape(2,2,5,2,2,2)
     with pytest.raises(ValueError):
-        sp.feats.apply_context_window(matrix_input, 
-                                      context_window = 2)
+        sp.feats.apply_new_subframe(matrix_input, 
+                                      new_frame_size = 2)
         
-def test_apply_context_window_1D_valueerror():
+def test_apply_new_subframe_1D_valueerror():
     matrix_input = np.array(5)
     with pytest.raises(ValueError):
-        sp.feats.apply_context_window(matrix_input, 
-                                      context_window = 2)
+        sp.feats.apply_new_subframe(matrix_input, 
+                                      new_frame_size = 2)
     
 def test_get_feature_matrix_shape():
     feature = 'signal'
