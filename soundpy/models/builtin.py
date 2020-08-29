@@ -1464,6 +1464,466 @@ def envclassifier_extract_train(
     visualize = False,
     vis_every_n_items = 50,
     label_silence = False,
+    features_dir = None,
+    val_data = None,
+    test_data = None,
+    **kwargs):
+    '''Extract and augment features during training of a scene/environment/speech classifier
+    
+    Parameters
+    ----------
+    model_name : str 
+        Name of the model. No extension (will save as .h5 file)
+        
+    dataset_dict : dict, optional
+        A dictionary including datasets as keys, and audio file lists (with or without
+        labels) as values. If None, will be created based on `audiodata_path`.
+        (default None)
+        
+    augment_dict : dict, optional
+        Dictionary containing keys (e.g. 'add_white_noise'). See 
+        `soundpy.augment.list_augmentations`and corresponding True or False
+        values. If the value is True, the key / augmentation gets implemented
+        at random, each epoch.
+        (default None)
+    
+    audiodata_path : str, pathlib.PosixPath
+        Where audio data can be found, if no `dataset_dict` provided.
+        (default None)
+        
+    save_new_files_dir : str, pathlib.PosixPath
+        Where new files (logging, model(s), etc.) will be saved. If None, will be 
+        set in a unique directory within the current working directory.
+        (default None)
+        
+    **kwargs : additional keyword arguments 
+        Keyword arguments for `soundpy.feats.get_feats`.
+    
+    '''
+    if features_dir is not None:
+        features_dir = sp.utils.string2pathlib(features_dir)
+        feat_settings_file = features_dir.joinpath('log_extraction_settings.csv')
+        feat_settings_dict = sp.utils.load_dict(feat_settings_file)
+        # should be a dict
+        feat_kwargs = sp.utils.restore_dictvalue(feat_settings_dict['kwargs'])
+        print(feat_kwargs)
+        # load decode dictionary for labeled data
+        dict_decode_path = features_dir.joinpath('dict_decode.csv')
+        dict_decode = sp.utils.load_dict(dict_decode_path)
+        dict_encode = None
+        # ensure items in dictionaries original type
+        for key, value in feat_kwargs.items():
+            feat_kwargs[key] = sp.utils.restore_dictvalue(value)
+        for key, value in feat_settings_dict.items():
+            feat_settings_dict[key] = sp.utils.restore_dictvalue(value)
+        for key, value in dict_decode.items():
+            # expects key to be integer
+            dict_decode[key] = sp.utils.restore_dictvalue(value)
+        # update kwargs with loaded feature kwargs
+        kwargs = dict(feat_kwargs)
+    # require 'feature_type' to be indicated
+    if 'feature_type' not in kwargs:
+        raise ValueError('Function `envclassifier_extract_train` expects the '+ \
+            'parameter `feature_type` to be set as one of the following:\n'+ \
+                '- signal\n- stft\n- powspec\n- fbank\n- mfcc\n') 
+    
+    #if 'stft' not in kwargs['feature_type'] and 'powspec' not in kwargs['feature_type']:
+        #raise ValueError('Function `envclassifier_extract_train` can only reliably '+\
+            #'work if `feature_type` parameter is set to "stft" or "powspec".'+\
+                #' In future versions the other feature types will be made available.')
+    
+    # ensure defaults are set if not included in kwargs:
+    if 'win_size_ms' not in kwargs:
+        kwargs['win_size_ms'] = 20
+    if 'percent_overlap' not in kwargs:
+        kwargs['percent_overlap'] = 0.5
+    if 'rate_of_change' not in kwargs:
+        kwargs['rate_of_change'] = False
+    if 'rate_of_acceleration' not in kwargs:
+        kwargs['rate_of_acceleration'] = False
+    if 'dur_sec' not in kwargs:
+        raise ValueError('Function `envclassifier_extract_train``requires ' +\
+            'the keyword argument `dur_sec` to be set. How many seconds of audio '+\
+                'from each audio file would you like to use for training?')
+    if 'sr' not in kwargs:
+        kwargs['sr'] = 22050
+    if 'fft_bins' not in kwargs:
+        import warnings
+        fft_bins = int(kwargs['win_size_ms'] * kwargs['sr'] // 1000)
+        msg = '\nWARNING: `fft_bins` was not set. Setting it to {}'.format(fft_bins)
+        warnings.warn(msg)
+        kwargs['fft_bins'] = fft_bins
+    if 'real_signal' not in kwargs:
+        kwargs['real_signal'] = True
+    if 'window' not in kwargs:
+        kwargs['window'] = 'hann'
+    if 'zeropad' not in kwargs:
+        kwargs['zeropad'] = True
+    if 'num_filters' not in kwargs:
+        kwargs['num_filters'] = 40
+    if 'num_mfcc' not in kwargs:
+        kwargs['num_mfcc'] = 40
+        
+    # training will fail if patience set to a non-integer type
+    if patience is None:
+        patience = epochs
+    
+    if features_dir is None:
+        # Set up directory to save new files:
+        # will not raise error if not exists: instead makes the directory
+        if save_new_files_dir is None:
+            save_new_files_dir = './example_feats_models/envclassifer/'
+        dataset_path = sp.check_dir(save_new_files_dir, make = True)
+        # create unique timestamped directory to save new files
+        # to avoid overwriting issues:
+        dataset_path = dataset_path.joinpath(
+            'features_{}_{}'.format(kwargs['feature_type'], sp.utils.get_date()))
+        # create that new directory as well
+        dataset_path = sp.check_dir(dataset_path, make=True)
+    else:
+        dataset_path = features_dir
+    
+    
+    # set up datasets if no dataset_dict provided:
+    if features_dir is None:
+        if audiodata_path is None:
+            raise ValueError('Function `denoiser_extract_train` expects either:\n'+\
+                '1) a `dataset_dict` with audiofile pathways assigned to datasets OR'+\
+                    '\n2) a `audiodata_path` indicating where audiofiles for'+\
+                        'training are located.\n**Both cannot be None.')
+        
+        # sp.check_dir:
+        # raises error if this path doesn't exist (make = False)
+        # if does exist, returns path as pathlib.PosixPath object
+        data_dir = sp.check_dir(audiodata_path, make = False)
+        
+        # collect labels
+        labels = []
+        for label in data_dir.glob('*/'):
+            if label.suffix:
+                # avoid adding unwanted files in the directory
+                # want only directory names
+                continue
+            if ignore_label_marker is not None:
+                if ignore_label_marker in label.stem:
+                    continue
+            # ignores hidden directories
+            if label.stem[0] == '.':
+                continue
+            labels.append(label.stem)
+        labels = set(labels)
+    
+        # create encoding and decoding dictionaries of labels:
+        dict_encode, dict_decode = sp.datasets.create_dicts_labelsencoded(
+            labels,
+            add_extra_label = label_silence,
+            extra_label = 'silence')
+    
+        # save labels and their encodings
+        dict_encode_path = dataset_path.joinpath('dict_encode.csv')
+        dict_decode_path = dataset_path.joinpath('dict_decode.csv')
+        sp.utils.save_dict(dict2save = dict_encode,
+                            filename = dict_encode_path,
+                            overwrite=True)
+        dict_decode_path = sp.utils.save_dict(dict2save = dict_decode,
+                                                filename = dict_decode_path,
+                                                overwrite=True)
+
+        # get audio pathways and assign them their encoded labels:
+        paths_list = sp.files.collect_audiofiles(data_dir, recursive=True)
+        paths_list = sorted(paths_list)
+
+        dict_encodedlabel2audio = sp.datasets.create_encodedlabel2audio_dict(
+            dict_encode,
+            paths_list)
+        # path for saving dict for which audio paths are assigned to which labels:
+        dict_encdodedlabel2audio_path = dataset_path.joinpath(
+            'dict_encdodedlabel2audio.csv')
+
+        sp.utils.save_dict(dict2save = dict_encodedlabel2audio,
+                            filename = dict_encdodedlabel2audio_path,
+                            overwrite=True)
+
+        # assign audio files int train, validation, and test datasets
+        train, val, test = sp.datasets.audio2datasets(
+            dict_encdodedlabel2audio_path,
+            perc_train=0.8,
+            limit=None,
+            seed=random_seed)
+        
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(train)
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(val)
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(test)
+
+        # save audiofiles for each dataset to dict and save
+        # for logging purposes
+        dataset_dict = dict([('train', train),
+                                ('val', val),
+                                ('test', test)])
+        dataset_dict_path = dataset_path.joinpath('dataset_audiofiles.csv')
+        dataset_dict_path = sp.utils.save_dict(
+            dict2save = dataset_dict,
+            filename = dataset_dict_path,
+            overwrite=True)
+        feat_base_shape, shape_with_label = sp.feats.get_feature_matrix_shape(
+            labeled_data = labeled_data,
+            **kwargs)
+        extracted_data_dict = dict([('val',dataset_dict['val']),
+                        ('test',dataset_dict['test'])])
+        val_path = dataset_path.joinpath('val_data.npy')
+        test_path = dataset_path.joinpath('test_data.npy')
+        extracted_data_path_dict = dict([('val', val_path),
+                            ('test', test_path)])
+        # extract test data 
+        print('\nExtracting validation data for use in training:')
+        extracted_data_dict, extracted_data_path_dict = sp.feats.save_features_datasets(
+            extracted_data_dict,
+            extracted_data_path_dict,
+            labeled_data = labeled_data,
+            **kwargs)
+
+        val_data = np.load(extracted_data_path_dict['val'])
+        test_data = np.load(extracted_data_path_dict['test'])
+    else:
+        feat_base_shape = feat_settings_dict['feat_base_shape']
+        shape_with_label = feat_settings_dict['feat_model_shape']
+        # use pre-collected dataset dict
+        dataset_dict_path = dataset_path.joinpath('dataset_audiofiles.csv')
+        dataset_dict = sp.utils.load_dict(dataset_dict_path)
+        for key, value in dataset_dict.items():
+            dataset_dict[key] = sp.utils.restore_dictvalue(value)
+        val_data = np.load(val_data)
+        test_data = np.load(test_data)
+        
+
+    if 'fbank' in kwargs['feature_type'] or 'mfcc' in kwargs['feature_type']:
+        kwargs['fmax'] = kwargs['sr'] / 2.0 # Niquist theorem
+    # extract validation data (must already be extracted)
+    color_dimension = (1,) # our data is in grayscale
+    input_shape = feat_base_shape + color_dimension
+    num_labels = len(dict_decode)
+    # otherwise should arleady be specified
+
+    if augment_dict is None:
+        augment_dict = dict()
+
+
+    # designate where to save model and related files
+    model_name += '_' + kwargs['feature_type']
+    model_dir = dataset_path.joinpath(model_name)
+    model_dir = sp.utils.check_dir(model_dir, make=True, append=False) # don't want to overwrite already trained model and logs
+    model_path = model_dir.joinpath(model_name)
+    
+    # setup model 
+    envclassifier, settings_dict = spdl.cnn_classifier(
+        input_shape = input_shape,
+        num_labels = num_labels)
+    optimizer = 'adam'
+    loss = 'sparse_categorical_crossentropy'
+    metrics = ['accuracy']
+    envclassifier.compile(optimizer = optimizer,
+                            loss = loss,
+                            metrics = metrics)
+
+    # should randomly apply augmentations in generator
+
+    # items that need to be called with each iteration:
+    # save best model for each iteration - don't want to be overwritten
+    # with worse model
+    best_modelname = str(model_path) + '.h5'
+    callbacks = spdl.setup_callbacks(
+        patience = patience,
+        best_modelname = best_modelname, 
+        log_filename = model_dir.joinpath('log.csv'),
+        append = True)
+
+    normalize = True
+    tensor = (1,)
+    train_generator = spdl.GeneratorFeatExtraction(
+        datalist = dataset_dict['train'],
+        model_name = model_name,
+        normalize = normalize,
+        apply_log = False,
+        randomize = True, # want the data order to be different for each iteration 
+        random_seed = None,
+        desired_input_shape = tensor + input_shape,
+        batch_size = batch_size, 
+        gray2color = False,
+        visualize = visualize,
+        vis_every_n_items = vis_every_n_items,
+        visuals_dir = model_dir.joinpath('images'),
+        decode_dict = dict_decode,
+        dataset = 'train',
+        augment_dict = augment_dict,
+        label_silence = label_silence,
+        **kwargs)
+    
+    val_generator = spdl.Generator(
+        data_matrix1 = val_data,
+        desired_input_shape = tensor + input_shape)
+    
+    test_generator = spdl.Generator(
+        data_matrix1 = test_data,
+        desired_input_shape = tensor + input_shape)
+    
+
+    if 'stft' in kwargs['feature_type'] or 'fbank' in kwargs['feature_type'] \
+        or 'powspec' in kwargs['feature_type']:
+            energy_scale = 'power_to_db'
+    else:
+        energy_scale = None
+    
+    feats_train, label_train = next(train_generator.generator())
+
+    try:
+        label_train_vis = dict_decode[label_train[0]]
+    except KeyError:
+        label_train_vis = dict_decode[str(int(label_train[0]))]
+
+    feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
+    sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
+                  title='Train: {} features label "{}"'.format(kwargs['feature_type'], 
+                                                      label_train_vis),
+                        name4pic='train_feats{}.png'.format(sp.utils.get_date()),
+                        sub_process=True,
+                        energy_scale = energy_scale)
+    
+    feats_val, label_val = next(val_generator.generator())
+
+    try:
+        label_val_vis = dict_decode[label_val[0]]
+    except KeyError:
+        label_val_vis = dict_decode[str(int(label_val[0]))]
+
+    feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
+    sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
+                  title='Val: {} features label "{}"'.format(kwargs['feature_type'], 
+                                                      label_val_vis),
+                        name4pic='val_feats{}.png'.format(sp.utils.get_date()),
+                        sub_process=True,
+                        energy_scale = energy_scale)
+    
+    feats_test, label_test = next(test_generator.generator())
+    try:
+        label_test_vis = dict_decode[label_test[0]]
+    except KeyError:
+        label_test_vis = dict_decode[str(int(label_test[0]))]
+
+    feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
+    sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
+                  title='Test: {} features label "{}"'.format(kwargs['feature_type'], 
+                                                      label_test_vis),
+                        name4pic='test_feats{}.png'.format(sp.utils.get_date()),
+                        sub_process=True,
+                        energy_scale = energy_scale)
+
+    ds_train = tf.data.Dataset.from_generator(
+        spdl.make_gen_callable(train_generator.generator()),
+        output_types=(feats_train.dtype, label_train.dtype), 
+        output_shapes=(feats_train.shape, 
+                        label_train.shape))
+    ds_val = tf.data.Dataset.from_generator(
+        spdl.make_gen_callable(val_generator.generator()),
+        output_types=(feats_val.dtype, label_val.dtype), 
+        output_shapes=(feats_val.shape, 
+                        label_val.shape))
+    ds_test = tf.data.Dataset.from_generator(
+        spdl.make_gen_callable(test_generator.generator()),
+        output_types=(feats_test.dtype, label_test.dtype), 
+        output_shapes=(feats_test.shape, 
+                        label_test.shape))
+        
+    print('\nShapes of X and y data from the train, val, and test generators:')
+    print(ds_train)
+    print(ds_val)
+    print(ds_test)
+    print()
+    
+    print('-'*79)
+    if augment_dict:
+        print('\nAugmentation(s) applied (at random): \n')
+        for key, value in augment_dict.items():
+            if value == True:
+                print('{}'.format(key).upper())
+                try:
+                    settings = augment_dict['augment_settings_dict'][key]
+                    print('- Settings: {}'.format(settings))
+                except KeyError:
+                    pass
+        print()
+    else:
+        print('\nNo augmentations applied.\n')
+    print('-'*79)
+    
+    # start training
+    start = time.time()
+    history = envclassifier.fit(
+        ds_train,
+        steps_per_epoch = len(dataset_dict['train']),
+        callbacks = callbacks,
+        epochs = epochs,
+        validation_data = ds_val,
+        validation_steps = val_data.shape[0]
+        )
+
+    model_features_dict = dict(model_path = model_path,
+                            dataset_dict = dataset_dict,
+                            augment_dict = augment_dict)
+    model_features_dict.update(settings_dict)
+    model_features_dict.update(augment_dict)
+    end = time.time()
+    total_duration_seconds = round(end-start,2)
+    time_dict = dict(total_duration_seconds=total_duration_seconds)
+    model_features_dict.update(time_dict)
+
+    model_features_dict_path = model_dir.joinpath('info_{}.csv'.format(
+        model_name))
+    model_features_dict_path = sp.utils.save_dict(
+        filename = model_features_dict_path,
+        dict2save = model_features_dict)
+    print('\nFinished training the model. The model and associated files can be '+\
+        'found here: \n{}'.format(model_dir))
+
+    
+    score = envclassifier.evaluate(ds_test, steps=1000) 
+    print('Test loss:', score[0]) 
+    print('Test accuracy:', score[1])
+       
+    finished_time = time.time()
+    total_total_duration = finished_time - start
+    time_new_units, units = sp.utils.adjust_time_units(total_total_duration)
+    print('\nEntire program took {} {}.\n\n'.format(time_new_units, units))
+    print('-'*79)
+    
+    return model_dir, history    
+
+
+
+
+def cnnlstm_extract_train(
+    model_name = 'cnnlstm_classifier',
+    dataset_dict = None,
+    num_labels = None,
+    augment_dict = None,
+    audiodata_path = None,
+    save_new_files_dir = None,
+    labeled_data = True,
+    ignore_label_marker = None,
+    context_window = 5,
+    batch_size = 10,
+    epochs = 5,
+    patience = 15,
+    callbacks = None,
+    random_seed = None,
+    visualize = False,
+    vis_every_n_items = 50,
+    label_silence = False,
     **kwargs):
     '''Extract and augment features during training of a scene/environment/speech classifier
     
@@ -1658,6 +2118,13 @@ def envclassifier_extract_train(
         **kwargs)
     
     color_dimension = (1,) # our data is in grayscale
+    if context_window:
+        feat_base_shape = sp.feats.featshape_new_subframe(feat_base_shape,
+                                                          context_window,
+                                                          zeropad=True,
+                                                          axis=0,
+                                                          include_dim_size_1=True)
+
     input_shape = feat_base_shape + color_dimension
 
     if 'fbank' in kwargs['feature_type'] or 'mfcc' in kwargs['feature_type']:
@@ -1699,9 +2166,10 @@ def envclassifier_extract_train(
     model_path = model_dir.joinpath(model_name)
     
     # setup model 
-    envclassifier, settings_dict = spdl.cnn_classifier(
+    envclassifier, settings_dict = spdl.cnnlstm_classifier(
         input_shape = input_shape,
-        num_labels = num_labels)
+        num_labels = num_labels,
+        lstm_cells = 40) # need to fix for other kinds of features
     optimizer = 'adam'
     loss = 'sparse_categorical_crossentropy'
     metrics = ['accuracy']
@@ -1740,15 +2208,18 @@ def envclassifier_extract_train(
         dataset = 'train',
         augment_dict = augment_dict,
         label_silence = label_silence,
+        context_window = context_window,
         **kwargs)
     
     val_generator = spdl.Generator(
         data_matrix1 = val_data,
-        desired_input_shape = tensor + input_shape)
+        desired_input_shape = tensor + input_shape,
+        context_window = context_window)
     
     test_generator = spdl.Generator(
         data_matrix1 = test_data,
-        desired_input_shape = tensor + input_shape)
+        desired_input_shape = tensor + input_shape,
+        context_window = context_window)
     
 
     if 'stft' in kwargs['feature_type'] or 'fbank' in kwargs['feature_type'] \
@@ -1759,33 +2230,33 @@ def envclassifier_extract_train(
     
     feats_train, label_train = next(train_generator.generator())
 
-    feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
-    sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
-                  title='Train: {} features label "{}"'.format(kwargs['feature_type'], 
-                                                      dict_decode[label_train[0]]),
-                        name4pic='train_feats{}.png'.format(sp.utils.get_date()),
-                        sub_process=True,
-                        energy_scale = energy_scale)
+    #feats_vis = feats_train.reshape((feats_train.shape[1],feats_train.shape[2]))
+    #sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
+                  #title='Train: {} features label "{}"'.format(kwargs['feature_type'], 
+                                                      #dict_decode[label_train[0]]),
+                        #name4pic='train_feats{}.png'.format(sp.utils.get_date()),
+                        #sub_process=True,
+                        #energy_scale = energy_scale)
     
     feats_val, label_val = next(val_generator.generator())
 
-    feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
-    sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
-                  title='Val: {} features label "{}"'.format(kwargs['feature_type'], 
-                                                      dict_decode[label_val[0]]),
-                        name4pic='val_feats{}.png'.format(sp.utils.get_date()),
-                        sub_process=True,
-                        energy_scale = energy_scale)
+    #feats_vis = feats_val.reshape((feats_val.shape[1],feats_val.shape[2]))
+    #sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
+                  #title='Val: {} features label "{}"'.format(kwargs['feature_type'], 
+                                                      #dict_decode[label_val[0]]),
+                        #name4pic='val_feats{}.png'.format(sp.utils.get_date()),
+                        #sub_process=True,
+                        #energy_scale = energy_scale)
     
     feats_test, label_test = next(test_generator.generator())
 
-    feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
-    sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
-                  title='Test: {} features label "{}"'.format(kwargs['feature_type'], 
-                                                      dict_decode[label_test[0]]),
-                        name4pic='test_feats{}.png'.format(sp.utils.get_date()),
-                        sub_process=True,
-                        energy_scale = energy_scale)
+    #feats_vis = feats_test.reshape((feats_test.shape[1],feats_test.shape[2]))
+    #sp.feats.plot(feature_matrix = feats_vis, feature_type=kwargs['feature_type'],
+                  #title='Test: {} features label "{}"'.format(kwargs['feature_type'], 
+                                                      #dict_decode[label_test[0]]),
+                        #name4pic='test_feats{}.png'.format(sp.utils.get_date()),
+                        #sub_process=True,
+                        #energy_scale = energy_scale)
 
     ds_train = tf.data.Dataset.from_generator(
         spdl.make_gen_callable(train_generator.generator()),
