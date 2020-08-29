@@ -12,11 +12,11 @@ from .utils import check_dir, string2pathlib
 from .files import loadsound, savesound
 from .feats import plotsound, normalize
 from .filters import WienerFilter, BandSubtraction
-from .dsp import generate_sound, generate_noise, recordsound, playsound
+from .dsp import generate_sound, generate_noise
 from .builtin import envclassifier_feats, denoiser_feats, filtersignal 
 
 __all__=['utils', 'feats', 'filters', 'WienerFilter', 'BandSubtraction', 
-         'filtersignal', 'dsp','errors','record_sound', 'plotsound', 'loadsound', 'savesound',
+         'filtersignal', 'dsp','errors', 'plotsound', 'loadsound', 'savesound',
          'datasets', 'envclassifier_feats', 'denoiser_feats', 'generate_sound', 'playsound',
          'generate_noise', 'builtin', 'augment', 'check_dir', 'string2pathlib',
          'normalize']
