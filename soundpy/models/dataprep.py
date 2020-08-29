@@ -349,7 +349,11 @@ class GeneratorFeatExtraction(Generator):
             if label is not None:
                 labeled_data = True
                 if self.decode_dict is not None:
-                    label_pic = self.decode_dict[label].upper()
+                    try:
+                        label_pic = self.decode_dict[label].upper()
+                    except KeyError:
+                        # dictionary keys might be string type, not int type
+                        label_pic = self.decode_dict[str(int(label))].upper()
                 else:
                     label_pic = label
             else:
@@ -580,13 +584,13 @@ class GeneratorFeatExtraction(Generator):
                 batch_x = sp.feats.apply_new_subframe(
                     batch_x, 
                     new_frame_size = self.timestep, 
-                    zeropad = self.zeropad,
+                    zeropad = self.kwargs['zeropad'],
                     axis = self.axis_timestep)
                 if batch_y is not None:
                     batch_y = sp.feats.apply_new_subframe(
                         batch_y, 
                         new_frame_size = self.timestep, 
-                        zeropad = self.zeropad,
+                        zeropad = self.kwargs['zeropad'],
                         axis = self.axis_timestep)
 
             # reshape features to allow for context window / subsection features
@@ -594,13 +598,13 @@ class GeneratorFeatExtraction(Generator):
                 batch_x = sp.feats.apply_new_subframe(
                     batch_x, 
                     new_frame_size = self.context_window * 2 + 1, 
-                    zeropad = self.zeropad,
+                    zeropad = self.kwargs['zeropad'],
                     axis = self.axis_context)
                 if batch_y is not None:
                     batch_y = apply_new_subframe(
                         batch_y, 
                         new_frame_size = self.context_window * 2 + 1, 
-                        zeropad = self.zeropad,
+                        zeropad = self.kwargs['zeropad'],
                         axis = self.axis_context)
                     
             # grayscale 2 color 
