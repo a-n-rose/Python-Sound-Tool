@@ -1467,6 +1467,7 @@ def envclassifier_extract_train(
     features_dir = None,
     val_data = None,
     test_data = None,
+    append_model_dir = False,
     **kwargs):
     '''Extract and augment features during training of a scene/environment/speech classifier
     
@@ -1717,7 +1718,7 @@ def envclassifier_extract_train(
     # designate where to save model and related files
     model_name += '_' + kwargs['feature_type']
     model_dir = dataset_path.joinpath(model_name)
-    model_dir = sp.utils.check_dir(model_dir, make=True, append=False) # don't want to overwrite already trained model and logs
+    model_dir = sp.utils.check_dir(model_dir, make=True, append=append_model_dir) # don't want to overwrite already trained model and logs
     model_path = model_dir.joinpath(model_name)
     
     # setup model 
