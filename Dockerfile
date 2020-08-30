@@ -12,6 +12,8 @@ RUN pip install -U soundfile \
                     notebook \
                     matplotlib 
                     
+RUN pip install -U scikit-image
+                    
 RUN mkdir /root/soundpy/
 
 WORKDIR /root/soundpy/
