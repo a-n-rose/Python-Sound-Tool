@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam
 import librosa
+import collections
 
 import os, sys
 import inspect
@@ -638,7 +639,6 @@ def envclassifier_train(feature_extraction_dir,
     
     return model_dir, history
 
-
 def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     '''Implements a pre-trained denoiser
     
@@ -671,88 +671,52 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     soundpy.feats.feats2audio
         How features are transformed back tino audio samples.
     '''    
-    # newer version of soundpy: 0.1.0a3
-    # store get_feats kwargs under `kwargs` key
-    if 'kwargs' in feat_settings_dict:
-        kwargs = sp.utils.restore_dictvalue(feat_settings_dict['kwargs'])
-        feat_settings_dict.update(kwargs)
-    # if values saved as strings and should be a list or tuple, restore them to original type: 
-    # see `soundpy.utils.restore_dictvalue`
-    feature_type = sp.utils.restore_dictvalue(
-        feat_settings_dict['feature_type'])
-    win_size_ms = sp.utils.restore_dictvalue(
-        feat_settings_dict['win_size_ms'])
-    sr = sp.utils.restore_dictvalue(
-        feat_settings_dict['sr'])
-    percent_overlap = sp.utils.restore_dictvalue(
-        feat_settings_dict['percent_overlap'])
-    try:
-        window = sp.utils.restore_dictvalue(feat_settings_dict['window'])
-    except KeyError:
-        # set default here...
-        window = 'hann'
-    try:
-        # older version of soundpy: 0.1.0a2
-        input_shape = sp.utils.restore_dictvalue(
-            feat_settings_dict['input_shape'])
-    except KeyError:
-        # newer version of soundpy: 0.1.0a3
-        input_shape = sp.utils.restore_dictvalue(
-            feat_settings_dict['feat_model_shape'])
-    try:
-        # older version of soundpy: 0.1.0a2
-        base_shape = sp.utils.restore_dictvalue(
-            feat_settings_dict['desired_shape'])
-    except KeyError:
-        # newer version of soundpy: 0.1.0a3
-        base_shape = sp.utils.restore_dictvalue(
-            feat_settings_dict['feat_base_shape'])
-    dur_sec = sp.utils.restore_dictvalue(
-        feat_settings_dict['dur_sec'])
-    try:
-        # older version of soundpy: 0.1.0a2
-        num_feats = sp.utils.restore_dictvalue(
-            feat_settings_dict['num_feats'])
-    except KeyError:
-        # newer version of soundpy: 0.1.0a3
-        num_feats = base_shape[-1]
-    try:
-        # newer version soundpy 0.1.0v3
-        fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['fft_bins'])
-    except KeyError:
-        # older version soundpy 0.1.0v2
-        fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['n_fft'])
-    feats = sp.feats.get_feats(new_audio, 
-                               sr=sr, 
-                                feature_type = feature_type,
-                                win_size_ms = win_size_ms,
-                                percent_overlap = percent_overlap,
-                                window = window, 
-                                dur_sec = dur_sec,
-                                num_filters = num_feats,
-                                fft_bins = fft_bins)
+    featsettings = sp.feats.load_feat_settings(feat_settings_dict)
+    
+    feats = sp.feats.get_feats(
+        new_audio, 
+        sr = featsettings.sr, 
+        feature_type = featsettings.feature_type,
+        win_size_ms = featsettings.win_size_ms,
+        percent_overlap = featsettings.percent_overlap,
+        window = featsettings.window, 
+        dur_sec = featsettings.dur_sec,
+        num_filters = featsettings.num_feats,
+        num_mfcc = featsettings.num_mfcc,
+        fft_bins = featsettings.fft_bins,
+        remove_first_coefficient = featsettings.remove_first_coefficient,
+        sinosoidal_liftering = featsettings.sinosoidal_liftering,
+        mono = featsettings.mono,
+        rate_of_change = featsettings.rate_of_change,
+        rate_of_acceleration = featsettings.rate_of_acceleration,
+        subtract_mean = featsettings.subtract_mean,
+        real_signal = featsettings.real_signal,
+        fmin = featsettings.fmin,
+        fmax = featsettings.fmax,
+        zeropad = featsettings.zeropad)
     
     # are phase data still present? (only in stft features)
     if feats.dtype == np.complex and np.min(feats) < 0:
         original_phase = sp.dsp.calc_phase(feats,
                                                radians=False)
     elif 'stft' in feature_type or 'powspec' in feature_type:
-        feats_stft = sp.feats.get_feats(new_audio, 
-                                          sr=sr, 
-                                          feature_type = 'stft',
-                                          win_size_ms = win_size_ms,
-                                          percent_overlap = percent_overlap,
-                                          window = window, 
-                                          dur_sec = dur_sec,
-                                          num_filters = num_feats,
-                                          fft_bins = fft_bins)
+        feats_stft = sp.feats.get_feats(
+            new_audio, 
+            sr = featsettings.sr, 
+            feature_type = 'stft',
+            win_size_ms = featsettings.win_size_ms,
+            percent_overlap = featsettings.percent_overlap,
+            window = featsettings.window, 
+            dur_sec = featsettings.dur_sec,
+            fft_bins = featsettings.fft_bins,
+            mono = featsettings.mono)
         original_phase = sp.dsp.calc_phase(feats_stft,
                                                radians = False)
     else:
         original_phase = None
     
     if 'signal' in feature_type:
-        feats_zeropadded = np.zeros(base_shape)
+        feats_zeropadded = np.zeros(featsettings.base_shape)
         feats_zeropadded = feats_zeropadded.flatten()
         if len(feats.shape) > 1:
             feats_zeropadded = feats_zeropadded.reshape(feats_zeropadded.shape[0],
@@ -761,17 +725,17 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
             feats = feats[:len(feats_zeropadded)]
         feats_zeropadded[:len(feats)] += feats
         # reshape here to avoid memory issues if total # samples is large
-        feats = feats_zeropadded.reshape(base_shape)
+        feats = feats_zeropadded.reshape(featsettings.base_shape)
     
     feats = sp.feats.prep_new_audiofeats(feats,
-                                           base_shape,
-                                           input_shape)
+                                           featsettings.base_shape,
+                                           featsettings.input_shape)
 
     # ensure same shape as feats
     if original_phase is not None:
         original_phase = sp.feats.prep_new_audiofeats(original_phase,
-                                                        base_shape,
-                                                        input_shape)
+                                                        featsettings.base_shape,
+                                                        featsettings.input_shape)
     
     feats_normed = sp.feats.normalize(feats)
     denoiser = load_model(model)
@@ -812,14 +776,17 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
             original_phase = original_phase.reshape(audio_shape)
         
         # now combine them to create audio samples:
-        cleaned_audio = sp.feats.feats2audio(cleaned_feats, 
-                                            feature_type = feature_type,
-                                            sr = sr, 
-                                            win_size_ms = win_size_ms,
-                                            percent_overlap = percent_overlap,
-                                            phase = original_phase)
+        cleaned_audio = sp.feats.feats2audio(
+            cleaned_feats, 
+            feature_type = featsettings.feature_type,
+            sr = featsettings.sr, 
+            win_size_ms = featsettings.win_size_ms,
+            percent_overlap = featsettings.percent_overlap,
+            phase = original_phase)
         if not isinstance(new_audio, np.ndarray):
-            noisy_audio, __ = sp.loadsound(new_audio, sr=sr, remove_dc=remove_dc)
+            noisy_audio, __ = sp.loadsound(new_audio, 
+                                           sr = featsettings.sr,
+                                           remove_dc = remove_dc)
         else:
             noisy_audio = new_audio
         if len(cleaned_audio) > len(noisy_audio):
@@ -838,7 +805,58 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     return cleaned_audio, sr
 
 
+def envclassifier_run(model, new_audio, feat_settings_dict, dict_decode):
+    featsettings = sp.feats.load_feat_settings(feat_settings_dict)
     
+    feats = sp.feats.get_feats(
+        new_audio, 
+        sr = featsettings.sr, 
+        feature_type = featsettings.feature_type,
+        win_size_ms = featsettings.win_size_ms,
+        percent_overlap = featsettings.percent_overlap,
+        window = featsettings.window, 
+        dur_sec = featsettings.dur_sec,
+        num_filters = featsettings.num_feats,
+        num_mfcc = featsettings.num_mfcc,
+        fft_bins = featsettings.fft_bins,
+        remove_first_coefficient = featsettings.remove_first_coefficient,
+        sinosoidal_liftering = featsettings.sinosoidal_liftering,
+        mono = featsettings.mono,
+        rate_of_change = featsettings.rate_of_change,
+        rate_of_acceleration = featsettings.rate_of_acceleration,
+        subtract_mean = featsettings.subtract_mean,
+        real_signal = featsettings.real_signal,
+        fmin = featsettings.fmin,
+        fmax = featsettings.fmax,
+        zeropad = featsettings.zeropad)
+    
+    # load info csv with model input shape
+    model_path = sp.utils.string2pathlib(model)
+    model_info_path = model.parent.glob('*.csv')
+    model_info_path = [i for i in model_info_path if 'info' in i.stem][0]
+    model_info = sp.utils.load_dict(model_info_path)
+    for key, value in model_info.items():
+        model_info[key] = sp.utils.restore_dictvalue(value)
+    input_shape = model_info['input_shape']
+    
+    feats = sp.feats.prep_new_audiofeats(feats,
+                                         featsettings.base_shape,
+                                         input_shape)
+    
+    feats_normed = sp.feats.normalize(feats)
+    envclassifier = load_model(model)
+    tensor = (1,)
+    feats_normed = feats_normed.reshape(tensor + feats_normed.shape)
+    prediction = envclassifier.predict(feats_normed)
+    label = np.argmax(prediction)
+    strength = prediction[0][label]
+    try:
+        label_string = dict_decode[label]
+    except KeyError:
+        label_string = dict_decode[str(int(label))]
+    return label, label_string, strength
+
+
 def collect_classifier_settings(feature_extraction_dir):
     # ensure feature_extraction_folder exists:
     dataset_path = sp.utils.check_dir(feature_extraction_dir, make=False)
