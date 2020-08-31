@@ -11,6 +11,7 @@ currentdir = os.path.dirname(os.path.abspath(
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
+import collections
 import numpy as np
 import math
 import random
@@ -278,8 +279,7 @@ def get_feats(sound,
               real_signal = True,
               fmin = None, 
               fmax = None,
-              zeropad = True,
-              **kwargs):
+              zeropad = True):
     '''Collects raw signal data, stft, fbank, or mfcc features.
     
     Parameters
@@ -348,9 +348,6 @@ def get_feats(sound,
     subtract_mean : bool 
         If True, the mean of each feature column will be subtracted from
         each row. This is applicable for all feature types except 'signal'.
-    
-    **kwargs : additional keyword arguments
-        Additional keyword arguments for `soundpy.feats.get_fbank`.
         
     Returns
     -------
@@ -480,6 +477,156 @@ def get_feats(sound,
     if 'powspec' in feature_type:
         feats = sp.dsp.calc_power(feats)
     return feats
+
+
+def load_feat_settings(feat_settings_dict):
+    '''Loads feature settings into named tuple. Sets defaults if not present.
+    TODO: test w previous version
+    '''
+    FeatureExtractionSettings = collections.namedtuple('FeatureExtractionSettings',
+                                          ['sr', 'feature_type', 'win_size_ms',
+                                           'percent_overlap', 'window', 'dur_sec',
+                                           'num_filters','num_mfcc', 'fft_bins',
+                                           'remove_first_coefficient','sinosoidal_liftering',
+                                           'mono', 'rate_of_change', 'rate_of_acceleration',
+                                           'subtract_mean', 'real_signal', 'fmin', 'fmax',
+                                           'zeropad', 'input_shape', 'base_shape',
+                                           'num_feats'])    
+
+    # newer version of soundpy: 0.1.0a3
+    # store get_feats kwargs under `kwargs` key
+    if 'kwargs' in feat_settings_dict:
+        kwargs = sp.utils.restore_dictvalue(feat_settings_dict['kwargs'])
+        feat_settings_dict.update(kwargs)
+    # if values saved as strings and should be a list or tuple, restore them to original type: 
+    # see `soundpy.utils.restore_dictvalue`
+    sr = sp.utils.restore_dictvalue(
+        feat_settings_dict['sr'])
+    feature_type = sp.utils.restore_dictvalue(
+        feat_settings_dict['feature_type'])
+    win_size_ms = sp.utils.restore_dictvalue(
+        feat_settings_dict['win_size_ms'])
+    percent_overlap = sp.utils.restore_dictvalue(
+        feat_settings_dict['percent_overlap'])
+    try:
+        window = sp.utils.restore_dictvalue(feat_settings_dict['window'])
+    except KeyError:
+        # set default here...
+        window = 'hann'
+    dur_sec = sp.utils.restore_dictvalue(
+        feat_settings_dict['dur_sec'])
+    try: 
+        num_filters = sp.utils.restore_dictvalue(feat_settings_dict['num_filters'])
+    except KeyError:
+        num_filters = None
+    try: 
+        num_mfcc = sp.utils.restore_dictvalue(feat_settings_dict['num_mfcc'])
+    except KeyError:
+        num_mfcc = None
+    try:
+        # newer version soundpy 0.1.0v3
+        fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['fft_bins'])
+    except KeyError:
+        # older version soundpy 0.1.0v2
+        fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['n_fft'])
+    try: 
+        remove_first_coefficient = sp.utils.restore_dictvalue(
+            feat_settings_dict['remove_first_coefficient'])
+    except KeyError:
+        remove_first_coefficient = False
+    try: 
+        sinosoidal_liftering = sp.utils.restore_dictvalue(
+            feat_settings_dict['sinosoidal_liftering'])
+    except KeyError:
+        sinosoidal_liftering = False
+    try: 
+        mono = sp.utils.restore_dictvalue(
+            feat_settings_dict['mono'])
+    except KeyError:
+        mono = True # default setting
+    try: 
+        rate_of_change = sp.utils.restore_dictvalue(
+            feat_settings_dict['rate_of_change'])
+    except KeyError:
+        rate_of_change = False
+    try: 
+        rate_of_acceleration = sp.utils.restore_dictvalue(
+            feat_settings_dict['rate_of_acceleration'])
+    except KeyError:
+        rate_of_acceleration = False
+    try: 
+        subtract_mean = sp.utils.restore_dictvalue(
+            feat_settings_dict['subtract_mean'])
+    except KeyError:
+        subtract_mean = False
+    try: 
+        real_signal = sp.utils.restore_dictvalue(
+            feat_settings_dict['real_signal'])
+    except KeyError:
+        real_signal = True
+    try: 
+        fmin = sp.utils.restore_dictvalue(
+            feat_settings_dict['fmin'])
+    except KeyError:
+        fmin = None
+    try: 
+        fmax = sp.utils.restore_dictvalue(
+            feat_settings_dict['fmax'])
+    except KeyError:
+        fmax = None
+    try: 
+        zeropad = sp.utils.restore_dictvalue(
+            feat_settings_dict['zeropad'])
+    except KeyError:
+        zeropad = True
+    try:
+        # older version of soundpy: 0.1.0a2
+        input_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['input_shape'])
+    except KeyError:
+        # newer version of soundpy: 0.1.0a3
+        input_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['feat_model_shape'])
+    try:
+        # older version of soundpy: 0.1.0a2
+        base_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['desired_shape'])
+    except KeyError:
+        # newer version of soundpy: 0.1.0a3
+        base_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['feat_base_shape'])
+    try:
+        # older version of soundpy: 0.1.0a2
+        num_feats = sp.utils.restore_dictvalue(
+            feat_settings_dict['num_feats'])
+    except KeyError:
+        # newer version of soundpy: 0.1.0a3
+        num_feats = base_shape[-1]
+        
+    featsettings = FeatureExtractionSettings(
+        sr = sr,
+        feature_type = feature_type, 
+        win_size_ms = win_size_ms,
+        percent_overlap = percent_overlap,
+        window = window,
+        dur_sec = dur_sec, 
+        num_filters = num_filters,
+        num_mfcc = num_mfcc,
+        fft_bins = fft_bins,
+        remove_first_coefficient = remove_first_coefficient,
+        sinosoidal_liftering = sinosoidal_liftering,
+        mono = mono, 
+        rate_of_change = rate_of_change,
+        rate_of_acceleration = rate_of_acceleration,
+        subtract_mean = subtract_mean,
+        real_signal = real_signal,
+        fmin = fmin, 
+        fmax = fmax, 
+        zeropad = zeropad,
+        input_shape = input_shape,
+        base_shape = base_shape,
+        num_feats = num_feats)
+    return featsettings
 
 # allows for more control over fft bins / resolution of each iteration.
 def get_stft(sound, sr=22050, win_size_ms = 50, percent_overlap = 0.5,
@@ -2792,7 +2939,7 @@ def prep_new_audiofeats(feats, desired_shape, input_shape):
     '''
     feats_reshaped = sp.feats.adjust_shape(feats, desired_shape)
     # reshape to input shape with a necessary "tensor" dimension
-    feats_reshaped = feats_reshaped.reshape(input_shape+(1,))
+    feats_reshaped = feats_reshaped.reshape(input_shape)
     return feats_reshaped
 
 
