@@ -10,7 +10,6 @@ from numpy.fft import fft, rfft, ifft, irfft
 from scipy.signal import hamming, hann, resample, iirfilter, lfilter
 import librosa
 import math
-#import sounddevice as sd
 
 currentdir = os.path.dirname(os.path.abspath(
     inspect.getfile(inspect.currentframe())))
@@ -18,82 +17,6 @@ packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
 import soundpy as sp
-
-
-#def recordsound(sec, message = None, sr=16000, channels=1,
-                 #clip_ends = True, clip_sec = 0.5):
-    #'''Records sound for a given number of `sec`.
-    
-    #Parameters
-    #----------
-    #sec : int, float
-        #The amount of time in seconds to record 
-        
-    #message : str 
-        #The message to print out as recording. 
-        
-    #sr : int 
-        #The sample rate to apply when recording. 
-        #(default 16000)
-        
-    #channels : int 
-        #The number of channels the audio should be recorded with.
-        
-    #clip_ends : bool 
-        #If the beginning and ending of the recorded sound 
-        #should be clipped. This helps to keep samples centered 
-        #at zero. (default True)
-    
-    #clip_sec : int, float
-        #The amount of time in seconds to clip from beginning
-        #and and of the recording (default 0.25)
-        
-    #Returns
-    #-------
-    #sound : np.ndarray [shape = (num_samples, num_channels)]
-        #The recorded samples length int(sr * sec).
-    
-    #sr : int 
-        #The sample rate applied when recording.
-        
-    #Examples
-    #--------
-    #>>> y, sr = record_sound(3)
-    #Recording for 3 seconds..
-    #>>> y.shape
-    #(48000, 1)
-    #>>> cheese, sr = record_sound(2.5, message = 'Say "cheese"!', channels=2)
-    #Say "cheese"! (2.5 seconds..)
-    #>>> cheese.shape
-    #(40000, 2)
-    #'''
-    #if message is None:
-        #message = 'Recording'
-    #print(message+" ({} seconds..)".format(sec))
-    #sound = sd.rec(int((sec+1)*sr),samplerate=sr,channels=channels)
-    #sd.wait()
-    #if clip_ends:
-        #num_samps_clip = int(clip_sec * sr)
-        #sound = sound[num_samps_clip:-num_samps_clip]
-    #return sound, sr
-
-#def playsound(samples, sr):
-    #sd.default.samplerate = sr
-    #sd.play(samples)
-    #return None
-
-#def record_and_save(filename, sec, sr, message=None, overwrite=False):
-    #y, sr = sp.recordsound(sec, sr=sr, message=message)
-    #sp.playsound(y, sr)
-    #sp.plotsound(y, sr=sr, feature_type='signal')
-    #save = input('Save sound? Enter yes or no: ')
-    #if 'yes' in save.lower():
-        #sp.savesound(filename, y, sr=sr, overwrite=overwrite)
-    #else:
-        #print('Try again')
-        #y, sr = record_and_save(filename, sec, sr, message=message,
-                                #overwrite=overwrite)
-    #return y, sr
 
 
 def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
