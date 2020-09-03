@@ -1418,7 +1418,30 @@ def normalize(data, max_val=None, min_val=None):
         normed_data = (data - min_val) / (max_val - min_val + eps)
     return normed_data
 
+
 def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequency', **kwargs):
+    '''Plots the approximate dominant frequency over a STFT plot of a signal.
+    
+    Parameters
+    ----------
+    sound : np.ndarray [shape=(num_samples,) ], str, or pathlib.PosixPath
+        If type np.ndarray, expect raw samples in mono sound. If type str or 
+        pathlib.PosixPath, expect pathway to audio file.
+    
+    energy_scale : str 
+        The scale of energy for the plot. If in frequency spectrum, likey in power and needs
+        to be put into db. (default 'power_to_db')
+    
+    title : str 
+        The title for the plot. (default 'Dominant Frequency')
+    
+    **kwargs : additional keyword arguments 
+        Keyword arguments used in both `soundpy.feats.get_stft` and `soundpy.dsp.get_pitch`.
+
+    Returns 
+    -------
+    None
+    '''
     import matplotlib.pyplot as plt
     # set matching defaults if not in kwargs
     if 'sr' not in kwargs:
@@ -1429,8 +1452,12 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequen
         kwargs['percent_overlap'] = 0.5
     stft_matrix = sp.feats.get_stft(sound, **kwargs)
     pitch = sp.dsp.get_pitch(sound, **kwargs)
-    stft_matrix = librosa.power_to_db(stft_matrix)
+    if energy_scale == 'power_to_db':
+        stft_matrix = librosa.power_to_db(stft_matrix)
     plt.pcolormesh(stft_matrix.T)
+    # limit the y axis; otherwise y axis goes way too high
+    axes = plt.gca()
+    axes.set_ylim([0,stft_matrix.shape[1]])
     color = 'yellow'
     linestyle = ':'
     plt.plot(pitch, 'ro', color=color)
