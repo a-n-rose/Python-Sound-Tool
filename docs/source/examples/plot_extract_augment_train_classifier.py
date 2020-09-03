@@ -152,7 +152,7 @@ augmentation_all.update(
 # The current implementation applies the deresolution to the power spectrum rather than
 # directly to the STFT. 
 model_dir, history = spdl.envclassifier_extract_train(
-    model_name = 'augment_builtin',
+    model_name = 'augment_builtin_speechcommands',
     audiodata_path = data_dir,
     augment_dict = augmentation_all,
     labeled_data = True,

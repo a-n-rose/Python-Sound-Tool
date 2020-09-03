@@ -8,21 +8,29 @@ v0.1.0a
 
 v0.1.0a3
 --------
-
+2020-09-04
 
 Bug fixes
-   -  training with generator now works with Tensorflow 2.2.0+: use `tf.data.Dataset.from_generator`.
-   -  feature extraction and augmentation generator now works: problem in `soundpy.dsp.adjust_shape` and parameter `change_dims`. Removed option to `change_dims`.
-   
+   -  no longer use Librosa for feature extraction: allow easier implementation of augmentations, especially during training. 
+   -  `soundpy.feats.plot` now uses parameter `sub_process` to allow for different backends to be applied, depending on when funciton is called. For example, if plotting from within a Generator while training, `sub_process` should be set to True, and the 'Agg' backend will be applied. Otherwise, 'TkAgg' backend is used. Fixes issues with multi-threading.
+   -  Fixed generator and Tensorflow issue: with Tensorflow 2.2.0+ the models in `soundpy.models.builtin` that were trained via generator failed. Use `tensorflow.data.Dataset.from_generator` to feed generator data to models.
+
 Features
-   -  `soundpy.models.builtin.envclassifier_extract_train` and 
-   `soundpy.models.dataprep.GeneratorFeatExtraction` apply augmentations at random; 
-   no longer a set of augmentations per epoch.
-   -  added `soundpy.feats.get_fbank` and `soundpy.feats.get_mfcc` for increased consistency in feature extraction process (especially when applying augmentations)
+   -  Python 3.8 can now be used.
+   -  throw depreciation warning for parameters `context_window` or `frames_per_sample` as these "features" will be removed from feature extraction. Rather the features can be reshaped post feature extraction.
+   -  added `timestep`, `axis_timestep`, `context_window`, `axis_context_window`  and `combine_axes_0_1` paremeters to  `soundpy.models.Generator`:  allow more control over shape of the features.
+   -  can run `pysound.models.builtin.envclassifier_extract_train` to run with pre-extracted val and test features. 
+
+Breaking changes
+   -  return only features and sr in `soundpy.models.builtin.denoiser_run`. `feature_type` is no longer returned. Rather, if raw samples cannot be returned, a warning is raised.  
+   -  `soundpy.models.Generator` uses parameter `normalize` instaed of `normalized`. Found this to be more intuitive. If `normalize` is set to True, data will be normalized. Before, if `normalized` was set to True, data would not be normalized.
+   - allow `grayscale2color` to be applied to 2D data.
+   -  removed `add_tensor_last` and `add_tensor_first`: require adding of tensors (for keras) to be included in parameter `desired_input_shape`.
    
+Other changes 
+   -  CPU soundpy can use Tensorflow 2.1.0, 2.2.0 and 2.3.0. Dockerfile still uses Tensorflow 2.1.0 as it is still compatible with updated code.
 
-
-
+   
 v0.1.0a2
 --------
 2020-08-13

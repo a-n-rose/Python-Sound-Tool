@@ -2,10 +2,9 @@
 
 SoundPy is an experimental framework for exploring sound as well as machine learning in the context of sound. 
 
-[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a2-blue)](https://pypi.org/project/soundpy/0.1.0a2/)
+[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a3-blue)](https://pypi.org/project/soundpy/)
 [![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)](https://github.com/a-n-rose/Python-Sound-Tool/blob/master/LICENSE.md)
-[![PyPI pyversions](https://img.shields.io/badge/python-3.6-yellow)](https://www.python.org/downloads/release/python-360/)
-
+[![PyPI pyversions](https://img.shields.io/badge/python-3.6%7C3.8-yellow)](https://www.python.org/downloads/release)
 
 # Documentation
 
@@ -213,7 +212,7 @@ Venture into the folder `jupyter_notebooks` and have a go!
 ## Requirements
 
 * CPU 
-    - Python 3.6 (specifically 3.6.9, but other versions should probably work)
+    - Python 3 (Python 3.6.9 and 3.8.2 for sure work, but other versions should as well)
     - Linux users: ensure libsndfile1 pre-installed: `sudo apt-get install libsndfile1` 
     
 * GPU (what worked on my Ubuntu 18.04 and 20.04 machine (specfically KDE Neon 18.04 and 20.04))
@@ -236,13 +235,15 @@ Regardless of installation method, if you clone this repo, you will be able to u
 3) Get latest development version from git via pip
 
 For any of these options, I suggest a virtual environment before installing:
-```
-$ virtualenv -p python3.6 env
-```
-or
+
 ```
 $ python3 -m venv env
 ```
+or
+```
+$ virtualenv -p python3.8 env
+```
+
 Then activate the environment
 ```
 $ source env/bin/activate
@@ -258,7 +259,7 @@ Clone this repository and make the repository your current working directory.
 Then install the necessary dependencies via pip:
 
 ```
-(env)..$ pip install -r requirements.txt
+(env)..$ pip install -r requirements.txt --use-feature=2020-resolver
 ```
 
 ### Option 2: Install the PyPi package:
@@ -362,7 +363,7 @@ If you would like to play around with various types of sound, check out my <a hr
 If you want to run the tests for SoundPy, they currently use some <a href="https://github.com/a-n-rose/mini-audio-datasets/tree/master/test_audio">audiofiles available</a> in the example datasets repo, mentioned above. Also, see `tests_requirements.txt`. The packages located there will need to be installed via:
 
 ```
-(env)..$ pip install -r tests_requirements.txt
+(env)..$ pip install -r tests_requirements.txt --use-feature=2020-resolver
 ```
 
 # About the Author

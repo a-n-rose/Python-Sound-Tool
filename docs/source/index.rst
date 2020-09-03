@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-SoundPy v0.1.0a2
+SoundPy v0.1.0a3
 ====================  
 
 Welcome to the docs!
@@ -39,6 +39,11 @@ This project is still in the beginning stages and has a lot of room for growth, 
    :maxdepth: 1
    
    changelog.rst
+   
+.. toctree:: 
+   :maxdepth: 1
+   
+   versions.rst
    
 * :ref:`genindex`
 * :ref:`modindex`

@@ -64,7 +64,7 @@ for f in files:
 feat_settings = sp.utils.load_dict(
     model_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' --> ', value)
+    print(key, ' ---> ', value)
     # change objects that were string to original format
     import ast
     try:
@@ -119,7 +119,7 @@ sp.plotsound(s, sr = sr, feature_type='signal')
 ##############################################################
 # We just need to feed the model path, the noisy sample path, and 
 # the feature settings dictionary we looked at above.
-y, sr, feat_type = spdl.denoiser_run(model, s_n, feat_settings)
+y, sr = spdl.denoiser_run(model, s_n, feat_settings)
 
 ##########################################################
 # How does the output sound?
@@ -129,7 +129,7 @@ ipd.Audio(y,rate=sr)
 ##########################################################
 # How does is the output look? 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-sp.plotsound(y, sr=sr, feature_type = feat_type)
+sp.plotsound(y, sr=sr, feature_type = feature_type)
 
 ##########################################################
 # How do the features compare?

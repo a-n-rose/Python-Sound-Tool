@@ -333,4 +333,4 @@ ipd.Audio(h_shuffle,rate=sr)
 
 ##########################################################
 sp.plotsound(h_shuffle, sr=sr, feature_type='stft', 
-               title='Speech: shuffled')
+               title='Speech: shuffled ')

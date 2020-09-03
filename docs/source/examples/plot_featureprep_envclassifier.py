@@ -98,7 +98,7 @@ for f in featfiles:
 feat_settings = sp.utils.load_dict(
     extraction_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' --> ', value)
+    print(key, ' ---> ', value)
     
     
 ############################################################
@@ -108,4 +108,4 @@ for key, value in feat_settings.items():
 encode_dict = sp.utils.load_dict(
     extraction_dir.joinpath('dict_encode.csv'))
 for key, value in encode_dict.items():
-    print(key, ' --> ', value)
+    print(key, ' ---> ', value)

@@ -75,7 +75,7 @@ for f in files:
 feat_settings = sp.utils.load_dict(
     feature_extraction_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' ---> ', value)
+    print(key, ' --> ', value)
     
 #########################################################
 # For more about these settings, see `soundpy.feats.save_features_datasets`.

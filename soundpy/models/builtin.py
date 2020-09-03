@@ -699,7 +699,7 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     if feats.dtype == np.complex and np.min(feats) < 0:
         original_phase = sp.dsp.calc_phase(feats,
                                                radians=False)
-    elif 'stft' in feature_type or 'powspec' in feature_type:
+    elif 'stft' in feature_type or 'powspec' in featsettings.feature_type:
         feats_stft = sp.feats.get_feats(
             new_audio, 
             sr = featsettings.sr, 
@@ -715,7 +715,7 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     else:
         original_phase = None
     
-    if 'signal' in feature_type:
+    if 'signal' in featsettings.feature_type:
         feats_zeropadded = np.zeros(featsettings.base_shape)
         feats_zeropadded = feats_zeropadded.flatten()
         if len(feats.shape) > 1:
@@ -727,9 +727,12 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
         # reshape here to avoid memory issues if total # samples is large
         feats = feats_zeropadded.reshape(featsettings.base_shape)
     
+    # add a tensor dimension to either first or last channel.. whatever works I guess?
+    # keras..
+    tensor = (1,)
     feats = sp.feats.prep_new_audiofeats(feats,
                                            featsettings.base_shape,
-                                           featsettings.input_shape)
+                                           featsettings.input_shape + tensor)
 
     # ensure same shape as feats
     if original_phase is not None:
@@ -799,10 +802,10 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
         import warnings
         msg = '\nlibrosa.ParameterError: {}'.format(e)+\
             '\nUnable to convert cleaned features to raw audio samples.'+\
-                '\nReturning cleaned audio in {} features.'.format(feature_type)
+                '\nReturning cleaned audio in {} features.'.format(featsettings.feature_type)
         warnings.warn(msg)
         cleaned_audio = cleaned_feats
-    return cleaned_audio, sr
+    return cleaned_audio, featsettings.sr
 
 
 def envclassifier_run(model, new_audio, feat_settings_dict, dict_decode):
