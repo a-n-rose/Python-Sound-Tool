@@ -217,21 +217,26 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
         If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
         the samples of the sound data. Note: in the latter case, `sr`
         must be declared.
+    
     feature_type : str
         Options: 'signal', 'mfcc', or 'fbank' features. 
         MFCC: mel frequency cepstral
         coefficients; FBANK: mel-log filterbank energies (default 'fbank')
+    
     win_size_ms : int or float
         Window length in milliseconds for Fourier transform to be applied
         (default 20)
+    
     percent_overlap : int or float 
         Amount of overlap between processing windows. For example, if `percent_overlap`
         is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
         If an integer is provided, it will be converted to a float between 0 and 1.
+    
     num_filters : int
         Number of mel-filters to be used when applying mel-scale. For 
         'fbank' features, 20-128 are common, with 40 being very common.
         (default 40)
+    
     num_mfcc : int
         Number of mel frequency cepstral coefficients. First coefficient
         pertains to loudness; 2-13 frequencies relevant for speech; 13-40
@@ -239,13 +244,16 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
         Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
         is set to 40, all 40 coefficients will be included.
         (default 40). 
+    
     sr : int, optional
         The sample rate of the sound data or the desired sample rate of
         the wavfile to be loaded. (default None)
+    
     mono : bool, optional
         When loading an audiofile, True will limit number of channels to
         one; False will allow more channels to be loaded. (default None, 
         which results in mono channel loading.)
+    
     **kwargs : additional keyword arguments
         Keyword arguments for soundpy.feats.plot
     '''
@@ -638,6 +646,11 @@ def get_stft(sound, sr=22050, win_size_ms = 50, percent_overlap = 0.5,
                 window = 'hann', zeropad = True, **kwargs):
     '''Returns short-time Fourier transform matrix.
     
+    This function allows more flexibility in number of `fft_bins` and `real_signal`
+    settings. Additionally, this does not require the package librosa, making it 
+    a bit easier to manipulate if desired. For an example, see
+    `soundpy.augment.vtlp`.
+    
     Parameters
     ----------
     sound : np.ndarray [shape=(num_samples,) or (num_samples, num_channels)], str, or pathlib.PosixPath
@@ -647,10 +660,37 @@ def get_stft(sound, sr=22050, win_size_ms = 50, percent_overlap = 0.5,
     sr : int 
         The sample rate of `sound`. 
     
-    This function allows more flexibility in number of `fft_bins` and `real_signal`
-    settings. Additionally, this does not require the package librosa, making it 
-    a bit easier to manipulate if desired. For an example, see
-    `soundpy.augment.vtlp`.
+    win_size_ms : int, float 
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+        
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1.
+        
+    real_signal : bool 
+        If True, only half the FFT spectrum will be used; there should really be no difference
+        as the FFT is symmetrical. If anything, setting `real_signal` to True may speed up 
+        functionality / make functions more efficient.
+        
+    fft_bins : int 
+        Number of frequency bins to use when applying fast Fourier Transform. (default 1024)
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+        
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.files.loadsound`.
+        
+    Returns
+    -------
+    stft_matrix : np.ndarray[size=(num_features, fft_bins)]
     '''
     if isinstance(sound, np.ndarray):
         if sound.dtype == np.complex_:
@@ -724,7 +764,7 @@ def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **k
         the fast Fourier transform. If None, set depending on type of parameter `sound`.
         If `sound` is a raw signal or audio pathway, `fft_bins` will be set to 1024;
         if `sound` is a STFT or power spectrum, `fft_bins` will be set to 2 * length
-        of `sound` feature column.
+        of `sound` feature column, or 2 * sound.shape[1].
         
     **kwargs : additional keyword arguments
         Keyword arguments for `soundpy.feats.get_stft`.
@@ -840,7 +880,7 @@ def get_mfcc(sound, sr, num_mfcc, remove_first_coefficient=False,
         mfcc = mfcc[:,:num_mfcc]
     return mfcc
 
-def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
+def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', use_beg_ms = 120,
                           extend_window_ms = 0, energy_thresh = 40, 
@@ -848,7 +888,70 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           zeropad = True, **kwargs):
     '''Returns STFT matrix and VAD matrix. STFT matrix contains only VAD sections.
     
-    **kwargs loadsound
+    Parameters
+    ----------
+    sound : str or numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. Note: in the latter case, `sr`
+        must be declared.
+    
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. (default None)
+    
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+    
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1. 
+        
+    real_signal : bool 
+        If True, only half the FFT spectrum will be used; there should really be no difference
+        as the FFT is symmetrical. If anything, setting `real_signal` to True may speed up 
+        functionality / make functions more efficient.
+
+    fft_bins : int 
+        Number of frequency bins to use when applying fast Fourier Transform. (default 1024)
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    use_beg_ms : int 
+        The amount of time in milliseconds to use from beginning of signal to estimate background
+        noise.
+        
+    extend_window_ms : int 
+        The amount of time in milliseconds to pad or extend the identified VAD segments. This 
+        may be useful to include more speech / sound, if desired.
+        
+    energy_thresh : int 
+        The threshold to set for measuring energy for VAD in the signal. (default 40)
+        
+    freq_thresh : int 
+        The threshold to set for measuring frequency for VAD in the signal. (default 185)
+        
+    sfm_thresh : int 
+        The threshold to set for measuring spectral flatness for VAD in the signal. (default 5)
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+    
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.files.loadsound`
+        
+    Returns
+    -------
+    stft_matrix : np.ndarray [size=(num_frames_vad, fft_bins//2+1), dtype=np.complex_]
+        The STFT matrix frames of where voice activity has been detected.
+        
+    vad_matrix_extwin : np.ndarray [size=(num_frames,)]
+        A vector containing indices of the full STFT matrix for frames of where voice activity 
+        was detected or not.
     '''
     # raise ValueError if percent_overlap is not supported
     if percent_overlap != 0 and percent_overlap < 0.5:
@@ -944,15 +1047,59 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
             extra_rows += 1
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:-extra_rows]
-    return stft_matrix[:,:fft_bins//2], vad_matrix_extwin
+    return stft_matrix[:,:fft_bins//2+1], vad_matrix_extwin
 
 def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5, 
-                     extend_window_ms = 0):
+                     extend_window_ms = 0,  window = 'hann', zeropad = True, **kwargs):
     '''Returns STFT matrix and VAD matrix with beginning and ending silence removed.
+    
+    Parameters
+    ----------
+    samples : str or numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. 
+    
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. 
+    
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+    
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1. 
+    
+    extend_window_ms : int 
+        The amount of time in milliseconds to pad or extend the identified VAD segments. This 
+        may be useful to include more speech / sound, if desired.
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+        
+    **kwargs : additional keyword arguments 
+        Keyword arguments for `soundpy.files.loadsound`.
+        
+    Returns 
+    -------
+    stft_speech : np.ndarry [size (num_frames_clipped, fft_bins//2+1)]
+        The STFT of the `samples` with beginning and ending silences clipped.
+    
+    vad_matrix : np.ndarry [size (num_frames, )]
+        A vector with zeros and ones indicating which indices of the full STFT that 
+        have voice activity or not.
     '''
-    stft = sp.feats.get_stft(samples, sr = sr, 
+    stft = sp.feats.get_stft(samples, sr, 
                                win_size_ms = win_size_ms, 
-                               percent_overlap = percent_overlap)
+                               percent_overlap = percent_overlap,
+                               window = window, zeropad = zeropad)
     energy = sp.dsp.get_energy(stft)
     energy_mean = sp.dsp.get_energy_mean(energy)
     beg_index, beg_speech_found = sp.dsp.sound_index(
@@ -984,10 +1131,67 @@ def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
         return stft_speech, vad_matrix
     return [], vad_matrix
 
-def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
+def get_vad_samples(sound, sr=None, win_size_ms = 50, percent_overlap = 0.5,
                     use_beg_ms = 120, extend_window_ms = 0, energy_thresh = 40, 
-                    freq_thresh = 185, sfm_thresh = 5, window = 'hann', zeropad = True):
+                    freq_thresh = 185, sfm_thresh = 5, window = 'hann', zeropad = True,
+                    **kwargs):
     '''Returns samples and VAD matrix. Only samples where with VAD are returned.
+    
+    Parameters
+    ----------
+    sound : str or numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. Note: in the latter case, `sr`
+        must be declared.
+    
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. (default None)
+    
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+    
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1. 
+        
+    use_beg_ms : int 
+        The amount of time in milliseconds to use from beginning of signal to estimate background
+        noise.
+        
+    extend_window_ms : int 
+        The amount of time in milliseconds to pad or extend the identified VAD segments. This 
+        may be useful to include more speech / sound, if desired.
+        
+    energy_thresh : int 
+        The threshold to set for measuring energy for VAD in the signal. (default 40)
+        
+    freq_thresh : int 
+        The threshold to set for measuring frequency for VAD in the signal. (default 185)
+        
+    sfm_thresh : int 
+        The threshold to set for measuring spectral flatness for VAD in the signal. (default 5)
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+    
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.files.loadsound`
+    
+    Returns
+    -------
+    samples_matrix : np.ndarray [size = (num_samples_vad, )]
+        The samples of where voice activity was detected.
+    vad_matrix_extwin : np.ndarray [size = (num_frames, )]
+        A vector of zeros and ones indicating the frames / windows of the samples that either
+        had voice activity or not.
     '''
     # raise error if percent_overlap is not supported
     if percent_overlap != 0 and percent_overlap < 0.5:
@@ -1007,7 +1211,7 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = sp.loadsound(sound, sr=sr)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
         
     frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
@@ -1070,8 +1274,53 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
     return samples_matrix, vad_matrix_extwin
 
 def get_samples_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
-                        extend_window_ms = 0, window = 'hann', zeropad = True):
+                        extend_window_ms = 0, window = 'hann', zeropad = True, **kwargs):
     '''Returns samples and VAD matrix with beginning and ending silence removed.
+    
+    
+    Parameters
+    ----------
+    samples : str or numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. 
+    
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. 
+    
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+    
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1. 
+    
+    extend_window_ms : int 
+        The amount of time in milliseconds to pad or extend the identified VAD segments. This 
+        may be useful to include more speech / sound, if desired. (default 0)
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+        
+    **kwargs : additional keyword arguments 
+        Keyword arguments for `soundpy.files.loadsound`.
+        
+        
+    Returns 
+    -------
+    stft_speech : np.ndarry [size (num_frames_clipped, fft_bins//2+1)]
+        The STFT of the `samples` with beginning and ending silences clipped.
+    
+    vad_matrix : np.ndarry [size (num_frames, )]
+        A vector with zeros and ones indicating which indices of the full STFT that 
+        have voice activity or not.
     '''
     if not isinstance(samples, np.ndarray):
         samples, sr = sp.loadsound(samples, sr=sr)
