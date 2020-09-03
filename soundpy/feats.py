@@ -260,6 +260,7 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
                     **kwargs)
 
 # TODO test duration limit on all settings
+# TODO test for multiple channels
 def get_feats(sound,
               sr = None, 
               feature_type = 'fbank', 
@@ -313,6 +314,9 @@ def get_feats(sound,
     
     window : str or np.ndarray [size (n_fft, )]
         The window function to be applied to each window. (Default 'hann')
+    
+    fft_bins : int  
+        Number of frequency bins to apply in fast Fourier transform. (default None) 
     
     num_filters : int
         Number of mel-filters to be used when applying mel-scale. For 
