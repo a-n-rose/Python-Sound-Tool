@@ -2,7 +2,7 @@
 
 SoundPy is an experimental framework for exploring sound as well as machine learning in the context of sound. 
 
-[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a3-blue)](https://pypi.org/project/soundpy/)
+[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a2-blue)](https://pypi.org/project/soundpy/)
 [![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)](https://github.com/a-n-rose/Python-Sound-Tool/blob/master/LICENSE.md)
 [![PyPI pyversions](https://img.shields.io/badge/python-3.6%7C3.8-yellow)](https://www.python.org/downloads/release)
 
