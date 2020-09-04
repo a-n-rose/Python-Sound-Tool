@@ -1419,54 +1419,6 @@ def resnet50_train(feature_extraction_dir,
             model.save(model_dir.joinpath('final_not_best_model.h5'))
             return model_dir, history
 
-def denoiser_extract_train(
-    dataset_dict = None,
-    audiodata_path = None,
-    feature_type = 'fbank',
-    num_feats = None,
-    mono = True,
-    rate_of_change = False,
-    rate_of_acceleration = False,
-    subtract_mean = False,
-    use_scipy = False,
-    dur_sec = 1,
-    win_size_ms = 25,
-    percent_overlap = 0.5,
-    sr = 22050,
-    fft_bins = None,
-    frames_per_sample = None, 
-    labeled_data = False, 
-    batch_size = 10,
-    use_librosa = True, 
-    center = True, 
-    mode = 'reflect', 
-    log_settings = True, 
-    model_name = 'env_classifier',
-    epoch = 5,
-    patience = 15,
-    callbacks = None,
-    use_generator = True,
-    augmentation_dict = None):
-    '''Extract and augment features during training of a denoising model.
-    '''
-    if dataset_dict is None:
-        # set up datasets
-        if audiodata_path is None:
-            raise ValueError('Function `denoiser_extract_train` expects either:\n'+\
-                '1) a `dataset_dict` with audiofile pathways assigned to datasets OR'+\
-                    '\n2) a `audiodata_path` indicating where audiofiles for'+\
-                        'training are located.\n**Both cannot be None.')
-        
-        # sp.check_dir:
-        # raises error if this path doesn't exist (make = False)
-        # if does exist, returns path as pathlib.PosixPath object
-        data_dir = sp.check_dir(audiodata_path, make = False)
-    
-    else:
-        # use pre-collected dataset dict
-        dataset_dict = dataset_dict
-    pass
-
 
 def envclassifier_extract_train(
     model_name = 'env_classifier',
