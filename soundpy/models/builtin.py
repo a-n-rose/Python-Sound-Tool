@@ -809,6 +809,36 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
 
 
 def envclassifier_run(model, new_audio, feat_settings_dict, dict_decode):
+    '''Implement a convnet model with `new_audio`.
+    
+    Parameters
+    ----------
+    model : str, pathlib.PosixPath
+        The pathway to the pre-trained model.
+        
+    new_audio : str, pathlib.PosixPath
+        The pathway to the audio file to be classified.
+        
+    feat_settings_dict : dict 
+        Dictionary containing necessary settings for feature extraction, such
+        as sample rate, feature type, etc.
+        
+    dict_decode : dict 
+        Dictionary containing encoded labels as keys and string labels as values.
+        for example {0:'office', 1:'traffic', 2:'park'}.
+        
+    Returns
+    -------
+    label : int 
+        The encoded label applied to the `new_audio`.
+    
+    label_string : str 
+        The string label applied to the `new_audio`.
+    
+    strength : float 
+        The confidence of the model's assignment. For example, 0.99 would be very 
+        confident, 0.51 would not be very confident.
+    '''
     featsettings = sp.feats.load_feat_settings(feat_settings_dict)
     
     feats = sp.feats.get_feats(
@@ -861,6 +891,40 @@ def envclassifier_run(model, new_audio, feat_settings_dict, dict_decode):
 
 
 def collect_classifier_settings(feature_extraction_dir):
+    '''Collects relevant information for some models from files in the feature directory.
+    
+    These relevant files have been generated in `soundpy.models.builtin.envclassifier_train`.
+    
+    Parameters
+    ----------
+    feature_extraction_dir : str, pathlib.PosixPath
+        The directory where extracted files are located, included .npy and .csv log files.
+        
+    Returns
+    -------
+    datasets : NamedTuple
+        A named tuple containing train, val, and test data
+    
+    num_labels : int 
+        The number of labels used for the data.
+    
+    feat_shape : tuple
+        The initial shape of the features when they were extracted. For example, labels 
+        or context window not applied.
+    
+    num_feats : int 
+        The number of features used to train the pre-trained model.
+    
+    feature_type : str 
+        The `feature_type` used to train the pre-trained model. For example, 'fbank', 
+        'mfcc', 'stft', 'signal', 'powspec'.
+        
+    See Also
+    --------
+    soundpy.models.builtin.envclassifier_train
+        The builtin functionality for training a simple scene/environment/speech
+        classifier. This function generates the files expected by this function.
+    '''
     # ensure feature_extraction_folder exists:
     dataset_path = sp.utils.check_dir(feature_extraction_dir, make=False)
     
@@ -913,6 +977,8 @@ def collect_classifier_settings(feature_extraction_dir):
         feature_type = settings_dict['feature_type']
     return datasets, num_labels, feat_shape, num_feats, feature_type
 
+# TODO cleanup
+# TODO test
 def cnnlstm_train(feature_extraction_dir,
                   model_name = 'model_cnnlstm_classifier',
                   use_generator = True,
@@ -925,7 +991,65 @@ def cnnlstm_train(feature_extraction_dir,
                   total_training_sessions = None,
                   add_tensor_last = False,
                   **kwargs):
-    '''Many settings followed by the paper below.
+    '''Example implementation of a Convnet+LSTM model for speech recognition.
+    
+    Note: improvements must still be made, for example with the `context_window`. However,
+    this still may be useful as an example of a simple CNN and LSTM model.
+    
+    Parameters
+    ----------
+    feature_extraction_dir : str, pathlib.PosixPath
+        The directory where feature data will be saved.
+        
+    model_name : str 
+        The name of the model. (default 'model_cnnlstm_classifier')
+    
+    use_generator : True 
+        If True, data will be fed to the model via generator. This parameter will likely 
+        be removed and set as a default. (default True)
+    
+    normalize : bool 
+        If True, the data will be normalized before being fed to the model. (default True)
+    
+    patience : int 
+        The number of epochs to allow with no improvement in either val accuracy or loss.
+        (default 15)
+        
+    timesteps : int 
+        The frames dedicated to each subsection of each sample. This allows the long-short
+        term memory model to process each subsection consecutively.
+        
+    context_window : int 
+        The number of frames surrounding a central frame that make up sound context. Note:
+        this needs improvement and further exploration.
+        
+    frames_per_sample : int 
+        Serves basically same role as `context_window` does currently: `frames_per_sample`
+        equals `context_window` * 2 + 1. This parameter will likely be removed in future 
+        versions.
+        
+    colorscale : int 
+        The colorscale relevant for the convolutional neural network. (default 1)
+        
+    total_training_sessions : int 
+        Option to limit number of audiofiles used for training, if `use_generator` is 
+        set to False. This parameter will likely be removed in future versions. But as
+        this is just an example model, the low priority may result in this parameter
+        living forever.
+        
+    add_tensor_last : bool 
+        No longer used in the code. Irrelevant. 
+        
+    kwargs : additional keyword arguments.
+        Keyword arguments for `keras.model.fit`.
+        
+    Returns
+    -------
+    model_dir : pathlib.PosixPath 
+        The directory where model and log files are saved.
+    
+    history : tf.keras.callbacks.History
+        Contains model training and validation accuracy and loss throughout training.
     
     References
     ----------
@@ -968,7 +1092,7 @@ def cnnlstm_train(feature_extraction_dir,
                                                     input_shape = input_shape, 
                                                     lstm_cells = num_feats)
     
-    print('cnnlstm desired input shape: ', input_shape)
+    #print('cnnlstm desired input shape: ', input_shape)
     #cnnlstm desired input shape:  (10, 11, 221, 1)
     #train data shape:  (7433, 99, 222)
     
@@ -976,15 +1100,12 @@ def cnnlstm_train(feature_extraction_dir,
     #(99, 221)
     #timestep
     #(10, 10, 221)
-    #context_window
+    #context_window (with zeropadding)
     #(10, 11, 221)
-
-
-
-    
 
     # create callbacks variable if not in kwargs
     # allow users to use different callbacks if desired
+    # TODO test how it works when callbacks set in kwargs.
     if 'callbacks' not in kwargs:
         callbacks = spdl.setup_callbacks(patience = patience,
                                                 best_modelname = model_path, 
@@ -1002,7 +1123,6 @@ def cnnlstm_train(feature_extraction_dir,
                                metrics = metrics,
                                kwargs = kwargs)
     settings.update(additional_settings)
-    
     
     # start training
     start = time.time()
@@ -1058,8 +1178,8 @@ def cnnlstm_train(feature_extraction_dir,
                                                     axis_context_window = -2, 
                                                     desired_input_shape = (1,)+input_shape,
                                                     )
-                                                    #expecting features in last axis
-                                                    #add_tensor_last = add_tensor_last)
+                                                    # expecting features in last axis
+                                                    # add_tensor_last = add_tensor_last)
             val_generator = spdl.Generator(data_matrix1 = data_val,
                                                 data_matrix2 = None,
                                                 normalize = normalize,
@@ -1122,6 +1242,7 @@ def cnnlstm_train(feature_extraction_dir,
 
         else:
             # TODO make scaling data optional?
+            # TODO remove option for non-generator fed data..?
             # data is separated and shaped for this classifier in scale_X_y..
             X_train, y_train, scalars = sp.feats.scale_X_y(data_train,
                                                                 is_train=True)
@@ -1193,6 +1314,8 @@ def cnnlstm_train(feature_extraction_dir,
             model.save(model_dir.joinpath('final_not_best_model.h5'))
             return model_dir, history
 
+# TODO cleanup
+# TODO test
 def resnet50_train(feature_extraction_dir,
                    model_name = 'model_resnet50_classifier',
                    use_generator = True,
@@ -1201,6 +1324,57 @@ def resnet50_train(feature_extraction_dir,
                    colorscale = 3,
                    total_training_sessions = None,
                    **kwargs):
+    '''Continue training a pre-trained resnet50 model for speech recogntion or other sound classification.
+    
+    Parameters
+    ----------
+    feature_extraction_dir : str or pathlib.PosixPath
+        The directory where feature extraction files will be saved.
+        
+    model_name : str 
+        The name for the model. (default 'model_resnet50_classifier')
+        
+    use_generator : True 
+        If True, data will be fed to the model via generator. This parameter will likely 
+        be removed and set as a default. (default True)
+    
+    normalize : bool 
+        If True, the data will be normalized before being fed to the model. (default True)
+    
+    patience : int 
+        The number of epochs to allow with no improvement in either val accuracy or loss.
+        (default 15)
+        
+    timesteps : int 
+        The frames dedicated to each subsection of each sample. This allows the long-short
+        term memory model to process each subsection consecutively.
+        
+    context_window : int 
+        The number of frames surrounding a central frame that make up sound context. Note:
+        this needs improvement and further exploration.
+        
+    frames_per_sample : int 
+        Serves basically same role as `context_window` does currently: `frames_per_sample`
+        equals `context_window` * 2 + 1. This parameter will likely be removed in future 
+        versions.
+        
+    colorscale : int 
+        The colorscale relevant for the convolutional neural network. (default 1)
+        
+    total_training_sessions : int 
+        Option to limit number of audiofiles used for training, if `use_generator` is 
+        set to False. This parameter will likely be removed in future versions. But as
+        this is just an example model, the low priority may result in this parameter
+        living forever.
+        
+    Returns
+    -------
+    model_dir : pathlib.PosixPath 
+        The directory where model and log files are saved.
+    
+    history : tf.keras.callbacks.History()
+        Contains model training and validation accuracy and loss throughout training.
+    '''
     datasets, num_labels, feat_shape, num_feats, feature_type =\
         collect_classifier_settings(feature_extraction_dir)
     
@@ -1419,13 +1593,14 @@ def resnet50_train(feature_extraction_dir,
             model.save(model_dir.joinpath('final_not_best_model.h5'))
             return model_dir, history
 
-
+# TODO cleanup
+# TODO test
+# TODO continue docstrings
 def envclassifier_extract_train(
     model_name = 'env_classifier',
-    dataset_dict = None,
-    num_labels = None,
     augment_dict = None,
     audiodata_path = None,
+    features_dir = None,
     save_new_files_dir = None,
     labeled_data = True,
     ignore_label_marker = None,
@@ -1437,7 +1612,6 @@ def envclassifier_extract_train(
     visualize = False,
     vis_every_n_items = 50,
     label_silence = False,
-    features_dir = None,
     val_data = None,
     test_data = None,
     append_model_dir = False,
@@ -1447,12 +1621,7 @@ def envclassifier_extract_train(
     Parameters
     ----------
     model_name : str 
-        Name of the model. No extension (will save as .h5 file)
-        
-    dataset_dict : dict, optional
-        A dictionary including datasets as keys, and audio file lists (with or without
-        labels) as values. If None, will be created based on `audiodata_path`.
-        (default None)
+        Name of the model. No extension (will save as .h5 file) (default 'env_classifier')
         
     augment_dict : dict, optional
         Dictionary containing keys (e.g. 'add_white_noise'). See 
@@ -1462,13 +1631,27 @@ def envclassifier_extract_train(
         (default None)
     
     audiodata_path : str, pathlib.PosixPath
-        Where audio data can be found, if no `dataset_dict` provided.
+        Where audio data can be found, if no `features_dir` where previously extracted and prepared files are located.
         (default None)
+        
+    features_dir : str, pathlib.PosixPath
+        The feature directory where previously extracted validation and test data 
+        are located, as well as the relevant log files.
         
     save_new_files_dir : str, pathlib.PosixPath
         Where new files (logging, model(s), etc.) will be saved. If None, will be 
         set in a unique directory within the current working directory.
         (default None)
+        
+    labeled_data : bool 
+        Useful in determining shape of data. If True, expected label column to exist 
+        at the end of the feature column of feature data. Note: this may be removed in 
+        future versions. 
+        
+    ignore_label_marker : str 
+        When collecting labels from subdirectory names, this allows a subfolder name to be
+        ignored. For example, if `ignore_label_marker` is set as '__', the folder name
+        '__test__' will not be included as a label while a folder name 'dog_barking' will.
         
     **kwargs : additional keyword arguments 
         Keyword arguments for `soundpy.feats.get_feats`.
@@ -1511,7 +1694,7 @@ def envclassifier_extract_train(
         kwargs['win_size_ms'] = 20
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
-    if 'rate_of_change' not in kwargs:
+    if 'rate_of_change' not in kwargs:d
         kwargs['rate_of_change'] = False
     if 'rate_of_acceleration' not in kwargs:
         kwargs['rate_of_acceleration'] = False
