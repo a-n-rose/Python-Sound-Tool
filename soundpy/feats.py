@@ -322,7 +322,6 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
                     win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                     **kwargs)
 
-# TODO test duration limit on all settings
 # stereo sound with mono (True/False) works for 'signal' data
 # only mono for frequency features
 def get_feats(sound,
