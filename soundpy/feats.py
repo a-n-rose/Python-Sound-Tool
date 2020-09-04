@@ -748,7 +748,7 @@ def get_stft(sound, sr=22050, win_size_ms = 50, percent_overlap = 0.5,
         
     Returns
     -------
-    stft_matrix : np.ndarray[size=(num_features, fft_bins)]
+    stft_matrix : np.ndarray[size=(num_frames, fft_bins)]
     '''
     if isinstance(sound, np.ndarray):
         if sound.dtype == np.complex_:
