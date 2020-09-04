@@ -868,8 +868,8 @@ def remove_dc_bias(samples, samp_win = None):
     samps : np.ndarray [shape=(samples, num_channels) or (samples)]
         The `samples` with zero mean.
         
-    Resources
-    ---------
+    References
+    ----------
     Lyons, Richard. (2011). Understanding Digital Signal Processing (3rd Edition). 
     '''
     samps = samples.copy()
