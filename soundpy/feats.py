@@ -1419,16 +1419,17 @@ def get_samples_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
     warnings.warn(msg)
     return [], vad_matrix
 
+# have applied to stft matrix, looks good
 def normalize(data, max_val=None, min_val=None):
-    '''Normalizes data.
+    '''Normalizes data to be between 0 and 1. Should not be applied to raw sample data.
     
-    This is usefule if you have predetermined max and min values you want to normalize
-    new data with. Should work with stereo sound: TODO test for stereo sound.
+    This is useful if you have predetermined max and min values you want to normalize
+    new data with. Is helpful in training models on sound features (not raw samples).
     
     Parameters
     ----------
-    data : np.ndarray
-        Data to be normalized
+    data : np.ndarray [size=(num_features,) or (num_frames,num_features)]
+        Data to be normalized.
     
     max_val : int or float, optional
         Predetermined maximum value. If None, will use max value
@@ -1441,7 +1442,7 @@ def normalize(data, max_val=None, min_val=None):
     
     Returns
     -------
-    normed_data : np.ndarray [size = (num_samples,)]
+    normed_data : np.ndarray [size = (num_features,) or (num_frames, num_features)]
     
     
     Examples
