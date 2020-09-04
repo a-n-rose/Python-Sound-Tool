@@ -1477,21 +1477,24 @@ def normalize(data, max_val=None, min_val=None):
     return normed_data
 
 
-def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequency', **kwargs):
+def plot_dom_freq(sound, energy_scale = 'power_to_db', title = None,
+                  save_pic = False, name4pic = None, overwrite = False, **kwargs):
     '''Plots the approximate dominant frequency over a STFT plot of a signal.
+    
+    If `sound` has multiple channels, the VAD for each channel is plotted in its 
+    own plot.
     
     Parameters
     ----------
-    sound : np.ndarray [shape=(num_samples,) ], str, or pathlib.PosixPath
-        If type np.ndarray, expect raw samples in mono sound. If type str or 
-        pathlib.PosixPath, expect pathway to audio file.
+    sound : np.ndarray [shape=(num_samples,) or (num_samples, num_channels)]
+        The sound to plot the dominant frequency of.
     
     energy_scale : str 
         The scale of energy for the plot. If in frequency spectrum, likey in power and needs
         to be put into db. (default 'power_to_db')
     
     title : str 
-        The title for the plot. (default 'Dominant Frequency')
+        The title for the plot. (default None)
     
     **kwargs : additional keyword arguments 
         Keyword arguments used in both `soundpy.feats.get_stft` and `soundpy.dsp.get_pitch`.
@@ -1501,27 +1504,91 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequen
     None
     '''
     import matplotlib.pyplot as plt
-    # set matching defaults if not in kwargs
+    # ensure numpy array 
+    if not isinstance(sound, np.ndarray):
+        raise TypeError('Function `soundpy.feats.plot_vad` expects a '+\
+            'numpy.ndarray, not type {}.'.format(type(sound)))
+    # ensure sample rate is provided
     if 'sr' not in kwargs:
-        kwargs['sr'] = 16000
+        raise ValueError('Function `soundpy.feats.plot_vad` requires sample rate'+\
+            ' of the provided audio samples. Please provide the sample rate '+\
+                'under the parameter `sr`.')
+    # set defaults if not provided
     if 'win_size_ms' not in kwargs:
         kwargs['win_size_ms'] = 20
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
-    stft_matrix = sp.feats.get_stft(sound, **kwargs)
-    # remove complex info for plotting:
-    power_matrix = sp.dsp.calc_power(stft_matrix)
-    pitch = sp.dsp.get_pitch(sound, **kwargs)
-    if energy_scale == 'power_to_db':
-        db_matrix = librosa.power_to_db(power_matrix)
-    plt.pcolormesh(db_matrix.T)
-    # limit the y axis; otherwise y axis goes way too high
-    axes = plt.gca()
-    axes.set_ylim([0,db_matrix.shape[1]])
-    color = 'yellow'
-    linestyle = ':'
-    plt.plot(pitch, 'ro', color=color)
-    plt.show()
+        
+
+    y, sr = sound, kwargs['sr']
+    if len(y.shape) == 1:
+        # add channel column
+        y = y.reshape(y.shape+(1,))
+    elif y.shape[1] > 11:
+        import warnings 
+        msg = '\nWARNING: provided `sound` data could be in the wrong format. \n'+\
+            'Function `soundpy.feats.plot_vad` expects raw sample data. Data '+\
+                'provided could be a stft, fbank, mfcc matrix or some other data'+\
+                    ' format. If plot results do not appear as expected, check data.'
+        warnings.warn(msg)
+        
+    if 'mono' in kwargs and kwargs['mono'] is True:
+        y = y[:,0]
+        y = y.reshape(y.shape+(1,))
+    
+    for channel in range(y.shape[1]):
+        stft_matrix = sp.feats.get_stft(y[:,channel], **kwargs)
+        
+        # remove complex info for plotting:
+        power_matrix = sp.dsp.calc_power(stft_matrix)
+        pitch = sp.dsp.get_pitch(sound, **kwargs)
+        if energy_scale == 'power_to_db':
+            db_matrix = librosa.power_to_db(power_matrix)
+        plt.pcolormesh(db_matrix.T)
+        # limit the y axis; otherwise y axis goes way too high
+        axes = plt.gca()
+        axes.set_ylim([0,db_matrix.shape[1]])
+        color = 'yellow'
+        linestyle = ':'
+        plt.plot(pitch, 'ro', color=color)
+        if not title:
+            title = 'Appx Dominant Frequency'
+        # adjust title if more than one channel
+        if y.shape[1] > 1:
+            if channel == 0:
+                title += '\n(channel {})'.format(channel+1)
+            else:
+                title = title[:-2] + '{})'.format(channel+1)
+        plt.title(title)
+        if not save_pic:
+            plt.show()
+        # set up name for saving the plot, given channel number and if other files exist
+        else:
+            if name4pic is None:
+                name4pic = 'dom_freq'
+                if y.shape[1] > 1:
+                    name4pic += '_channel{}'.format(channel+1)
+                name4pic = sp.utils.string2pathlib(name4pic+'.png')
+            else:
+                name4pic = sp.utils.string2pathlib(name4pic)
+                if y.shape[1] > 1:
+                    if channel == 0:
+                        name = name4pic.stem + '_channel{}'.format(channel+1)
+                        name4pic = name4pic.parent.joinpath(name, name4pic.suffix)
+                    else:
+                        name = name4pic.stem[:-1] + str(channel+1)
+                        name4pic = name4pic.parent.joinpath(name + name4pic.suffix)
+                if not name4pic.suffix:
+                    name4pic = name4pic.parent.joinpath(name4pic.stem+'.png')
+            if not overwrite:
+                if os.path.exists(name4pic):
+                    final_name = name4pic.stem + '_' + sp.utils.get_date()
+                    final_name = name4pic.parent.joinpath(final_name+name4pic.suffix)
+                else:
+                    final_name = name4pic
+            else:
+                final_name = name4pic
+            plt.savefig(final_name)
     
 # checked for stereo sound - works: plots each channel in separate plot
 def plot_vad(sound, energy_scale = 'power_to_db', 
@@ -1583,33 +1650,43 @@ def plot_vad(sound, energy_scale = 'power_to_db',
     None
     '''
     import matplotlib.pyplot as plt
-    # ensure sr is at least 44100
-    # vad does not work well with lower sample rates
+    # ensure numpy array 
+    if not isinstance(sound, np.ndarray):
+        raise TypeError('Function `soundpy.feats.plot_vad` expects a '+\
+            'numpy.ndarray, not type {}.'.format(type(sound)))
+    # ensure sample rate is provided
     if 'sr' not in kwargs:
-        kwargs['sr'] = 44100
+        raise ValueError('Function `soundpy.feats.plot_vad` requires sample rate'+\
+            ' of the provided audio samples. Please provide the sample rate '+\
+                'under the parameter `sr`.')
     else:
+        # ensure sr is at least 44100; otherwise raise warning
+        # vad does not work as well with lower sample rates
         if kwargs['sr'] < 44100:
             import warnings
             msg = '\nWarning: VAD works best with sample rates at or above '+\
                 '44100 Hz. To supress this warning, resample the audio from'+\
                     ' {} Hz to at least 44100 Hz.'.format(kwargs['sr'])
             warnings.warn(msg)
-    # set matching defaults if not in kwargs
+    # set defaults if not in kwargs
     if 'win_size_ms' not in kwargs:
         kwargs['win_size_ms'] = 50
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
-    
-    if not isinstance(sound, np.ndarray):
-        raise TypeError('Function `soundpy.feats.plot_vad` expects a '+\
-            'numpy.ndarray, not type {}.'.format(type(sound)))
-    else:
-        y, sr = sound, kwargs['sr']
+
+    y, sr = sound, kwargs['sr']
     if len(y.shape) == 1:
         # add channel column
         y = y.reshape(y.shape+(1,))
+    elif y.shape[1] > 11:
+        import warnings 
+        msg = '\nWARNING: provided `sound` data could be in the wrong format. \n'+\
+            'Function `soundpy.feats.plot_vad` expects raw sample data. Data '+\
+                'provided could be a stft, fbank, mfcc matrix or some other data'+\
+                    ' format. If plot results do not appear as expected, check data.'
+        warnings.warn(msg)
         
-    if 'mono' in kwargs:
+    if 'mono' in kwargs and kwargs['mono'] is True:
         y = y[:,0]
         y = y.reshape(y.shape+(1,))
     
@@ -1676,7 +1753,6 @@ def plot_vad(sound, energy_scale = 'power_to_db',
                 title = title[:-2] + '{})'.format(channel+1)
         plt.title(title)
         if not save_pic:
-            plt.plot()
             plt.show()
         # set up name for saving the plot, given channel number and if other files exist
         else:
