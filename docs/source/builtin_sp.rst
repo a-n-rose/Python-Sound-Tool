@@ -1,6 +1,6 @@
 
-Built-In Functionality (non Deep Learning)
-------------------------------------------
+Built-In Functionality (non Deep Learning) v0.1.0a3
+---------------------------------------------------
 
 .. automodule:: soundpy.builtin
    :members:

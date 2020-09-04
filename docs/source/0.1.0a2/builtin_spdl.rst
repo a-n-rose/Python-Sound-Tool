@@ -1,7 +1,8 @@
-Template deep neural networks v0.1.0a3
+
+Built-In Functionality (Deep Learning)
 --------------------------------------
 
-.. automodule:: soundpy.models.template_models
+.. automodule:: soundpy.models.builtin
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,6 +1,6 @@
 
-Feeding large datasets to models
---------------------------------
+Feeding large datasets to models v0.1.0a3
+-----------------------------------------
 
 .. autoclass:: soundpy.models.dataprep.Generator
    :members:

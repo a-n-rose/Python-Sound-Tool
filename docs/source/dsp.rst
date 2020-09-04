@@ -1,6 +1,6 @@
 
-Working with signals
---------------------
+Working with signals v0.1.0a3
+-----------------------------
 
 .. automodule:: soundpy.dsp
    :members:

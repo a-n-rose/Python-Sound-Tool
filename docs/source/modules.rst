@@ -1,6 +1,6 @@
-=========================
-SoundPy Functionality
-=========================
+==============================
+SoundPy Functionality v0.1.0a3
+==============================
 
 .. include:: builtin_sp.rst
 
