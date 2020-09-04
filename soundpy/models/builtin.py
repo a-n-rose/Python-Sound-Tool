@@ -1925,9 +1925,6 @@ def envclassifier_extract_train(
     
     return model_dir, history    
 
-
-
-
 def cnnlstm_extract_train(
     model_name = 'cnnlstm_classifier',
     dataset_dict = None,
