@@ -27,17 +27,21 @@ import soundpy as sp
 
 
 # TODO Clean up   
+# stereo sound only for plotting 'signal'; NOT for frequency features.
 def plot(feature_matrix, feature_type, 
         save_pic=False, name4pic=None, energy_scale='power_to_db',
         title=None, sr=None, win_size_ms=None, percent_overlap=None,
-        x_label=None, y_label=None, sub_process=False):
+        x_label=None, y_label=None, sub_process=False, overwrite=False):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
+    
+    Note: can only take multiple channels if `feature_type` is 'signal'. For other 
+    feature types, the plot will not work as expected.
     
     Parameters
     ----------
     feature_matrix : np.ndarray [shape=(num_samples,), (num_samples, num_channels), or (num_features, num_frames), dtype=np.float].
         Matrix of features. If the features are not of type 'signal' and the
-        shape is 1 D, one dimension will be added to be plotted with a colormesh.
+        shape is 1 D, one dimension will be added to be plotted with a colormesh. 
         
     feature_type : str
         Options: 'signal', 'stft', 'mfcc', or 'fbank' features, or 
@@ -84,6 +88,15 @@ def plot(feature_matrix, feature_type,
         generated live as well as saved. The 'Agg' backend is useful if one wants to visualize sound
         while a main process is being performed, for example, while a model is being trained.
         (default False)
+        
+    overwrite : bool 
+        If False, if .png file already exists under given name, a date tag will be 
+        added to the .png filename to avoid overwriting the file. 
+        (default False)
+        
+    Returns
+    -------
+    None
     '''
     if not sub_process:
         # can show plots
@@ -168,9 +181,8 @@ def plot(feature_matrix, feature_type,
     plt.xlabel(x_axis_label)
     plt.ylabel(axis_feature_label)
     # if feature_matrix has multiple frames, not just one
-    if feature_matrix.shape[1] > 1: 
-        if 'signal' not in feature_type \
-            and win_size_ms is not None and percent_overlap is not None:
+    if feature_matrix.shape[1] > 1 and 'signal' not in feature_type: 
+        if win_size_ms is not None and percent_overlap is not None:
             # the xticks basically show time but need to be multiplied by 0.01
             plt.xlabel('Time (sec)') 
             locs, labels = plt.xticks()
@@ -202,18 +214,27 @@ def plot(feature_matrix, feature_type,
         else:
             fname = outputname.stem + '.png'
             outputname = outputname.parent.joinpath(fname)
+        if not overwrite:
+            if os.path.exists(outputname):
+                fname = outputname.stem
+                fname += '_'+sp.utils.get_date()
+                outputname = outputname.parent.joinpath(fname+outputname.suffix)
         plt.savefig(outputname)
     else:
         plt.show()
 
+# tested for stereo sound
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     percent_overlap = 0.5, fft_bins = None, num_filters=40, num_mfcc=40, sr=None,\
         save_pic=False, name4pic=None, energy_scale='power_to_db', mono=None, real_signal=False, **kwargs):
-    '''Visualize feature extraction depending on set parameters. Does not use Librosa.
+    '''Visualize feature extraction depending on set parameters. 
+    
+    Stereo sound can be graphed. If `feature_type` is 'signal', all channels will be 
+    graphed on same plot. Otherwise, each channel will be plotted separately.
     
     Parameters
     ----------
-    audiodata : str or numpy.ndarray
+    audiodata : str, numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
         If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
         the samples of the sound data. Note: in the latter case, `sr`
         must be declared.
@@ -258,6 +279,40 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
         Keyword arguments for soundpy.feats.plot
     '''
     percent_overlap = check_percent_overlap(percent_overlap)
+    if 'signal' not in feature_type:
+        if isinstance(audiodata, np.ndarray) and len(audiodata.shape) > 1:
+            for channel in range(audiodata.shape[1]):
+                if name4pic is None:
+                    name4pic = '{}_channel_{}'.format(feature_type, channel+1)
+                else:
+                    name4pic = sp.string2pathlib(name4pic)
+                    name = name4pic.stem
+                    if channel == 0:
+                        name += '_channel{}'.format(channel+1)
+                    else:
+                        name = name[:-1]+'{}'.format(channel+1)
+                    name4pic = name4pic.parent.joinpath(name+name4pic.suffix)
+                if 'title' not in kwargs:
+                    kwargs['title'] = '{} features\n(channel {})'.format(
+                        feature_type, channel+1)
+                else:
+                    if channel == 0:
+                        kwargs['title'] += '\n(channel {})'.format(channel+1)
+                    else:
+                        kwargs['title'] = kwargs['title'][:-2]+'{})'.format(
+                            channel+1)
+                feats = sp.feats.get_feats(
+                    audiodata[:,channel], feature_type=feature_type, 
+                    win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                    fft_bins = fft_bins, num_filters=num_filters, num_mfcc = num_mfcc,
+                    sr=sr, mono = mono, real_signal = real_signal)
+                sp.feats.plot(
+                    feats, feature_type=feature_type, sr=sr,
+                    save_pic = save_pic, name4pic=name4pic, 
+                    energy_scale = energy_scale,
+                    win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                    **kwargs)
+            return None
     feats = sp.feats.get_feats(audiodata, feature_type=feature_type, 
                       win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                       fft_bins = fft_bins, num_filters=num_filters, num_mfcc = num_mfcc,
@@ -268,7 +323,8 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
                     **kwargs)
 
 # TODO test duration limit on all settings
-# TODO test for multiple channels
+# stereo sound with mono (True/False) works for 'signal' data
+# only mono for frequency features
 def get_feats(sound,
               sr = None, 
               feature_type = 'fbank', 
@@ -390,9 +446,11 @@ def get_feats(sound,
             raise ValueError('No samplerate given. Either provide '+\
                 'filename or appropriate samplerate.')
         data, sr = sound, sr
-        if len(data.shape) > 1:
+        if len(data.shape) > 1 and 'signal' not in feature_type:
             print('Only one channel can be currently used for feature '+\
                 'extraction. Using the first channel.')
+            data = data[:,0]
+        elif len(data.shape) > 1 and mono:
             data = data[:,0]
         if dur_sec:
             data = data[:int(sr*dur_sec)]
