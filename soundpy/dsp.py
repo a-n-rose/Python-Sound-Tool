@@ -175,12 +175,13 @@ def set_signal_length(samples, numsamps):
     data = sp.utils.match_dtype(data, samples)
     return data
 
+# works for stereo sound (raw signal data)
 def scalesound(data, max_val = 1, min_val=None):
     '''Scales the input array to range between `min_val` and `max_val`. 
     
     Parameters
     ----------
-    data : np.ndarray [size = (num_samples,)]
+    data : np.ndarray [size = (num_samples,) or (num_samples, num_channels)]
         Original samples
     
     max_val : int, float
@@ -194,7 +195,7 @@ def scalesound(data, max_val = 1, min_val=None):
     
     Returns
     -------
-    samples : np.ndarray [size = (num_samples,)]
+    samples : np.ndarray [size = (num_samples,) or (num_samples, num_channels)]
         Copy of original data, scaled to the min and max values.
     
     
@@ -205,14 +206,26 @@ def scalesound(data, max_val = 1, min_val=None):
     >>> input_samples = np.random.random_sample((5,))
     >>> input_samples
     array([0.5488135 , 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
+    >>> input_samples.max()
+    0.7151893663724195
+    >>> input_samples.min()
+    0.4236547993389047
     >>> # default setting: between -1 and 1
     >>> output_samples = scalesound(input_samples)
     >>> output_samples 
     array([-0.14138 ,1., 0.22872961, -0.16834299, -1.])
+    >>> output_samples.max()
+    1.0
+    >>> output_samples.min()
+    -1.0
     >>> # range between -100 and 100
     >>> output_samples = scalesound(input_samples, max_val = 100, min_val = -100)
     >>> output_samples
     array([ -14.13800026,100., 22.87296052,-16.83429866,-100.])
+    >>> output_samples.max()
+    100.0
+    >>> output_samples.min()
+    -100.0
     '''
     if min_val is None:
         min_val = -max_val

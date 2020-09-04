@@ -233,6 +233,16 @@ def test_scalesound_min_minuspoint25_maxpoint25():
     expected = np.array([-0.035345, 0.25, 0.0571824, -0.04208575, -0.25])
     assert np.allclose(output_samples, expected)
     
+def test_scalesound_stereo_defaults():
+    np.random.seed(0)
+    input_samples = np.random.random_sample((5,2))
+    output_samples = sp.dsp.scalesound(input_samples)
+    assert output_samples.shape == input_samples.shape
+    assert round(output_samples[:,0].max()) == 1
+    assert round(output_samples[:,0].min()) == -1
+    assert round(output_samples[:,1].max()) == 1
+    assert round(output_samples[:,1].min()) == -1
+    
 def test_normalize_default():
     np.random.seed(0)
     input_samples = np.random.random_sample((5,))
