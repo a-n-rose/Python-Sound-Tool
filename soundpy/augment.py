@@ -443,7 +443,8 @@ def get_augmentation_settings_dict(augmentation):
 
     Raises
     ------
-    ValueError if `augmentation` does not match available augmentations.
+    ValueError 
+        If `augmentation` does not match available augmentations.
     
     See Also
     --------
