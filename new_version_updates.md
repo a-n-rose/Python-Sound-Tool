@@ -15,6 +15,10 @@ changed parameter (Generator) normalized to normalize (opposite bool); removed a
 - Got the augment cnn builtin functionality to run with pre-trained features.. needs cleaning
 - got plotsound, plot vad, and plot dom freq, to work with stereo sound
 
+Removing from envclassifier_extract_train:
+    dataset_dict = None,
+    num_labels = None,
+
 
 ## Updates of v0.1.0a2 release:
 
