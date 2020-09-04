@@ -334,6 +334,35 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
     return stft_matrix, vtlp_a
 
 def get_augmentation_dict():
+    '''Returns dictionary with augmentation options as keys and values set to False.
+    
+    Examples
+    --------
+    >>> import soundpy as sp
+    >>> ad = sp.augment.get_augmentation_dict()
+    >>> ad
+    {'speed_increase': False,
+    'speed_decrease': False,
+    'time_shift': False,
+    'shufflesound': False,
+    'add_white_noise': False,
+    'harmonic_distortion': False,
+    'pitch_increase': False,
+    'pitch_decrease': False,
+    'vtlp': False}
+    >>> # to set augmentation to True:
+    >>> ad['add_white_noise'] = True
+    >>> ad
+    {'speed_increase': False,
+    'speed_decrease': False,
+    'time_shift': False,
+    'shufflesound': False,
+    'add_white_noise': True,
+    'harmonic_distortion': False,
+    'pitch_increase': False,
+    'pitch_decrease': False,
+    'vtlp': False}
+    '''
     base_dict = dict([('speed_increase', False),
                       ('speed_decrease', False),
                       ('time_shift', False),
@@ -347,12 +376,83 @@ def get_augmentation_dict():
     return base_dict
 
 def list_augmentations():
+    '''Lists available augmentations.
+    
+    Examples
+    --------
+    >>> import soundpy as sp
+    >>> print(sp.augment.list_augmentations())
+    Available augmentations:
+            speed_increase
+            speed_decrease
+            time_shift
+            shufflesound
+            add_white_noise
+            harmonic_distortion
+            pitch_increase
+            pitch_decrease
+            vtlp
+    '''
     augmentation_dict = sp.augment.get_augmentation_dict()
     aug_list = '\t'+'\n\t'.join(str(x) for x in augmentation_dict.keys())
     augmentations = 'Available augmentations:\n '+ aug_list
     return augmentations
     
+# TODO test to see if list can be applied to all augmentations, not just 'add_white_noise'
 def get_augmentation_settings_dict(augmentation):
+    '''Returns default settings of base function for augmentation.
+    
+    Parameters
+    ----------
+    augmentation : str 
+        The augmentation of interest.
+    
+    Returns
+    -------
+    aug_defaults : dict 
+        A dictionary with the base augmentation function parameters as keys  
+        and default values as values. 
+    
+    Examples
+    --------
+    >>> import soundpy as sp
+    >>> d = sp.augment.get_augmentation_settings_dict('speed_decrease')
+    >>> d
+    {'perc': 0.15}
+    >>> # can use this dictionary to apply different values for augmentation
+    >>> d['perc'] = 0.1
+    >>> d
+    {'perc': 0.1}
+    >>> # to build a dictionary with several settings:
+    >>> many_settings_dict = {}
+    >>> many_settings_dict['add_white_noise'] = sp.augment.get_augmentation_settings_dict('add_white_noise')
+    >>> many_settings_dict['pitch_increase'] = sp.augment.get_augmentation_settings_dict('pitch_increase')
+    >>> many_settings_dict
+    {'add_white_noise': {'noise_level': 0.01, 'snr': 10, 'random_seed': None},
+    'pitch_increase': {'num_semitones': 2}}
+    >>> # change 'snr' default values to list of several values
+    >>> # this would apply white noise at either 10, 15, or 20 SNR, at random
+    >>> many_settings_dict['add_white_noise']['snr'] = [10, 15, 20]
+    >>> # change number of semitones pitch increase is applied
+    >>> many_settings_dict['pitch_increase']['num_semitones'] = 1
+    >>> many_settings_dict
+    {'add_white_noise': {'noise_level': 0.01,
+    'snr': [10, 15, 20],
+    'random_seed': None},
+    'pitch_increase': {'num_semitones': 1}}
+
+    Raises
+    ------
+    ValueError if `augmentation` does not match available augmentations.
+    
+    See Also
+    --------
+    soundpy.models.dataprep.augment_features
+        The above dictionary example `many_settings_dict` can be applied under the
+        parameter `augment_settings_dict` to apply augmentation settings when 
+        augmenting data, for example, within a generator function. See 
+        `soundpy.models.dataprep.GeneratorFeatExtraction`.
+    '''
     if augmentation == 'speed_increase':
         aug_defaults = sp.utils.get_default_args(sp.augment.speed_increase)
     elif augmentation == 'speed_decrease':
@@ -371,5 +471,9 @@ def get_augmentation_settings_dict(augmentation):
         aug_defaults = sp.utils.get_default_args(sp.augment.pitch_decrease)
     elif augmentation == 'vtlp':
         aug_defaults = sp.utils.get_default_args(sp.augment.vtlp)
+    else:
+        raise ValueError('Receieved `augmentation` "{}"'.format(augmentation)+\
+            ' which is not included in available augmentations:\n{}'.format(
+                sp.augment.list_augmentations()))
     return aug_defaults
     
