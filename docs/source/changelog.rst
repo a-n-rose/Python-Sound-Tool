@@ -21,11 +21,10 @@ Features
    -  added `timestep`, `axis_timestep`, `context_window`, `axis_context_window`  and `combine_axes_0_1` paremeters to  `soundpy.models.Generator`:  allow more control over shape of the features.
    -  can run `soundpy.models.builtin.envclassifier_extract_train` to run with pre-extracted val and test features. 
    -  `soundpy.feats.plotsound`, `soundpy.feats.plot_vad` and `soundpy.feats.plot_dom_freq` all can plot stereo sound: for each channel in a stereo signal, a plot is either generated or saved. If a filename already exists, a date stamp is added to filename to avoid overwriting images.
+   - allow `grayscale2color` to be applied to 2D data.
 
 Breaking changes
-   -  return only features and sr in `soundpy.models.builtin.denoiser_run`. `feature_type` is no longer returned. Rather, if raw samples cannot be returned, a warning is raised.  
    -  `soundpy.models.Generator` uses parameter `normalize` instaed of `normalized`. Found this to be more intuitive. If `normalize` is set to True, data will be normalized. Before, if `normalized` was set to True, data would not be normalized.
-   - allow `grayscale2color` to be applied to 2D data.
    -  removed `add_tensor_last` and `add_tensor_first`: require adding of tensors (for keras) to be included in parameter `desired_input_shape`.
    
 Other changes 
