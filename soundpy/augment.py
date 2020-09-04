@@ -450,8 +450,7 @@ def get_augmentation_settings_dict(augmentation):
     soundpy.models.dataprep.augment_features
         The above dictionary example `many_settings_dict` can be applied under the
         parameter `augment_settings_dict` to apply augmentation settings when 
-        augmenting data, for example, within a generator function. See 
-        `soundpy.models.dataprep.GeneratorFeatExtraction`.
+        augmenting data, for example, within a generator function. See `soundpy.models.dataprep.GeneratorFeatExtraction`.
     '''
     if augmentation == 'speed_increase':
         aug_defaults = sp.utils.get_default_args(sp.augment.speed_increase)
