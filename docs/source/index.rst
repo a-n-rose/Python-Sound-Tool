@@ -3,13 +3,21 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-SoundPy v0.1.0a3
-====================  
+Next release: SoundPy v0.1.0a3
+===============================  
 
 Welcome to the docs!
 --------------------
 
-SoundPy is a research based Python package_ for exploring and experimenting with sound and deep learning. 
+For documentation consistent with the PyPI_ package, view the latest version available here:
+
+.. toctree:: 
+   :maxdepth: 1
+   
+   versions.rst
+
+
+SoundPy is a research based Python package_ for exploring and experimenting with sound and deep learning. (For examples, see below)
 
 Those who might find this useful: 
 
@@ -26,7 +34,9 @@ As it covers quite a large range, from audio file conversion to implementation o
 
 This project is still in the beginning stages and has a lot of room for growth, especially with contributors having a background / knowlege in data science, computer science, machine and deep learning, physics, acoustics, or dsp. Contributors from other backgrounds are also welcome! If you'd like SoundPy to do something it doesn't, try making it or create an issue.
 
-.. _package: https://github.com/a-n-rose/Python-Sound-Tool/tree/master
+.. _PyPI: https://pypi.org/project/soundpy/
+
+.. _package: https://github.com/a-n-rose/Python-Sound-Tool/tree/development
 
 .. toctree:: 
    :maxdepth: 2
@@ -39,11 +49,6 @@ This project is still in the beginning stages and has a lot of room for growth, 
    :maxdepth: 1
    
    changelog.rst
-   
-.. toctree:: 
-   :maxdepth: 1
-   
-   versions.rst
    
 * :ref:`genindex`
 * :ref:`modindex`
