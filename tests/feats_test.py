@@ -451,3 +451,23 @@ def test_get_feature_matrix_shape():
     assert expected_base_shape == got_base_shape
     assert expected_model_shape == got_model_shape
     
+def test_get_feats_signal_mono_False_2channels():
+    y, sr = sp.loadsound(test_audiofile, mono=False)
+    y2 = sp.feats.get_feats(y, sr=sr, feature_type='signal', mono=False)
+    assert y.shape == y2.shape
+    assert y.shape[1] == 2
+    
+def test_get_feats_signal_mono_True_2channels():
+    y, sr = sp.loadsound(test_audiofile, mono=False)
+    y2 = sp.feats.get_feats(y, sr=sr,feature_type='signal', mono=True)
+    assert len(y2.shape) == 1
+    assert y.shape[1] == 2
+    
+def test_get_feats_signal_mono_default_2channels_no_change():
+    y, sr = sp.loadsound(test_audiofile, mono=False)
+    y2 = sp.feats.get_feats(y, sr=sr, feature_type='signal')
+    assert y.shape == y2.shape
+    assert y.shape[1] == 2
+    
+    
+    
