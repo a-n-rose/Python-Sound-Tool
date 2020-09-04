@@ -13,6 +13,7 @@ then switch to Tkinker backend using use_tkinker parameter for normal use outsid
 changed parameter (Generator) normalized to normalize (opposite bool); removed add_tensor_last parameter, adjusted grayscale2color sections: can be applied to 2D data; set sr default to 22050
 
 - Got the augment cnn builtin functionality to run with pre-trained features.. needs cleaning
+- got plotsound, plot vad, and plot dom freq, to work with stereo sound
 
 
 ## Updates of v0.1.0a2 release:

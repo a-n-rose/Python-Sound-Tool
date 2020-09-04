@@ -1476,7 +1476,7 @@ def normalize(data, max_val=None, min_val=None):
         normed_data = (data - min_val) / (max_val - min_val + eps)
     return normed_data
 
-
+# checked for stereo sound - works: plots each channel in separate plot
 def plot_dom_freq(sound, energy_scale = 'power_to_db', title = None,
                   save_pic = False, name4pic = None, overwrite = False, **kwargs):
     '''Plots the approximate dominant frequency over a STFT plot of a signal.

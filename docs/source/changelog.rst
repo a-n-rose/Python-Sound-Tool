@@ -19,7 +19,8 @@ Features
    -  Python 3.8 can now be used.
    -  throw depreciation warning for parameters `context_window` or `frames_per_sample` as these "features" will be removed from feature extraction. Rather the features can be reshaped post feature extraction.
    -  added `timestep`, `axis_timestep`, `context_window`, `axis_context_window`  and `combine_axes_0_1` paremeters to  `soundpy.models.Generator`:  allow more control over shape of the features.
-   -  can run `pysound.models.builtin.envclassifier_extract_train` to run with pre-extracted val and test features. 
+   -  can run `soundpy.models.builtin.envclassifier_extract_train` to run with pre-extracted val and test features. 
+   -  `soundpy.feats.plotsound`, `soundpy.feats.plot_vad` and `soundpy.feats.plot_dom_freq` all can plot stereo sound: for each channel in a stereo signal, a plot is either generated or saved. If a filename already exists, a date stamp is added to filename to avoid overwriting images.
 
 Breaking changes
    -  return only features and sr in `soundpy.models.builtin.denoiser_run`. `feature_type` is no longer returned. Rather, if raw samples cannot be returned, a warning is raised.  
