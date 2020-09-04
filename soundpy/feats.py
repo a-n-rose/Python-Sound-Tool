@@ -1523,17 +1523,20 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequen
     plt.plot(pitch, 'ro', color=color)
     plt.show()
     
+# checked for stereo sound - works: plots each channel in separate plot
 def plot_vad(sound, energy_scale = 'power_to_db', 
              title = 'Voice Activity', 
              use_beg_ms = 120, extend_window_ms=0, 
-             beg_end_clipped = True, name4pic = None, **kwargs):
-    '''Plots where voice (sound) activity detected on STFT plot.
+             beg_end_clipped = True, save_pic = False, name4pic = None, 
+             overwrite = False, **kwargs):
+    '''Plots where voice (sound) activity detected on power spectrum. 
     
-    This either plots immediately or saves the plot at `name4pic`.
+    This either plots immediately or saves the plot at `name4pic`. If `sound` 
+    has multiple channels, the VAD for each channel is plotted in its own plot.
     
     Parameters
     ----------
-    sound : np.ndarray [shape=(num_samples,)], str, pathlib.PosixPath
+    sound : np.ndarray [shape=(num_samples,) or (num_samples, num_channels)]
         The sound to plot the VAD of.
     
     energy_scale : str 
@@ -1560,9 +1563,16 @@ def plot_vad(sound, energy_scale = 'power_to_db',
         not recognizing speech in speech filled samples. And when set to True, some speech
         sounds tend to get ignored ('s', 'x' and other fricatives).
         
+    save_pic : bool 
+        If True, the plot will be saved rather than plotted immediately.
+        
     name4pic : str 
         The full pathway and filename to save the picture (as .png file). A file
         extension is expected. (default None)
+        
+    overwrite : bool 
+        If False, a date tag will be added to `name4pic` if `name4pic` already exists.
+        (default False)
         
     **kwargs : keyword arguments
         Additional keyword arguments for `soundpy.feats.get_speech_stft` or 
@@ -1589,63 +1599,114 @@ def plot_vad(sound, energy_scale = 'power_to_db',
         kwargs['win_size_ms'] = 50
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
-    stft_matrix = sp.feats.get_stft(sound, **kwargs)
     
-    if beg_end_clipped:
-        stft_vad, vad_matrix = sp.feats.get_stft_clipped(sound,
-                                                        **kwargs)
+    if not isinstance(sound, np.ndarray):
+        raise TypeError('Function `soundpy.feats.plot_vad` expects a '+\
+            'numpy.ndarray, not type {}.'.format(type(sound)))
     else:
-        #vad_matrix, __ = sp.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
-        stft_vad, vad_matrix = sp.feats.get_vad_stft(sound,
-                                                       use_beg_ms = use_beg_ms,
-                                                       **kwargs)
-    
-    # extend window of VAD if desired
-    if extend_window_ms > 0:
-        frame_length = sp.dsp.calc_frame_length(kwargs['win_size_ms'],
-                                                  kwargs['sr'])
-        num_overlap_samples = int(frame_length * kwargs['percent_overlap'])
-        # set number of subframes for extending window
-        extwin_num_samples = sp.dsp.calc_frame_length(extend_window_ms, kwargs['sr'])
-        num_win_subframes = sp.dsp.calc_num_subframes(extwin_num_samples,
-                                                        frame_length = frame_length,
-                                                        overlap_samples = num_overlap_samples,
-                                                        zeropad = True)
-        vad_matrix_extwin = vad_matrix.copy()
-        for i, row in enumerate(vad_matrix):
-            if row > 0:
-                # label samples before VAD as VAD
-                if i > num_win_subframes:
-                    vad_matrix_extwin[i-num_win_subframes:i] = 1
-                else:
-                    vad_matrix_extwin[:i] = 1
-                # label samples before VAD as VAD
-                if i + num_win_subframes < len(vad_matrix):
-                    vad_matrix_extwin[i:num_win_subframes+i] = 1
-                else:
-                    vad_matrix_extwin[i:] = 1
+        y, sr = sound, kwargs['sr']
+    if len(y.shape) == 1:
+        # add channel column
+        y = y.reshape(y.shape+(1,))
         
-        vad_matrix = vad_matrix_extwin
-    # remove complex info for plotting:
-    power_matrix = sp.dsp.calc_power(stft_matrix)
-    db_matrix = librosa.power_to_db(power_matrix)
-    y_axis = db_matrix.shape[1]
-    if max(vad_matrix) > 0:
-        vad_matrix = sp.dsp.scalesound(vad_matrix, max_val = y_axis, min_val = 0)
-    plt.pcolormesh(db_matrix.T)
-    # limit the y axis; otherwise y axis goes way too high
-    axes = plt.gca()
-    axes.set_ylim([0,db_matrix.shape[1]])
-    color = 'yellow'
-    linestyle = ':'
-    plt.plot(vad_matrix, 'ro', color=color)
-    if title:
+    if 'mono' in kwargs:
+        y = y[:,0]
+        y = y.reshape(y.shape+(1,))
+    
+    for channel in range(y.shape[1]):
+        stft_matrix = sp.feats.get_stft(y[:,channel], **kwargs)
+        
+        if beg_end_clipped:
+            stft_vad, vad_matrix = sp.feats.get_stft_clipped(y[:,channel],
+                                                            **kwargs)
+        else:
+            #vad_matrix, __ = sp.dsp.vad(y[:,channel], use_beg_ms = use_beg_ms, **kwargs)
+            stft_vad, vad_matrix = sp.feats.get_vad_stft(y[:,channel],
+                                                        use_beg_ms = use_beg_ms,
+                                                        **kwargs)
+        
+        # extend window of VAD if desired
+        if extend_window_ms > 0:
+            frame_length = sp.dsp.calc_frame_length(kwargs['win_size_ms'],
+                                                    kwargs['sr'])
+            num_overlap_samples = int(frame_length * kwargs['percent_overlap'])
+            # set number of subframes for extending window
+            extwin_num_samples = sp.dsp.calc_frame_length(extend_window_ms, kwargs['sr'])
+            num_win_subframes = sp.dsp.calc_num_subframes(extwin_num_samples,
+                                                            frame_length = frame_length,
+                                                            overlap_samples = num_overlap_samples,
+                                                            zeropad = True)
+            vad_matrix_extwin = vad_matrix.copy()
+            for i, row in enumerate(vad_matrix):
+                if row > 0:
+                    # label samples before VAD as VAD
+                    if i > num_win_subframes:
+                        vad_matrix_extwin[i-num_win_subframes:i] = 1
+                    else:
+                        vad_matrix_extwin[:i] = 1
+                    # label samples before VAD as VAD
+                    if i + num_win_subframes < len(vad_matrix):
+                        vad_matrix_extwin[i:num_win_subframes+i] = 1
+                    else:
+                        vad_matrix_extwin[i:] = 1
+            
+            vad_matrix = vad_matrix_extwin
+        # remove complex info for plotting:
+        power_matrix = sp.dsp.calc_power(stft_matrix)
+        db_matrix = librosa.power_to_db(power_matrix)
+        y_axis = db_matrix.shape[1]
+        if max(vad_matrix) > 0:
+            vad_matrix = sp.dsp.scalesound(vad_matrix, max_val = y_axis, min_val = 0)
+        plt.pcolormesh(db_matrix.T)
+        # limit the y axis; otherwise y axis goes way too high
+        axes = plt.gca()
+        axes.set_ylim([0,db_matrix.shape[1]])
+        color = 'yellow'
+        linestyle = ':'
+        plt.plot(vad_matrix, 'ro', color=color)
+        if not title:
+            title = 'Voice Activity in Signal'
+        if beg_end_clipped and 'clipped' not in title:
+            title += ' (clipped)'
+        # adjust title if more than one channel
+        if y.shape[1] > 1:
+            if channel == 0:
+                title += '\n(channel {})'.format(channel+1)
+            else:
+                title = title[:-2] + '{})'.format(channel+1)
         plt.title(title)
-    if name4pic is None:
-        plt.plot()
-        plt.show()
-    else:
-        plt.savefig(name4pic)
+        if not save_pic:
+            plt.plot()
+            plt.show()
+        # set up name for saving the plot, given channel number and if other files exist
+        else:
+            if name4pic is None:
+                name4pic = 'vad'
+                if beg_end_clipped:
+                    name4pic += '_clipped'
+                if y.shape[1] > 1:
+                    name4pic += '_channel{}'.format(channel+1)
+                name4pic = sp.utils.string2pathlib(name4pic+'.png')
+            else:
+                name4pic = sp.utils.string2pathlib(name4pic)
+                if y.shape[1] > 1:
+                    if channel == 0:
+                        name = name4pic.stem + '_channel{}'.format(channel+1)
+                        name4pic = name4pic.parent.joinpath(name, name4pic.suffix)
+                    else:
+                        name = name4pic.stem[:-1] + str(channel+1)
+                        name4pic = name4pic.parent.joinpath(name + name4pic.suffix)
+                if not name4pic.suffix:
+                    name4pic = name4pic.parent.joinpath(name4pic.stem+'.png')
+            if not overwrite:
+                if os.path.exists(name4pic):
+                    final_name = name4pic.stem + '_' + sp.utils.get_date()
+                    final_name = name4pic.parent.joinpath(final_name+name4pic.suffix)
+                else:
+                    final_name = name4pic
+            else:
+                final_name = name4pic
+            plt.savefig(final_name)
 
 def get_change_acceleration_rate(spectro_data):
     '''Gets first and second derivatives of spectral data.
