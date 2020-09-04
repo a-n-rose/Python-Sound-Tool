@@ -724,7 +724,7 @@ def augment_features(sound,
                      augment_settings_dict = None,
                      random_seed = None,
                      ):
-    '''Randomly applies augmentations to audio
+    '''Randomly applies augmentations to audio. If no `augment_settings_dict`, defaults applied.
     '''
     if augment_settings_dict is not None:
         aug_settings = dict(augment_settings_dict)
