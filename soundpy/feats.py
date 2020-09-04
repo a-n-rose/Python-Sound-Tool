@@ -1509,13 +1509,15 @@ def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequen
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
     stft_matrix = sp.feats.get_stft(sound, **kwargs)
+    # remove complex info for plotting:
+    power_matrix = sp.dsp.calc_power(stft_matrix)
     pitch = sp.dsp.get_pitch(sound, **kwargs)
     if energy_scale == 'power_to_db':
-        stft_matrix = librosa.power_to_db(stft_matrix)
-    plt.pcolormesh(stft_matrix.T)
+        db_matrix = librosa.power_to_db(power_matrix)
+    plt.pcolormesh(db_matrix.T)
     # limit the y axis; otherwise y axis goes way too high
     axes = plt.gca()
-    axes.set_ylim([0,stft_matrix.shape[1]])
+    axes.set_ylim([0,db_matrix.shape[1]])
     color = 'yellow'
     linestyle = ':'
     plt.plot(pitch, 'ro', color=color)
@@ -1579,14 +1581,9 @@ def plot_vad(sound, energy_scale = 'power_to_db',
         if kwargs['sr'] < 44100:
             import warnings
             msg = '\nWarning: VAD works best with sample rates at or above '+\
-                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(kwargs['sr'])
+                '44100 Hz. To supress this warning, resample the audio from'+\
+                    ' {} Hz to at least 44100 Hz.'.format(kwargs['sr'])
             warnings.warn(msg)
-            if isinstance(sound, np.ndarray):
-                sound, sr = sp.dsp.resample_audio(sound, kwargs['sr'], 44100)
-                kwargs['sr'] = sr
-            else:
-                kwargs['sr'] = 44100
     # set matching defaults if not in kwargs
     if 'win_size_ms' not in kwargs:
         kwargs['win_size_ms'] = 50
@@ -1629,11 +1626,16 @@ def plot_vad(sound, energy_scale = 'power_to_db',
                     vad_matrix_extwin[i:] = 1
         
         vad_matrix = vad_matrix_extwin
-    stft_matrix = librosa.power_to_db(stft_matrix)
-    y_axis = stft_matrix.shape[1]
+    # remove complex info for plotting:
+    power_matrix = sp.dsp.calc_power(stft_matrix)
+    db_matrix = librosa.power_to_db(power_matrix)
+    y_axis = db_matrix.shape[1]
     if max(vad_matrix) > 0:
         vad_matrix = sp.dsp.scalesound(vad_matrix, max_val = y_axis, min_val = 0)
-    plt.pcolormesh(stft_matrix.T)
+    plt.pcolormesh(db_matrix.T)
+    # limit the y axis; otherwise y axis goes way too high
+    axes = plt.gca()
+    axes.set_ylim([0,db_matrix.shape[1]])
     color = 'yellow'
     linestyle = ':'
     plt.plot(vad_matrix, 'ro', color=color)
@@ -1641,6 +1643,7 @@ def plot_vad(sound, energy_scale = 'power_to_db',
         plt.title(title)
     if name4pic is None:
         plt.plot()
+        plt.show()
     else:
         plt.savefig(name4pic)
 
