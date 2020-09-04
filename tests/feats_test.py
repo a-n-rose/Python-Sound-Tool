@@ -469,5 +469,129 @@ def test_get_feats_signal_mono_default_2channels_no_change():
     assert y.shape == y2.shape
     assert y.shape[1] == 2
     
+def test_get_feats_dur_sec_signal():
+    dur_sec = 0.5
+    y, sr = sp.loadsound(test_audiofile, mono=True)
+    y2 = sp.feats.get_feats(y, sr=sr, dur_sec=dur_sec, feature_type='signal')
+    num_samps = int(sr*dur_sec)
+    assert len(y2) == num_samps
+
+def test_get_feats_dur_sec_zeropad_True_stft():
+    dur_sec = 0.5
+    win_size_ms = 20
+    percent_overlap = 0.5
+    zeropad = True
+    y, sr = sp.loadsound(test_audiofile, mono=True)
+    y2 = sp.feats.get_feats(y, sr=sr, dur_sec=dur_sec, feature_type='stft',
+                            win_size_ms = win_size_ms, 
+                            percent_overlap = percent_overlap,
+                            zeropad = zeropad)
+    num_samples = int(sr*dur_sec)
+    frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = sp.dsp.calc_num_subframes(
+        num_samples,
+        frame_length = frame_length,
+        overlap_samples = num_overlap_samples,
+        zeropad = zeropad)
+    assert len(y2) == num_subframes
     
+def test_get_feats_dur_sec_zeropad_False_stft():
+    dur_sec = 0.5
+    win_size_ms = 20
+    percent_overlap = 0.5
+    zeropad = False
+    y, sr = sp.loadsound(test_audiofile, mono=True)
+    y2 = sp.feats.get_feats(y, sr=sr, dur_sec=dur_sec, feature_type='stft',
+                            win_size_ms = win_size_ms, 
+                            percent_overlap = percent_overlap,
+                            zeropad = zeropad)
+    num_samples = int(sr*dur_sec)
+    frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = sp.dsp.calc_num_subframes(
+        num_samples,
+        frame_length = frame_length,
+        overlap_samples = num_overlap_samples,
+        zeropad = zeropad)
+    assert len(y2) == num_subframes
     
+def test_get_feats_dur_sec_zeropad_True_fbank():
+    dur_sec = 0.5
+    win_size_ms = 20
+    percent_overlap = 0.5
+    zeropad = True
+    y, sr = sp.loadsound(test_audiofile, mono=True)
+    y2 = sp.feats.get_feats(y, sr=sr, dur_sec=dur_sec, feature_type='fbank',
+                            win_size_ms = win_size_ms, 
+                            percent_overlap = percent_overlap,
+                            zeropad = zeropad)
+    num_samples = int(sr*dur_sec)
+    frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = sp.dsp.calc_num_subframes(
+        num_samples,
+        frame_length = frame_length,
+        overlap_samples = num_overlap_samples,
+        zeropad = zeropad)
+    assert len(y2) == num_subframes
+    
+def test_get_feats_dur_sec_zeropad_False_fbank():
+    dur_sec = 0.5
+    win_size_ms = 20
+    percent_overlap = 0.5
+    zeropad = False
+    y, sr = sp.loadsound(test_audiofile, mono=True)
+    y2 = sp.feats.get_feats(y, sr=sr, dur_sec=dur_sec, feature_type='fbank',
+                            win_size_ms = win_size_ms, 
+                            percent_overlap = percent_overlap,
+                            zeropad = zeropad)
+    num_samples = int(sr*dur_sec)
+    frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = sp.dsp.calc_num_subframes(
+        num_samples,
+        frame_length = frame_length,
+        overlap_samples = num_overlap_samples,
+        zeropad = zeropad)
+    assert len(y2) == num_subframes
+    
+def test_get_feats_dur_sec_zeropad_True_mfcc():
+    dur_sec = 0.5
+    win_size_ms = 20
+    percent_overlap = 0.5
+    zeropad = True
+    y, sr = sp.loadsound(test_audiofile, mono=True)
+    y2 = sp.feats.get_feats(y, sr=sr, dur_sec=dur_sec, feature_type='mfcc',
+                            win_size_ms = win_size_ms, 
+                            percent_overlap = percent_overlap,
+                            zeropad = zeropad)
+    num_samples = int(sr*dur_sec)
+    frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = sp.dsp.calc_num_subframes(
+        num_samples,
+        frame_length = frame_length,
+        overlap_samples = num_overlap_samples,
+        zeropad = zeropad)
+    assert len(y2) == num_subframes
+    
+def test_get_feats_dur_sec_zeropad_False_mfcc():
+    dur_sec = 0.5
+    win_size_ms = 20
+    percent_overlap = 0.5
+    zeropad = False
+    y, sr = sp.loadsound(test_audiofile, mono=True)
+    y2 = sp.feats.get_feats(y, sr=sr, dur_sec=dur_sec, feature_type='mfcc',
+                            win_size_ms = win_size_ms, 
+                            percent_overlap = percent_overlap,
+                            zeropad = zeropad)
+    num_samples = int(sr*dur_sec)
+    frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
+    num_overlap_samples = int(frame_length * percent_overlap)
+    num_subframes = sp.dsp.calc_num_subframes(
+        num_samples,
+        frame_length = frame_length,
+        overlap_samples = num_overlap_samples,
+        zeropad = zeropad)
+    assert len(y2) == num_subframes
