@@ -64,7 +64,7 @@ for f in files:
 feat_settings = sp.utils.load_dict(
     model_dir.joinpath('log_extraction_settings.csv'))
 for key, value in feat_settings.items():
-    print(key, ' ---> ', value)
+    print(key, ' --> ', value)
     # change objects that were string to original format
     import ast
     try:
@@ -100,7 +100,7 @@ ipd.Audio(s_n,rate=sr)
 ##############################################################
 # What does the noisy audio look like?
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-sp.plotsound(s_n, sr = sr, feature_type='signal')
+sp.plotsound(s_n, sr = sr, feature_type='signal', sub_process=True)
 
 ##############################################################
 # What does the clean audio sound like?
@@ -110,7 +110,7 @@ ipd.Audio(s,rate=sr)
 ##############################################################
 # What does the clean audio look like?
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-sp.plotsound(s, sr = sr, feature_type='signal')
+sp.plotsound(s, sr = sr, feature_type='signal', sub_process=True)
 
 #########################################################################
 # Built-In Denoiser Functionality
@@ -129,7 +129,7 @@ ipd.Audio(y,rate=sr)
 ##########################################################
 # How does is the output look? 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-sp.plotsound(y, sr=sr, feature_type = feature_type)
+sp.plotsound(y, sr=sr, feature_type = feature_type, sub_process=True)
 
 ##########################################################
 # How do the features compare?
@@ -138,17 +138,17 @@ sp.plotsound(y, sr=sr, feature_type = feature_type)
 ##########################################################
 # STFT features of the noisy input speech:
 sp.plotsound(s_n, sr=sr, feature_type = 'stft', energy_scale = 'power_to_db',
-               title = 'Noisy input: STFT features')
+               title = 'Noisy input: STFT features', sub_process=True)
 
 ##########################################################
 # STFT features of the output
 sp.plotsound(y, sr=sr, feature_type = 'stft', energy_scale = 'power_to_db',
-               title = 'Denoiser Output: STFT features')
+               title = 'Denoiser Output: STFT features', sub_process=True)
 
 ##########################################################
 # STFT features of the clean version of the audio:
 sp.plotsound(s, sr=sr, feature_type = 'stft', energy_scale = 'power_to_db',
-               title = 'Clean "target" audio: STFT features')
+               title = 'Clean "target" audio: STFT features', sub_process=True)
 
 
 ##########################################################

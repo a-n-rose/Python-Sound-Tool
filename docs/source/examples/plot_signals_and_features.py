@@ -32,7 +32,7 @@ sr = 44100
 sig1_hz = 10
 sig1, sr = sp.generate_sound(freq=sig1_hz, amplitude = 0.4, sr=sr, dur_sec=1)
 sp.plotsound(sig1, sr=sr, feature_type = 'signal',
-               title = 'Signal: {} Hz'.format(sig1_hz))
+               title = 'Signal: {} Hz'.format(sig1_hz), sub_process=True)
 
 
 #########################################################################
@@ -40,7 +40,7 @@ sp.plotsound(sig1, sr=sr, feature_type = 'signal',
 sig2_hz = 20 
 sig2, sr = sp.generate_sound(freq=sig2_hz, amplitude= 0.4, sr=sr, dur_sec=1)
 sp.plotsound(sig2, sr=sr, feature_type = 'signal',
-               title = 'Signal: {} Hz'.format(sig2_hz))
+               title = 'Signal: {} Hz'.format(sig2_hz), sub_process=True)
 
 ###########################################################################
 # Combine Signals 
@@ -51,7 +51,8 @@ sp.plotsound(sig2, sr=sr, feature_type = 'signal',
 # Add them together and see what they look like:
 sig3 = sig1 + sig2
 sp.plotsound(sig3, sr=sr, feature_type = 'signal', 
-               title='Mixed Signals: {} Hz + {} Hz'.format(sig1_hz, sig2_hz))
+               title='Mixed Signals: {} Hz + {} Hz'.format(sig1_hz, sig2_hz), 
+               sub_process=True)
 
 
 ##########################################################################
@@ -63,7 +64,7 @@ sp.plotsound(sig3, sr=sr, feature_type = 'signal',
 # Create noise to add to the signal:
 noise = sp.generate_noise(len(sig3), amplitude=0.02, random_seed=40)
 sp.plotsound(noise, sr=sr, feature_type = 'signal',
-               title='Random Noise')
+               title='Random Noise', sub_process=True)
 
 ###########################################################################
 # Control SNR: Adding a Background Sound
@@ -80,7 +81,8 @@ sig_noisy, snr = sp.dsp.add_backgroundsound(
 
 # keep energy between 1 and -1 
 sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
-sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 40 SNR')
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 40 SNR',
+             sub_process=True)
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 20
@@ -91,7 +93,8 @@ sig_noisy, snr = sp.dsp.add_backgroundsound(
     snr = 20)
 # keep energy between 1 and -1 
 sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
-sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 20 SNR')
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 20 SNR',
+             sub_process=True)
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 10
@@ -102,7 +105,8 @@ sig_noisy, snr = sp.dsp.add_backgroundsound(
     snr = 10)
 # keep energy between 1 and -1 
 sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
-sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 10 SNR')
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 10 SNR',
+             sub_process=True)
 
 #########################################################################
 # Add noise at signal-to-noise ratio of 0
@@ -113,7 +117,8 @@ sig_noisy, snr = sp.dsp.add_backgroundsound(
     snr = 0)
 # keep energy between 1 and -1 
 sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
-sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 0 SNR')
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: 0 SNR',
+             sub_process=True)
 
 
 #########################################################################
@@ -125,4 +130,5 @@ sig_noisy, snr = sp.dsp.add_backgroundsound(
     snr = -10)
 # keep energy between 1 and -1 
 sig_noisy = sp.dsp.scalesound(sig_noisy, max_val=1)
-sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: -10 SNR')
+sp.plotsound(sig_noisy, sr=sr, feature_type = 'signal', title='Signal + Noise: -10 SNR',
+             sub_process=True)

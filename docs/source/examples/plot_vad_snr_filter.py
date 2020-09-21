@@ -149,7 +149,7 @@ y_six_long, snr_none = sp.dsp.add_backgroundsound(y_six, p_silence,
                                         total_len_sec = 3,
                                         random_seed = 40)
 y = np.concatenate((y_six_long, y_p_long))
-sp.feats.plot(y, sr=sr, feature_type = 'signal')
+sp.feats.plot(y, sr=sr, feature_type = 'signal', sub_process=True)
 ipd.Audio(y, rate=sr)
 
 ######################################################
@@ -169,7 +169,7 @@ snr20
 
 ######################################################
 sp.plotsound(y_snr20, sr = sr, feature_type = 'signal', 
-               title = 'Speech SNR {}'.format(snr20))
+               title = 'Speech SNR {}'.format(snr20), sub_process=True)
 ipd.Audio(y_snr20,rate=sr)
 
 ######################################################
@@ -183,7 +183,7 @@ snr05
 
 ######################################################
 sp.plotsound(y_snr05, sr = sr, feature_type = 'signal', 
-               title = 'Speech SNR {}'.format(snr05))
+               title = 'Speech SNR {}'.format(snr05), sub_process=True)
 ipd.Audio(y_snr05,rate=sr)
 
 ######################################################
@@ -237,7 +237,7 @@ sp.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = True,
 ######################################################
 clipped_samples, vad_matrix = sp.feats.get_samples_clipped(y_snr20, sr=sr, percent_overlap = percent_overlap, 
                    win_size_ms = win_size_ms)
-sp.feats.plot(clipped_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(clipped_samples, sr=sr, feature_type = 'signal', sub_process=True)
 ipd.Audio(clipped_samples, rate= sr)
 
 
@@ -256,7 +256,7 @@ sp.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = False,
 vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr20, sr=sr, use_beg_ms = use_beg_ms, 
     percent_overlap = percent_overlap, win_size_ms = win_size_ms)
-sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal', sub_process=True)
 ipd.Audio(vad_samples, rate = sr)
 
 #######################################################
@@ -270,7 +270,7 @@ sp.feats.plot_vad(y_snr20, sr=sr, beg_end_clipped = False,
 vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr20, sr=sr, use_beg_ms = use_beg_ms, extend_window_ms = 300,
     percent_overlap = percent_overlap, win_size_ms = win_size_ms)
-sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal', sub_process=True)
 ipd.Audio(vad_samples, rate = sr)
 
 
@@ -292,7 +292,7 @@ sp.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = True,
 ######################################################
 clipped_samples, vad_matrix = sp.feats.get_samples_clipped(y_snr05, sr=sr, percent_overlap = percent_overlap, 
                    win_size_ms = win_size_ms)
-sp.feats.plot(clipped_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(clipped_samples, sr=sr, feature_type = 'signal', sub_process=True)
 ipd.Audio(clipped_samples, rate= sr)
 
 
@@ -310,7 +310,7 @@ sp.feats.plot_vad(y_snr05_wf, sr=sr, beg_end_clipped = True,
 clipped_samples, vad_matrix = sp.feats.get_samples_clipped(
     y_snr05_wf, sr=sr, percent_overlap = percent_overlap, 
     win_size_ms = win_size_ms, extend_window_ms = 300)
-sp.feats.plot(clipped_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(clipped_samples, sr=sr, feature_type = 'signal', sub_process=True)
 ipd.Audio(clipped_samples, rate= sr)
 
 
@@ -328,7 +328,7 @@ sp.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = False,
 vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr05, sr=sr, use_beg_ms = use_beg_ms, 
     percent_overlap = percent_overlap, win_size_ms = win_size_ms)
-sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal', sub_process=True)
 ipd.Audio(vad_samples, rate = sr)
 
 #######################################################
@@ -342,7 +342,7 @@ sp.feats.plot_vad(y_snr05, sr=sr, beg_end_clipped = False,
 vad_samples, vad_matrix = sp.feats.get_vad_samples(
     y_snr05, sr=sr, use_beg_ms = use_beg_ms, extend_window_ms = 300,
     percent_overlap = percent_overlap, win_size_ms = win_size_ms)
-sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal')
+sp.feats.plot(vad_samples, sr=sr, feature_type = 'signal', sub_process=True)
 ipd.Audio(vad_samples, rate = sr)
 
 
