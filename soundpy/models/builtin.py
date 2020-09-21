@@ -669,7 +669,7 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
         How features are extracted.
         
     soundpy.feats.feats2audio
-        How features are transformed back tino audio samples.
+        How features are transformed back into audio samples.
     '''    
     featsettings = sp.feats.load_feat_settings(feat_settings_dict)
     
@@ -1694,7 +1694,7 @@ def envclassifier_extract_train(
         kwargs['win_size_ms'] = 20
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
-    if 'rate_of_change' not in kwargs:d
+    if 'rate_of_change' not in kwargs:
         kwargs['rate_of_change'] = False
     if 'rate_of_acceleration' not in kwargs:
         kwargs['rate_of_acceleration'] = False
