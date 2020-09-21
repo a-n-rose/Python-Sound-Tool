@@ -12,7 +12,7 @@ v0.1.0a3
 
 Bug fixes
    -  no longer use Librosa for feature extraction: allow easier implementation of augmentations, especially during training. 
-   -  `soundpy.feats.plot` now uses parameter `sub_process` to allow for different backends to be applied, depending on when funciton is called. For example, if plotting from within a Generator while training, `sub_process` should be set to True, and the 'Agg' backend will be applied. Otherwise, 'TkAgg' backend is used. Fixes issues with multi-threading.
+   -  `soundpy.feats.plot` now uses parameter `subprocess` to allow for different backends to be applied, depending on when funciton is called. For example, if plotting from within a Generator while training, `subprocess` should be set to True, and the 'Agg' backend will be applied. Otherwise, 'TkAgg' backend is used. Fixes issues with multi-threading.
    -  Fixed generator and Tensorflow issue: with Tensorflow 2.2.0+ the models in `soundpy.models.builtin` that were trained via generator failed. Use `tensorflow.data.Dataset.from_generator` to feed generator data to models.
 
 Features
