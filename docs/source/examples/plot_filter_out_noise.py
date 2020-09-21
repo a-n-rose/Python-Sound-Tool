@@ -60,7 +60,7 @@ ipd.Audio(noisy,rate=sr)
 
 ##########################################################
 sp.plotsound(noisy, sr=sr, feature_type='signal', 
-               title = 'Noisy Speech', sub_process=True)
+               title = 'Noisy Speech', subprocess=True)
 
 
 ##########################################################
@@ -71,7 +71,7 @@ ipd.Audio(s,rate=sr)
 
 ##########################################################
 sp.plotsound(s, sr=sr, feature_type='signal', 
-               title = 'Clean Speech', sub_process=True)
+               title = 'Clean Speech', subprocess=True)
 
 
 ##########################################################
@@ -94,7 +94,7 @@ ipd.Audio(noisy_wf,rate=sr)
 ##########################################################
 sp.plotsound(noisy_wf, sr = sr, feature_type = 'signal', 
                title = 'Noisy Speech: Wiener Filter', 
-               sub_process=True)
+               subprocess=True)
 
 #################################################################
 # Wiener Filter with Postfilter
@@ -113,7 +113,7 @@ ipd.Audio(noisy_wfpf,rate=sr)
 ##########################################################
 sp.plotsound(noisy_wfpf, sr=sr, feature_type = 'signal', 
                title = 'Noisy Speech: Wiener Filter with Postfilter', 
-               sub_process=True)
+               subprocess=True)
 
 #################################################################
 # Band Spectral Subtraction
@@ -131,7 +131,7 @@ ipd.Audio(noisy_bs,rate=sr)
 ##########################################################
 sp.plotsound(noisy_bs, sr = sr, feature_type = 'signal', 
                title = 'Noisy Speech: Band Spectral Subtraction', 
-               sub_process=True)
+               subprocess=True)
 
 
 #################################################################
@@ -151,7 +151,7 @@ ipd.Audio(noisy_bspf,rate=sr)
 ##########################################################
 sp.plotsound(noisy_bspf, sr = sr, feature_type = 'signal', 
                title = 'Noisy Speech: Band Spectral Subtraction with Postfilter', 
-               sub_process=True)
+               subprocess=True)
 
 
 ##########################################################
@@ -176,7 +176,7 @@ ipd.Audio(noisy_wf,rate=sr)
 ##########################################################
 sp.plotsound(noisy_wf, sr = sr, feature_type = 'signal', 
                title = 'Noisy Speech: Wiener Filter Scale {}'.format(filter_scale), 
-               sub_process=True)
+               subprocess=True)
 
 #################################################################
 # Wiener Filter with Postfilter
@@ -196,4 +196,4 @@ ipd.Audio(noisy_wfpf,rate = sr)
 ##########################################################
 sp.plotsound(noisy_wfpf, sr = sr, feature_type = 'signal', 
                title = 'Noisy Speech: Wiener Filter with Postfilter Scale {}'.format(filter_scale),
-               sub_process=True)
+               subprocess=True)

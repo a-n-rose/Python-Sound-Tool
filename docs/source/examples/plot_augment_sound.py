@@ -50,7 +50,7 @@ f, sr = sp.loadsound(speech, sr=sr)
 ipd.Audio(f,rate=sr)
 
 ##########################################################
-sp.plotsound(f, sr=sr, feature_type='stft', title='Female Speech: "Python"', sub_process=True)
+sp.plotsound(f, sr=sr, feature_type='stft', title='Female Speech: "Python"', subprocess=True)
 
 ##########################################################
 # Change Speed
@@ -67,7 +67,7 @@ ipd.Audio(fast,rate=sr)
 ##########################################################
 sp.plotsound(fast, sr = sr, feature_type = 'stft', 
                title = 'Female speech: 15%  faster',
-               sub_process=True)
+               subprocess=True)
 
 ##########################################################
 # Let's decrease the speed by 15%:
@@ -79,7 +79,7 @@ ipd.Audio(slow, rate = sr)
 
 ##########################################################
 sp.plotsound(slow, sr = sr, feature_type = 'stft', 
-               title = 'Speech: 15%  slower', sub_process=True)
+               title = 'Speech: 15%  slower', subprocess=True)
 
 
 ##########################################################
@@ -96,7 +96,7 @@ ipd.Audio(noisy,rate=sr)
 
 ##########################################################
 sp.plotsound(noisy, sr=sr, feature_type='stft', 
-               title='Speech with white noise: 10 SNR', sub_process=True)
+               title='Speech with white noise: 10 SNR', subprocess=True)
 
 
 ##########################################################
@@ -110,7 +110,7 @@ ipd.Audio(hd,rate=sr)
 
 ##########################################################
 sp.plotsound(hd, sr=sr, feature_type='stft', 
-               title='Speech with harmonic distortion', sub_process=True)
+               title='Speech with harmonic distortion', subprocess=True)
 
 
 ##########################################################
@@ -127,7 +127,7 @@ ipd.Audio(psi,rate=sr)
 
 ##########################################################
 sp.plotsound(psi, sr=sr, feature_type='stft', 
-               title='Speech with pitch shift increase', sub_process=True)
+               title='Speech with pitch shift increase', subprocess=True)
 
 ##########################################################
 # Pitch shift decrease
@@ -139,7 +139,7 @@ ipd.Audio(psd,rate=sr)
 
 ##########################################################
 sp.plotsound(psd, sr=sr, feature_type='stft', 
-               title='Speech with pitch shift decrease', sub_process=True)
+               title='Speech with pitch shift decrease', subprocess=True)
 
 
 
@@ -165,7 +165,7 @@ ipd.Audio(vtlp_y,rate=sr)
 
 ##########################################################
 sp.feats.plot(vtlp_stft, sr=sr, feature_type='stft', 
-               title='VTLP (factor {})'.format(a), sub_process=True)
+               title='VTLP (factor {})'.format(a), subprocess=True)
 
 ##########################################################
 # Vocal tract length perturbation (by factor 0.8 to 1.2)
@@ -185,7 +185,7 @@ ipd.Audio(vtlp_y,rate=sr)
 
 ##########################################################
 sp.feats.plot(vtlp_stft, sr=sr, feature_type='stft', 
-               title='VTLP (factor {})'.format(a), sub_process=True)
+               title='VTLP (factor {})'.format(a), subprocess=True)
 
 
 #############################################
@@ -204,7 +204,7 @@ ipd.Audio(h,rate=sr)
 
 ##########################################################
 sp.plotsound(h, sr=sr, feature_type='stft', 
-               title='Car Horn', sub_process=True)
+               title='Car Horn', subprocess=True)
 
 ##########################################################
 # Change Speed
@@ -220,7 +220,7 @@ ipd.Audio(fast,rate=sr)
 
 ##########################################################
 sp.plotsound(fast, sr=sr, feature_type='stft', 
-               title='Car horn: 15%  faster', sub_process=True)
+               title='Car horn: 15%  faster', subprocess=True)
 
 ##########################################################
 # Let's decrease the speed by 15%:
@@ -232,7 +232,7 @@ ipd.Audio(slow,rate=sr)
 
 ##########################################################
 sp.plotsound(slow, sr=sr, feature_type='stft', 
-               title='Car horn: 15%  slower', sub_process=True)
+               title='Car horn: 15%  slower', subprocess=True)
 
 ##########################################################
 # Add Noise
@@ -248,7 +248,7 @@ ipd.Audio(h_noisy,rate=sr)
 ##########################################################
 sp.plotsound(h_noisy, sr=sr, feature_type='stft', 
                title='Car horn with white noise (10 SNR)', 
-               sub_process=True)
+               subprocess=True)
 
 ##########################################################
 # Harmonic Distortion
@@ -262,7 +262,7 @@ ipd.Audio(hd,rate=sr)
 ##########################################################
 sp.plotsound(hd, sr=sr, feature_type='stft', 
                title='Car horn with harmonic distortion', 
-               sub_process=True)
+               subprocess=True)
 
 
 ##########################################################
@@ -280,7 +280,7 @@ ipd.Audio(psi,rate=sr)
 ##########################################################
 sp.plotsound(psi, sr=sr, feature_type='stft', 
                title='Car horn with pitch shift increase', 
-               sub_process=True)
+               subprocess=True)
 
 ##########################################################
 # Pitch shift decrease
@@ -293,7 +293,7 @@ ipd.Audio(psd,rate=sr)
 ##########################################################
 sp.plotsound(psd, sr=sr, feature_type='stft', 
                title='Car horn with pitch shift decrease', 
-               sub_process=True)
+               subprocess=True)
 
 ##########################################################
 # Time Shift
@@ -309,7 +309,7 @@ ipd.Audio(h_shift,rate=sr)
 ##########################################################
 sp.plotsound(h_shift, sr=sr, feature_type='stft', 
                title='Car horn: time shifted', 
-               sub_process=True)
+               subprocess=True)
 
 
 ##########################################################
@@ -324,7 +324,7 @@ ipd.Audio(h_shuffle,rate=sr)
 
 ##########################################################
 sp.plotsound(h_shuffle, sr=sr, feature_type='stft', 
-               title='Car horn: shuffled', sub_process=True)
+               title='Car horn: shuffled', subprocess=True)
 
 
 ##########################################################
@@ -339,4 +339,4 @@ ipd.Audio(h_shuffle,rate=sr)
 
 ##########################################################
 sp.plotsound(h_shuffle, sr=sr, feature_type='stft', 
-               title='Speech: shuffled ', sub_process=True)
+               title='Speech: shuffled ', subprocess=True)
