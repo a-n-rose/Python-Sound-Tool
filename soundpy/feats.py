@@ -31,7 +31,7 @@ import soundpy as sp
 def plot(feature_matrix, feature_type, 
         save_pic=False, name4pic=None, energy_scale='power_to_db',
         title=None, sr=None, win_size_ms=None, percent_overlap=None,
-        x_label=None, y_label=None, sub_process=False, overwrite=False):
+        x_label=None, y_label=None, subprocess=False, overwrite=False):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
     
     Note: can only take multiple channels if `feature_type` is 'signal'. For other 
@@ -52,7 +52,7 @@ def plot(feature_matrix, feature_type,
         FBANK: mel-log filterbank energies (default 'fbank').
 
     save_pic : bool
-        True to save image as .png; False to just plot it. If `sub_process` is 
+        True to save image as .png; False to just plot it. If `subprocess` is 
         True, `save_pic` will automatically be set to True.
 
     name4pic : str, optional
@@ -82,9 +82,9 @@ def plot(feature_matrix, feature_type,
     y_label : str, optional 
         The label to be applied to the y axis.
         
-    sub_process : bool 
-        If `sub_process` is True, matplotlib will use backend 'Agg', which only allows plots to be saved.
-        If `sub_process` is False, the default backend 'TkAgg' will be used, which allows plots to be 
+    subprocess : bool 
+        If `subprocess` is True, matplotlib will use backend 'Agg', which only allows plots to be saved.
+        If `subprocess` is False, the default backend 'TkAgg' will be used, which allows plots to be 
         generated live as well as saved. The 'Agg' backend is useful if one wants to visualize sound
         while a main process is being performed, for example, while a model is being trained.
         (default False)
@@ -98,7 +98,7 @@ def plot(feature_matrix, feature_type,
     -------
     None
     '''
-    if not sub_process:
+    if not subprocess:
         # can show plots
         # interferes with training models though
         matplotlib.use('TkAgg')
@@ -2714,7 +2714,7 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
                             title = title + ' frame {}'.format(i),
                             name4pic = save_pic_path,
                             save_pic = True,
-                            sub_process = True)
+                            subprocess = True)
         return None
     
     # then raw signal data; needs parameter `subsections` set to True
@@ -2742,7 +2742,7 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
                                     title = title + ' frame {}'.format(i),
                                     save_pic = True,
                                     name4pic = save_pic_path.joinpath('frame {}'.format(i)),
-                                    sub_process = True)
+                                    subprocess = True)
             return None
     
     # otherwise save features in a single plot
@@ -2753,7 +2753,7 @@ def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
                     title = title,
                     save_pic = True,
                     name4pic = save_pic_path,
-                    sub_process = True)
+                    subprocess = True)
     return None
     
 def save_features_datasets(datasets_dict, datasets_path2save_dict, 

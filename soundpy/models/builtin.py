@@ -1948,7 +1948,7 @@ def envclassifier_extract_train(
                   title='Train: {} features label "{}"'.format(kwargs['feature_type'], 
                                                       label_train_vis),
                         name4pic='train_feats{}.png'.format(sp.utils.get_date()),
-                        sub_process=True,
+                        subprocess=True,
                         energy_scale = energy_scale)
     
     feats_val, label_val = next(val_generator.generator())
@@ -1963,7 +1963,7 @@ def envclassifier_extract_train(
                   title='Val: {} features label "{}"'.format(kwargs['feature_type'], 
                                                       label_val_vis),
                         name4pic='val_feats{}.png'.format(sp.utils.get_date()),
-                        sub_process=True,
+                        subprocess=True,
                         energy_scale = energy_scale)
     
     feats_test, label_test = next(test_generator.generator())
@@ -1977,7 +1977,7 @@ def envclassifier_extract_train(
                   title='Test: {} features label "{}"'.format(kwargs['feature_type'], 
                                                       label_test_vis),
                         name4pic='test_feats{}.png'.format(sp.utils.get_date()),
-                        sub_process=True,
+                        subprocess=True,
                         energy_scale = energy_scale)
 
     ds_train = tf.data.Dataset.from_generator(
@@ -2389,7 +2389,7 @@ def cnnlstm_extract_train(
                   #title='Train: {} features label "{}"'.format(kwargs['feature_type'], 
                                                       #dict_decode[label_train[0]]),
                         #name4pic='train_feats{}.png'.format(sp.utils.get_date()),
-                        #sub_process=True,
+                        #subprocess=True,
                         #energy_scale = energy_scale)
     
     feats_val, label_val = next(val_generator.generator())
@@ -2399,7 +2399,7 @@ def cnnlstm_extract_train(
                   #title='Val: {} features label "{}"'.format(kwargs['feature_type'], 
                                                       #dict_decode[label_val[0]]),
                         #name4pic='val_feats{}.png'.format(sp.utils.get_date()),
-                        #sub_process=True,
+                        #subprocess=True,
                         #energy_scale = energy_scale)
     
     feats_test, label_test = next(test_generator.generator())
@@ -2409,7 +2409,7 @@ def cnnlstm_extract_train(
                   #title='Test: {} features label "{}"'.format(kwargs['feature_type'], 
                                                       #dict_decode[label_test[0]]),
                         #name4pic='test_feats{}.png'.format(sp.utils.get_date()),
-                        #sub_process=True,
+                        #subprocess=True,
                         #energy_scale = energy_scale)
 
     ds_train = tf.data.Dataset.from_generator(
