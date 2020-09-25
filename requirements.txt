@@ -1,4 +1,4 @@
-tensorflow==2.1.0
+tensorflow==2.1.2
 tensorflow-estimator==2.1.0
 numpy==1.19.1
 scipy==1.4.1
