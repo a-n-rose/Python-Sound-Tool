@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Next release: SoundPy v0.1.0a3
-===============================  
+In Development: SoundPy v0.1.0a3
+================================  
 
 Welcome to the docs!
 --------------------

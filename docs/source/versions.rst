@@ -1,6 +1,6 @@
-*****************
-SoundPy Versions
-*****************
+******************************************
+SoundPy Versions Available as PyPi Package
+******************************************
 
 .. toctree::
     :maxdepth: 1
