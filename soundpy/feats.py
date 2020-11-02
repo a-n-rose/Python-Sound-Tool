@@ -662,8 +662,11 @@ def load_feat_settings(feat_settings_dict):
             feat_settings_dict['desired_shape'])
     except KeyError:
         # newer version of soundpy: 0.1.0a3
-        base_shape = sp.utils.restore_dictvalue(
-            feat_settings_dict['feat_base_shape'])
+        try:
+            base_shape = sp.utils.restore_dictvalue(
+                feat_settings_dict['feat_base_shape'])
+        except KeyError:
+            base_shape = input_shape
     try:
         # older version of soundpy: 0.1.0a2
         num_feats = sp.utils.restore_dictvalue(
