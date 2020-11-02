@@ -243,6 +243,8 @@ class GeneratorFeatExtraction(Generator):
                 'to be extracted is supplied. Please specify `sample_length`, '+\
                     '`desired_input_shape`, or `dur_sec`.')
         if randomize:
+            # to ensure each iteration data is randomized
+            random_seed = np.random.choice(range(100))
             if random_seed is not None:
                 random.seed(random_seed)
             random.shuffle(datalist)
@@ -344,8 +346,11 @@ class GeneratorFeatExtraction(Generator):
                                     'current audiofile: {}.'.format(audiopath) +\
                                         '\nReceived both label {} and {} .'.format(
                                             label, int(audioinfo2)))
+                        audiopath2 = None
                 else:
                     audiopath2 = audioinfo2
+            else:
+                audiopath2 = None
             if label is not None:
                 labeled_data = True
                 if self.decode_dict is not None:
@@ -362,7 +367,10 @@ class GeneratorFeatExtraction(Generator):
         
             # ensure audio is valid:
             y, sr = sp.loadsound(audiopath, self.kwargs['sr'])
-            
+            if audiopath2:
+                y2, sr2 = sp.loadsound(audiopath2, self.kwargs['sr'])
+            else:
+                y2, sr2 = None, None
             if self.label_silence:
                 if self.vad_start_end:
                     y_stft, vad = sp.dsp.get_stft_clipped(y, sr=sr, 
@@ -388,9 +396,20 @@ class GeneratorFeatExtraction(Generator):
                 augmented_data, augmentation = augment_features(y, 
                                                             self.kwargs['sr'], 
                                                             **aug_dict)
+                if audiopath2:
+                    # remove 'add_white_noise' if in aug_dict
+                    aug_dict2 = {}
+                    for key, value in aug_dict.items():
+                        if key != 'add_white_noise':
+                            aug_dict2[key] = value
+                    augmented_data2, augmentation2 = augment_features(y2,
+                                                                    self.kwargs['sr'],
+                                                                    **aug_dict2)
             else:
                 augmented_data, augmentation = y, ''
                 aug_dict = dict()
+                augmented_data2, augmentation2 = y2, ''
+                aug_dict2 = dict()
             # extract features
             # will be shape (num_frames, num_features)
             if 'vtlp' in aug_dict and aug_dict['vtlp']:
@@ -420,18 +439,40 @@ class GeneratorFeatExtraction(Generator):
                 # how to reduce dimension back to `expected_stft_shape` without
                 # shaving off data?
                 oversize_factor = 16
-                augmented_data, alpha = sp.augment.vtlp(augmented_data, sr, 
-                                          win_size_ms = win_size_ms,
-                                          percent_overlap = percent_overlap, 
-                                          fft_bins = fft_bins,
-                                          window = window,
-                                          real_signal = real_signal,
-                                          expected_shape = expected_stft_shape,
-                                          oversize_factor = oversize_factor,
-                                          visualize=False) 
+                augmented_data, alpha = sp.augment.vtlp(
+                    augmented_data, sr, 
+                    win_size_ms = win_size_ms,
+                    percent_overlap = percent_overlap, 
+                    fft_bins = fft_bins,
+                    window = window,
+                    real_signal = real_signal,
+                    expected_shape = expected_stft_shape,
+                    oversize_factor = oversize_factor,
+                    visualize=False) 
                 # vtlp was last augmentation to be added to `augmentation` string
                 # add the value that was applied
                 augmentation += '_vtlp'+str(alpha) 
+                # need to be able to set alpha
+                augmented_data2, alpha2 = sp.augment.vtlp(
+                    augmented_data2, sr,
+                    a = alpha,
+                    win_size_ms = win_size_ms,
+                    percent_overlap = percent_overlap, 
+                    fft_bins = fft_bins,
+                    window = window,
+                    real_signal = real_signal,
+                    expected_shape = expected_stft_shape,
+                    oversize_factor = oversize_factor,
+                    visualize=False) 
+                try:
+                    assert alpha == alpha2
+                except AssertionError:
+                    raise ValueError('The alpha value for vtlp application '+\
+                        'does not match for the X and y audio: '+\
+                            'X alpha is {} and y alpha is {}'.format(alpha, alpha2))
+                # vtlp was last augmentation to be added to `augmentation` string
+                # add the value that was applied
+                augmentation2 += '_vtlp'+str(alpha) 
             
             if 'vtlp' in aug_dict and aug_dict['vtlp']:
                 if 'stft' in self.kwargs['feature_type'] or \
@@ -443,9 +484,13 @@ class GeneratorFeatExtraction(Generator):
                             'power spectrum. Phase information has been removed.'
                         warnings.warn(msg)
                     feats = augmented_data
+                    if audiopath2:
+                        feats2 = augmented_data2
                     if 'powspec' in self.kwargs['feature_type'] and oversize_factor == 1:
                         # otherwise already a power spectrum
                         feats = sp.dsp.calc_power(feats)
+                        if audiopath2:
+                            feats2 = sp.dsp.calc_power(feats2)
                     
             elif 'stft'in self.kwargs['feature_type'] or \
                 'powspec' in self.kwargs['feature_type']:
@@ -461,8 +506,23 @@ class GeneratorFeatExtraction(Generator):
                     window = self.kwargs['window'],
                     zeropad = self.kwargs['zeropad']
                     )
+                if audiopath2:
+                    feats2 = sp.feats.get_stft(
+                        augmented_data2, 
+                        sr = self.kwargs['sr'],
+                        win_size_ms = self.kwargs['win_size_ms'],
+                        percent_overlap = self.kwargs['percent_overlap'],
+                        real_signal = self.kwargs['real_signal'],
+                        fft_bins = self.kwargs['fft_bins'],
+                        rate_of_change = self.kwargs['rate_of_change'],
+                        rate_of_acceleration = self.kwargs['rate_of_acceleration'],
+                        window = self.kwargs['window'],
+                        zeropad = self.kwargs['zeropad']
+                        )
                 if 'powspec' in self.kwargs['feature_type']:
                     feats = sp.dsp.calc_power(feats)
+                    if audiopath2:
+                        feats2 = sp.dsp.calc_power(feats2)
                     
             if 'fbank' in self.kwargs['feature_type']:
                 feats = sp.feats.get_fbank(
@@ -478,6 +538,21 @@ class GeneratorFeatExtraction(Generator):
                     window = self.kwargs['window'],
                     zeropad = self.kwargs['zeropad']
                     )
+                if audiopath2:
+                    feats2 = sp.feats.get_fbank(
+                        augmented_data2,
+                        sr = self.kwargs['sr'],
+                        num_filters = self.kwargs['num_filters'],
+                        win_size_ms = self.kwargs['win_size_ms'],
+                        percent_overlap = self.kwargs['percent_overlap'],
+                        real_signal = self.kwargs['real_signal'],
+                        fft_bins = self.kwargs['fft_bins'],
+                        rate_of_change = self.kwargs['rate_of_change'],
+                        rate_of_acceleration = self.kwargs['rate_of_acceleration'],
+                        window = self.kwargs['window'],
+                        zeropad = self.kwargs['zeropad']
+                        )
+                    
             
             elif 'mfcc' in self.kwargs['feature_type']:
                 feats = sp.feats.get_mfcc(
@@ -494,6 +569,21 @@ class GeneratorFeatExtraction(Generator):
                     window = self.kwargs['window'],
                     zeropad = self.kwargs['zeropad']
                     )
+                if audiopath2:
+                    feats2 = sp.feats.get_mfcc(
+                        augmented_data2,
+                        sr = self.kwargs['sr'],
+                        num_mfcc = self.kwargs['num_mfcc'],
+                        num_filters = self.kwargs['num_filters'],
+                        win_size_ms = self.kwargs['win_size_ms'],
+                        percent_overlap = self.kwargs['percent_overlap'],
+                        real_signal = self.kwargs['real_signal'],
+                        fft_bins = self.kwargs['fft_bins'],
+                        rate_of_change = self.kwargs['rate_of_change'],
+                        rate_of_acceleration = self.kwargs['rate_of_acceleration'],
+                        window = self.kwargs['window'],
+                        zeropad = self.kwargs['zeropad']
+                        )
                 
             if self.apply_log:
                 # TODO test
@@ -502,8 +592,7 @@ class GeneratorFeatExtraction(Generator):
                 feats = np.log(feats)
             if self.normalize:
                 feats = sp.feats.normalize(feats)
-            if not labeled_data and self.audiolist2 is not None:
-                feats2 = sp.feats.get_feats(audiopath2, **self.kwargs)
+            if audiopath2:
                 if self.apply_log:
                     # TODO test
                     if feats2[0].any() < 0:
@@ -513,7 +602,6 @@ class GeneratorFeatExtraction(Generator):
                     feats2 = sp.feats.normalize(feats2)
             else:
                 feats2 = None
-                
             # Save visuals if desired
             if self.visualize:
                 if self.counter % self.vis_every_n_items == 0:

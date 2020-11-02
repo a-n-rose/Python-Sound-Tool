@@ -732,7 +732,7 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     tensor = (1,)
     feats = sp.feats.prep_new_audiofeats(feats,
                                            featsettings.base_shape,
-                                           featsettings.input_shape + tensor)
+                                           featsettings.input_shape)# tensor alread included
 
     # ensure same shape as feats
     if original_phase is not None:
@@ -1744,7 +1744,7 @@ def envclassifier_extract_train(
     # set up datasets if no dataset_dict provided:
     if features_dir is None:
         if audiodata_path is None:
-            raise ValueError('Function `denoiser_extract_train` expects either:\n'+\
+            raise ValueError('Function `envclassifier_extract_train` expects either:\n'+\
                 '1) a `dataset_dict` with audiofile pathways assigned to datasets OR'+\
                     '\n2) a `audiodata_path` indicating where audiofiles for'+\
                         'training are located.\n**Both cannot be None.')
@@ -2173,7 +2173,7 @@ def cnnlstm_extract_train(
     # set up datasets if no dataset_dict provided:
     if dataset_dict is None:
         if audiodata_path is None:
-            raise ValueError('Function `denoiser_extract_train` expects either:\n'+\
+            raise ValueError('Function `cnnlstm_extract_train` expects either:\n'+\
                 '1) a `dataset_dict` with audiofile pathways assigned to datasets OR'+\
                     '\n2) a `audiodata_path` indicating where audiofiles for'+\
                         'training are located.\n**Both cannot be None.')
@@ -2260,7 +2260,7 @@ def cnnlstm_extract_train(
         
     else:
         if num_labels is None:
-            raise ValueError('Function `denoiser_extract_train` requires '+\
+            raise ValueError('Function `cnnlstm_extract_train` requires '+\
                 '`num_labels` to be provided if a pre-made `dataset_dict` is provided.')
         # use pre-collected dataset dict
         dataset_dict = sp.utils.load_dict(dataset_dict)
@@ -2481,6 +2481,399 @@ def cnnlstm_extract_train(
     score = envclassifier.evaluate(ds_test, steps=1000) 
     print('Test loss:', score[0]) 
     print('Test accuracy:', score[1])
+       
+    finished_time = time.time()
+    total_total_duration = finished_time - start
+    time_new_units, units = sp.utils.adjust_time_units(total_total_duration)
+    print('\nEntire program took {} {}.\n\n'.format(time_new_units, units))
+    print('-'*79)
+    
+    return model_dir, history    
+
+
+# TODO cleanup
+# TODO test
+# TODO continue docstrings
+def denoiser_extract_train(
+    model_name = 'denoiser',
+    augment_dict = None,
+    audiodata_clean_path = None,
+    audiodata_noisy_path = None,
+    features_dir = None,
+    save_new_files_dir = None,
+    labeled_data = False,
+    ignore_label_marker = None,
+    batch_size = 10,
+    epochs = 5,
+    patience = 15,
+    callbacks = None,
+    random_seed = 20,
+    visualize = False,
+    vis_every_n_items = 50,
+    label_silence = False,
+    val_data = None,
+    test_data = None,
+    append_model_dir = False,
+    **kwargs):
+    '''Extract and augment features during training of a scene/environment/speech classifier
+    
+    Parameters
+    ----------
+    model_name : str 
+        Name of the model. No extension (will save as .h5 file) (default 'env_classifier')
+        
+    augment_dict : dict, optional
+        Dictionary containing keys (e.g. 'add_white_noise'). See 
+        `soundpy.augment.list_augmentations`and corresponding True or False
+        values. If the value is True, the key / augmentation gets implemented
+        at random, each epoch.
+        (default None)
+    
+    audiodata_path : str, pathlib.PosixPath
+        Where audio data can be found, if no `features_dir` where previously extracted and prepared files are located.
+        (default None)
+        
+    features_dir : str, pathlib.PosixPath
+        The feature directory where previously extracted validation and test data 
+        are located, as well as the relevant log files.
+        
+    save_new_files_dir : str, pathlib.PosixPath
+        Where new files (logging, model(s), etc.) will be saved. If None, will be 
+        set in a unique directory within the current working directory.
+        (default None)
+        
+    labeled_data : bool 
+        Useful in determining shape of data. If True, expected label column to exist 
+        at the end of the feature column of feature data. Note: this may be removed in 
+        future versions. 
+        
+    ignore_label_marker : str 
+        When collecting labels from subdirectory names, this allows a subfolder name to be
+        ignored. For example, if `ignore_label_marker` is set as '__', the folder name
+        '__test__' will not be included as a label while a folder name 'dog_barking' will.
+        
+    **kwargs : additional keyword arguments 
+        Keyword arguments for `soundpy.feats.get_feats`.
+    
+    '''
+
+    if features_dir is not None:
+        features_dir = sp.utils.string2pathlib(features_dir)
+        feat_settings_file = features_dir.joinpath('log_extraction_settings.csv')
+        feat_settings_dict = sp.utils.load_dict(feat_settings_file)
+        # should be a dict
+        feat_kwargs = sp.utils.restore_dictvalue(feat_settings_dict['kwargs'])
+        print(feat_kwargs)
+        # load decode dictionary for labeled data
+        dict_decode_path = features_dir.joinpath('dict_decode.csv')
+        dict_decode = sp.utils.load_dict(dict_decode_path)
+        dict_encode = None
+        # ensure items in dictionaries original type
+        for key, value in feat_kwargs.items():
+            feat_kwargs[key] = sp.utils.restore_dictvalue(value)
+        for key, value in feat_settings_dict.items():
+            feat_settings_dict[key] = sp.utils.restore_dictvalue(value)
+        for key, value in dict_decode.items():
+            # expects key to be integer
+            dict_decode[key] = sp.utils.restore_dictvalue(value)
+        # update kwargs with loaded feature kwargs
+        kwargs = dict(feat_kwargs)
+    # require 'feature_type' to be indicated
+    if 'feature_type' not in kwargs:
+        raise ValueError('Function `denoiser_extract_train` expects the '+ \
+            'parameter `feature_type` to be set as one of the following:\n'+ \
+                '- signal\n- stft\n- powspec\n- fbank\n- mfcc\n') 
+    
+    #if 'stft' not in kwargs['feature_type'] and 'powspec' not in kwargs['feature_type']:
+        #raise ValueError('Function `denoiser_extract_train` can only reliably '+\
+            #'work if `feature_type` parameter is set to "stft" or "powspec".'+\
+                #' In future versions the other feature types will be made available.')
+    
+    # ensure defaults are set if not included in kwargs:
+    if 'win_size_ms' not in kwargs:
+        kwargs['win_size_ms'] = 20
+    if 'percent_overlap' not in kwargs:
+        kwargs['percent_overlap'] = 0.5
+    if 'rate_of_change' not in kwargs:
+        kwargs['rate_of_change'] = False
+    if 'rate_of_acceleration' not in kwargs:
+        kwargs['rate_of_acceleration'] = False
+    if 'dur_sec' not in kwargs:
+        raise ValueError('Function `denoiser_extract_train``requires ' +\
+            'the keyword argument `dur_sec` to be set. How many seconds of audio '+\
+                'from each audio file would you like to use for training?')
+    if 'sr' not in kwargs:
+        kwargs['sr'] = 22050
+    if 'fft_bins' not in kwargs:
+        import warnings
+        fft_bins = int(kwargs['win_size_ms'] * kwargs['sr'] // 1000)
+        msg = '\nWARNING: `fft_bins` was not set. Setting it to {}'.format(fft_bins)
+        warnings.warn(msg)
+        kwargs['fft_bins'] = fft_bins
+    if 'real_signal' not in kwargs:
+        kwargs['real_signal'] = True
+    if 'window' not in kwargs:
+        kwargs['window'] = 'hann'
+    if 'zeropad' not in kwargs:
+        kwargs['zeropad'] = True
+    if 'num_filters' not in kwargs:
+        kwargs['num_filters'] = 40
+    if 'num_mfcc' not in kwargs:
+        kwargs['num_mfcc'] = 40
+        
+    # training will fail if patience set to a non-integer type
+    if patience is None:
+        patience = epochs
+    
+    if features_dir is None:
+        # Set up directory to save new files:
+        # will not raise error if not exists: instead makes the directory
+        if save_new_files_dir is None:
+            save_new_files_dir = './example_feats_models/denoiser/'
+        dataset_path = sp.check_dir(save_new_files_dir, make = True)
+        # create unique timestamped directory to save new files
+        # to avoid overwriting issues:
+        dataset_path = dataset_path.joinpath(
+            'features_{}_{}'.format(kwargs['feature_type'], sp.utils.get_date()))
+        # create that new directory as well
+        dataset_path = sp.check_dir(dataset_path, make=True)
+    else:
+        dataset_path = features_dir
+
+    # designate where to save model and related files
+    model_name += '_' + kwargs['feature_type']
+    model_dir = dataset_path.joinpath(model_name)
+    model_dir = sp.utils.check_dir(model_dir, make=True,
+                                   append=append_model_dir) # don't want to overwrite already trained model and logs
+    model_path = model_dir.joinpath(model_name+'.h5')
+    
+    
+
+    if features_dir is None:
+        if audiodata_clean_path is None:
+            raise ValueError('Function `denoiser_extract_train` expects either:\n'+\
+                '1) a `dataset_dict` with audiofile pathways assigned to datasets OR'+\
+                    '\n2) `audiodata_clean_path` and `audiodata_noisy_path` indicating where audiofiles for'+\
+                        'training are located.\n**Both cannot be None.')
+        
+        # sp.check_dir:
+        # raises error if this path doesn't exist (make = False)
+        # if does exist, returns path as pathlib.PosixPath object
+        data_clean_dir = sp.check_dir(audiodata_clean_path, make = False)
+        data_noisy_dir = sp.check_dir(audiodata_noisy_path, make = False)
+
+        paths_list_clean = sp.files.collect_audiofiles(data_clean_dir,
+                                                       recursive=False)
+        paths_list_clean = sorted(paths_list_clean)
+        paths_list_noisy = sp.files.collect_audiofiles(data_noisy_dir,
+                                                       recursive=False)
+        paths_list_noisy = sorted(paths_list_noisy)
+    
+        # for now not using any test data: too small a dataset
+        # can test from greater dataset
+        train_clean, test_clean, __ = sp.datasets.waves2dataset(
+            audiolist = paths_list_clean, 
+            perc_train=1, 
+            seed=40, 
+            train=True, 
+            val=False, 
+            test=False)
+        train_noisy, test_noisy, __ = sp.datasets.waves2dataset(
+            audiolist = paths_list_noisy, 
+            perc_train=1, 
+            seed=40, 
+            train=True, 
+            val=False, 
+            test=False)
+
+        # save filenames not used in training
+        #doc_dir = model_path.parent
+        #sp.utils.save_dict(doc_dir.joinpath('test_noisy_files.csv'), 
+                           #dict(test_noisy = test_noisy))
+        #sp.utils.save_dict(doc_dir.joinpath('test_clean_files.csv'), 
+                           #dict(test_clean = test_clean))
+        
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(train_clean)
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(train_noisy)
+        
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(test_clean)
+        if random_seed is not None:
+            random.seed(random_seed)
+        random.shuffle(test_noisy)
+
+        for i in range(10):
+            try:
+                print(train_clean[i])
+                print()
+            except IndexError:
+                pass
+            try:
+                print(train_noisy[i])
+                print()
+                print()
+            except IndexError:
+                pass
+            try:
+                print(test_clean[i])
+            except IndexError:
+                pass
+            try:
+                print(test_noisy[i])
+            except IndexError:
+                pass
+
+        labeled_data = False
+        feat_base_shape, shape_for_model = sp.feats.get_feature_matrix_shape(
+            labeled_data = labeled_data,
+            **kwargs)
+
+    if 'fbank' in kwargs['feature_type'] or 'mfcc' in kwargs['feature_type']:
+        kwargs['fmax'] = kwargs['sr'] / 2.0 # Niquist theorem
+    # extract validation data (must already be extracted)
+    color_dimension = (1,) # our data is in grayscale
+    input_shape = feat_base_shape + color_dimension
+
+    if augment_dict is None:
+        augment_dict = dict()
+
+
+
+    
+    # setup model 
+    denoiser, settings_dict = spdl.autoencoder_denoise(
+        input_shape = input_shape)
+    adm = tf.keras.optimizers.Adam(learning_rate=0.0001)
+    denoiser.compile(optimizer=adm, loss='binary_crossentropy')
+
+    # should randomly apply augmentations in generator
+
+    # items that need to be called with each iteration:
+    # save best model for each iteration - don't want to be overwritten
+    # with worse model
+    best_modelname = str(model_path) + '.h5'
+    callbacks = spdl.setup_callbacks(
+        patience = patience,
+        early_stop = False, # don't have validation data
+        save_bestmodel = False,
+        best_modelname = best_modelname, # won't be used (no validation data) 
+        log_filename = model_dir.joinpath('log.csv'),
+        append = True)
+
+    normalize = True
+    tensor = (1,)
+    train_generator = spdl.GeneratorFeatExtraction(
+        datalist = train_noisy,
+        datalist2 = train_clean,
+        model_name = model_name,
+        normalize = normalize,
+        apply_log = False,
+        randomize = True, # want the data order to be different for each iteration 
+        random_seed = 50,
+        desired_input_shape = tensor + input_shape,
+        batch_size = batch_size, 
+        gray2color = False,
+        visualize = visualize,
+        vis_every_n_items = vis_every_n_items,
+        visuals_dir = model_dir.joinpath('images'),
+        decode_dict = None,
+        dataset = 'train',
+        augment_dict = augment_dict,
+        label_silence = label_silence,
+        **kwargs)
+    
+
+
+    if 'stft' in kwargs['feature_type'] or 'fbank' in kwargs['feature_type'] \
+        or 'powspec' in kwargs['feature_type']:
+            energy_scale = 'power_to_db'
+    else:
+        energy_scale = None
+    
+    feats_noisy, feats_clean = next(train_generator.generator())
+
+    # visualize the features
+    feats_vis_noisy = feats_noisy.reshape((feats_noisy.shape[1],feats_noisy.shape[2]))
+    sp.feats.plot(feature_matrix = feats_vis_noisy, 
+                  feature_type=kwargs['feature_type'],
+                  title='Train: {} features label "{}"'.format(kwargs['feature_type'], 
+                                                      'noisy'),
+                        name4pic='feats_noisy{}.png'.format(sp.utils.get_date()),
+                        subprocess=True,
+                        energy_scale = energy_scale)
+                  
+    feats_vis_clean = feats_clean.reshape((feats_clean.shape[1],feats_clean.shape[2]))
+    sp.feats.plot(feature_matrix = feats_vis_clean, 
+                  feature_type=kwargs['feature_type'],
+                  title='Train: {} features label "{}"'.format(kwargs['feature_type'], 
+                                                      'clean'),
+                  name4pic='feats_clean{}.png'.format(sp.utils.get_date()),
+                        
+                        subprocess=True,
+                        energy_scale = energy_scale)
+
+
+    ds_train = tf.data.Dataset.from_generator(
+        spdl.make_gen_callable(train_generator.generator()),
+        output_types=(feats_noisy.dtype, feats_clean.dtype), 
+        output_shapes=(feats_noisy.shape, 
+                        feats_clean.shape))
+
+    print('\nShapes of X and y data from the train generator:')
+    print(ds_train)
+    
+    print('-'*79)
+    if augment_dict:
+        print('\nAugmentation(s) applied (at random): \n')
+        for key, value in augment_dict.items():
+            if value == True:
+                print('{}'.format(key).upper())
+                try:
+                    settings = augment_dict['augment_settings_dict'][key]
+                    print('- Settings: {}'.format(settings))
+                except KeyError:
+                    pass
+        print()
+    else:
+        print('\nNo augmentations applied.\n')
+    print('-'*79)
+    
+    # start training
+    start = time.time()
+    history = denoiser.fit(
+        ds_train,
+        steps_per_epoch = len(train_noisy),
+        callbacks = callbacks,
+        epochs = epochs)
+
+    denoiser.save(model_path)
+
+    # save this info for when implementing model
+    kwargs['input_shape'] = input_shape
+    sp.utils.save_dict(model_dir.joinpath('log_extraction_settings.csv'), kwargs)
+    model_features_dict = dict(model_path = model_path,
+                            augment_dict = augment_dict)
+    model_features_dict.update(settings_dict)
+    model_features_dict.update(augment_dict)
+    #model_features_dict.update(kwargs)
+    end = time.time()
+    total_duration_seconds = round(end-start,2)
+    time_dict = dict(total_duration_seconds = total_duration_seconds)
+    model_features_dict.update(time_dict)
+
+    model_features_dict_path = model_dir.joinpath('info_{}.csv'.format(
+        model_name))
+    model_features_dict_path = sp.utils.save_dict(
+        filename = model_features_dict_path,
+        dict2save = model_features_dict)
+    print('\nFinished training the model. The model and associated files can be '+\
+        'found here: \n{}'.format(model_dir))
+
        
     finished_time = time.time()
     total_total_duration = finished_time - start
