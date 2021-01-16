@@ -2737,9 +2737,18 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     return fund_freq
 
 
+
 # TODO: finicky 
 # Seems that removing the dc offset helps, as does having a higher sample rate
 # still exploring influence of window size and percent overlap
+# NOTE: good settings for VAD in SNR calc:
+# set percent_overlap at 0.5, win_size_ms at 300
+# (and padding 100 ms to the identified VAD start and end)
+# TODO: fix ERROR issue: frame == 0, measure_noise_frames == 0
+    #vad_matrix, vad_settings = sp.dsp.vad(audio, sr, 
+  #File "/home/airos/Projects/gitlab/family-language-tracker/soundpy/dsp.py", line 2877, in vad
+    #if ste - min_energy > thresh_e:
+#UnboundLocalError: local variable 'thresh_e' referenced before assignment
 def vad(sound, sr, win_size_ms = 50, percent_overlap = 0, 
         real_signal = False, fft_bins = None, window = 'hann',
         energy_thresh = 40, freq_thresh = 185, sfm_thresh = 5,
@@ -2801,6 +2810,7 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
                                                        frame_length = frame_length,
                                                        overlap_samples = num_overlap_samples,
                                                        zeropad = True)
+    
     # initialize empty matrix to vad values into
     vad_matrix = sp.dsp.create_empty_matrix((num_subframes,),
                                               complex_vals = False)
@@ -2868,6 +2878,10 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
         # not finding this helpful
         if frame < measure_noise_frames:
             thresh_e = energy_thresh * np.log(min_energy)
+        else:
+            # what if frame == 0 and measure_noise_frames == 0?
+            # still samples to process
+            thresh_e = energy_thresh # TODO: test this fix
         
         counter = 0
         if ste - min_energy > thresh_e:
