@@ -436,8 +436,8 @@ def get_feats(sound,
             # remove additional channel for 'stft', 'fbank' etc. feature
             # extraction
             if 'signal' not in feature_type and num_channels > 1:
-                import Warnings
-                Warnings.warn('Only one channel is used for {}'.format(feature_type)+\
+                import warnings
+                warnings.warn('Only one channel is used for {}'.format(feature_type)+\
                     ' feature extraction. Removing extra channels.')
                 data = data[:,0]
     else:
@@ -519,10 +519,10 @@ def get_feats(sound,
             )
     elif 'signal' in feature_type:
         if data.dtype == np.complex128 or data.dtype == np.complex64:
-            import Warnings
+            import warnings
             msg = '\nWARNING: real raw signal features are being generated '+\
                 'from a STFT matrix.'
-            Warnings.warn(msg)
+            warnings.warn(msg)
             feats = sp.feats.feats2audio(data, feature_type = 'stft',
                                             sr=sr, 
                                             win_size_ms = win_size_ms,
