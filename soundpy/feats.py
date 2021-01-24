@@ -700,6 +700,7 @@ def load_feat_settings(feat_settings_dict):
         num_feats = num_feats)
     return featsettings
 
+# TODO: create class instance where fund freq, vad, etc. can be saved 
 # allows for more control over fft bins / resolution of each iteration.
 def get_stft(sound, sr=22050, win_size_ms = 50, percent_overlap = 0.5,
                 real_signal = False, fft_bins = 1024, 
@@ -1193,7 +1194,7 @@ def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
         vad_matrix[beg_index:end_index] = 1
         return stft_speech, vad_matrix
     return [], vad_matrix
-
+    
 def get_vad_samples(sound, sr=None, win_size_ms = 50, percent_overlap = 0.5,
                     use_beg_ms = 120, extend_window_ms = 0, energy_thresh = 40, 
                     freq_thresh = 185, sfm_thresh = 5, window = 'hann', zeropad = True,

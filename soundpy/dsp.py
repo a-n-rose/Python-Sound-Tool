@@ -2612,7 +2612,7 @@ def random_selection_samples(samples, len_section_samps, wrap=False, random_seed
         total_section = samples[start_index:start_index+len_section_samps]
         return total_section
 
- 
+# TODO: remove? function get_mean_freq is much better
 def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                 real_signal = False, fft_bins = 1024, 
                 window = 'hann', **kwargs):
@@ -2664,6 +2664,8 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
         section_start += (frame_length - num_overlap_samples)
     return freq_matrix
     
+# TODO consolidate into VAD? get_vad_stft, or get_vad_samples? Avoid extra processing?
+# Perhaps as class attribute..
 def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', percent_vad=0.75):
@@ -3057,6 +3059,7 @@ def piecewise_linear_warp(fft_value, alpha, max_freq):
         fft_warped = np.pi - (nominator / denominator + 1e-6) * (np.pi - fft_value)
     return fft_warped
 
+# TODO: remove? function get_mean_freq is much better 
 def f0_approximation(sound, sr, low_freq = 50, high_freq = 300, **kwargs):
     '''Approximates fundamental frequency.
     
