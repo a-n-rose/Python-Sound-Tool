@@ -2693,14 +2693,19 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     row = 0
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section_vad, (e, f, sfm) = sp.dsp.vad(section, 
+        section_vad, values_vad = sp.dsp.vad(section, 
                                      sr=sr, 
                                      win_size_ms = 10, 
                                      percent_overlap = 0.5,
                                      min_energy = e_min, 
                                      min_freq = f_min, 
                                      min_sfm = sfm_min)
-        
+        # adjusted number of values returned by vad() - still not 100% 
+        # if should return three or four (probably three)
+        if len(values_vad) == 3:
+            e, f, sfm = values_vad
+        elif len(values_vad) == 4:
+            sr, e, f, sfm = values_vad
         if e_min is None or e < e_min:
             e_min = e
         if f_min is None or f < f_min:
