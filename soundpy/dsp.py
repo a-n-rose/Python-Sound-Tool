@@ -2693,7 +2693,7 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     row = 0
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section_vad, e, f, sfm = sp.dsp.vad(section, 
+        section_vad, (e, f, sfm) = sp.dsp.vad(section, 
                                      sr=sr, 
                                      win_size_ms = 10, 
                                      percent_overlap = 0.5,
