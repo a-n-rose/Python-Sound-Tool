@@ -837,7 +837,10 @@ def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **k
     
     References
     ----------
-    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: 
+    Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between.
+    Retrieved from:
+    https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
     '''
     if isinstance(sound, np.ndarray):
         if sound.dtype == np.complex64 or sound.dtype == np.complex128:
