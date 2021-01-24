@@ -3059,6 +3059,9 @@ def f0_approximation(sound, sr, low_freq = 50, high_freq = 300, **kwargs):
         data, sr2 = sp.loadsound(sound, sr=sr)
         assert sr2 == sr
     stft = sp.feats.get_vad_stft(data, sr=sr, **kwargs)
+    # get_vad_stft now returns stft, vad_matrix but used to return just stft
+    if type(stft, tuple):
+        stft = stft[0]
     stft = stft[:,low_freq:high_freq]
     power = np.abs(stft)**2
     dom_f = []
