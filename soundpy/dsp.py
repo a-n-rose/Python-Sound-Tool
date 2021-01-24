@@ -2618,6 +2618,10 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                 window = 'hann', **kwargs):
     '''Approximates pitch by collecting dominant frequencies of signal.
     '''
+    import warnings
+    warnings.warn('\n\nWarning: `soundpy.dsp.get_pitch` is experimental at best.'+\
+        ' \nPerhaps try `soundpy.dsp.get_mean_freq`, which is still experimental '+\
+            'but a bit more reliable.')
     if isinstance(sound, np.ndarray):
         data = sound
     else:
@@ -2664,6 +2668,14 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', percent_vad=0.75):
     '''Takes the mean of dominant frequencies of voice activated regions in a signal.
+    
+    The average fundamental frequency for a male voice is 125Hz; for a female voice it’s 200Hz; and for a child’s voice, 300Hz. (Russell, J., 2020)
+    
+    References
+    ----------
+    Russell, James (2020) The Human Voice and the Frequency Range.
+    Retrieved from: 
+    https://blog.accusonus.com/pro-audio-production/human-voice-frequency-range/
     '''
     if isinstance(sound, np.ndarray):
         data = sound
@@ -2739,7 +2751,7 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
         
     freq_matrix = freq_matrix[:-extra_rows]
     fund_freq = np.mean(freq_matrix)
-    return fund_freq
+    return round(fund_freq,2)
 
 
 
@@ -3057,6 +3069,10 @@ def f0_approximation(sound, sr, low_freq = 50, high_freq = 300, **kwargs):
     ----------
     https://en.wikipedia.org/wiki/Voice_frequency
     '''
+    import warnings
+    warnings.warn('\n\nWarning: `soundpy.dsp.f0_approximation` is experimental at'+\
+        ' best. \nPerhaps try `soundpy.dsp.get_mean_freq`, which is still '+\
+            'experimental but a bit more reliable.')
     import scipy
     if isinstance(sound, np.ndarray):
         data = sound
