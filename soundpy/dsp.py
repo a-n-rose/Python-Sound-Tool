@@ -2621,7 +2621,7 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     import warnings
     warnings.warn('\n\nWarning: `soundpy.dsp.get_pitch` is experimental at best.'+\
         ' \nPerhaps try `soundpy.dsp.get_mean_freq`, which is still experimental '+\
-            'but a bit more reliable.')
+            'but a bit more reliable.\n\n')
     if isinstance(sound, np.ndarray):
         data = sound
     else:
@@ -3072,7 +3072,7 @@ def f0_approximation(sound, sr, low_freq = 50, high_freq = 300, **kwargs):
     import warnings
     warnings.warn('\n\nWarning: `soundpy.dsp.f0_approximation` is experimental at'+\
         ' best. \nPerhaps try `soundpy.dsp.get_mean_freq`, which is still '+\
-            'experimental but a bit more reliable.')
+            'experimental but a bit more reliable.\n\n')
     import scipy
     if isinstance(sound, np.ndarray):
         data = sound
