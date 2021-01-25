@@ -668,6 +668,7 @@ def sinosoidal_liftering(mfccs, cep_lifter = 22):
     mfccs *= lift
     return mfccs
 
+
 def index_at_zero(samples, num_dec_places=2):
     '''Finds indices of start and end of utterance, given amplitude strength.
     
@@ -756,8 +757,9 @@ def clip_at_zero(samples, start_with_zero = True, samp_win = None,
                  neg2pos = True, **kwargs):
     '''Clips the signal at samples close to zero.
     
-    The samples where clipping occurs crosses the zero line from negative to positive. This 
-    clipping process allows for a smoother transition of audio, especially if concatenating audio.
+    The samples where clipping occurs crosses the zero line from negative to 
+    positive. This clipping process allows for a smoother transition of audio,
+    especially if concatenating audio.
     
     Parameters
     ----------
@@ -802,43 +804,38 @@ def clip_at_zero(samples, start_with_zero = True, samp_win = None,
     almost_zero = 1e-1
     original_shape = samples.shape
     samps = samples.copy()
-    if sp.dsp.ismono(samps) and len(samps.shape) == 1:
-        # make it easier to work with both mono and stereo sound
-        samps = samps.reshape(samps.shape + (1,))
 
     if samp_win is not None:
-        samps_beg = samps[:samp_win,:]
-        samps_end = samps[-samp_win:,:]
+        samps_beg = samps[:samp_win]
+        samps_end = samps[-samp_win:]
         # find last instance of zero within window at beginning of signal
         __, f_0 = index_at_zero(samps_beg)
         # find first instance of zero within window at end of signal
         l_0, __ = index_at_zero(samps_end)
         # match l_0 to original samples
         l_0 += len(samps)-samp_win
-    
     else:
         f_0, l_0 = index_at_zero(samps)
-    
-
     # ensure same shape as original_shape
     samps = samples[f_0:l_0+1]
-    
     # ensure beginning of signal starts positive and ends negative
     if neg2pos:
 
         try:
-            beg_pos_neg = sum(samps[:3])
-            end_pos_neg = sum(samps[-4:])
+            if len(samps.shape) > 1:
+                beg_pos_neg = sum(samps[:3,0])
+                end_pos_neg = sum(samps[-4:,0])
+            else:
+                beg_pos_neg = sum(samps[:3])
+                end_pos_neg = sum(samps[-4:])
         except IndexError:
             raise ValueError('Function clip_at_zero can only be applied to arrays '+\
                 'longer than 5 samples.\n\n')
-        
         if beg_pos_neg > 0 and end_pos_neg > 0:
             # won't include the last zero 
             samps_no_last_zero = samps[:-1]
             f_0, l_0 = index_at_zero(samps_no_last_zero)
             samps = samps_no_last_zero[f_0:l_0+1]
-            
         elif beg_pos_neg < 0:
             if end_pos_neg < 0:
                 # won't include the first zero 
@@ -850,17 +847,20 @@ def clip_at_zero(samples, start_with_zero = True, samp_win = None,
                 f_0, l_0 = index_at_zero(samps_no_first_last_zero)
                 samps = samps_no_first_last_zero[f_0:l_0+1]
         try:
-            assert sum(samps[:2]) > 0 and sum(samps[-2:]) < 0
+            if len(samps.shape) > 1:
+                assert sum(samps[:2,0]) > 0 and \
+                    sum(samps[-2:,0]) < 0
+            else:
+                assert sum(samps[:2]) > 0 and sum(samps[-2:]) < 0
         except AssertionError:
             import warnings
             warnings.warn('\n\nWarning: was not able to clip at zero where '+\
                 '`samples` begin positive and end negative.\n\n')
-        
+    # zeros on both sides
     if start_with_zero:
         return(samps[:-1])
     else:
-        return(samps[1:])
-    
+        return(samps[1:])    
 
 def remove_dc_bias(samples, samp_win = None):
     '''Removes DC bias by subtracting mean from sample data.
