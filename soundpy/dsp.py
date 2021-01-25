@@ -669,6 +669,7 @@ def sinosoidal_liftering(mfccs, cep_lifter = 22):
     return mfccs
 
 
+
 def index_at_zero(samples, num_dec_places=2):
     '''Finds indices of start and end of utterance, given amplitude strength.
     
@@ -722,7 +723,16 @@ def index_at_zero(samples, num_dec_places=2):
     f_0_etc = np.where(np.abs(samps) <= almost_zero)
     if len(f_0_etc[0]) > 0:
         # get index of first zero
-        f_0 = f_0_etc[0][0] 
+        for i, index in enumerate(f_0_etc[0]):
+            # if more silence follows, adjust f_0
+            if i == len(f_0_etc[0])-1:
+                import warnings
+                warnings.warn('\n\nWarning: Only zeros found in signal.\n\n')
+                f_0 = 0
+            else:
+                if index+1 != f_0_etc[0][i+1]:
+                    f_0 = index
+                    break
     else:
         # no zero found
         f_0 = 0
@@ -730,14 +740,27 @@ def index_at_zero(samples, num_dec_places=2):
     # find end of utterance last zero
     l_0_etc = np.where(np.abs(np.flip(samps)) <= almost_zero)
     if len(l_0_etc[0]) > 1:
-        l_0 = l_0_etc[0][0] 
-        if l_0 != 0:
-            l_0 = len(samps) - l_0 - 1
-        else:
-            l_0 = len(samps) - 1
+        # get index of first zero
+        for i, index in enumerate(l_0_etc[0]):
+            # if more silence follows, adjust l_0
+            if i == len(l_0_etc[0])-1:
+                # warning should get called for f_0
+                #import warnings
+                #warnings.warn('\n\nWarning: Only zeros found in signal.\n\n')
+                l_0 = 0
+            else:
+                if index+1 != l_0_etc[0][i+1]:
+                    l_0 = index
+                    break
     else:
         # no zeros found
-        l_0 = len(samps) -1
+        l_0 = 0
+    
+    if l_0 != 0:
+        l_0 = len(samps) - l_0 - 1
+    else:
+        l_0 = len(samps) - 1
+
 
     try:
         assert f_0 != l_0 
@@ -751,7 +774,6 @@ def index_at_zero(samples, num_dec_places=2):
             f_0, l_0 = f_0, len(samps)-1
 
     return f_0, l_0
-
 
 
 def clip_at_zero(samples, samp_win = None, neg2pos = True, **kwargs):
@@ -809,28 +831,36 @@ def clip_at_zero(samples, samp_win = None, neg2pos = True, **kwargs):
         samps_beg = samps[:samp_win]
         samps_end = samps[-samp_win:]
         # find last instance of zero within window at beginning of signal
-        __, f_0 = index_at_zero(samps_beg, **kwargs)
+        __, f_0 = index_at_zero(samps_beg)
         # find first instance of zero within window at end of signal
-        l_0, __ = index_at_zero(samps_end, **kwargs)
+        l_0, __ = index_at_zero(samps_end)
         # match l_0 to original samples
         l_0 += len(samps)-samp_win
     else:
-        f_0, l_0 = index_at_zero(samps, **kwargs)
+        f_0, l_0 = index_at_zero(samps)
     # ensure same shape as original_shape
     samps = samples[f_0:l_0+1]
     # ensure beginning of signal starts positive and ends negative
-    if neg2pos:
-
-        try:
-            if len(samps.shape) > 1:
-                beg_pos_neg = sum(samps[:3,0])
-                end_pos_neg = sum(samps[-4:,0])
-            else:
-                beg_pos_neg = sum(samps[:3])
-                end_pos_neg = sum(samps[-4:])
-        except IndexError:
-            raise ValueError('Function clip_at_zero can only be applied to arrays '+\
-                'longer than 5 samples.\n\n')
+    if not neg2pos:
+        return samps
+    
+    try:
+        if len(samps.shape) > 1:
+            beg_pos_neg = sum(samps[:3,0])
+            end_pos_neg = sum(samps[-4:,0])
+        else:
+            beg_pos_neg = sum(samps[:3])
+            end_pos_neg = sum(samps[-4:])
+    except IndexError:
+        raise ValueError('Function clip_at_zero can only be applied to arrays '+\
+            'longer than 5 samples.\n\n')
+    
+    if beg_pos_neg > 0 and end_pos_neg < 0:
+        return samps
+    
+    # try to cut at different zero but only 
+    # if more than 1 zero left in signal:
+    if len(np.where(samps <= almost_zero)[0]) > 1:
         if beg_pos_neg > 0 and end_pos_neg > 0:
             # won't include the last zero 
             samps_no_last_zero = samps[:-1]
@@ -846,16 +876,16 @@ def clip_at_zero(samples, samp_win = None, neg2pos = True, **kwargs):
                 samps_no_first_last_zero = samps[f_0+1:-1]
                 f_0, l_0 = index_at_zero(samps_no_first_last_zero)
                 samps = samps_no_first_last_zero[f_0:l_0+1]
-        try:
-            if len(samps.shape) > 1:
-                assert sum(samps[:2,0]) > 0 and \
-                    sum(samps[-2:,0]) < 0
-            else:
-                assert sum(samps[:2]) > 0 and sum(samps[-2:]) < 0
-        except AssertionError:
-            import warnings
-            warnings.warn('\n\nWarning: was not able to clip at zero where '+\
-                '`samples` begin positive and end negative.\n\n')
+    try:
+        if len(samps.shape) > 1:
+            assert sum(samps[:2,0]) > 0 and \
+                sum(samps[-2:,0]) < 0
+        else:
+            assert sum(samps[:2]) > 0 and sum(samps[-2:]) < 0
+    except AssertionError:
+        import warnings
+        warnings.warn('\n\nWarning: was not able to clip at zero where '+\
+            '`samples` begin positive and end negative.\n\n')
     return samps
 
 def remove_dc_bias(samples, samp_win = None):
@@ -1004,7 +1034,8 @@ def apply_sample_length(data, target_len, mirror_sound = False, clip_at_zero = T
     else:
         while len(data) < target_len:
             if clip_at_zero:
-                data_clipped = sp.dsp.clip_at_zero(data) # get rid of last zero
+                data_clipped = sp.dsp.clip_at_zero(data) 
+                # get rid of last zero
                 if len(data_clipped) < len(data):
                     data = data_clipped[:-1]
             if mirror_sound:
