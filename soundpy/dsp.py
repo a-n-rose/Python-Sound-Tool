@@ -668,7 +668,92 @@ def sinosoidal_liftering(mfccs, cep_lifter = 22):
     mfccs *= lift
     return mfccs
 
-def clip_at_zero(samples, samp_win = None):
+def index_at_zero(samples, num_dec_places=2):
+    '''Finds indices of start and end of utterance, given amplitude strength.
+    
+    Parameters
+    ----------
+    samples : numpy.ndarray [size= (num_samples,) or (num_samples, num_channels)]
+        The samples to index where the zeros surrounding speech are located.
+        
+    num_dec_places : int 
+        To the number of decimal places the lowest value in `samples` should
+        be rounded to. (default 2)
+        
+    Returns
+    -------
+    f_0 : int 
+        The index of the last occuring zero, right before speech or sound begins.
+        
+    l_0 : int 
+        The index of the first occuring zero, after speech ends.
+        
+    Examples
+    --------
+    >>> signal = np.array([-1, 0, 1, 2, 3, 2, 1, 0, -1, -2, -3, -2, -1, 0, 1])
+    >>> zero_1, zero_2 = index_at_zero(signal)
+    >>> # +1 to include zero_2 in signal
+    >>> signal[zero_1:zero_2+1]
+    [ 0  1  2  3  2  1  0 -1 -2 -3 -2 -1  0]
+    >>> # does not assume a zero preceeds any sample
+    >>> signal = np.array([1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1])
+    >>> zero_1, zero_2 = index_at_zero(signal)
+    >>> signal[zero_1:zero_2+1]
+    [ 0 -1 -2 -1  0]
+    '''
+    almost_zero = 1e-1
+    original_shape = samples.shape
+    samps = samples.copy()
+    if len(original_shape) > 1:
+        # if multiple channels find where it is 0 across all channels
+        samps = sp.dsp.average_channels(samps)
+    min_samp = np.argmin(np.abs(samps))
+    # in some instances, stored as numpy array
+    if isinstance(samps[min_samp], np.ndarray):
+        assert len(samps[min_samp]) == 1
+        min_samp = samps[min_samp][0]
+    else:
+        min_samp = samps[min_samp]
+    if round(min_samp,num_dec_places) <= almost_zero:
+        almost_zero += min_samp
+
+    # find first instance of zero:
+    f_0_etc = np.where(np.abs(samps) <= almost_zero)
+    if len(f_0_etc[0]) > 0:
+        # get index of first zero
+        f_0 = f_0_etc[0][0] 
+    else:
+        # no zero found
+        f_0 = 0
+
+    # find end of utterance last zero
+    l_0_etc = np.where(np.abs(np.flip(samps)) <= almost_zero)
+    if len(l_0_etc[0]) > 1:
+        l_0 = l_0_etc[0][0] 
+        if l_0 != 0:
+            l_0 = len(samps) - l_0 - 1
+        else:
+            l_0 = len(samps) - 1
+    else:
+        # no zeros found
+        l_0 = len(samps) -1
+
+    try:
+        assert f_0 != l_0 
+    except AssertionError:
+        import warnings
+        warnings.warn('\n\nWarning: only one zero was found. Returning '+\
+            'sample indices that encompass more energy.')
+        if sum(np.abs(samps[f_0:])) > sum(np.abs(samps[:f_0])):
+            f_0, l_0 = 0, l_0 
+        else:
+            f_0, l_0 = f_0, len(samps)-1
+
+    return f_0, l_0
+
+
+def clip_at_zero(samples, start_with_zero = True, samp_win = None,
+                 neg2pos = True, **kwargs):
     '''Clips the signal at samples close to zero.
     
     The samples where clipping occurs crosses the zero line from negative to positive. This 
@@ -679,6 +764,15 @@ def clip_at_zero(samples, samp_win = None):
     samples : np.ndarray [shape = (num_samples, ) or (num_samples, num_channels)]
         The array containing sample data. Should work on stereo sound. TODO: further testing.
         
+    start_with_zero : bool
+        If True, the returned array will begin with 0 (or close to 0). Otherwise 
+        the array will end with 0.
+        
+    neg2pos : bool 
+        If True, the returned array will begin with positive values and end with 
+        negative values. Otherwise, the array will be returned with the first
+        zeros detected, regardless of surrounding positive or negative values.
+        
     samp_win : int, optional
         The window of samples to apply when clipping at zero crossings. The zero 
         crossings adjacent to the main signal will be used. This is useful to remove
@@ -687,165 +781,85 @@ def clip_at_zero(samples, samp_win = None):
     
     Warning 
     -------
-    If only one or no zeros found. Original samples are returned if no zeros found or if more than
-    half the signal would be removed. 
+    If only one zero found. 
     
     Examples
     --------
-    >>> import numpy as np
-    >>> # create sin wave with offset of 1
-    >>> w = np.sin(np.arange(1000)+1)
-    >>> w[:4]
-    array([ 0.84147098,  0.90929743,  0.14112001, -0.7568025])
-    >>> round(w[0], 2) # start isn't zero
-    0.84
-    >>> w[-4:]
-    array([-0.89796748, -0.85547315, -0.02646075,  0.82687954])
-    >>> round(w[-1], 2) # end isn't zero
-    0.83
-    >>> # clip the sin wave to start and end with samples very close to the zero
-    >>> b = clip_at_zero(w)
-    >>> b[:4]
-    array([-0.00882117,  0.83667215,  0.91293295,  0.14984741])
-    >>> round(b[0], 2) # starts with zero
-    -0.01
-    >>> b[-4:]
-    array([-1.41179693e-01, -9.09322514e-01, -8.41438409e-01,  6.02887067e-05])
-    >>> round(b[-1], 2) # ends with zero
-    0.0
-    >>> # ensure the zero crossings go from negative to positive
-    >>> b[1] > 0 # after the starting zero, values are positive
-    True
-    >>> b[-2] > 0 # before the last zero, values are negative
-    False
+    >>> sig = np.array([-2,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
+    >>> clip_at_zero(sig) # defaults
+    [ 0  1  2  1  0 -1 -2 -1]
+    >>> clip_at_zero(sig, start_with_zero = False)
+    [ 1  2  1  0 -1 -2 -1  0]
+    >>> # finds first and last insance of zeros, regardless of surrounding
+    >>> # negative or positive values in signal
+    >>> clip_at_zero(sig, neg2pos = False)
+    [ 0  1  2  1  0 -1 -2 -1  0  1  2  1]
+    >>> # avoid clicks at start of signal
+    >>> sig = np.array([0,-10,-20,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
+    >>> clip_at_zero(sig, samp_win = 5)
+    [ 0  1  2  1  0 -1 -2 -1]
     '''
+    almost_zero = 1e-1
     original_shape = samples.shape
     samps = samples.copy()
     if sp.dsp.ismono(samps) and len(samps.shape) == 1:
         # make it easier to work with both mono and stereo sound
         samps = samps.reshape(samps.shape + (1,))
-        
-    #if len(samps.shape) > 1 and samps.shape[1] > 1:
-        #import warnings
-        #msg = 'soundpy.dsp.clip_at_zero does not yet support stereo data.'+\
-            #' Original data returned without clipping.'
-        #warnings.warn(msg)
-        #return samps
+
     if samp_win is not None:
         samps_beg = samps[:samp_win,:]
         samps_end = samps[-samp_win:,:]
-        # to utilize all channel info, take average of all channels
-        samps_beg = sp.dsp.average_channels(samps_beg)
-        samps_end = sp.dsp.average_channels(samps_end)
         # find last instance of zero within window at beginning of signal
-        f_0 = np.argmax(np.abs(np.flip(samps_beg)) <= 0 + 1e-2)
-        # find first instance of zero within window at end of signal 
-        l_0 = np.argmax(np.abs(samps_end) <= 0+1e-2)
-        l_0 = len(samples) - samp_win + l_0 
-        # did not find zeros
-        if f_0 == 0 and l_0 == 0:
-            import warnings
-            msg = '\nWarning: `soundpy.dsp.clip_at_zero` found no samples close to zero.'+\
-                ' Original samples returned.\n'
-            warnings.warn(msg)
-            # ensure samples maintain original shape
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
-        # translate index of flipped array to non-flipped array
-        f_0 = len(samps_beg) - 1 - f_0 
-    else:
-        # if stereo, use all channels to find first instance of zero
-        samps_all = sp.dsp.average_channels(samps)
-        # find first instance of zero:
-        f_0 = np.argmax(np.abs(samps_all) <= 0+1e-1)
-        l_0 = np.argmax(np.abs(np.flip(samps_all)) <= 0 + 1e-1)
-        # did not find zeros
-        if f_0 == 0 and l_0 == 0:
-            import warnings
-            msg = '\nWarning: `soundpy.dsp.clip_at_zero` found no samples close to zero.'+\
-                ' Clipping was not applied.\n'
-            warnings.warn(msg)
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
-        # translate index of flipped array to non-flipped array
-        l_0 = len(samples) - 1 - l_0 
+        __, f_0 = index_at_zero(samps_beg)
+        # find first instance of zero within window at end of signal
+        l_0, __ = index_at_zero(samps_end)
+        # match l_0 to original samples
+        l_0 += len(samps)-samp_win
     
-    # if stereo sound, just look at first channel for zeros
-    try:
-        assert np.round(samps[f_0],decimals=0) == 0
-        assert np.round(samps[l_0],decimals=0) == 0
-    except AssertionError:
-        print('First index ({}) identifies {} as closest to zero.'.format(
-            f_0, samps[f_0]))
-        print('Second index ({}) identifies {} as closest to zero.'.format(
-            l_0, samps[l_0]))
-        raise AssertionError('At least one of these does not equal zero. '+\
-            'Try extending `samp_win`.')
-    if l_0 == f_0:
-        import warnings
-        msg = '\n\nWarning: only one zero-crossing sample found. Beginning or ending sample '+\
-            'may not be zero crossing.'
-        samps_test = samps[f_0:,:]
-        if len(samps_test) / len(samples) < 0.5:
-            msg = '\n\nWARNING: Subfunction `soundpy.dsp.clip_at_zero` no longer '+\
-                'implemented as too many samples would be removed.\nThe beginning or ending '+\
-                    'of the signal may not be zero or cross zero from negative to positive. '+\
-                        '\nNote: this function expects data with multiple zero crossings.'+\
-                            '\nData provided does not seem to have enough zero crossings. '+\
-                                'Try removing the DC bias from the signal first with: \n'+\
-                                    'soundpy.dsp.remove_dc_bias(<your_data>).\n'
-            warnings.warn(msg)
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
-        else:
-            warnings.warn(msg)
-            samps = samps_test
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
     else:
-        samps = samps[f_0:l_0+1,:]
-    # ensure the zero crossings go from negative to positive
-    # only look at first channel (only channel if mono)
-    if samps[1,0] > 0:
-        if samps[-2,0] < 0:
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
-        else:
-            # cut off the last zero and get the next one
-            samps = samps[:-1] 
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            samps = clip_at_zero(samps)
+        f_0, l_0 = index_at_zero(samps)
+    
+
+    # ensure same shape as original_shape
+    samps = samples[f_0:l_0+1]
+    
+    # ensure beginning of signal starts positive and ends negative
+    if neg2pos:
+
+        try:
+            beg_pos_neg = sum(samps[:3])
+            end_pos_neg = sum(samps[-4:])
+        except IndexError:
+            raise ValueError('Function clip_at_zero can only be applied to arrays '+\
+                'longer than 5 samples.\n\n')
+        
+        if beg_pos_neg > 0 and end_pos_neg > 0:
+            # won't include the last zero 
+            samps_no_last_zero = samps[:-1]
+            f_0, l_0 = index_at_zero(samps_no_last_zero)
+            samps = samps_no_last_zero[f_0:l_0+1]
+            
+        elif beg_pos_neg < 0:
+            if end_pos_neg < 0:
+                # won't include the first zero 
+                samps_no_first_zero = samps[f_0+1::]
+                f_0, l_0 = index_at_zero(samps_no_first_zero)
+                samps = samps_no_first_zero[f_0:l_0+1]
+            else:
+                samps_no_first_last_zero = samps[f_0+1:-1]
+                f_0, l_0 = index_at_zero(samps_no_first_last_zero)
+                samps = samps_no_first_last_zero[f_0:l_0+1]
+        try:
+            assert sum(samps[:2]) > 0 and sum(samps[-2:]) < 0
+        except AssertionError:
+            import warnings
+            warnings.warn('\n\nWarning: was not able to clip at zero where '+\
+                '`samples` begin positive and end negative.\n\n')
+        
+    if start_with_zero:
+        return(samps[:-1])
     else:
-        if samps[-2,0] < 0:
-            # cut off the first zero and get the next one
-            samps = samps[1:]
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            samps = clip_at_zero(samps)
-        else:
-            # cut off both zeros and get the next ones
-            samps = samps[1:-1]
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            samps = clip_at_zero(samps)
-    if len(original_shape) == 1:
-        # remove extra dimension 
-        samps = samps.reshape((samps.shape[0]))
-    return samps
+        return(samps[1:])
     
 
 def remove_dc_bias(samples, samp_win = None):
@@ -2670,6 +2684,8 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', percent_vad=0.75):
     '''Takes the mean of dominant frequencies of voice activated regions in a signal.
+    
+    Note: Silences discarded.
     
     The average fundamental frequency for a male voice is 125Hz; for a female voice it’s 200Hz; and for a child’s voice, 300Hz. (Russell, J., 2020)
     
