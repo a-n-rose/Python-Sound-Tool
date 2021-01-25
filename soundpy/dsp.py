@@ -753,18 +753,17 @@ def index_at_zero(samples, num_dec_places=2):
     return f_0, l_0
 
 
-def clip_at_zero(samples, start_with_zero = True, samp_win = None,
-                 neg2pos = True, **kwargs):
+
+def clip_at_zero(samples, samp_win = None, neg2pos = True, **kwargs):
     '''Clips the signal at samples close to zero.
     
-    The samples where clipping occurs crosses the zero line from negative to 
-    positive. This clipping process allows for a smoother transition of audio,
-    especially if concatenating audio.
+    The samples where clipping occurs crosses the zero line from negative to positive. This 
+    clipping process allows for a smoother transition of audio, especially if concatenating audio.
     
     Parameters
     ----------
     samples : np.ndarray [shape = (num_samples, ) or (num_samples, num_channels)]
-        The array containing sample data. Should work on stereo sound. TODO: further testing.
+        The array containing sample data. Should work on stereo sound. 
         
     start_with_zero : bool
         If True, the returned array will begin with 0 (or close to 0). Otherwise 
@@ -780,6 +779,9 @@ def clip_at_zero(samples, start_with_zero = True, samp_win = None,
         crossings adjacent to the main signal will be used. This is useful to remove
         already existing clicks within the signal, often found at the beginning and / or 
         end of signals.
+        
+    kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.dsp.index_at_zero`.
     
     Warning 
     -------
@@ -789,17 +791,15 @@ def clip_at_zero(samples, start_with_zero = True, samp_win = None,
     --------
     >>> sig = np.array([-2,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
     >>> clip_at_zero(sig) # defaults
-    [ 0  1  2  1  0 -1 -2 -1]
-    >>> clip_at_zero(sig, start_with_zero = False)
-    [ 1  2  1  0 -1 -2 -1  0]
+    [ 0  1  2  1  0 -1 -2 -1  0]
     >>> # finds first and last insance of zeros, regardless of surrounding
     >>> # negative or positive values in signal
     >>> clip_at_zero(sig, neg2pos = False)
-    [ 0  1  2  1  0 -1 -2 -1  0  1  2  1]
+    [ 0  1  2  1  0 -1 -2 -1  0  1  2  1  0]
     >>> # avoid clicks at start of signal
     >>> sig = np.array([0,-10,-20,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
     >>> clip_at_zero(sig, samp_win = 5)
-    [ 0  1  2  1  0 -1 -2 -1]
+    [ 0  1  2  1  0 -1 -2 -1  0]
     '''
     almost_zero = 1e-1
     original_shape = samples.shape
@@ -809,13 +809,13 @@ def clip_at_zero(samples, start_with_zero = True, samp_win = None,
         samps_beg = samps[:samp_win]
         samps_end = samps[-samp_win:]
         # find last instance of zero within window at beginning of signal
-        __, f_0 = index_at_zero(samps_beg)
+        __, f_0 = index_at_zero(samps_beg, **kwargs)
         # find first instance of zero within window at end of signal
-        l_0, __ = index_at_zero(samps_end)
+        l_0, __ = index_at_zero(samps_end, **kwargs)
         # match l_0 to original samples
         l_0 += len(samps)-samp_win
     else:
-        f_0, l_0 = index_at_zero(samps)
+        f_0, l_0 = index_at_zero(samps, **kwargs)
     # ensure same shape as original_shape
     samps = samples[f_0:l_0+1]
     # ensure beginning of signal starts positive and ends negative
@@ -856,11 +856,7 @@ def clip_at_zero(samples, start_with_zero = True, samp_win = None,
             import warnings
             warnings.warn('\n\nWarning: was not able to clip at zero where '+\
                 '`samples` begin positive and end negative.\n\n')
-    # zeros on both sides
-    if start_with_zero:
-        return(samps[:-1])
-    else:
-        return(samps[1:])    
+    return samps
 
 def remove_dc_bias(samples, samp_win = None):
     '''Removes DC bias by subtracting mean from sample data.
@@ -1522,7 +1518,7 @@ def calc_fft(signal_section, real_signal=None, fft_bins = None, **kwargs):
         If True, only half of the fft will be returned (the fft is mirrored). Otherwise the 
         full fft will be returned.
         
-    **kwargs : additional keyword arguments
+    kwargs : additional keyword arguments
         keyword arguments for numpy.fft.fft or nump.fft.rfft
 
     Returns
