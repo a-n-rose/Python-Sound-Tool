@@ -20,3 +20,5 @@ __all__=['utils', 'feats', 'filters', 'WienerFilter', 'BandSubtraction',
          'datasets', 'envclassifier_feats', 'denoiser_feats', 'generate_sound', 'playsound',
          'generate_noise', 'builtin', 'augment', 'check_dir', 'string2pathlib',
          'normalize']
+
+__version__ = '0.1.03a'

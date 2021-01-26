@@ -1,5 +1,16 @@
 import pathlib
 from setuptools import setup, find_packages
+import re
+
+def get_property(prop, project):
+    '''Import __version__ from __init__ file and incorporate at setup.
+    
+    References
+    ----------
+    Blum, Eric (2016) https://stackoverflow.com/a/41110107
+    '''
+    result = re.search(r'{}\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop), open(project + '/__init__.py').read())
+    return result.group(1)
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
@@ -14,7 +25,7 @@ with open("requirements.txt","r") as f:
 # This call to setup() does all the work
 setup(
     name="soundpy",
-    version="0.1.0a2",
+    version = get_property('__version__', name), # version="0.1.0a3",
     description="A research-based framework for exploring sound as well as machine learning in the context of sound.",
     long_description=README,
     long_description_content_type="text/markdown",
