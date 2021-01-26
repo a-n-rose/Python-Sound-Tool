@@ -10,7 +10,11 @@ converted to raw audio samples.
 then switch to Tkinker backend using use_tkinker parameter for normal use outside of training.
 - require additional tensors to be added to the desired shape and then supplied to generator to make shape process more explicit in generator.
 
-changed parameter (Generator) normalized to normalize (opposite bool); removed add_tensor_last parameter, adjusted grayscale2color sections: can be applied to 2D data; set sr default to 22050
+### changed parameters (Generator) 
+- `normalized` to `normalize` --> opposite bool
+- removed `add_tensor_last` 
+- adjusted `grayscale2color` sections: can be applied to 2D data
+- set sr default to 22050
 
 - Got the augment cnn builtin functionality to run with pre-trained features.. needs cleaning
 - got plotsound, plot vad, and plot dom freq, to work with stereo sound
@@ -18,6 +22,9 @@ changed parameter (Generator) normalized to normalize (opposite bool); removed a
 Removing from envclassifier_extract_train:
     dataset_dict = None,
     num_labels = None,
+    
+- BUG FIX: `soundpy.dsp.clip_at_zero` was messy and unreliable. Now fixed and tested.
+- added `soundpy.dsp.index_at_zero`
 
 
 ## Updates of v0.1.0a2 release:
