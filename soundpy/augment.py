@@ -341,27 +341,11 @@ def get_augmentation_dict():
     >>> import soundpy as sp
     >>> ad = sp.augment.get_augmentation_dict()
     >>> ad
-    {'speed_increase': False,
-    'speed_decrease': False,
-    'time_shift': False,
-    'shufflesound': False,
-    'add_white_noise': False,
-    'harmonic_distortion': False,
-    'pitch_increase': False,
-    'pitch_decrease': False,
-    'vtlp': False}
+    {'speed_increase': False, 'speed_decrease': False, 'time_shift': False, 'shufflesound': False, 'add_white_noise': False, 'harmonic_distortion': False, 'pitch_increase': False, 'pitch_decrease': False, 'vtlp': False}
     >>> # to set augmentation to True:
     >>> ad['add_white_noise'] = True
     >>> ad
-    {'speed_increase': False,
-    'speed_decrease': False,
-    'time_shift': False,
-    'shufflesound': False,
-    'add_white_noise': True,
-    'harmonic_distortion': False,
-    'pitch_increase': False,
-    'pitch_decrease': False,
-    'vtlp': False}
+    {'speed_increase': False, 'speed_decrease': False, 'time_shift': False, 'shufflesound': False, 'add_white_noise': True, 'harmonic_distortion': False, 'pitch_increase': False, 'pitch_decrease': False, 'vtlp': False}
     '''
     base_dict = dict([('speed_increase', False),
                       ('speed_decrease', False),
