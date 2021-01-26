@@ -490,7 +490,7 @@ def check_extraction_variables(sr=None, feature_type=None,
     ValueError: Sampling rate (sr) must be of type int, not 48000 of type <class 'str'>.
     '''
     accepted_features = ['fbank', 'stft', 'powspec', 'mfcc', 'signal']
-
+    
     if not isinstance(sr, int):
         raise ValueError('Sampling rate (sr) must be of type int, not '+\
             '{} of type {}.'.format(sr, type(sr)))
@@ -498,11 +498,11 @@ def check_extraction_variables(sr=None, feature_type=None,
         raise ValueError('feature_type {} is not supported.'.format(feature_type)+\
             ' Must be one of the following: {}'.format(', '.join(accepted_features)))
 
-    if not isinstance(window_size_ms, int) and not isinstance(window_size_ms, float):
-        raise ValueError('window_size_ms must be an integer or float, '+\
-            'not {} of type {}.'.format(window_size_ms, type(window_size_ms)))
+    if not isinstance(win_size_ms, int) and not isinstance(win_size_ms, float):
+        raise ValueError('win_size_ms must be an integer or float, '+\
+            'not {} of type {}.'.format(win_size_ms, type(win_size_ms)))
     if not isinstance(percent_overlap, int) and not isinstance(percent_overlap, float):
-        raise ValueError('window_shift must be an integer or float, '+\
+        raise ValueError('percent_overlap must be an integer or float, '+\
             'not {} of type {}.'.format(percent_overlap, type(percent_overlap)))
 
 
