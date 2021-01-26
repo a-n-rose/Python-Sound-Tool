@@ -283,7 +283,7 @@ def restore_dictvalue(value_string):
     >>> input_string = "[PosixPath('data/audio/vacuum/vacuum1.wav')]"
     >>> type(input_string)
     <class 'str'>
-    >>> typelist = sp.utils.string2list(input_string)
+    >>> typelist = sp.utils.restore_dictvalue(input_string)
     >>> typelist
     [PosixPath('data/audio/vacuum/vacuum1.wav')]
     >>> type(typelist)
@@ -294,7 +294,7 @@ def restore_dictvalue(value_string):
     >>> # Example with a list of tuples, i.e. label and audio file pairs:
     >>> input_string = "[(2, PosixPath('data/audio/vacuum/vacuum1.wav')), '+\
         '(1, PosixPath('data/audio/vacuum/vacuum2.wav'))]"
-    >>> labelaudio_pairs = sp.utils.string2list(input_string)
+    >>> labelaudio_pairs = sp.utils.restore_dictvalue(input_string)
     >>> labelaudio_pairs
     [(2, PosixPath('data/audio/vacuum/vacuum1.wav')),
     (1, PosixPath('data/audio/vacuum/vacuum2.wav'))]
