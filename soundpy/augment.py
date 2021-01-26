@@ -339,7 +339,7 @@ def get_augmentation_dict():
     Examples
     --------
     >>> import soundpy as sp
-    >>> ad = sp.augment.get_augmentation_dict()
+    >>> ad = sp.augment.get_augmentation_dict() 
     >>> ad
     {'speed_increase': False, 'speed_decrease': False, 'time_shift': False, 'shufflesound': False, 'add_white_noise': False, 'harmonic_distortion': False, 'pitch_increase': False, 'pitch_decrease': False, 'vtlp': False}
     >>> # to set augmentation to True:
@@ -359,14 +359,13 @@ def get_augmentation_dict():
                       ])
     return base_dict
 
-# BUG doctest fails even though output is exact same
 def list_augmentations():
     '''Lists available augmentations.
     
     Examples
     --------
     >>> import soundpy as sp
-    >>> print(sp.augment.list_augmentations())
+    >>> print(sp.augment.list_augmentations()) # doctest: +NORMALIZE_WHITESPACE
     Available augmentations:
        speed_increase
        speed_decrease
@@ -401,7 +400,7 @@ def get_augmentation_settings_dict(augmentation):
     Examples
     --------
     >>> import soundpy as sp
-    >>> d = sp.augment.get_augmentation_settings_dict('speed_decrease')
+    >>> d = sp.augment.get_augmentation_settings_dict('speed_decrease') # doctest: +NORMALIZE_WHITESPACE
     >>> d
     {'perc': 0.15}
     >>> # can use this dictionary to apply different values for augmentation
@@ -410,8 +409,8 @@ def get_augmentation_settings_dict(augmentation):
     {'perc': 0.1}
     >>> # to build a dictionary with several settings:
     >>> many_settings_dict = {}
-    >>> many_settings_dict['add_white_noise'] = sp.augment.get_augmentation_settings_dict('add_white_noise')
-    >>> many_settings_dict['pitch_increase'] = sp.augment.get_augmentation_settings_dict('pitch_increase')
+    >>> many_settings_dict['add_white_noise'] = sp.augment.get_augmentation_settings_dict('add_white_noise') # doctest: +NORMALIZE_WHITESPACE
+    >>> many_settings_dict['pitch_increase'] = sp.augment.get_augmentation_settings_dict('pitch_increase') # doctest: +NORMALIZE_WHITESPACE
     >>> many_settings_dict
     {'add_white_noise': {'noise_level': 0.01, 'snr': 10, 'random_seed': None},
     'pitch_increase': {'num_semitones': 2}}
