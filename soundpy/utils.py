@@ -511,9 +511,6 @@ def check_extraction_variables(sr=None, feature_type=None,
     >>> # DOCTEST for soundpy0.1.0a2 TODO update for soundpy0.1.0a3
     >>> # BUG in old version of soundpy0.1.02a
     >>> sp.utils.check_extraction_variables(sr=48000, feature_type='signal', win_size_ms=25,percent_overlap=0.5)
-    Traceback (most recent call last):
-          ...
-    NameError: name 'window_size_ms' is not defined
     >>> # Works in this case:
     >>> sp.utils.check_extraction_variables(sr='48000', feature_type='sig',win_size_ms='25',percent_overlap='0.5')
     Traceback (most recent call last):
