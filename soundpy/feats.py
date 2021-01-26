@@ -2109,7 +2109,8 @@ def featshape_new_subframe(feature_matrix_shape, new_frame_size,
     new_shape = tuple(new_shape)
     return new_shape
 
-
+# TODO docstring doctest for soundpy0.1.0a3
+# is not in soundpy0.1.0.a2
 def apply_new_subframe(feature_matrix, new_frame_size, zeropad=True, axis=0):
     '''Reshapes `feature_matrix` to allow for `new_frame_size`. 
     
