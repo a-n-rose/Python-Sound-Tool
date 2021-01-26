@@ -476,21 +476,35 @@ def print_progress(iteration, total_iterations, task = None):
         sys.stdout.write("\r%d%% through current task" % progress)
     sys.stdout.flush()
     
+# BUG doctest and version differences regarding the parameter name changes.
+# BUG in version 0.1.0a2: in raising error, use incorrect parameter name.
+# TODO remove `window_size_ms` and `window_shift` in SoundPyv0.1.0a4
+# keyword Parameter depreciation : mark for removal mark4removal
 def check_extraction_variables(sr=None, feature_type=None,
-              win_size_ms=None, percent_overlap=None):
+              win_size_ms=None, percent_overlap=None,
+              window_size_ms=None, window_shift=None):
     '''Checks to ensure extraction variables are compatible.
     
     Parameters
     ----------
     sr : int 
         The sample rate of audio.
+        
     feature_type : str 
         The type of feature to be extracted: 'fbank', 'stft', 'powspec',
         'mfcc', 'signal'.
+    
     win_size_ms : int, float
         The window size to process audio samples.
+    
     percent_overlap : int, float 
         The percent windows should overlap.
+        
+    window_size_ms : int, float
+        Depreciated. Same as `win_size_ms`.
+        
+    window_shift : int, float 
+        Depreciated. Served same function as `percent_overlap`.
         
     Returns
     -------
@@ -501,13 +515,48 @@ def check_extraction_variables(sr=None, feature_type=None,
     ValueError
         If any of the Parameters aren't compatible.
         
+    Warns
+    -----
+    DeprecationWarning
+        If deprecated parameters are used, i.e. window_size_ms or window_shift.
+        
     Examples
     --------
     >>> import soundpy as sp
-    >>> sp.utils.check_extraction_variables(sr=48000, feature_type='signal', win_size_ms=25,percent_overlap=0.5)
-    >>> sp.utils.check_extraction_variables(sr='48000', feature_type='sig',win_size_ms='25',percent_overlap='0.5')
-    ValueError: Sampling rate (sr) must be of type int, not 48000 of type <class 'str'>.
+    >>> # DOCTEST for soundpy0.1.0a2 TODO update for soundpy0.1.0a3
+    >>> # code that works for soundpy0.1.0a3:
+    >>> # sp.utils.check_extraction_variables(sr=48000, feature_type='signal', win_size_ms=25,percent_overlap=0.5)
+    >>> # sp.utils.check_extraction_variables(sr='48000', feature_type='sig',win_size_ms='25',percent_overlap='0.5')
+    >>> # code that works for soundpy0.1.0a2:
+    >>> sp.__version__ >= '0.1.0a3'
+    Traceback (most recent call last):
+          ...
+    AttributeError: module 'soundpy' has no attribute '__version__'
+    >>> # BUG in old version of soundpy0.1.02a
+    >>> sp.utils.check_extraction_variables(sr=48000, feature_type='signal', window_size_ms=25,window_shift=0.5)
+    Traceback (most recent call last):
+          ...
+    TypeError: check_extraction_variables() got an unexpected keyword argument 'window_size_ms'
+    >>> sp.utils.check_extraction_variables(sr='48000', feature_type='sig',window_size_ms='25',window_shift='0.5')
+    Traceback (most recent call last):
+          ...
+    TypeError: check_extraction_variables() got an unexpected keyword argument 'window_size_ms'
     '''
+    if window_size_ms is not None:
+        import warnings
+        warnings.warn('Parameter `window_size_ms` is deprecated and will be removed in the '+\
+            'next release of SoundPy, version 0.1.0a4. Use `win_size_ms` instead.', 
+        warnings.DeprecationWarning)
+        win_size_ms = window_size_ms
+    if window_shift is not None:
+        percent_overlap = round(1 - window_shift / win_size_ms,2)
+        import warnings
+        warnings.warn('Parameter `window_shift` is deprecated and will be removed in the '+\
+            'next release of SoundPy, version 0.1.0a4. Calculate and use `percent_overlap` instead.\n'+\
+                'Your input:`window_size_ms` = {} and window_shift` = {}, `percent_overlap`'.format(window_size_ms, window_shift)+\
+                    ' would be {}, which means the processing windows overlap '.format(percent_overlap)+\
+                        '{}%: they shift only {}ms.'.format(int(percent_overlap*100), window_shift), 
+        warnings.DeprecationWarning)
     accepted_features = ['fbank', 'stft', 'powspec', 'mfcc', 'signal']
 
     if not isinstance(sr, int):
@@ -517,11 +566,11 @@ def check_extraction_variables(sr=None, feature_type=None,
         raise ValueError('feature_type {} is not supported.'.format(feature_type)+\
             ' Must be one of the following: {}'.format(', '.join(accepted_features)))
 
-    if not isinstance(window_size_ms, int) and not isinstance(window_size_ms, float):
-        raise ValueError('window_size_ms must be an integer or float, '+\
-            'not {} of type {}.'.format(window_size_ms, type(window_size_ms)))
+    if not isinstance(win_size_ms, int) and not isinstance(win_size_ms, float):
+        raise ValueError('win_size_ms must be an integer or float, '+\
+            'not {} of type {}.'.format(win_size_ms, type(win_size_ms)))
     if not isinstance(percent_overlap, int) and not isinstance(percent_overlap, float):
-        raise ValueError('window_shift must be an integer or float, '+\
+        raise ValueError('percent_overlap must be an integer or float, '+\
             'not {} of type {}.'.format(percent_overlap, type(percent_overlap)))
 
 
