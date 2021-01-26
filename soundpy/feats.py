@@ -2277,7 +2277,7 @@ def separate_dependent_var(matrix):
 
     Examples
     --------
-    >>> import soundpy sp
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> #vector
     >>> sp.feats.separate_dependent_var(np.array([1,2,3,4]))
