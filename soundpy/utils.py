@@ -54,7 +54,7 @@ def path_or_samples(input_value):
     'path'
     >>> # create pathlib.PosixPath object 
     >>> import pathlib
-    >>> sp.utils.path_or_samples(pathlib.Path('my_audio.wav')
+    >>> sp.utils.path_or_samples(pathlib.Path('my_audio.wav'))
     'path'
     '''
     if isinstance(input_value, str):
