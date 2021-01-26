@@ -359,6 +359,7 @@ def get_augmentation_dict():
                       ])
     return base_dict
 
+# BUG doctest fails even though output is exact same
 def list_augmentations():
     '''Lists available augmentations.
     
@@ -367,15 +368,15 @@ def list_augmentations():
     >>> import soundpy as sp
     >>> print(sp.augment.list_augmentations())
     Available augmentations:
-            speed_increase
-            speed_decrease
-            time_shift
-            shufflesound
-            add_white_noise
-            harmonic_distortion
-            pitch_increase
-            pitch_decrease
-            vtlp
+       speed_increase
+       speed_decrease
+       time_shift
+       shufflesound
+       add_white_noise
+       harmonic_distortion
+       pitch_increase
+       pitch_decrease
+       vtlp
     '''
     augmentation_dict = sp.augment.get_augmentation_dict()
     aug_list = '\t'+'\n\t'.join(str(x) for x in augmentation_dict.keys())
