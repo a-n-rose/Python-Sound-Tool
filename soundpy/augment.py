@@ -412,18 +412,14 @@ def get_augmentation_settings_dict(augmentation):
     >>> many_settings_dict['add_white_noise'] = sp.augment.get_augmentation_settings_dict('add_white_noise') # doctest: +NORMALIZE_WHITESPACE
     >>> many_settings_dict['pitch_increase'] = sp.augment.get_augmentation_settings_dict('pitch_increase') # doctest: +NORMALIZE_WHITESPACE
     >>> many_settings_dict
-    {'add_white_noise': {'noise_level': 0.01, 'snr': 10, 'random_seed': None},
-    'pitch_increase': {'num_semitones': 2}}
+    {'add_white_noise': {'noise_level': 0.01, 'snr': 10, 'random_seed': None}, 'pitch_increase': {'num_semitones': 2}}
     >>> # change 'snr' default values to list of several values
     >>> # this would apply white noise at either 10, 15, or 20 SNR, at random
     >>> many_settings_dict['add_white_noise']['snr'] = [10, 15, 20]
     >>> # change number of semitones pitch increase is applied
     >>> many_settings_dict['pitch_increase']['num_semitones'] = 1
     >>> many_settings_dict
-    {'add_white_noise': {'noise_level': 0.01,
-    'snr': [10, 15, 20],
-    'random_seed': None},
-    'pitch_increase': {'num_semitones': 1}}
+    {'add_white_noise': {'noise_level': 0.01, 'snr': [10, 15, 20], 'random_seed': None}, 'pitch_increase': {'num_semitones': 1}}
 
     Raises
     ------
