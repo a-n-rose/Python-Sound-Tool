@@ -201,15 +201,23 @@ def create_nested_dirs(directory):
     Examples
     --------
     >>> import soundpy as sp
-    >>> # First an unsucessful creation of nested directory
+    >>> # First an unsuccessful creation of nested directory
     >>> import os
-    >>> new_dir = './testdir/testdir/testdir/'
-    >>> os.mkdir(new_dir)
-    FileNotFoundError: [Errno 2] No such file or directory: './testdir/testdir/testdir/'
+    >>> new_dir = 'testdir/testdir/testdir/'
+    >>> assert not os.path.exists(new_dir)
+    >>> os.mkdir(new_dir) 
+    Traceback (most recent call last):
+       ...
+    FileNotFoundError: [Errno 2] No such file or directory: 'testdir/testdir/testdir/'
     >>> # try again with create_nested_dirs()
     >>> directory = sp.utils.create_nested_dirs(new_dir)
     >>> directory
     PosixPath('testdir/testdir/testdir')
+    >>> # delete the (empty) created testdir:
+    >>> # (not included in functionality)
+    >>> os.rmdir('testdir/testdir/testdir')
+    >>> os.rmdir('testdir/testdir')
+    >>> os.rmdir('testdir/')
     '''
     if not isinstance(directory, pathlib.PosixPath):
         directory = pathlib.Path(directory)
