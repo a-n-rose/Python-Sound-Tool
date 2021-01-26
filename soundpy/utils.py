@@ -26,11 +26,16 @@ def path_or_samples(input_value):
     
     Parameters
     ----------
-    input_value : str, pathlib.PosixPath, or tuple [size= ( (samples,), sr)] or np.ndarray [size = (samples, )]
+    input_value : str, pathlib.PosixPath, tuple [size= ( (samples,), sr)] or np.ndarray [size = (samples, )]
     
     Returns
     -------
     'path' or 'samples' : str 
+    
+    Raises
+    ------
+    TypeError 
+        If none of the expected data types detected in `input_value`.
     
     Examples
     --------
@@ -43,7 +48,7 @@ def path_or_samples(input_value):
     'samples'
     >>> # expects both audio samples and sr
     >>> sp.utils.path_or_samples(samples)
-    TypeError: The input for `path_or_samples` expected a str, pathlib.PosixPath, or tuple with samples and sample rate, not type <class 'numpy.ndarray'>
+    'samples'
     >>> # create example string pathway
     >>> sp.utils.path_or_samples('my_audio.wav')
     'path'
