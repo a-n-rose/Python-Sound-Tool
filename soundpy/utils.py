@@ -290,7 +290,7 @@ def restore_dictvalue(value_string):
     <class 'list'>
     >>> # Get type of the object
     >>> type(typelist[0])
-    pathlib.PosixPath
+    <class 'pathlib.PosixPath'>
     >>> # Example with a list of tuples, i.e. label and audio file pairs:
     >>> input_string = "[(2, PosixPath('data/audio/vacuum/vacuum1.wav')), '+\
         '(1, PosixPath('data/audio/vacuum/vacuum2.wav'))]"
