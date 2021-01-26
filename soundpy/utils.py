@@ -292,20 +292,18 @@ def restore_dictvalue(value_string):
     >>> type(typelist[0])
     <class 'pathlib.PosixPath'>
     >>> # Example with a list of tuples, i.e. label and audio file pairs:
-    >>> input_string = "[(2, PosixPath('data/audio/vacuum/vacuum1.wav')), '+\
-        '(1, PosixPath('data/audio/vacuum/vacuum2.wav'))]"
+    >>> input_string = "[(2, PosixPath('data/audio/vacuum/vacuum1.wav')), (1, PosixPath('data/audio/vacuum/vacuum2.wav'))]"
     >>> labelaudio_pairs = sp.utils.restore_dictvalue(input_string)
     >>> labelaudio_pairs
-    [(2, PosixPath('data/audio/vacuum/vacuum1.wav')),
-    (1, PosixPath('data/audio/vacuum/vacuum2.wav'))]
+    [(2, PosixPath('data/audio/vacuum/vacuum1.wav')), (1, PosixPath('data/audio/vacuum/vacuum2.wav'))]
     >>> type(labelaudio_pairs)
-    list
+    <class 'list'>
     >>> type(labelaudio_pairs[0])
-    tuple
+    <class 'tuple'>
     >>> type(labelaudio_pairs[0][0])
-    int
+    <class 'int'>
     >>> type(labelaudio_pairs[0][1])
-    pathlib.PosixPath
+    <class 'pathlib.PosixPath'>
     '''
     # only works with type string data
     if not isinstance(value_string, str):
