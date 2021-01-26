@@ -372,7 +372,8 @@ def dataset_logger(audiofile_dir = None, recursive=True):
     
     Examples
     --------
-    >>> audio_info = dataset_logger()
+    >>> import soundpy as sp
+    >>> audio_info = sp.builtin.dataset_logger()
     >>> # look at three audio files:
     >>> count = 0
     >>> for key, value in audio_info.items(): 

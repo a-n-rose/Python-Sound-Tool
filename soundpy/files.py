@@ -392,7 +392,8 @@ def conversion_formats():
     
     Examples
     --------
-    >>> conversion_formats
+    >>> import soundpy as sp
+    >>> sp.files.conversion_formats()
     {'AIFF': 'AIFF (Apple/SGI)',
     'AU': 'AU (Sun/NeXT)',
     'AVR': 'AVR (Audio Visual Research)',
@@ -454,6 +455,7 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
         
     Examples
     --------
+    >>> import soundpy as sp
     >>> audiofile = './example/audio.wav'
     # in same directory
     >>> audiofile_flac = sp.files.convert_audiofile(audiofile, format_type='flac')
@@ -654,9 +656,10 @@ def adjustname(filename, adjustment=None):
         
     Examples
     --------
-    >>> adjustname('happy.md')
+    >>> import soundpy as sp
+    >>> sp.files.adjustname('happy.md')
     'happy_adj.md'
-    >>> adjustname('happy.md', '_not_sad')
+    >>> sp.files.adjustname('happy.md', '_not_sad')
     'happy_not_sad.md'
     '''
     import pathlib

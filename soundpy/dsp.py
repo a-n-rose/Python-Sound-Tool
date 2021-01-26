@@ -48,7 +48,8 @@ def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
         
     Examples
     --------
-    >>> sound, sr = generate_sound(freq=5, amplitude=0.5, sr=5, dur_sec=1)
+    >>> import soundpy as sp
+    >>> sound, sr = sp.dsp.generate_sound(freq=5, amplitude=0.5, sr=5, dur_sec=1)
     >>> sound 
     array([ 0.000000e+00,  5.000000e-01,  3.061617e-16, -5.000000e-01, -6.123234e-16])
     >>> sr
@@ -84,8 +85,9 @@ def get_time_points(dur_sec,sr):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> # 50 milliseconds at sample rate of 100 (100 samples per second)
-    >>> x = get_time_points(0.05,100)
+    >>> x = sp.dsp.get_time_points(0.05,100)
     >>> x.shape
     (5,)
     >>> x
@@ -113,7 +115,8 @@ def generate_noise(num_samples, amplitude=0.025, random_seed=None):
     
     Examples
     --------
-    >>> noise = generate_noise(5, random_seed = 0)
+    >>> import soundpy as sp
+    >>> noise = sp.dsp.generate_noise(5, random_seed = 0)
     >>> noise
     array([0.04410131, 0.01000393, 0.02446845, 0.05602233, 0.04668895])
     '''
@@ -145,12 +148,13 @@ def set_signal_length(samples, numsamps):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> input_samples = np.array([1,2,3,4,5])
-    >>> output_samples = set_signal_length(input_samples, numsamps = 8)
+    >>> output_samples = sp.dsp.set_signal_length(input_samples, numsamps = 8)
     >>> output_samples
     array([1, 2, 3, 4, 5, 0, 0, 0])
-    >>> output_samples = set_signal_length(input_samples, numsamps = 4)
+    >>> output_samples = sp.dsp.set_signal_length(input_samples, numsamps = 4)
     >>> output_samples
     array([1, 2, 3, 4])
     '''
@@ -201,6 +205,7 @@ def scalesound(data, max_val = 1, min_val=None):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> np.random.seed(0)
     >>> input_samples = np.random.random_sample((5,))
@@ -211,7 +216,7 @@ def scalesound(data, max_val = 1, min_val=None):
     >>> input_samples.min()
     0.4236547993389047
     >>> # default setting: between -1 and 1
-    >>> output_samples = scalesound(input_samples)
+    >>> output_samples = sp.dsp.scalesound(input_samples)
     >>> output_samples 
     array([-0.14138 ,1., 0.22872961, -0.16834299, -1.])
     >>> output_samples.max()
@@ -219,7 +224,7 @@ def scalesound(data, max_val = 1, min_val=None):
     >>> output_samples.min()
     -1.0
     >>> # range between -100 and 100
-    >>> output_samples = scalesound(input_samples, max_val = 100, min_val = -100)
+    >>> output_samples = sp.dsp.scalesound(input_samples, max_val = 100, min_val = -100)
     >>> output_samples
     array([ -14.13800026,100., 22.87296052,-16.83429866,-100.])
     >>> output_samples.max()
@@ -289,11 +294,12 @@ def resample_audio(samples, sr_original, sr_desired):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> # example samples from 5 millisecond signal with sr 100 and frequency 10
     >>> input_samples = np.array([0.00e+00, 2.82842712e-01, 4.000e-01, 2.82842712e-01, 4.89858720e-17])
     >>> # we want to resample to 80 instead of 100 (for this example's sake)
-    >>> output_samples, sr = resample_audio(input_samples, sr_original = 100, sr_desired = 80)
+    >>> output_samples, sr = sp.dsp.resample_audio(input_samples, sr_original = 100, sr_desired = 80)
     >>> output_samples
     array([-2.22044605e-17, 3.35408001e-01, 3.72022523e-01, 6.51178161e-02])
     '''
@@ -319,6 +325,7 @@ def stereo2mono(data):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> data = np.linspace(0,20)
     >>> data_2channel = data.reshape(25,2)
@@ -328,7 +335,7 @@ def stereo2mono(data):
            [1.63265306, 2.04081633],
            [2.44897959, 2.85714286],
            [3.26530612, 3.67346939]])
-    >>> data_mono = stereo2mono(data_2channel)
+    >>> data_mono = sp.dsp.stereo2mono(data_2channel)
     >>> data_mono[:5]
     array([0.        , 0.81632653, 1.63265306, 2.44897959, 3.26530612])
     '''
@@ -692,14 +699,15 @@ def index_at_zero(samples, num_dec_places=2):
         
     Examples
     --------
+    >>> import soundpy as sp
     >>> signal = np.array([-1, 0, 1, 2, 3, 2, 1, 0, -1, -2, -3, -2, -1, 0, 1])
-    >>> zero_1, zero_2 = index_at_zero(signal)
+    >>> zero_1, zero_2 = sp.dsp.index_at_zero(signal)
     >>> # +1 to include zero_2 in signal
     >>> signal[zero_1:zero_2+1]
     [ 0  1  2  3  2  1  0 -1 -2 -3 -2 -1  0]
     >>> # does not assume a zero preceeds any sample
     >>> signal = np.array([1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1])
-    >>> zero_1, zero_2 = index_at_zero(signal)
+    >>> zero_1, zero_2 = sp.dsp.index_at_zero(signal)
     >>> signal[zero_1:zero_2+1]
     [ 0 -1 -2 -1  0]
     '''
@@ -811,16 +819,17 @@ def clip_at_zero(samples, samp_win = None, neg2pos = True, **kwargs):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> sig = np.array([-2,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
-    >>> clip_at_zero(sig) # defaults
+    >>> sp.dsp.clip_at_zero(sig) # defaults
     [ 0  1  2  1  0 -1 -2 -1  0]
     >>> # finds first and last insance of zeros, regardless of surrounding
     >>> # negative or positive values in signal
-    >>> clip_at_zero(sig, neg2pos = False)
+    >>> sp.dsp.clip_at_zero(sig, neg2pos = False)
     [ 0  1  2  1  0 -1 -2 -1  0  1  2  1  0]
     >>> # avoid clicks at start of signal
     >>> sig = np.array([0,-10,-20,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
-    >>> clip_at_zero(sig, samp_win = 5)
+    >>> sp.dsp.clip_at_zero(sig, samp_win = 5)
     [ 0  1  2  1  0 -1 -2 -1  0]
     '''
     almost_zero = 1e-1
@@ -948,13 +957,13 @@ def apply_num_channels(sound_data, num_channels):
     --------
     >>> import numpy as np
     >>> data = np.array([1, 1, 1, 1])
-    >>> data_3d = apply_num_channels(data, 3)
+    >>> data_3d = sp.dsp.apply_num_channels(data, 3)
     >>> data_3d
     array([[1, 1, 1],
            [1, 1, 1],
            [1, 1, 1],
            [1, 1, 1]])
-    >>> data_2d = apply_num_channels(data_3d, 2)
+    >>> data_2d = sp.dsp.apply_num_channels(data_3d, 2)
     >>> data_2d
     array([[1, 1],
            [1, 1],
@@ -1004,6 +1013,7 @@ def apply_sample_length(data, target_len, mirror_sound = False, clip_at_zero = T
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> data = np.array([1,2,3,4])
     >>> sp.dsp.apply_sample_length(data, 12)
@@ -1093,18 +1103,19 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> x = np.array([1,2,3,4])
     >>> # with 1 second delay (with sr of 4, that makes 4 sample delay)
-    >>> x_zeropadded = zeropad_sound(x, target_len=10, sr=4, delay_sec=1)
+    >>> x_zeropadded = sp.dsp.zeropad_sound(x, target_len=10, sr=4, delay_sec=1)
     >>> x_zeropadded
     array([0., 0., 0., 0., 1., 2., 3., 4., 0., 0.])
     >>> # without delay
-    >>> x_zeropadded = zeropad_sound(x, target_len=10, sr=4)
+    >>> x_zeropadded = sp.dsp.zeropad_sound(x, target_len=10, sr=4)
     >>> x_zeropadded
     array([1., 2., 3., 4., 0., 0., 0., 0., 0., 0.])
     >>> # if signal is longer than desired length:
-    >>> x_zeropadded = zeropad_sound(x, target_len=3, sr=4)
+    >>> x_zeropadded = sp.dsp.zeropad_sound(x, target_len=3, sr=4)
     UserWarning: The signal cannot be zeropadded and will instead be truncated as length of `data` is 4 and `target_len` is 3.
     len(data), target_len))
     >>> x_zeropadded
@@ -1233,11 +1244,12 @@ def calc_frame_length(dur_frame_millisec, sr):
 
     Examples
     --------
-    >>> calc_frame_length(dur_frame_millisec=20, sr=1000)
+    >>> import soundpy as sp
+    >>> sp.dsp.calc_frame_length(dur_frame_millisec=20, sr=1000)
     20
-    >>> calc_frame_length(dur_frame_millisec=20, sr=48000)
+    >>> sp.dsp.calc_frame_length(dur_frame_millisec=20, sr=48000)
     960
-    >>> calc_frame_length(dur_frame_millisec=25.5, sr=22500)
+    >>> sp.dsp.calc_frame_length(dur_frame_millisec=25.5, sr=22500)
     573
     """
     frame_length = int(dur_frame_millisec * sr // 1000)
@@ -1264,13 +1276,14 @@ def calc_num_overlap_samples(samples_per_frame, percent_overlap):
 
     Examples
     --------
-    >>> calc_num_overlap_samples(samples_per_frame=100,percent_overlap=0.10)
+    >>> import soundpy as sp
+    >>> sp.dsp.calc_num_overlap_samples(samples_per_frame=100,percent_overlap=0.10)
     10
-    >>> calc_num_overlap_samples(samples_per_frame=100,percent_overlap=10)
+    >>> sp.dsp.calc_num_overlap_samples(samples_per_frame=100,percent_overlap=10)
     10
-    >>> calc_num_overlap_samples(samples_per_frame=960,percent_overlap=0.5)
+    >>> sp.dsp.calc_num_overlap_samples(samples_per_frame=960,percent_overlap=0.5)
     480
-    >>> calc_num_overlap_samples(samples_per_frame=960,percent_overlap=75)
+    >>> sp.dsp.calc_num_overlap_samples(samples_per_frame=960,percent_overlap=75)
     720
     """
     if percent_overlap > 1:
@@ -1311,9 +1324,10 @@ def calc_num_subframes(tot_samples, frame_length, overlap_samples, zeropad=False
 
     Examples
     --------
-    >>> calc_num_subframes(30,10,5)
+    >>> import soundpy as sp
+    >>> sp.dsp.calc_num_subframes(30,10,5)
     5
-    >>> calc_num_subframes(30,20,5)
+    >>> sp.dsp.calc_num_subframes(30,20,5)
     3
     """
     import math
@@ -1351,12 +1365,13 @@ def create_window(window_type, frame_length):
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> #create Hamming window
-    >>> hamm_win = create_window('hamming', frame_length=5)
+    >>> hamm_win = sp.dsp.create_window('hamming', frame_length=5)
     >>> hamm_win
     array([0.08, 0.54, 1.  , 0.54, 0.08])
     >>> #create Hann window
-    >>> hann_win = create_window('hann',frame_length=5)
+    >>> hann_win = sp.dsp.create_window('hann',frame_length=5)
     >>> hann_win
     array([0. , 0.5, 1. , 0.5, 0. ])
     """
@@ -1390,14 +1405,15 @@ def apply_window(samples, window, zeropad=False):
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> input_signal = np.array([ 0.        ,  0.36371897, -0.302721,
     ...                         -0.1117662 ,  0.3957433 ])
     >>> window_hamming = np.array([0.08, 0.54, 1.  , 0.54, 0.08])
-    >>> apply_window(input_signal, window_hamming)
+    >>> sp.dsp.apply_window(input_signal, window_hamming)
     array([ 0.        ,  0.19640824, -0.302721  , -0.06035375,  0.03165946])
     >>> window_hann = np.array([0. , 0.5, 1. , 0.5, 0. ])
-    >>> apply_window(input_signal, window_hann)
+    >>> sp.dsp.apply_window(input_signal, window_hann)
     array([ 0.        ,  0.18185948, -0.302721  , -0.0558831 ,  0.        ])
     """
     if len(samples.shape) == 1:
@@ -1436,16 +1452,17 @@ def add_channels(samples, channels_total):
         
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> samps_mono = np.array([1,2,3,4,5])
-    >>> samps_stereo2 = add_channels(samps_mono, 2)
+    >>> samps_stereo2 = sp.dsp.add_channels(samps_mono, 2)
     >>> samps_stereo2
     array([[1, 1],
     ...    [2, 2],
     ...    [3, 3],
     ...    [4, 4],
     ...    [5, 5]])
-    >>> samps_stereo5 = add_channels(samps_stereo2, 5)
+    >>> samps_stereo5 = sp.dsp.add_channels(samps_stereo2, 5)
     >>> samps_stereo5
     array([[1, 1, 1, 1, 1],
     ...    [2, 2, 2, 2, 2],
@@ -1505,11 +1522,12 @@ def average_channels(data):
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> input_samples1 = np.array([1,2,3,4,5])
     >>> input_samples2 = np.array([1,1,3,3,5])
     >>> input_2channels = np.vstack((input_samples1, input_samples2)).T
-    >>> input_averaged = average_channels(input_2channels)
+    >>> input_averaged = sp.dsp.average_channels(input_2channels)
     >>> input_averaged
     array([1. , 1.5, 3. , 3.5, 5. ])
     '''
@@ -1610,7 +1628,7 @@ def calc_power(fft_vals):
     >>> import numpy as np
     >>> matrix = np.array([[1,1,1],[2j,2j,2j],[-3,-3,-3]],
     ...                     dtype=np.complex_)
-    >>> calc_power(matrix)
+    >>> sp.dsp.calc_power(matrix)
     array([[0.33333333, 0.33333333, 0.33333333],
            [1.33333333, 1.33333333, 1.33333333],
            [3.        , 3.        , 3.        ]])        
@@ -1644,8 +1662,9 @@ def calc_average_power(matrix, num_iters):
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> matrix = np.array([[6,6,6],[3,3,3],[1,1,1]])
-    >>> ave_matrix = calc_average_power(matrix, 3)
+    >>> ave_matrix = sp.dsp.calc_average_power(matrix, 3)
     >>> ave_matrix
     array([[2.        , 2.        , 2.        ],
            [1.        , 1.        , 1.        ],
@@ -1679,15 +1698,16 @@ def calc_phase(fft_matrix, radians=False):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np 
     >>> frame_length = 10
     >>> time = np.arange(0, 10, 0.1)
     >>> signal = np.sin(time)[:frame_length]
     >>> fft_vals = np.fft.fft(signal)
-    >>> phase = calc_phase(fft_vals, radians=False)
+    >>> phase = sp.dsp.calc_phase(fft_vals, radians=False)
     >>> phase[:2]
     array([ 1.        +0.j        , -0.37872566+0.92550898j])
-    >>> phase = calc_phase(fft_vals, radians=True)
+    >>> phase = sp.dsp.calc_phase(fft_vals, radians=True)
     >>> phase[:2]
     array([0.        , 1.95921533])
     '''
@@ -1731,6 +1751,7 @@ def reconstruct_whole_spectrum(band_reduced_noise_matrix, n_fft=None):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> x = np.array([3.,2.,1.,0.])
     >>> # double the size of x
     >>> x_rec = sp.dsp.reconstruct_whole_spectrum(x, n_fft=int(len(x)*2))
@@ -1825,9 +1846,10 @@ def calc_posteri_snr(target_power_spec, noise_power_spec):
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> sig_power = np.array([6,6,6,6])
     >>> noise_power = np.array([2,2,2,2])
-    >>> calc_posteri_snr(sig_power, noise_power)
+    >>> sp.dsp.calc_posteri_snr(sig_power, noise_power)
     array([3., 3., 3., 3.])
     """
     posteri_snr = np.zeros(target_power_spec.shape)
@@ -2398,15 +2420,16 @@ def control_volume(samples, max_limit):
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> #low volume example: increase volume to desired window
     >>> x = np.array([-0.03, 0.04, -0.05, 0.02])
-    >>> x = control_volume(x, max_limit=0.25)
+    >>> x = sp.dsp.control_volume(x, max_limit=0.25)
     >>> x
     array([-0.13888889,  0.25      , -0.25      ,  0.13888889])
     >>> #high volume example: decrease volume to desired window
     >>> y = np.array([-0.3, 0.4, -0.5, 0.2])
-    >>> y = control_volume(y, max_limit=0.15)
+    >>> y = sp.dsp.control_volume(y, max_limit=0.15)
     >>> y
     array([-0.08333333,  0.15      , -0.15      ,  0.08333333])
     """
@@ -2511,18 +2534,19 @@ def create_empty_matrix(shape, complex_vals=False):
 
 
     Examples
-    ----------
-    >>> matrix = create_empty_matrix((3,4))
+    --------
+    >>> import soundpy as sp
+    >>> matrix = sp.dsp.create_empty_matrix((3,4))
     >>> matrix
     array([[0., 0., 0., 0.],
            [0., 0., 0., 0.],
            [0., 0., 0., 0.]])
-    >>> matrix_complex = create_empty_matrix((3,4),complex_vals=True)
+    >>> matrix_complex = sp.dsp.create_empty_matrix((3,4),complex_vals=True)
     >>> matrix_complex
     array([[0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
            [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j],
            [0.+0.j, 0.+0.j, 0.+0.j, 0.+0.j]])
-    >>> vector = create_empty_matrix(5,)
+    >>> vector = sp.dsp.create_empty_matrix(5,)
     >>> vector
     array([0., 0., 0., 0., 0.])
     '''
@@ -2556,11 +2580,12 @@ def overlap_add(enhanced_matrix, frame_length, overlap, complex_vals=False):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> enhanced_matrix = np.ones((4, 4))
     >>> frame_length = 4
     >>> overlap = 1
-    >>> sig = overlap_add(enhanced_matrix, frame_length, overlap)
+    >>> sig = sp.dsp.overlap_add(enhanced_matrix, frame_length, overlap)
     >>> sig
     array([1., 1., 1., 2., 1., 1., 2., 1., 1., 2., 1., 1., 1.])
     '''
@@ -2616,6 +2641,7 @@ def random_selection_samples(samples, len_section_samps, wrap=False, random_seed
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> # no wrap:
     >>> x = np.array([1,2,3,4,5,6,7,8,9,10])

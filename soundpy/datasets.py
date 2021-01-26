@@ -55,25 +55,26 @@ def create_encodedlabel2audio_dict(dict_encodelabels, paths_list, limit=None, se
     TODO update:
     Examples
     --------
+    >>> import soundpy as sp
     >>> from pathlib import Path
     >>> labels = dict([('vacuum',2),('fridge',0),('wind',1)])
     >>> paths = [Path('data/audio/vacuum/vacuum1.wav'), 
     ...         Path('data/audio/fridge/fridge1.wav'), 
     ...         Path('data/audio/vacuum/vacuum2.wav'),
     ...         Path('data/audio/wind/wind1.wav')]
-    >>> label_waves_dict = create_encodedlabel2audio_dict(labels, paths)
+    >>> label_waves_dict = sp.datsets.create_encodedlabel2audio_dict(labels, paths)
     >>> label_waves_dict
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
 (2, [PosixPath('data/audio/vacuum/vacuum1.wav'), \
 PosixPath('data/audio/vacuum/vacuum2.wav')]), \
 (1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #to set a limit on number of audiofiles per class:
-    >>> create_encodedlabel2audio_dict(labels, paths, limit=1, seed=40)
+    >>> sp.datsets.create_encodedlabel2audio_dict(labels, paths, limit=1, seed=40)
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
 (2, [PosixPath('data/audio/vacuum/vacuum2.wav')]), \
 (1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #change the limited pathways chosen:
-    >>> create_encodedlabel2audio_dict(labels, paths, limit=1, seed=10)
+    >>> sp.datsets.create_encodedlabel2audio_dict(labels, paths, limit=1, seed=10)
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
 (2, [PosixPath('data/audio/vacuum/vacuum1.wav')]), \
 (1, [PosixPath('data/audio/wind/wind1.wav')])])
@@ -137,8 +138,9 @@ def create_dicts_labelsencoded(labels_class, add_extra_label = False, extra_labe
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> labels = {'wind','air_conditioner','fridge'}
-    >>> label2int, int2label = create_dicts_labelsencoded(labels)
+    >>> label2int, int2label = sp.datsets.create_dicts_labelsencoded(labels)
     >>> label2int
     {'air_conditioner': 0, 'fridge': 1, 'wind': 2}
     >>> int2label
@@ -193,16 +195,17 @@ def waves2dataset(audiolist, perc_train=0.8, seed=40, train=True, val=True, test
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> #Using a list of numbers instead of filenames
     >>> audiolist = [1,2,3,4,5,6,7,8,9,10]
     >>> #default settings:
-    >>> waves2dataset(audiolist)
+    >>> sp.datsets.waves2dataset(audiolist)
     ([5, 4, 9, 2, 3, 10, 1, 6], [8], [7])
     >>> #perc_train set to 50% instead of 80%:
-    >>> waves2dataset(audiolist, perc_train=50)
+    >>> sp.datsets.waves2dataset(audiolist, perc_train=50)
     ([5, 4, 9, 2, 3, 10], [1, 6], [8, 7])
     >>> #change seed number
-    >>> waves2dataset(audiolist, seed=0)
+    >>> sp.datsets.waves2dataset(audiolist, seed=0)
     ([7, 1, 2, 5, 6, 9, 10, 8], [4], [3])
     '''
     if seed == 0:
@@ -466,8 +469,9 @@ def separate_train_val_test_files(list_of_files):
         
     Examples
     --------
+    >>> import soundpy as sp
     >>> features_files = ['train1.npy', 'train2.npy', 'val.npy', 'test.npy']
-    >>> datasets = separate_train_val_test_files(features_files)
+    >>> datasets = sp.datsets.separate_train_val_test_files(features_files)
     >>> datasets.train
     [PosixPath('train1.npy'), PosixPath('train2.npy')]
     >>> datasets.val
@@ -477,7 +481,7 @@ def separate_train_val_test_files(list_of_files):
     >>> # try with noisy and clean data
     >>> features_files = ['train_noisy.npy', 'train_clean.npy', 'val_noisy.npy', \
 'val_clean.npy', 'test_noisy.npy', 'test_clean.npy']
-    >>> datasets = separate_train_val_test_files(features_files)
+    >>> datasets = sp.datsets.separate_train_val_test_files(features_files)
     >>> datasets.train.noisy
     [PosixPath('train_noisy.npy')]
     >>> datasets.train.clean
@@ -560,6 +564,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import pathlib
     >>> # train is longer than val and test
     >>> d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],\
@@ -569,7 +574,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     >>> dp = {'train': pathlib.PosixPath('train_data.npy'),\
               'val': pathlib.PosixPath('val_data.npy'),\
               'test': pathlib.PosixPath('test_data.npy')}
-    >>> d2, dp2 = section_data(d, dp, divide_factor = 3)
+    >>> d2, dp2 = sp.datsets.section_data(d, dp, divide_factor = 3)
     >>> # val and train not touched (too small)
     >>> d2
     {'train__1': [1, 2, 3, 4, 5], \
@@ -585,7 +590,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
 'test': PosixPath('test_data.npy')}
     >>> # repeat: now val and test as long as train
     >>> # default divide_factor is 2
-    >>> d3, dp3 = section_data(d2, dp2)
+    >>> d3, dp3 = sp.datsets.section_data(d2, dp2)
     >>> d3
     {'train__1': [1, 2], \
 'train__2': [3, 4, 5], \
