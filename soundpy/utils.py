@@ -453,9 +453,9 @@ def print_progress(iteration, total_iterations, task = None):
     Examples
     --------
     >>> import soundpy as sp
-    >>> sp.utils.print_progress(4, 10)
+    >>> sp.utils.print_progress(4, 10)  # doctest: +NORMALIZE_WHITESPACE
     50% through current task
-    >>> sp.utils.print_progress(4, 10, task = 'testing')
+    >>> sp.utils.print_progress(4, 10, task = 'testing')  # doctest: +NORMALIZE_WHITESPACE
     50% through testing
     '''
     progress = (iteration+1) / total_iterations * 100 
