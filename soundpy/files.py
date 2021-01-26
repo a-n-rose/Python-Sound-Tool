@@ -456,21 +456,25 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
     Examples
     --------
     >>> import soundpy as sp
-    >>> audiofile = './example/audio.wav'
-    # in same directory
+    >>> audiofile = './audio_files/python.wav'
+    >>> # in same directory
     >>> audiofile_flac = sp.files.convert_audiofile(audiofile, format_type='flac')
     >>> audiofile_flac
-    PosixPath('example/audio.flac')
-    # in new directory
-    >>> audiofile_flac = sp.files.convert_audiofile(audiofile, format_type='flac', 
-                                                     new_dir = './examples2/')
-    >>> audiofile_flac
-    PosixPath('examples2/audio.flac')
+    PosixPath('audio_files/python.flac')
+    >>> # in new directory
+    >>> audiofile_flac2 = sp.files.convert_audiofile(audiofile, format_type='flac', new_dir = './examples/')
+    >>> audiofile_flac2
+    PosixPath('examples/python.flac')
     >>> # can establish desired conversion format in `new_dir`
-    >>> audiofile_ogg = sp.files.convert_audiofile(audiofile,
-                                                     new_dir = './examples2/audio.ogg')
+    >>> audiofile_ogg = sp.files.convert_audiofile(audiofile, new_dir = './examples/python.ogg')
     >>> audiofile_ogg
-    PosixPath('audiodata2/audio.ogg')
+    PosixPath('examples/python.ogg')
+    >>> # cleanup if doctest applied
+    >>> import os
+    >>> os.remove(audiofile_flac)
+    >>> os.remove(audiofile_flac2)
+    >>> os.remove(audiofile_ogg)
+    >>> os.rmdir('./examples')
     
     See Also
     --------
