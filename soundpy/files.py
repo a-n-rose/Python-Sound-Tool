@@ -393,7 +393,7 @@ def conversion_formats():
     Examples
     --------
     >>> import soundpy as sp
-    >>> sp.files.conversion_formats()
+    >>> sp.files.conversion_formats() # doctest: +NORMALIZE_WHITESPACE
     {'AIFF': 'AIFF (Apple/SGI)',
     'AU': 'AU (Sun/NeXT)',
     'AVR': 'AVR (Audio Visual Research)',
