@@ -124,8 +124,8 @@ def get_date():
     --------
     >>> import soundpy as sp
     >>> date = sp.utils.get_date()
-    >>> date
-    '6m18d1h16m32s295ms'
+    >>> type(date)  # '6m18d1h16m32s295ms'
+    <class 'str'>
     '''
     time = datetime.datetime.now()
     time_str = "{}m{}d{}h{}m{}s{}ms".format(time.month,
