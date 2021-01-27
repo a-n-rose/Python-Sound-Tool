@@ -62,19 +62,19 @@ def create_encodedlabel2audio_dict(dict_encodelabels, paths_list, limit=None, se
     ...         Path('data/audio/fridge/fridge1.wav'), 
     ...         Path('data/audio/vacuum/vacuum2.wav'),
     ...         Path('data/audio/wind/wind1.wav')]
-    >>> label_waves_dict = sp.datsets.create_encodedlabel2audio_dict(labels, paths)
+    >>> label_waves_dict = sp.datasets.create_encodedlabel2audio_dict(labels, paths)
     >>> label_waves_dict
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
 (2, [PosixPath('data/audio/vacuum/vacuum1.wav'), \
 PosixPath('data/audio/vacuum/vacuum2.wav')]), \
 (1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #to set a limit on number of audiofiles per class:
-    >>> sp.datsets.create_encodedlabel2audio_dict(labels, paths, limit=1, seed=40)
+    >>> sp.datasets.create_encodedlabel2audio_dict(labels, paths, limit=1, seed=40)
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
 (2, [PosixPath('data/audio/vacuum/vacuum2.wav')]), \
 (1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #change the limited pathways chosen:
-    >>> sp.datsets.create_encodedlabel2audio_dict(labels, paths, limit=1, seed=10)
+    >>> sp.datasets.create_encodedlabel2audio_dict(labels, paths, limit=1, seed=10)
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
 (2, [PosixPath('data/audio/vacuum/vacuum1.wav')]), \
 (1, [PosixPath('data/audio/wind/wind1.wav')])])
@@ -140,7 +140,7 @@ def create_dicts_labelsencoded(labels_class, add_extra_label = False, extra_labe
     --------
     >>> import soundpy as sp
     >>> labels = {'wind','air_conditioner','fridge'}
-    >>> label2int, int2label = sp.datsets.create_dicts_labelsencoded(labels)
+    >>> label2int, int2label = sp.datasets.create_dicts_labelsencoded(labels)
     >>> label2int
     {'air_conditioner': 0, 'fridge': 1, 'wind': 2}
     >>> int2label
@@ -571,7 +571,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     >>> dp = {'train': pathlib.PosixPath('train_data.npy'),\
               'val': pathlib.PosixPath('val_data.npy'),\
               'test': pathlib.PosixPath('test_data.npy')}
-    >>> d2, dp2 = sp.datsets.section_data(d, dp, divide_factor = 3)
+    >>> d2, dp2 = sp.datasets.section_data(d, dp, divide_factor = 3)
     >>> # val and train not touched (too small)
     >>> d2
     {'train__1': [1, 2, 3, 4, 5], \
@@ -587,7 +587,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
 'test': PosixPath('test_data.npy')}
     >>> # repeat: now val and test as long as train
     >>> # default divide_factor is 2
-    >>> d3, dp3 = sp.datsets.section_data(d2, dp2)
+    >>> d3, dp3 = sp.datasets.section_data(d2, dp2)
     >>> d3
     {'train__1': [1, 2], \
 'train__2': [3, 4, 5], \
