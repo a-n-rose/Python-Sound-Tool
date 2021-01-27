@@ -790,7 +790,7 @@ def index_at_zero(samples, num_dec_places=2):
 
     return f_0, l_0
 
-
+# BUG doctest new parameter neg2pos
 def clip_at_zero(samples, samp_win = None, neg2pos = True, **kwargs):
     '''Clips the signal at samples close to zero.
     
@@ -829,15 +829,15 @@ def clip_at_zero(samples, samp_win = None, neg2pos = True, **kwargs):
     >>> import soundpy as sp
     >>> sig = np.array([-2,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
     >>> sp.dsp.clip_at_zero(sig) # defaults
-    [ 0  1  2  1  0 -1 -2 -1  0]
+    array([ 0,  1,  2,  1,  0, -1, -2, -1,  0])
     >>> # finds first and last insance of zeros, regardless of surrounding
     >>> # negative or positive values in signal
     >>> sp.dsp.clip_at_zero(sig, neg2pos = False)
-    [ 0  1  2  1  0 -1 -2 -1  0  1  2  1  0]
-    >>> # avoid clicks at start of signal
+    array([ 0,  1,  2,  1,  0, -1, -2, -1,  0,  1,  2,  1,  0])
+    >>> avoid clicks at start of signal
     >>> sig = np.array([0,-10,-20,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
     >>> sp.dsp.clip_at_zero(sig, samp_win = 5)
-    [ 0  1  2  1  0 -1 -2 -1  0]
+    array([ 0,  1,  2,  1,  0, -1, -2, -1,  0])
     '''
     almost_zero = 1e-1
     original_shape = samples.shape
