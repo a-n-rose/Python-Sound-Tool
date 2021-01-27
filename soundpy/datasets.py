@@ -458,8 +458,13 @@ def separate_train_val_test_files(list_of_files):
     Examples
     --------
     >>> import soundpy as sp
+    >>> # create fake files (otherwise FileNotFoundError)
+    >>> fakefiles = ['train1.npy', 'train2.npy', 'val.npy', 'test.npy',
+    ...   'train_noisy.npy','train_clean.npy','val_noisy.npy','val_clean.npy','test_noisy.npy','test_clean.npy']
+    >>> for f in fakefiles:
+    ...   np.save(f, np.array([1,2,3]))
     >>> features_files = ['train1.npy', 'train2.npy', 'val.npy', 'test.npy']
-    >>> datasets = sp.datsets.separate_train_val_test_files(features_files)
+    >>> datasets = sp.datasets.separate_train_val_test_files(features_files)
     >>> datasets.train
     [PosixPath('train1.npy'), PosixPath('train2.npy')]
     >>> datasets.val
@@ -469,7 +474,7 @@ def separate_train_val_test_files(list_of_files):
     >>> # try with noisy and clean data
     >>> features_files = ['train_noisy.npy', 'train_clean.npy', 'val_noisy.npy', \
 'val_clean.npy', 'test_noisy.npy', 'test_clean.npy']
-    >>> datasets = sp.datsets.separate_train_val_test_files(features_files)
+    >>> datasets = sp.datasets.separate_train_val_test_files(features_files)
     >>> datasets.train.noisy
     [PosixPath('train_noisy.npy')]
     >>> datasets.train.clean
@@ -482,6 +487,10 @@ def separate_train_val_test_files(list_of_files):
     [PosixPath('test_noisy.npy')]
     >>> datasets.test.clean
     [PosixPath('test_clean.npy')]
+    >>> # clean up fake files:
+    >>> import os
+    >>> for f in fakefiles:
+    ...   os.remove(f)
     '''
     train_data_input = []
     train_data_output = []
