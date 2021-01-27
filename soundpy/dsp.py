@@ -180,7 +180,7 @@ def set_signal_length(samples, numsamps):
     return data
 
 # works for stereo sound (raw signal data)
-def scalesound(data, max_val = 1, min_val=None):
+def scalesound(data, max_val = 1, min_val = None):
     '''Scales the input array to range between `min_val` and `max_val`. 
     
     Parameters
@@ -207,26 +207,27 @@ def scalesound(data, max_val = 1, min_val=None):
     --------
     >>> import soundpy as sp
     >>> import numpy as np
-    >>> np.random.seed(0)
+    >>> np.random.seed(40)
     >>> input_samples = np.random.random_sample((5,))
     >>> input_samples
-    array([0.5488135 , 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
+    array([0.40768703, 0.05536604, 0.78853488, 0.28730518, 0.45035059])
     >>> input_samples.max()
-    0.7151893663724195
+    0.7885348774867527
     >>> input_samples.min()
-    0.4236547993389047
+    0.05536604011186008
     >>> # default setting: between -1 and 1
     >>> output_samples = sp.dsp.scalesound(input_samples)
     >>> output_samples 
-    array([-0.14138 ,1., 0.22872961, -0.16834299, -1.])
+    array([-0.03890899, -1.        ,  1.        , -0.36729677,  0.07747227])
     >>> output_samples.max()
     1.0
     >>> output_samples.min()
     -1.0
     >>> # range between -100 and 100
-    >>> output_samples = sp.dsp.scalesound(input_samples, max_val = 100, min_val = -100)
+    >>> output_samples = sp.dsp.scalesound(input_samples, max_val = 100, min_val = -100) # doctest: +NORMALIZE_WHITESPACE
     >>> output_samples
-    array([ -14.13800026,100., 22.87296052,-16.83429866,-100.])
+    array([  -3.89089934, -100.        ,  100.        ,  -36.7296773 ,
+              7.7472273 ])
     >>> output_samples.max()
     100.0
     >>> output_samples.min()
@@ -1115,9 +1116,9 @@ def zeropad_sound(data, target_len, sr, delay_sec=None):
     >>> x_zeropadded
     array([1., 2., 3., 4., 0., 0., 0., 0., 0., 0.])
     >>> # if signal is longer than desired length:
-    >>> x_zeropadded = sp.dsp.zeropad_sound(x, target_len=3, sr=4)
-    UserWarning: The signal cannot be zeropadded and will instead be truncated as length of `data` is 4 and `target_len` is 3.
-    len(data), target_len))
+    >>> # BUG doctest fail due to UserWarning.
+    >>> x_zeropadded = sp.dsp.zeropad_sound(x, target_len=3, sr=4) 
+    UserWarning: The `target_len` is shorter than the `data` and `delay_sec`. Therefore the data will be cut off by 1 sample(s).
     >>> x_zeropadded
     array([1, 2, 3])
     '''
