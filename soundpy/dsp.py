@@ -51,7 +51,8 @@ def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
     >>> import soundpy as sp
     >>> sound, sr = sp.dsp.generate_sound(freq=5, amplitude=0.5, sr=5, dur_sec=1)
     >>> sound 
-    array([ 0.000000e+00,  5.000000e-01,  3.061617e-16, -5.000000e-01, -6.123234e-16])
+    array([ 0.000000e+00,  5.000000e-01,  3.061617e-16, -5.000000e-01,
+           -6.123234e-16])
     >>> sr
     5
     '''
@@ -291,6 +292,11 @@ def resample_audio(samples, sr_original, sr_desired):
     
     sr_desired : int 
         The newly applied sample rate
+        
+    See Also
+    --------
+    scipy.signal.resample
+        The core functionality of this function. 
     
     
     Examples
@@ -302,7 +308,7 @@ def resample_audio(samples, sr_original, sr_desired):
     >>> # we want to resample to 80 instead of 100 (for this example's sake)
     >>> output_samples, sr = sp.dsp.resample_audio(input_samples, sr_original = 100, sr_desired = 80)
     >>> output_samples
-    array([-2.22044605e-17, 3.35408001e-01, 3.72022523e-01, 6.51178161e-02])
+    array([0.        , 0.335408  , 0.37202252, 0.06511782])
     '''
     time_sec = len(samples)/sr_original 
     num_samples = int(time_sec * sr_desired)
@@ -677,7 +683,7 @@ def sinosoidal_liftering(mfccs, cep_lifter = 22):
     return mfccs
 
 
-
+# BUG in doctest: not in soundpy0.1.0a2
 def index_at_zero(samples, num_dec_places=2):
     '''Finds indices of start and end of utterance, given amplitude strength.
     
