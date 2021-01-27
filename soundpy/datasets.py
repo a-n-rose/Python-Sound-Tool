@@ -162,8 +162,10 @@ def create_dicts_labelsencoded(labels_class, add_extra_label = False, extra_labe
     return dict_label2int, dict_int2label
 
 # TODO change name to audiolist2dataset?
+# BUG (very minor) in soundpy0.1.0a2: With *very* small datasets (e.g. fake/example datasets), 
+# incorrectly calculated number of files assigned to datasets
 def waves2dataset(audiolist, perc_train=0.8, seed=40, train=True, val=True, test=True):
-    '''Organizes audio files list into train, validation and test datasets.
+    '''Pseudorandomly assigns audio list into train, val, test datasets.
     
     If only two or one dataset is to be prepared, they will be assigned to train and 
     val or simply to train, respectively. The remaining 'datasets' will remain empty.
@@ -199,14 +201,14 @@ def waves2dataset(audiolist, perc_train=0.8, seed=40, train=True, val=True, test
     >>> #Using a list of numbers instead of filenames
     >>> audiolist = [1,2,3,4,5,6,7,8,9,10]
     >>> #default settings:
-    >>> sp.datsets.waves2dataset(audiolist)
+    >>> sp.datasets.waves2dataset(audiolist)
     ([5, 4, 9, 2, 3, 10, 1, 6], [8], [7])
     >>> #perc_train set to 50% instead of 80%:
-    >>> sp.datsets.waves2dataset(audiolist, perc_train=50)
+    >>> sp.datasets.waves2dataset(audiolist, perc_train=50)
     ([5, 4, 9, 2, 3, 10], [1, 6], [8, 7])
-    >>> #change seed number
-    >>> sp.datsets.waves2dataset(audiolist, seed=0)
-    ([7, 1, 2, 5, 6, 9, 10, 8], [4], [3])
+    >>> # shuffle the audio / change seed (default 40)
+    >>> sp.datasets.waves2dataset(audiolist, seed=50)
+    ([8, 9, 7, 3, 5, 2, 6, 4], [10], [1])
     '''
     if seed == 0:
         raise ValueError('Seed equals 0. This will result in unreliable '+\
@@ -246,34 +248,20 @@ def waves2dataset(audiolist, perc_train=0.8, seed=40, train=True, val=True, test
         num_datasets = 1
         perc_valtest = 0
         perc_train = 1.
-        
-    # assign empty datasets to train, train and val, for this function
-    if train:
-        pass
-    if val:
-        if not train:
-            train = val 
-            val = ''
-    if test:
-        if not train:
-            train = test
-            test = ''
-        elif not val:
-            val = test
-            test = ''
 
+    # assign number of waves to each list
     num_waves = len(audiolist)
     num_train = int(num_waves * perc_train)
     num_val_test = int(num_waves * perc_valtest)
-    if num_datasets > 1 and num_val_test < num_datasets-1:
-        while num_val_test < num_datasets-1:
-            num_val_test += 1
-            num_train -= 1
-            if num_val_test == num_datasets-1:
-                break
+    # I think this is to avoid empty dataset lists
+    if num_datasets > 1 and num_val_test < 1:
+        num_val_test += 1
+        num_train -= 1
+    # ensure all audio files are included
     if num_datasets == 3 and num_train + 2*num_val_test < num_waves:
         diff = num_waves - num_train - 2*num_val_test
         num_train += diff
+    # ensure all audio files are included
     elif num_datasets == 1 and num_train < num_waves:
         num_train = num_waves
     if seed:
