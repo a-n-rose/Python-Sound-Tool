@@ -2142,6 +2142,11 @@ def apply_new_subframe(feature_matrix, new_frame_size, zeropad=True, axis=0):
     ------
     ValueError if number of dimensions of `feature_matrix` is below 2 or exceeds 5.
     
+    See Also
+    --------
+    `soundpy.models.dataprep`
+        Function that implements `soundpy.feats.apply_new_subframe`.
+    
     Examples
     --------
     >>> import soundpy as sp
