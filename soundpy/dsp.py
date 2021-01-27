@@ -1635,10 +1635,10 @@ def calc_power(fft_vals):
     >>> import numpy as np
     >>> matrix = np.array([[1,1,1],[2j,2j,2j],[-3,-3,-3]],
     ...                     dtype=np.complex_)
-    >>> sp.dsp.calc_power(matrix)
+    >>> sp.dsp.calc_power(matrix) 
     array([[0.33333333, 0.33333333, 0.33333333],
            [1.33333333, 1.33333333, 1.33333333],
-           [3.        , 3.        , 3.        ]])        
+           [3.        , 3.        , 3.        ]])
     '''
     power_spec = np.abs(fft_vals)**2 / len(fft_vals)
     return power_spec
