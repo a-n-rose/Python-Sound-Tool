@@ -25,7 +25,7 @@ with open("requirements.txt","r") as f:
 # This call to setup() does all the work
 setup(
     name="soundpy",
-    version = get_property('__version__', name), # version="0.1.0a3",
+    version = get_property('__version__', "soundpy"), # version="0.1.0a3",
     description="A research-based framework for exploring sound as well as machine learning in the context of sound.",
     long_description=README,
     long_description_content_type="text/markdown",
