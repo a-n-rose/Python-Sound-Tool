@@ -262,7 +262,7 @@ def audiofiles_present(directory, recursive=False):
     '''
     directory = sp.utils.string2pathlib(directory)
 
-def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursive=False):
+def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursive=False, audio_only=True):
     '''Collects all files within a given directory.
     
     This includes the option to include hidden_files in the collection.
@@ -271,12 +271,22 @@ def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursiv
     ----------
     directory : str or pathlib.PosixPath
         The path to where desired files are located.
+        
     hidden_files : bool 
         If True, hidden files will be included. If False, they won't.
         (default False)
+        
     wav_only : bool 
         If True, only .wav files will be included. Otherwise, no limit
-        on file type. 
+        on file type. (default False)
+        
+    recursive : bool 
+        If True, will collect files in subfolders. Otherwise will only collect files
+        in local directory. (default False)
+        
+    audio_only : bool
+        If True, only audio files will be collected. Otherwise all other 
+        file types will be collected. (default True)
     
     Returns
     -------
@@ -299,7 +309,8 @@ def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursiv
     if not hidden_files:
         paths_list = [x for x in paths_list if x.stem[0] != '.']
     # ensure only audiofiles:
-    paths_list = sp.files.ensure_only_audiofiles(paths_list)
+    if audio_only:
+        paths_list = sp.files.ensure_only_audiofiles(paths_list)
     return paths_list
 
 
