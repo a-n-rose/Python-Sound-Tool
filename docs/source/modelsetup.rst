@@ -1,6 +1,6 @@
 
-Additional model setup (e.g. Early Stopping)
---------------------------------------------
+Additional model setup (e.g. Early Stopping) v0.1.0a3
+-----------------------------------------------------
 
 .. automodule:: soundpy.models.modelsetup
    :members:

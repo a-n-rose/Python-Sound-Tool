@@ -1,6 +1,6 @@
 
-Extract and manipulate audio features
--------------------------------------
+Extract and manipulate audio features v0.1.0a3
+----------------------------------------------
 
 .. automodule:: soundpy.feats
    :members:

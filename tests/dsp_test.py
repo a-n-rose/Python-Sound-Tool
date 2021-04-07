@@ -233,6 +233,16 @@ def test_scalesound_min_minuspoint25_maxpoint25():
     expected = np.array([-0.035345, 0.25, 0.0571824, -0.04208575, -0.25])
     assert np.allclose(output_samples, expected)
     
+def test_scalesound_stereo_defaults():
+    np.random.seed(0)
+    input_samples = np.random.random_sample((5,2))
+    output_samples = sp.dsp.scalesound(input_samples)
+    assert output_samples.shape == input_samples.shape
+    assert round(output_samples[:,0].max()) == 1
+    assert round(output_samples[:,0].min()) == -1
+    assert round(output_samples[:,1].max()) == 1
+    assert round(output_samples[:,1].min()) == -1
+    
 def test_normalize_default():
     np.random.seed(0)
     input_samples = np.random.random_sample((5,))
@@ -392,6 +402,72 @@ def test_random_selection_samples_nowrap():
     got = sp.dsp.random_selection_samples(x, len_section_samps = 7, 
                                             wrap = False, random_seed = 40)
     assert expected.all() == got.all()
+
+def test_index_at_zero_mono():
+    signal = np.array([0, 0, 1, 2, 3, 2, 1, 0, -1, -2, -3, -2, -1, 0, 1])
+    zero_1, zero_2 = sp.dsp.index_at_zero(signal)
+    expected1 = 1
+    expected2 = 13
+    assert zero_1 == expected1
+    assert zero_2 == expected2
+    
+def test_index_at_zero_stereo():
+    signal = np.array([0, 0, 1, 2, 3, 2, 1, 0, -1, -2, -3, -2, -1, 0, 1])
+    sig_stereo = sp.dsp.add_channels(signal, 2)
+    zero_1, zero_2 = sp.dsp.index_at_zero(sig_stereo)
+    expected1 = 1
+    expected2 = 13
+    assert zero_1 == expected1
+    assert zero_2 == expected2
+
+def test_index_at_zero_start_with_non_zero():
+    signal = np.array([-1, 0, 1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1, 0])
+    zero_1, zero_2 = sp.dsp.index_at_zero(signal)
+    expected1 = 1
+    expected2 = 13
+    assert zero_1 == expected1
+    assert zero_2 == expected2
+
+def test_clip_at_zero_mono_defaults():
+    sig = np.array([0, 0, 1, 2, 3, 2, 1, 0, -1, -2, -3, -2, -1, 0, 1])
+    sig_clipped = sp.dsp.clip_at_zero(sig)
+    expected = np.array([0, 1, 2, 3, 2, 1, 0, -1, -2, -3, -2, -1, 0])
+    assert np.array_equal(sig_clipped, expected)
+
+def test_clip_at_zero_stereo():
+    signal = np.array([-1, 0, 1, 2, 1, 0, -1, -2, -1, 0, 1])
+    sig_2channel = sp.dsp.add_channels(signal, 2)
+    sig_clipped = sp.dsp.clip_at_zero(sig_2channel)
+    expected = np.array([[ 0,0],[ 1,1],[2,2],[1,1],[0,0],[-1,-1],[-2,-2],[-1,-1],[0, 0]])
+    assert np.array_equal(expected, sig_clipped)
+
+def test_index_at_zero_stereo():
+    signal = np.array([-1, 0, 1, 2, 1, 0, -1, -2, -1, 0, 1])
+    x, y = sp.dsp.index_at_zero(signal, 2)
+    expected1 = 1
+    expected2 = 9
+    assert x == expected1
+    assert y == expected2
+
+def test_clip_at_zero_generate_sound():
+    sig, sr = sp.dsp.generate_sound(freq=1000, sr=500, dur_sec=.25)
+    x, y = sp.dsp.index_at_zero(sig)
+    expected1, expected2 = 2, 122
+    assert x == expected1
+    assert y == expected2
+
+def test_index_at_zero_generate_sound_noise_30snr():
+    sig, sr = sp.dsp.generate_sound(freq=1000, sr=500, dur_sec=.25)
+    noise = sp.dsp.generate_noise(len(sig))
+    sig_noisy, snr = sp.dsp.add_backgroundsound(sig, 
+                                                audio_background = noise, 
+                                                sr=sr, 
+                                                snr=30)
+    x, y = sp.dsp.index_at_zero(sig_noisy)
+    print('\nIF FAIL: Possibly due to random noise generation.\n')
+    expected1, expected2 = 2, 122
+    assert x == expected1
+    assert y == expected2
 
 def test_clip_at_zero_negative_to_positive_transition():
     w = np.sin(np.arange(400)+0.7) 

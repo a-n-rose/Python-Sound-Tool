@@ -17,6 +17,6 @@ from .builtin import envclassifier_feats, denoiser_feats, filtersignal
 
 __all__=['utils', 'feats', 'filters', 'WienerFilter', 'BandSubtraction', 
          'filtersignal', 'dsp','errors', 'plotsound', 'loadsound', 'savesound',
-         'datasets', 'envclassifier_feats', 'denoiser_feats', 'generate_sound', 
+         'datasets', 'envclassifier_feats', 'denoiser_feats', 'generate_sound', 'playsound',
          'generate_noise', 'builtin', 'augment', 'check_dir', 'string2pathlib',
          'normalize']

@@ -227,12 +227,15 @@ def pitch_decrease(sound, sr, num_semitones = 2, **kwargs):
     y_d = librosa.effects.pitch_shift(data, sr=sr, n_steps = -num_semitones)
     return y_d
       
-# TODO pad similarly to librosa?
-# only seems to work with sr=16000
+# TODO how to control output size without losing frequency data?
+# basically how to scale down dimension of frequencies after warping?
+# https://docs.scipy.org/doc/scipy/reference/tutorial/ndimage.html#interpolation-functions
+# scikit-image resize (only powerspectrum)
+# https://stackoverflow.com/questions/23918036/interpolate-whole-arrays-of-complex-numbers
 def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
          oversize_factor = 16, win_size_ms = 50, percent_overlap = 0.5,
          bilinear_warp = True, real_signal = True, fft_bins = 1024, window = 'hann',
-         zeropad = True, expected_shape = None):
+         zeropad = True, expected_shape = None, visualize = False):
     '''Applies vocal tract length perturbations directly to dft (oversized) windows.
     
     References
@@ -270,14 +273,11 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
-    
-
     max_freq = sr/2.
     if expected_shape is not None:
         # expects last column to represent the number of relevant frequency bins
-        fft_bins = expected_shape[-1]
-        if not real_signal:
-            fft_bins = expected_shape[-1] * 2 -1
+        #fft_bins = expected_shape[-1]
+        fft_bins = (expected_shape[-1]-1) * 2 
     if fft_bins is None:
         fft_bins = int(win_size_ms * sr // 1000)
     total_rows = fft_bins * oversize_factor
@@ -300,25 +300,69 @@ def vtlp(sound, sr, a = (0.8,1.2), random_seed = None,
         else:
             section_warped = sp.dsp.piecewise_linear_warp(section_fft, vtlp_a,
                                                                 max_freq = max_freq)
-        
         if real_signal:
             section_warped = section_warped[:len(section_warped)]
         else:
-            section_warped = section_warped[:len(section_warped)]
-            #section_warped = section_warped[:len(section_warped)//2]
+            section_warped = section_warped[:len(section_warped)//2 + 1]
         stft_matrix[frame][:len(section_warped)] = section_warped
         section_start += (frame_length - num_overlap_samples)
     if expected_shape is not None:
-        stft_matrix = stft_matrix[:expected_shape[0],:expected_shape[1]*oversize_factor]
-        limit = expected_shape[1]*oversize_factor // 2 + 1
-        if real_signal:
-            limit = limit // 2 + 1
-        stft_matrix = stft_matrix[:expected_shape[0],:limit]
+        stft_matrix = stft_matrix[:,:len(section_warped)]
+        # TODO: find out how to reduce resolution of frequency
+        # this technically works but is 1) slow and 2) loses lots of info
+        if oversize_factor > 1:
+            import skimage
+            from skimage.transform import resize
+            power_matrix = sp.dsp.calc_power(stft_matrix)
+            stft_matrix = resize(power_matrix, expected_shape)
+            import warnings
+            msg = '\nWARNING: Only the power spectrum of the VTLP augmented signal'+\
+                ' can be returned due to resizing the augmentation from '+\
+                    '{} to {}'.format(power_matrix.shape, expected_shape)
+            warnings.warn(msg)
+            #for i in np.arange(0, int(np.sqrt(oversize_factor))):
+                #stft_matrix = sp.feats.reduce_dim(stft_matrix, axis=1)
+        # ensures matches expected_shape
+        stft_matrix = sp.feats.adjust_shape(stft_matrix, expected_shape)
     else:
         stft_matrix = stft_matrix[:,:len(section_warped)]
+    if visualize:
+        sp.feats.plot(stft_matrix, feature_type = 'stft', subprocess=True, 
+                    name4pic = 'vtlp_{}.png'.format(sp.utils.get_date()),
+                    title = 'size: {}'.format(stft_matrix.shape),
+                    save_pic=True)
     return stft_matrix, vtlp_a
 
 def get_augmentation_dict():
+    '''Returns dictionary with augmentation options as keys and values set to False.
+    
+    Examples
+    --------
+    >>> import soundpy as sp
+    >>> ad = sp.augment.get_augmentation_dict()
+    >>> ad
+    {'speed_increase': False,
+    'speed_decrease': False,
+    'time_shift': False,
+    'shufflesound': False,
+    'add_white_noise': False,
+    'harmonic_distortion': False,
+    'pitch_increase': False,
+    'pitch_decrease': False,
+    'vtlp': False}
+    >>> # to set augmentation to True:
+    >>> ad['add_white_noise'] = True
+    >>> ad
+    {'speed_increase': False,
+    'speed_decrease': False,
+    'time_shift': False,
+    'shufflesound': False,
+    'add_white_noise': True,
+    'harmonic_distortion': False,
+    'pitch_increase': False,
+    'pitch_decrease': False,
+    'vtlp': False}
+    '''
     base_dict = dict([('speed_increase', False),
                       ('speed_decrease', False),
                       ('time_shift', False),
@@ -332,12 +376,83 @@ def get_augmentation_dict():
     return base_dict
 
 def list_augmentations():
+    '''Lists available augmentations.
+    
+    Examples
+    --------
+    >>> import soundpy as sp
+    >>> print(sp.augment.list_augmentations())
+    Available augmentations:
+            speed_increase
+            speed_decrease
+            time_shift
+            shufflesound
+            add_white_noise
+            harmonic_distortion
+            pitch_increase
+            pitch_decrease
+            vtlp
+    '''
     augmentation_dict = sp.augment.get_augmentation_dict()
     aug_list = '\t'+'\n\t'.join(str(x) for x in augmentation_dict.keys())
     augmentations = 'Available augmentations:\n '+ aug_list
     return augmentations
     
+# TODO test to see if list can be applied to all augmentations, not just 'add_white_noise'
 def get_augmentation_settings_dict(augmentation):
+    '''Returns default settings of base function for augmentation.
+    
+    Parameters
+    ----------
+    augmentation : str 
+        The augmentation of interest.
+    
+    Returns
+    -------
+    aug_defaults : dict 
+        A dictionary with the base augmentation function parameters as keys  
+        and default values as values. 
+    
+    Examples
+    --------
+    >>> import soundpy as sp
+    >>> d = sp.augment.get_augmentation_settings_dict('speed_decrease')
+    >>> d
+    {'perc': 0.15}
+    >>> # can use this dictionary to apply different values for augmentation
+    >>> d['perc'] = 0.1
+    >>> d
+    {'perc': 0.1}
+    >>> # to build a dictionary with several settings:
+    >>> many_settings_dict = {}
+    >>> many_settings_dict['add_white_noise'] = sp.augment.get_augmentation_settings_dict('add_white_noise')
+    >>> many_settings_dict['pitch_increase'] = sp.augment.get_augmentation_settings_dict('pitch_increase')
+    >>> many_settings_dict
+    {'add_white_noise': {'noise_level': 0.01, 'snr': 10, 'random_seed': None},
+    'pitch_increase': {'num_semitones': 2}}
+    >>> # change 'snr' default values to list of several values
+    >>> # this would apply white noise at either 10, 15, or 20 SNR, at random
+    >>> many_settings_dict['add_white_noise']['snr'] = [10, 15, 20]
+    >>> # change number of semitones pitch increase is applied
+    >>> many_settings_dict['pitch_increase']['num_semitones'] = 1
+    >>> many_settings_dict
+    {'add_white_noise': {'noise_level': 0.01,
+    'snr': [10, 15, 20],
+    'random_seed': None},
+    'pitch_increase': {'num_semitones': 1}}
+
+    Raises
+    ------
+    ValueError 
+        If `augmentation` does not match available augmentations.
+    
+    See Also
+    --------
+    soundpy.models.dataprep.augment_features
+        The above dictionary example `many_settings_dict` can be applied under the
+        parameter `augment_settings_dict` to apply augmentation settings when 
+        augmenting data, for example, within a generator function. See `soundpy.models.dataprep.GeneratorFeatExtraction`.
+    '''
     if augmentation == 'speed_increase':
         aug_defaults = sp.utils.get_default_args(sp.augment.speed_increase)
     elif augmentation == 'speed_decrease':
@@ -356,6 +471,9 @@ def get_augmentation_settings_dict(augmentation):
         aug_defaults = sp.utils.get_default_args(sp.augment.pitch_decrease)
     elif augmentation == 'vtlp':
         aug_defaults = sp.utils.get_default_args(sp.augment.vtlp)
+    else:
+        raise ValueError('Receieved `augmentation` "{}"'.format(augmentation)+\
+            ' which is not included in available augmentations:\n{}'.format(
+                sp.augment.list_augmentations()))
     return aug_defaults
-    
     

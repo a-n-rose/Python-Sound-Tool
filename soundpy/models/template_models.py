@@ -22,7 +22,45 @@ import soundpy as pyst
 
 ###############################################################################
 
-# TODO add maxpooling layer
+            
+def adjust_layers_cnn(**kwargs):
+    '''Reduces layers of CNN until the model can be built.
+
+    If the number of filters for 'mfcc' or 'fbank' is in the lower range
+    (i.e. 13 or so), this causes issues with the default settings of
+    the cnn architecture. The architecture was built with at least 40
+    filters being applied during feature extraction. To deal with this
+    problem, the number of CNN layers are reduced. 
+    
+    Parameters
+    ----------
+    **kwargs : Keyword arguments 
+        Keyword arguments for soundpy.models.template_models.cnn_classifier
+        
+    Returns
+    -------
+    settings : dict 
+        Updated dictionary with relevant settings for model.
+        
+    References
+    ----------
+    https://github.com/pgys/NoIze
+    '''
+    
+    settings = dict(kwargs)
+    try: 
+        assert len(settings['feature_maps']) == len(settings['kernel_size'])
+    except AssertionError:
+        raise ValueError('Expect `feature_maps` and `kernel_size` to have same length.')
+    if len(settings['feature_maps']) > 1:
+        settings['feature_maps'] = kwargs['feature_maps'][:-1]
+    else:
+        raise ValueError('CNN Model cannot be trained with set number of '+\
+            'features and feature maps.')
+    if len(settings['kernel_size']) > 1:
+        settings['kernel_size'] = kwargs['kernel_size'][:-1]
+    return settings
+
 def cnn_classifier(feature_maps = [40, 20, 10], 
                    kernel_size =  [(3, 3), (3, 3), (3, 3)],
                    strides = 2,
@@ -59,45 +97,70 @@ def cnn_classifier(feature_maps = [40, 20, 10],
     model : tf.keras.Model
         Model ready to be compiled.
         
+    settings : dict 
+        Dictionary with relevant settings for model.
+        
+    Warning
+    -------
+    If number features are not compatible with number of layers, warning raised and 
+    layers adjusted. E.g. For lower number of MFCC features this will likely be applied if number
+    of layers is greater than 1.
+        
     References
     ----------
     A. Sehgal and N. Kehtarnavaz, "A Convolutional Neural Network 
     Smartphone App for Real-Time Voice Activity Detection," in IEEE Access, 
     vol. 6, pp. 9017-9026, 2018. 
     '''
-    model = Sequential()
-    if not isinstance(feature_maps, list):
-        feature_maps = list(feature_maps)
-    if not isinstance(kernel_size, list):
-        kernel_size = list(kernel_size)
-    assert len(feature_maps) == len(kernel_size)
-    for i, featmap in enumerate(feature_maps):
-        if i == 0:
-            model.add(Conv2D(featmap,
-                      kernel_size[i],
-                      strides = strides,
-                      activation = activation_layer,
-                      input_shape = input_shape))
-        else:
-            model.add(Conv2D(featmap,
-                      kernel_size[i],
-                      strides = strides,
-                      activation = activation_layer))
-    if dense_hidden_units is not None:
-        model.add(Dense(dense_hidden_units))
-    if dropout is not None:
-        model.add(Dropout(dropout))
-    model.add(Flatten())
-    model.add(Dense(num_labels, activation = activation_output))   
-    settings = dict(feature_maps = feature_maps, 
-                    kernel_size = kernel_size,
-                    strides = strides,
-                    activation_layer = activation_layer,
-                    activation_output = activation_output,
-                    input_shape = input_shape,
-                    num_labels = num_labels,
-                    dense_hidden_units = dense_hidden_units,
-                    dropout = dropout)
+    try:
+        settings = dict(feature_maps = feature_maps, 
+                        kernel_size = kernel_size,
+                        strides = strides,
+                        activation_layer = activation_layer,
+                        activation_output = activation_output,
+                        input_shape = input_shape,
+                        num_labels = num_labels,
+                        dense_hidden_units = dense_hidden_units,
+                        dropout = dropout)
+        model = Sequential()
+        if not isinstance(feature_maps, list):
+            feature_maps = list(feature_maps)
+        if not isinstance(kernel_size, list):
+            kernel_size = list(kernel_size)
+        assert len(feature_maps) == len(kernel_size)
+        for i, featmap in enumerate(feature_maps):
+            if i == 0:
+                model.add(Conv2D(featmap,
+                        kernel_size[i],
+                        strides = strides,
+                        activation = activation_layer,
+                        input_shape = input_shape))
+            else:
+                model.add(Conv2D(featmap,
+                        kernel_size[i],
+                        strides = strides,
+                        activation = activation_layer))
+        if dense_hidden_units is not None:
+            model.add(Dense(dense_hidden_units))
+        if dropout is not None:
+            model.add(Dropout(dropout))
+        model.add(Flatten())
+        model.add(Dense(num_labels, activation = activation_output))   
+    except ValueError:
+        import warnings
+        msg = '\nWARNING: number of layers ({}) incompatible with number'.format(len(feature_maps))+\
+            ' of features or filters ({}). Reducing number of layers until'.format(feature_maps[0])+\
+                ' model and number features / filters is compatible.'
+        warnings.warn(msg)
+        num_layers_orig = len(feature_maps)
+        try:
+            updated_settings = adjust_layers_cnn(**settings)
+        except ValueError as e:
+            print(e)
+            return None, settings
+        model, settings = cnn_classifier(**updated_settings)
+        print('Updated number of layers: {}'.format(len(settings['feature_maps'])))
+        
     return model, settings
 
 # TODO: update model based on research

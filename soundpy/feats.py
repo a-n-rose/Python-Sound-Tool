@@ -11,39 +11,38 @@ currentdir = os.path.dirname(os.path.abspath(
 packagedir = os.path.dirname(currentdir)
 sys.path.insert(0, packagedir)
 
+import collections
 import numpy as np
 import math
+import random
+import matplotlib
 import librosa
 from scipy.signal import hann, hamming
+from scipy.fftpack import dct
 import pathlib
-from python_speech_features import fbank, mfcc
+from python_speech_features import fbank, mfcc, delta
 from sklearn.preprocessing import StandardScaler
 from sklearn import preprocessing
 import soundpy as sp
 
 
-def saveplot(**kwargs):
-    '''Saves plots while training ussing Agg as backend
-    '''
-    import matplotlib
-    matplotlib.use('Agg')
-    # must save the plot using 'Agg' backend; cannot simply plot it
-    kwargs['save_pic'] = True
-    sp.feats.plot(**kwargs)
-
-
 # TODO Clean up   
+# stereo sound only for plotting 'signal'; NOT for frequency features.
 def plot(feature_matrix, feature_type, 
-                    save_pic=False, name4pic=None, energy_scale='power_to_db',
-                    title=None, sr=None, win_size_ms=None, percent_overlap=None,
-                    x_label=None, y_label=None, use_scipy = False):
+        save_pic=False, name4pic=None, energy_scale='power_to_db',
+        title=None, sr=None, win_size_ms=None, percent_overlap=None,
+        x_label=None, y_label=None, subprocess=False, overwrite=False):
     '''Visualize feature extraction; frames on x axis, features on y axis. Uses librosa to scale the data if scale applied.
+    
+    Note: can only take multiple channels if `feature_type` is 'signal'. For other 
+    feature types, the plot will not work as expected.
     
     Parameters
     ----------
     feature_matrix : np.ndarray [shape=(num_samples,), (num_samples, num_channels), or (num_features, num_frames), dtype=np.float].
         Matrix of features. If the features are not of type 'signal' and the
-        shape is 1 D, one dimension will be added to be plotted with a colormesh.
+        shape is 1 D, one dimension will be added to be plotted with a colormesh. 
+        
     feature_type : str
         Options: 'signal', 'stft', 'mfcc', or 'fbank' features, or 
         what user would like to name the feature set.
@@ -51,19 +50,71 @@ def plot(feature_matrix, feature_type,
         STFT: short-time Fourier transform
         MFCC: mel frequency cepstral coefficients.
         FBANK: mel-log filterbank energies (default 'fbank').
+
     save_pic : bool
-        True to save image as .png; False to just plot it.
+        True to save image as .png; False to just plot it. If `subprocess` is 
+        True, `save_pic` will automatically be set to True.
+
     name4pic : str, optional
         If `save_pic` set to True, the name the image should be saved under.
+        
     energy_scale : str, optional
         If features need to be adjusted, e.g. from power to decibels. 
         Default is 'power_to_db'.
+        
     title : str, optional
         The title for the graph. If None, `feature_type` is used.
+
     sr : int, optional
-        Useful for plotting a signal type feature matrix. Allows x-axis to be
-        presented as time in seconds.
+        Useful in plotting the time for features.
+        
+    win_size_ms : int, float, optional
+        Useful in plotting the time for features in the frequency domain (e.g. 
+        STFT, FBANK, MFCC features)
+        
+    percent_overlap : int, float, optional
+        Useful in plotting the time for features in the frequency domain (e.g. 
+        STFT, FBANK, MFCC features)
+        
+    x_label : str, optional 
+        The label to be applied to the x axis. 
+        
+    y_label : str, optional 
+        The label to be applied to the y axis.
+        
+    subprocess : bool 
+        If `subprocess` is True, matplotlib will use backend 'Agg', which only allows plots to be saved.
+        If `subprocess` is False, the default backend 'TkAgg' will be used, which allows plots to be 
+        generated live as well as saved. The 'Agg' backend is useful if one wants to visualize sound
+        while a main process is being performed, for example, while a model is being trained.
+        (default False)
+        
+    overwrite : bool 
+        If False, if .png file already exists under given name, a date tag will be 
+        added to the .png filename to avoid overwriting the file. 
+        (default False)
+        
+    Returns
+    -------
+    None
     '''
+    if not subprocess:
+        # can show plots
+        # interferes with training models though
+        matplotlib.use('TkAgg')
+    else:
+        # does not interfere with training models
+        matplotlib.use('Agg')
+        if save_pic is False:
+            import warnings
+            save_pic = True
+            if name4pic is None:
+                location = 'current working directory'
+            else:
+                location = name4pic
+            msg = 'Due to matplotlib using AGG backend, cannot display plot. '+\
+                'Therefore, the plot will be saved here: {}'.format(location)
+            warnings.warn(msg)
     import matplotlib.pyplot as plt
     # ensure real numbers
     if feature_matrix.dtype == np.complex64 or feature_matrix.dtype == np.complex128:
@@ -130,13 +181,15 @@ def plot(feature_matrix, feature_type,
     plt.xlabel(x_axis_label)
     plt.ylabel(axis_feature_label)
     # if feature_matrix has multiple frames, not just one
-    if feature_matrix.shape[1] > 1: 
-        if 'signal' not in feature_type \
-            and win_size_ms is not None and percent_overlap is not None:
+    if feature_matrix.shape[1] > 1 and 'signal' not in feature_type: 
+        if win_size_ms is not None and percent_overlap is not None:
             # the xticks basically show time but need to be multiplied by 0.01
             plt.xlabel('Time (sec)') 
             locs, labels = plt.xticks()
-            new_labels=[str(round(i*0.001*win_size_ms*percent_overlap,1)) for i in locs]
+            if percent_overlap == 0:
+                new_labels=[str(round(i*0.001*win_size_ms,1)) for i in locs]
+            else:
+                new_labels=[str(round(i*0.001*win_size_ms*percent_overlap,1)) for i in locs]
             plt.xticks(ticks=locs,labels=new_labels)
         else:
             plt.xlabel('Number frames')
@@ -150,7 +203,8 @@ def plot(feature_matrix, feature_type,
     if y_label is not None:
         plt.ylabel(y_label)
     if save_pic:
-        outputname = name4pic or 'visualize{}feats'.format(feature_type.upper())
+        outputname = name4pic or 'visualize{}feats_{}'.format(feature_type.upper(),
+                                                              sp.utils.get_date())
         outputname = sp.utils.string2pathlib(outputname)
         if outputname.suffix:
             if outputname.suffix != '.png':
@@ -160,36 +214,50 @@ def plot(feature_matrix, feature_type,
         else:
             fname = outputname.stem + '.png'
             outputname = outputname.parent.joinpath(fname)
+        if not overwrite:
+            if os.path.exists(outputname):
+                fname = outputname.stem
+                fname += '_'+sp.utils.get_date()
+                outputname = outputname.parent.joinpath(fname+outputname.suffix)
         plt.savefig(outputname)
     else:
         plt.show()
 
+# tested for stereo sound
 def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
     percent_overlap = 0.5, fft_bins = None, num_filters=40, num_mfcc=40, sr=None,\
         save_pic=False, name4pic=None, energy_scale='power_to_db', mono=None, real_signal=False, **kwargs):
-    '''Visualize feature extraction depending on set parameters. Does not use Librosa.
+    '''Visualize feature extraction depending on set parameters. 
+    
+    Stereo sound can be graphed. If `feature_type` is 'signal', all channels will be 
+    graphed on same plot. Otherwise, each channel will be plotted separately.
     
     Parameters
     ----------
-    audiodata : str or numpy.ndarray
+    audiodata : str, numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
         If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
         the samples of the sound data. Note: in the latter case, `sr`
         must be declared.
+    
     feature_type : str
         Options: 'signal', 'mfcc', or 'fbank' features. 
         MFCC: mel frequency cepstral
         coefficients; FBANK: mel-log filterbank energies (default 'fbank')
+    
     win_size_ms : int or float
         Window length in milliseconds for Fourier transform to be applied
         (default 20)
+    
     percent_overlap : int or float 
         Amount of overlap between processing windows. For example, if `percent_overlap`
         is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
         If an integer is provided, it will be converted to a float between 0 and 1.
+    
     num_filters : int
         Number of mel-filters to be used when applying mel-scale. For 
         'fbank' features, 20-128 are common, with 40 being very common.
         (default 40)
+    
     num_mfcc : int
         Number of mel frequency cepstral coefficients. First coefficient
         pertains to loudness; 2-13 frequencies relevant for speech; 13-40
@@ -197,17 +265,54 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
         Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
         is set to 40, all 40 coefficients will be included.
         (default 40). 
+    
     sr : int, optional
         The sample rate of the sound data or the desired sample rate of
         the wavfile to be loaded. (default None)
+    
     mono : bool, optional
         When loading an audiofile, True will limit number of channels to
         one; False will allow more channels to be loaded. (default None, 
         which results in mono channel loading.)
+    
     **kwargs : additional keyword arguments
         Keyword arguments for soundpy.feats.plot
     '''
     percent_overlap = check_percent_overlap(percent_overlap)
+    if 'signal' not in feature_type:
+        if isinstance(audiodata, np.ndarray) and len(audiodata.shape) > 1:
+            for channel in range(audiodata.shape[1]):
+                if name4pic is None:
+                    name4pic = '{}_channel_{}'.format(feature_type, channel+1)
+                else:
+                    name4pic = sp.string2pathlib(name4pic)
+                    name = name4pic.stem
+                    if channel == 0:
+                        name += '_channel{}'.format(channel+1)
+                    else:
+                        name = name[:-1]+'{}'.format(channel+1)
+                    name4pic = name4pic.parent.joinpath(name+name4pic.suffix)
+                if 'title' not in kwargs:
+                    kwargs['title'] = '{} features\n(channel {})'.format(
+                        feature_type, channel+1)
+                else:
+                    if channel == 0:
+                        kwargs['title'] += '\n(channel {})'.format(channel+1)
+                    else:
+                        kwargs['title'] = kwargs['title'][:-2]+'{})'.format(
+                            channel+1)
+                feats = sp.feats.get_feats(
+                    audiodata[:,channel], feature_type=feature_type, 
+                    win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                    fft_bins = fft_bins, num_filters=num_filters, num_mfcc = num_mfcc,
+                    sr=sr, mono = mono, real_signal = real_signal)
+                sp.feats.plot(
+                    feats, feature_type=feature_type, sr=sr,
+                    save_pic = save_pic, name4pic=name4pic, 
+                    energy_scale = energy_scale,
+                    win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+                    **kwargs)
+            return None
     feats = sp.feats.get_feats(audiodata, feature_type=feature_type, 
                       win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                       fft_bins = fft_bins, num_filters=num_filters, num_mfcc = num_mfcc,
@@ -217,7 +322,8 @@ def plotsound(audiodata, feature_type='fbank', win_size_ms = 20, \
                     win_size_ms = win_size_ms, percent_overlap = percent_overlap,
                     **kwargs)
 
-# TODO test duration limit on all settings
+# stereo sound with mono (True/False) works for 'signal' data
+# only mono for frequency features
 def get_feats(sound,
               sr = None, 
               feature_type = 'fbank', 
@@ -225,17 +331,20 @@ def get_feats(sound,
               percent_overlap = 0.5,
               window = 'hann',
               fft_bins = None,
-              num_filters = 40,
-              num_mfcc = None, 
+              num_filters = None,
+              num_mfcc = None,
+              remove_first_coefficient = False,
+              sinosoidal_liftering = False,
               dur_sec = None,
               mono = None,
               rate_of_change = False,
               rate_of_acceleration = False,
               subtract_mean = False,
-              use_scipy = False,
               real_signal = True,
-              **kwargs):
-    '''Collects raw signal data, stft, fbank, or mfcc features via librosa.
+              fmin = None, 
+              fmax = None,
+              zeropad = True):
+    '''Collects raw signal data, stft, fbank, or mfcc features.
     
     Parameters
     ----------
@@ -269,17 +378,20 @@ def get_feats(sound,
     window : str or np.ndarray [size (n_fft, )]
         The window function to be applied to each window. (Default 'hann')
     
+    fft_bins : int  
+        Number of frequency bins to apply in fast Fourier transform. (default None) 
+    
     num_filters : int
         Number of mel-filters to be used when applying mel-scale. For 
-        'fbank' features, 20-128 are common, with 40 being very common.
-        (default 40)
+        'fbank' features, 20-128 are common, with 40 being very common. If None, will 
+        be set to 40.
+        (default None)
     
     num_mfcc : int
         Number of mel frequency cepstral coefficients. First coefficient
         pertains to loudness; 2-13 frequencies relevant for speech; 13-40
         for acoustic environment analysis or non-linguistic information.
-        Note: it is not possible to choose only 2-13 or 13-40; if `num_mfcc`
-        is set to 40, all 40 coefficients will be included.
+        If None, will be set to `num_filters` or 40.
         (default None). 
     
     dur_sec : float, optional
@@ -303,9 +415,6 @@ def get_feats(sound,
     subtract_mean : bool 
         If True, the mean of each feature column will be subtracted from
         each row. This is applicable for all feature types except 'signal'.
-    
-    **kwargs : additional keyword arguments
-        Additional keyword arguments for librosa.filters.mel.
         
     Returns
     -------
@@ -327,8 +436,8 @@ def get_feats(sound,
             # remove additional channel for 'stft', 'fbank' etc. feature
             # extraction
             if 'signal' not in feature_type and num_channels > 1:
-                import Warnings
-                Warnings.warn('Only one channel is used for {}'.format(feature_type)+\
+                import warnings
+                warnings.warn('Only one channel is used for {}'.format(feature_type)+\
                     ' feature extraction. Removing extra channels.')
                 data = data[:,0]
     else:
@@ -336,6 +445,12 @@ def get_feats(sound,
             raise ValueError('No samplerate given. Either provide '+\
                 'filename or appropriate samplerate.')
         data, sr = sound, sr
+        if len(data.shape) > 1 and 'signal' not in feature_type:
+            print('Only one channel can be currently used for feature '+\
+                'extraction. Using the first channel.')
+            data = data[:,0]
+        elif len(data.shape) > 1 and mono:
+            data = data[:,0]
         if dur_sec:
             data = data[:int(sr*dur_sec)]
     
@@ -351,159 +466,303 @@ def get_feats(sound,
     if win_shift_ms <= 0:
         raise ValueError('`percent_overlap` {} is too high. '.format(percent_overlap)+\
             'The signal cannot be processed with 0 or negative window shift / hop length.')
-    try:
-        if fft_bins is None:
-            fft_bins = int(win_size_ms * sr // 1000)
-        if 'fbank' in feature_type:
-            if use_scipy:
-                feats = sp.feats.get_mfcc_fbank(
-                    data,
-                    feature_type = 'fbank',
-                    sr = sr,
-                    win_size_ms = win_size_ms,
-                    percent_overlap = percent_overlap,
-                    num_filters = num_filters,
-                    fft_bins = fft_bins,
-                    window_function = window)
-            else:
-                # if being fed a spectrogram:
-                if data.dtype == np.complex128 or data.dtype == np.complex64:
-                    feats = librosa.feature.melspectrogram(
-                        S = data.T,
-                        sr = sr,
-                        n_fft = fft_bins,
-                        hop_length = int(win_shift_ms*0.001*sr),
-                        n_mels = num_filters, window=window,
-                        **kwargs).T
-                else:
-                    feats = librosa.feature.melspectrogram(
-                        data,
-                        sr = sr,
-                        n_fft = fft_bins,
-                        hop_length = int(win_shift_ms*0.001*sr),
-                        n_mels = num_filters, window=window,
-                        **kwargs).T
-        elif 'mfcc' in feature_type:
-            if num_mfcc is None:
+    if fft_bins is None:
+        # base on frame length / window: larger windows --> higher freq resolution
+        fft_bins = int(win_size_ms * sr // 1000)
+    if 'stft' in feature_type or 'powspec' in feature_type:
+        feats = sp.feats.get_stft(
+            sound = data, 
+            sr = sr, 
+            win_size_ms = win_size_ms,
+            percent_overlap = percent_overlap,
+            real_signal = real_signal,
+            fft_bins = fft_bins,
+            window = window,
+            zeropad = zeropad
+            )
+    elif 'fbank' in feature_type:
+        if num_filters is None:
+            num_filters = 40
+        feats = sp.feats.get_fbank(
+            sound = data, 
+            sr = sr, 
+            num_filters = num_filters,
+            win_size_ms = win_size_ms,
+            percent_overlap = percent_overlap,
+            real_signal = real_signal,
+            fft_bins = fft_bins,
+            window = window, 
+            zeropad = zeropad
+            )
+        
+    elif 'mfcc' in feature_type:
+        if num_mfcc is None:
+            if num_filters is not None:
                 num_mfcc = num_filters
-            if use_scipy:
-                feats = sp.feats.get_mfcc_fbank(
-                    data,
-                    feature_type = 'mfcc',
-                    sr = sr,
-                    win_size_ms = win_size_ms,
-                    percent_overlap = percent_overlap,
-                    num_filters = num_filters,
-                    num_mfcc = num_mfcc,
-                    fft_bins = fft_bins,
-                    window_function = window)
             else:
-                # if being fed a spectrogram:
-                if data.dtype == np.complex128 or data.dtype == np.complex64:
-                    feats = librosa.feature.mfcc(
-                        S = data.T,
-                        sr = sr,
-                        n_mfcc = num_mfcc,
-                        n_fft = fft_bins,
-                        hop_length = int(win_shift_ms*0.001*sr),
-                        n_mels = num_filters,
-                        window=window,
-                        **kwargs).T
-                else:
-                    feats = librosa.feature.mfcc(
-                        data,
-                        sr = sr,
-                        n_mfcc = num_mfcc,
-                        n_fft = fft_bins,
-                        hop_length = int(win_shift_ms*0.001*sr),
-                        n_mels = num_filters,
-                        window=window,
-                        **kwargs).T
-
-        elif 'stft' in feature_type or 'powspec' in feature_type:
-            if use_scipy:
-                feats = sp.feats.get_stft(
-                    data,
-                    sr = sr, 
-                    win_size_ms = win_size_ms,
-                    percent_overlap = percent_overlap,
-                    real_signal = real_signal,
-                    fft_bins = fft_bins,
-                    window = window)
-            else:
-                # if being fed a spectrogram:
-                if data.dtype == np.complex128 or data.dtype == np.complex64:
-                    print("\nAlready a STFT matrix. No features extracted.")
-                    feats = data
-                else:
-                    feats = librosa.stft(
-                        data,
-                        n_fft = fft_bins,
-                        hop_length = int(win_shift_ms*0.001*sr),
-                        window=window).T
-            if 'powspec' in feature_type:
-                feats = np.abs(feats)**2
-        elif 'signal' in feature_type:
-            # if being fed a spectrogram:
-            if data.dtype == np.complex128 or data.dtype == np.complex64:
-                import Warnings
-                msg = '\nWARNING: real raw signal features are being generated '+\
-                    'from a STFT matrix.'
-                Warnings.warn(msg)
-                feats = sp.feats.feats2audio(data, feature_type = 'stft',
-                                               sr=sr, 
-                                               win_size_ms = win_size_ms,
-                                               percent_overlap = percent_overlap)
-            else:
-                feats = data
+                num_mfcc = 40
+        if num_filters is None:
+            num_filters = 40
+        feats = sp.feats.get_mfcc(
+            sound = data, 
+            sr = sr, 
+            num_mfcc = num_mfcc,
+            remove_first_coefficient = remove_first_coefficient,
+            sinosoidal_liftering = sinosoidal_liftering,
+            num_filters = num_filters,
+            win_size_ms = win_size_ms,
+            percent_overlap = percent_overlap,
+            real_signal = real_signal,
+            fft_bins = fft_bins,
+            window = window, 
+            zeropad = zeropad
+            )
+    elif 'signal' in feature_type:
+        if data.dtype == np.complex128 or data.dtype == np.complex64:
+            import warnings
+            msg = '\nWARNING: real raw signal features are being generated '+\
+                'from a STFT matrix.'
+            warnings.warn(msg)
+            feats = sp.feats.feats2audio(data, feature_type = 'stft',
+                                            sr=sr, 
+                                            win_size_ms = win_size_ms,
+                                            percent_overlap = percent_overlap)
         else:
-            raise ValueError('Feature type "{}" not recognized. '.format(feature_type)+\
-                'Please ensure one of the following is included in `feature_type`:\n- '+\
-                    '\n- '.join(sp.feats.list_available_features()))
-        if 'signal' not in feature_type:
-            if rate_of_change or rate_of_acceleration:
-                d, d_d = sp.feats.get_change_acceleration_rate(feats)
-                if rate_of_change:
-                    feats = np.concatenate((feats, d), axis=1)
-                if rate_of_acceleration:
-                    feats = np.concatenate((feats, d_d), axis=1)
-            if subtract_mean:
-                feats -= (np.mean(feats, axis=0) + 1e-8)
-    except librosa.ParameterError as e:
-        # potential error in handling fortran array
-        feats = get_feats(np.asfortranarray(data),
-                          sr = sr,
-                          feature_type = feature_type,
-                          win_size_ms = win_size_ms,
-                          percent_overlap = percent_overlap,
-                          fft_bins = fft_bins,
-                          num_filters = num_filters,
-                          num_mfcc = num_mfcc,
-                          dur_sec = dur_sec,
-                          mono = mono,
-                          rate_of_change = rate_of_change,
-                          rate_of_acceleration = rate_of_acceleration,
-                          subtract_mean = subtract_mean,
-                          use_scipy = use_scipy,
-                          **kwargs)
+            feats = data
+        
+    # TODO test difference between python_speech_features and librosa
+    if not 'signal' in feature_type:
+        if subtract_mean is True:
+            feats -= (np.mean(feats, axis=0) + 1e-8)
+        if rate_of_change is True:
+            #d1 = delta(feats, N=2)
+            d1 = librosa.feature.delta(feats.T).T
+            feats = np.concatenate((feats, d1), axis=1)
+        if rate_of_acceleration is True:
+            #d2 = delta(delta(feats, N=2), N=2)
+            d2 = librosa.feature.delta(feats.T, order=2).T
+            feats = np.concatenate((feats, d2), axis=1)
+
+    if 'powspec' in feature_type:
+        feats = sp.dsp.calc_power(feats)
     return feats
 
+
+def load_feat_settings(feat_settings_dict):
+    '''Loads feature settings into named tuple. Sets defaults if not present.
+    TODO: test w previous version
+    '''
+    FeatureExtractionSettings = collections.namedtuple('FeatureExtractionSettings',
+                                          ['sr', 'feature_type', 'win_size_ms',
+                                           'percent_overlap', 'window', 'dur_sec',
+                                           'num_filters','num_mfcc', 'fft_bins',
+                                           'remove_first_coefficient','sinosoidal_liftering',
+                                           'mono', 'rate_of_change', 'rate_of_acceleration',
+                                           'subtract_mean', 'real_signal', 'fmin', 'fmax',
+                                           'zeropad', 'input_shape', 'base_shape',
+                                           'num_feats'])    
+
+    # newer version of soundpy: 0.1.0a3
+    # store get_feats kwargs under `kwargs` key
+    if 'kwargs' in feat_settings_dict:
+        kwargs = sp.utils.restore_dictvalue(feat_settings_dict['kwargs'])
+        feat_settings_dict.update(kwargs)
+    # if values saved as strings and should be a list or tuple, restore them to original type: 
+    # see `soundpy.utils.restore_dictvalue`
+    sr = sp.utils.restore_dictvalue(
+        feat_settings_dict['sr'])
+    feature_type = sp.utils.restore_dictvalue(
+        feat_settings_dict['feature_type'])
+    win_size_ms = sp.utils.restore_dictvalue(
+        feat_settings_dict['win_size_ms'])
+    percent_overlap = sp.utils.restore_dictvalue(
+        feat_settings_dict['percent_overlap'])
+    try:
+        window = sp.utils.restore_dictvalue(feat_settings_dict['window'])
+    except KeyError:
+        # set default here...
+        window = 'hann'
+    dur_sec = sp.utils.restore_dictvalue(
+        feat_settings_dict['dur_sec'])
+    try: 
+        num_filters = sp.utils.restore_dictvalue(feat_settings_dict['num_filters'])
+    except KeyError:
+        num_filters = None
+    try: 
+        num_mfcc = sp.utils.restore_dictvalue(feat_settings_dict['num_mfcc'])
+    except KeyError:
+        num_mfcc = None
+    try:
+        # newer version soundpy 0.1.0v3
+        fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['fft_bins'])
+    except KeyError:
+        # older version soundpy 0.1.0v2
+        fft_bins = sp.utils.restore_dictvalue(feat_settings_dict['n_fft'])
+    try: 
+        remove_first_coefficient = sp.utils.restore_dictvalue(
+            feat_settings_dict['remove_first_coefficient'])
+    except KeyError:
+        remove_first_coefficient = False
+    try: 
+        sinosoidal_liftering = sp.utils.restore_dictvalue(
+            feat_settings_dict['sinosoidal_liftering'])
+    except KeyError:
+        sinosoidal_liftering = False
+    try: 
+        mono = sp.utils.restore_dictvalue(
+            feat_settings_dict['mono'])
+    except KeyError:
+        mono = True # default setting
+    try: 
+        rate_of_change = sp.utils.restore_dictvalue(
+            feat_settings_dict['rate_of_change'])
+    except KeyError:
+        rate_of_change = False
+    try: 
+        rate_of_acceleration = sp.utils.restore_dictvalue(
+            feat_settings_dict['rate_of_acceleration'])
+    except KeyError:
+        rate_of_acceleration = False
+    try: 
+        subtract_mean = sp.utils.restore_dictvalue(
+            feat_settings_dict['subtract_mean'])
+    except KeyError:
+        subtract_mean = False
+    try: 
+        real_signal = sp.utils.restore_dictvalue(
+            feat_settings_dict['real_signal'])
+    except KeyError:
+        real_signal = True
+    try: 
+        fmin = sp.utils.restore_dictvalue(
+            feat_settings_dict['fmin'])
+    except KeyError:
+        fmin = None
+    try: 
+        fmax = sp.utils.restore_dictvalue(
+            feat_settings_dict['fmax'])
+    except KeyError:
+        fmax = None
+    try: 
+        zeropad = sp.utils.restore_dictvalue(
+            feat_settings_dict['zeropad'])
+    except KeyError:
+        zeropad = True
+    try:
+        # older version of soundpy: 0.1.0a2
+        input_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['input_shape'])
+    except KeyError:
+        # newer version of soundpy: 0.1.0a3
+        input_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['feat_model_shape'])
+    try:
+        # older version of soundpy: 0.1.0a2
+        base_shape = sp.utils.restore_dictvalue(
+            feat_settings_dict['desired_shape'])
+    except KeyError:
+        # newer version of soundpy: 0.1.0a3
+        try:
+            base_shape = sp.utils.restore_dictvalue(
+                feat_settings_dict['feat_base_shape'])
+        except KeyError:
+            base_shape = input_shape
+    try:
+        # older version of soundpy: 0.1.0a2
+        num_feats = sp.utils.restore_dictvalue(
+            feat_settings_dict['num_feats'])
+    except KeyError:
+        # newer version of soundpy: 0.1.0a3
+        num_feats = base_shape[-1]
+        
+    featsettings = FeatureExtractionSettings(
+        sr = sr,
+        feature_type = feature_type, 
+        win_size_ms = win_size_ms,
+        percent_overlap = percent_overlap,
+        window = window,
+        dur_sec = dur_sec, 
+        num_filters = num_filters,
+        num_mfcc = num_mfcc,
+        fft_bins = fft_bins,
+        remove_first_coefficient = remove_first_coefficient,
+        sinosoidal_liftering = sinosoidal_liftering,
+        mono = mono, 
+        rate_of_change = rate_of_change,
+        rate_of_acceleration = rate_of_acceleration,
+        subtract_mean = subtract_mean,
+        real_signal = real_signal,
+        fmin = fmin, 
+        fmax = fmax, 
+        zeropad = zeropad,
+        input_shape = input_shape,
+        base_shape = base_shape,
+        num_feats = num_feats)
+    return featsettings
+
+# TODO: create class instance where fund freq, vad, etc. can be saved 
 # allows for more control over fft bins / resolution of each iteration.
-def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
+def get_stft(sound, sr=22050, win_size_ms = 50, percent_overlap = 0.5,
                 real_signal = False, fft_bins = 1024, 
-                window = 'hann', zeropad = True, rate_of_change = False,
-                rate_of_acceleration = False):
-    '''Returns STFT matrix.
+                window = 'hann', zeropad = True, **kwargs):
+    '''Returns short-time Fourier transform matrix.
     
     This function allows more flexibility in number of `fft_bins` and `real_signal`
     settings. Additionally, this does not require the package librosa, making it 
     a bit easier to manipulate if desired. For an example, see
     `soundpy.augment.vtlp`.
+    
+    Parameters
+    ----------
+    sound : np.ndarray [shape=(num_samples,) or (num_samples, num_channels)], str, or pathlib.PosixPath
+        If type np.ndarray, expect raw samples in mono or stereo sound. If type str or 
+        pathlib.PosixPath, expect pathway to audio file.
+        
+    sr : int 
+        The sample rate of `sound`. 
+    
+    win_size_ms : int, float 
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+        
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1.
+        
+    real_signal : bool 
+        If True, only half the FFT spectrum will be used; there should really be no difference
+        as the FFT is symmetrical. If anything, setting `real_signal` to True may speed up 
+        functionality / make functions more efficient.
+        
+    fft_bins : int 
+        Number of frequency bins to use when applying fast Fourier Transform. (default 1024)
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+        
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.files.loadsound`.
+        
+    Returns
+    -------
+    stft_matrix : np.ndarray[size=(num_frames, fft_bins)]
     '''
     if isinstance(sound, np.ndarray):
+        if sound.dtype == np.complex_:
+            import warnings
+            msg = '\nWARNING: data provided to `soundpy.feats.get_stft` is already'+\
+                ' a STFT matrix. Returning original data.'
+            warnings.warn(msg)
+            return sound
         data = sound
     else:
-        data, sr2 = sp.loadsound(sound, sr=sr)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
     frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
     num_overlap_samples = int(frame_length * percent_overlap)
@@ -511,7 +770,10 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                                                 frame_length = frame_length,
                                                 overlap_samples = num_overlap_samples,
                                                 zeropad = zeropad)
-    total_rows = fft_bins
+    
+    if fft_bins is None:
+        fft_bins = int(win_size_ms * sr // 1000)
+    total_rows = fft_bins // 2 + 1
     # if mono, only one channel; otherwise match num channels in sound signal
     if sp.dsp.ismono(data):
         stft_matrix = sp.dsp.create_empty_matrix(
@@ -531,20 +793,158 @@ def get_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
         
         section_fft = sp.dsp.calc_fft(section, 
                                         real_signal = real_signal,
-                                        fft_bins = fft_bins * 2 +1,
+                                        fft_bins = fft_bins,
                                         )
         stft_matrix[frame] = section_fft[:total_rows]
         section_start += (frame_length - num_overlap_samples)
-    stft_matrix = stft_matrix[:,:fft_bins//2]
-    if rate_of_change or rate_of_acceleration:
-        d, d_d = sp.feats.get_change_acceleration_rate(stft_matrix)
-        if rate_of_change:
-            stft_matrix = np.concatenate((stft_matrix, d), axis=1)
-        if rate_of_acceleration:
-            stft_matrix = np.concatenate((stft_matrix, d_d), axis=1)
     return stft_matrix
 
-def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
+def get_fbank(sound, sr, num_filters, fmin=None, fmax=None, fft_bins = None, **kwargs):
+    '''Extract mel-filterbank energy features from audio.
+    
+    Parameters
+    ----------
+    sound : np.ndarray [size=(num_samples,) or (num_samples, num_features)], str, or pathlib.PosixPath
+        Sound in raw samples, a power spectrum, or a short-time-fourier-transform. If type string or pathlib.PosixPath, expect pathway to audio file.
+        
+    sr : int 
+        The sample rate of `sound`.
+        
+    num_filters : int 
+        The number of mel-filters to use when extracting mel-filterbank energies.
+        
+    fmin : int or float, optional
+        The minimum frequency of interest. If None, will be set to 0. (default None)
+    
+    fmax : int or float, optional
+        The maximum frequency of interst. If None, will be set to half of `sr`.
+        (default None)
+        
+    fft_bins : int, optional
+        The number of frequency bins / fast Fourier transform bins used in calculating 
+        the fast Fourier transform. If None, set depending on type of parameter `sound`.
+        If `sound` is a raw signal or audio pathway, `fft_bins` will be set to 1024;
+        if `sound` is a STFT or power spectrum, `fft_bins` will be set to 2 * length
+        of `sound` feature column, or 2 * sound.shape[1].
+        
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.feats.get_stft`.
+        
+    Returns
+    -------
+    fbank : np.ndarray [shape=(num_samples, num_filters)]
+        The mel-filterbank energeis extracted. The number of samples depends on 
+        the parameters applied in `soundpy.feats.get_stft`.
+    
+    References
+    ----------
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: 
+    Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between.
+    Retrieved from:
+    https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    if isinstance(sound, np.ndarray):
+        if sound.dtype == np.complex64 or sound.dtype == np.complex128:
+            stft = True
+        # probably a power spectrum without complex values...
+        # TODO improve
+        elif len(sound.shape) > 1 and sound.shape[1] > sound.shape[0]:
+            stft = True
+        else:
+            stft = False
+    else:
+        # probably a pathway - load in get_stft
+        stft = False
+    if fmin is None:
+        fmin = 0
+    if fmax is None:
+        fmax = sr/2
+
+    mel_points = sp.dsp.fbank_filters(fmin, fmax, num_filters = num_filters)
+    hz_points = sp.dsp.mel_to_hz(mel_points)
+    
+    if fft_bins is None:
+        if stft is True:
+            # assumes number of fft bins is the length of second column
+            # https://librosa.org/doc/latest/generated/librosa.istft.html?highlight=istf#librosa.istft
+            fft_bins = (sound.shape[1]-1) * 2 
+        else:
+            try:
+                fft_bins = int(kwargs['win_size_ms'] * sr // 1000)
+            except KeyError:
+                fft_bins = 512
+        
+    freq_bins = np.floor((fft_bins + 1) * hz_points / sr)
+    
+    if stft:
+        # use number of fft columns in stft as reference
+        fbank = np.zeros((num_filters, sound.shape[1]))
+    else:
+        fbank = np.zeros((num_filters, int(np.floor(fft_bins / 2 + 1))))
+    for m in range(1, num_filters + 1):
+        f_m_minus = int(freq_bins[m - 1]) # left
+        f_m = int(freq_bins[m]) # center
+        f_m_plus = int(freq_bins[m + 1]) # right
+        
+        for k in range(f_m_minus, f_m):
+            fbank[m - 1, k] = (k - freq_bins[m - 1]) / (freq_bins[m] - freq_bins[m -1])
+            for k in range(f_m, f_m_plus):
+                fbank[m - 1, k] = (freq_bins[m + 1] - k) / (freq_bins[m + 1] - freq_bins[m])
+    if stft:
+        if np.min(sound) < 0:
+            powspec = sp.dsp.calc_power(sound)
+        else:
+            powspec = sound
+    else:
+        sound_stft = sp.feats.get_stft(sound, sr=sr, fft_bins = fft_bins, **kwargs)
+        powspec = sp.dsp.calc_power(sound_stft)
+
+    filter_banks = np.dot(powspec, fbank.T)
+    filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks) # numerical stability
+    return filter_banks
+
+def get_mfcc(sound, sr, num_mfcc, remove_first_coefficient=False, 
+             sinosoidal_liftering = False, **kwargs):
+    '''Extracts mel-frequency cepstral coefficients from audio.
+    
+    Parameters
+    ----------
+    sound : np.ndarray [size=(num_samples,) or (num_samples, num_features)] or str or pathlib.PosixPath
+        If `sound` is a np.ndarray, expected as raw samples, a power spectrum or a
+        short-time Fourier transform. If string or pathlib.PosixPath, should be the pathway
+        to the audio file.
+        
+    sr : int 
+        The sample rate of the `sound`.
+        
+    num_mfcc : int 
+        The number of mel-frequency cepstral coefficients
+        
+    remove_first_coefficient : bool
+        If True, the first coefficient, representing amplitude or volume of signal, is
+        removed. Found to sometimes improve automatic speech recognition. 
+        (default False)
+        
+    sinosoidal_liftering : bool 
+        If True, reduces influence of higher coefficients, found to aid in handling 
+        noise in background in automatic speech recognition. (default False)
+        
+    **kwargs : additional keyword arguments
+        Keyword arguments for soundpy.feats.get_fbank()
+        
+    References
+    ----------
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    fbank = sp.feats.get_fbank(sound, sr=sr, **kwargs)
+    mfcc = dct(fbank, type=2, axis=1, norm='ortho')
+    if remove_first_coefficient is True:
+        mfcc = mfcc[:,1:num_mfcc]
+    else:
+        mfcc = mfcc[:,:num_mfcc]
+    return mfcc
+
+def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', use_beg_ms = 120,
                           extend_window_ms = 0, energy_thresh = 40, 
@@ -552,7 +952,70 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
                           zeropad = True, **kwargs):
     '''Returns STFT matrix and VAD matrix. STFT matrix contains only VAD sections.
     
-    kwargs loadsound
+    Parameters
+    ----------
+    sound : str or numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. Note: in the latter case, `sr`
+        must be declared.
+    
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. (default None)
+    
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+    
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1. 
+        
+    real_signal : bool 
+        If True, only half the FFT spectrum will be used; there should really be no difference
+        as the FFT is symmetrical. If anything, setting `real_signal` to True may speed up 
+        functionality / make functions more efficient.
+
+    fft_bins : int 
+        Number of frequency bins to use when applying fast Fourier Transform. (default 1024)
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    use_beg_ms : int 
+        The amount of time in milliseconds to use from beginning of signal to estimate background
+        noise.
+        
+    extend_window_ms : int 
+        The amount of time in milliseconds to pad or extend the identified VAD segments. This 
+        may be useful to include more speech / sound, if desired.
+        
+    energy_thresh : int 
+        The threshold to set for measuring energy for VAD in the signal. (default 40)
+        
+    freq_thresh : int 
+        The threshold to set for measuring frequency for VAD in the signal. (default 185)
+        
+    sfm_thresh : int 
+        The threshold to set for measuring spectral flatness for VAD in the signal. (default 5)
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+    
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.files.loadsound`
+        
+    Returns
+    -------
+    stft_matrix : np.ndarray [size=(num_frames_vad, fft_bins//2+1), dtype=np.complex_]
+        The STFT matrix frames of where voice activity has been detected.
+        
+    vad_matrix_extwin : np.ndarray [size=(num_frames,)]
+        A vector containing indices of the full STFT matrix for frames of where voice activity 
+        was detected or not.
     '''
     # raise ValueError if percent_overlap is not supported
     if percent_overlap != 0 and percent_overlap < 0.5:
@@ -648,15 +1111,59 @@ def get_vad_stft(sound, sr=48000, win_size_ms = 50, percent_overlap = 0,
             extra_rows += 1
         section_start += (frame_length - num_overlap_samples)
     stft_matrix = stft_matrix[:-extra_rows]
-    return stft_matrix[:,:fft_bins//2], vad_matrix_extwin
+    return stft_matrix[:,:fft_bins//2+1], vad_matrix_extwin
 
 def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5, 
-                     extend_window_ms = 0):
+                     extend_window_ms = 0,  window = 'hann', zeropad = True, **kwargs):
     '''Returns STFT matrix and VAD matrix with beginning and ending silence removed.
+    
+    Parameters
+    ----------
+    samples : str or numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. 
+    
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. 
+    
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+    
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1. 
+    
+    extend_window_ms : int 
+        The amount of time in milliseconds to pad or extend the identified VAD segments. This 
+        may be useful to include more speech / sound, if desired.
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+        
+    **kwargs : additional keyword arguments 
+        Keyword arguments for `soundpy.files.loadsound`.
+        
+    Returns 
+    -------
+    stft_speech : np.ndarry [size (num_frames_clipped, fft_bins//2+1)]
+        The STFT of the `samples` with beginning and ending silences clipped.
+    
+    vad_matrix : np.ndarry [size (num_frames, )]
+        A vector with zeros and ones indicating which indices of the full STFT that 
+        have voice activity or not.
     '''
-    stft = sp.feats.get_stft(samples, sr = sr, 
+    stft = sp.feats.get_stft(samples, sr, 
                                win_size_ms = win_size_ms, 
-                               percent_overlap = percent_overlap)
+                               percent_overlap = percent_overlap,
+                               window = window, zeropad = zeropad)
     energy = sp.dsp.get_energy(stft)
     energy_mean = sp.dsp.get_energy_mean(energy)
     beg_index, beg_speech_found = sp.dsp.sound_index(
@@ -687,11 +1194,68 @@ def get_stft_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
         vad_matrix[beg_index:end_index] = 1
         return stft_speech, vad_matrix
     return [], vad_matrix
-
-def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
+    
+def get_vad_samples(sound, sr=None, win_size_ms = 50, percent_overlap = 0.5,
                     use_beg_ms = 120, extend_window_ms = 0, energy_thresh = 40, 
-                    freq_thresh = 185, sfm_thresh = 5, window = 'hann', zeropad = True):
+                    freq_thresh = 185, sfm_thresh = 5, window = 'hann', zeropad = True,
+                    **kwargs):
     '''Returns samples and VAD matrix. Only samples where with VAD are returned.
+    
+    Parameters
+    ----------
+    sound : str or numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. Note: in the latter case, `sr`
+        must be declared.
+    
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. (default None)
+    
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+    
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1. 
+        
+    use_beg_ms : int 
+        The amount of time in milliseconds to use from beginning of signal to estimate background
+        noise.
+        
+    extend_window_ms : int 
+        The amount of time in milliseconds to pad or extend the identified VAD segments. This 
+        may be useful to include more speech / sound, if desired.
+        
+    energy_thresh : int 
+        The threshold to set for measuring energy for VAD in the signal. (default 40)
+        
+    freq_thresh : int 
+        The threshold to set for measuring frequency for VAD in the signal. (default 185)
+        
+    sfm_thresh : int 
+        The threshold to set for measuring spectral flatness for VAD in the signal. (default 5)
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+    
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.files.loadsound`
+    
+    Returns
+    -------
+    samples_matrix : np.ndarray [size = (num_samples_vad, )]
+        The samples of where voice activity was detected.
+    vad_matrix_extwin : np.ndarray [size = (num_frames, )]
+        A vector of zeros and ones indicating the frames / windows of the samples that either
+        had voice activity or not.
     '''
     # raise error if percent_overlap is not supported
     if percent_overlap != 0 and percent_overlap < 0.5:
@@ -711,7 +1275,7 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
     if isinstance(sound, np.ndarray):
         data = sound
     else:
-        data, sr2 = sp.loadsound(sound, sr=sr)
+        data, sr2 = sp.loadsound(sound, sr=sr, **kwargs)
         assert sr2 == sr
         
     frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
@@ -774,8 +1338,53 @@ def get_vad_samples(sound, sr=48000, win_size_ms = 50, percent_overlap = 0.5,
     return samples_matrix, vad_matrix_extwin
 
 def get_samples_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
-                        extend_window_ms = 0, window = 'hann', zeropad = True):
+                        extend_window_ms = 0, window = 'hann', zeropad = True, **kwargs):
     '''Returns samples and VAD matrix with beginning and ending silence removed.
+    
+    
+    Parameters
+    ----------
+    samples : str or numpy.ndarray [size=(num_samples,) or (num_samples, num_channels)]
+        If str, wavfile (must be compatible with scipy.io.wavfile). Otherwise 
+        the samples of the sound data. 
+    
+    sr : int, optional
+        The sample rate of the sound data or the desired sample rate of
+        the wavfile to be loaded. 
+    
+    win_size_ms : int or float
+        Window length in milliseconds for Fourier transform to be applied
+        (default 50)
+    
+    percent_overlap : int or float 
+        Amount of overlap between processing windows. For example, if `percent_overlap`
+        is set at 0.5, the overlap will be half that of `win_size_ms`. (default 0.5) 
+        If an integer is provided, it will be converted to a float between 0 and 1. 
+    
+    extend_window_ms : int 
+        The amount of time in milliseconds to pad or extend the identified VAD segments. This 
+        may be useful to include more speech / sound, if desired. (default 0)
+        
+    window : str 
+        The window function to apply to each window segment. Options are 'hann' and 'hamming'.
+        (default 'hann')
+        
+    zeropad : bool 
+        If True, samples will be zeropadded to fill any partially filled window. If False, the 
+        samples constituting the partially filled window will be cut off.
+        
+    **kwargs : additional keyword arguments 
+        Keyword arguments for `soundpy.files.loadsound`.
+        
+        
+    Returns 
+    -------
+    stft_speech : np.ndarry [size (num_frames_clipped, fft_bins//2+1)]
+        The STFT of the `samples` with beginning and ending silences clipped.
+    
+    vad_matrix : np.ndarry [size (num_frames, )]
+        A vector with zeros and ones indicating which indices of the full STFT that 
+        have voice activity or not.
     '''
     if not isinstance(samples, np.ndarray):
         samples, sr = sp.loadsound(samples, sr=sr)
@@ -817,16 +1426,17 @@ def get_samples_clipped(samples, sr, win_size_ms = 50, percent_overlap = 0.5,
     warnings.warn(msg)
     return [], vad_matrix
 
+# have applied to stft matrix, looks good
 def normalize(data, max_val=None, min_val=None):
-    '''Normalizes data.
+    '''Normalizes data to be between 0 and 1. Should not be applied to raw sample data.
     
-    This is usefule if you have predetermined max and min values you want to normalize
-    new data with. Should work with stereo sound: TODO test for stereo sound.
+    This is useful if you have predetermined max and min values you want to normalize
+    new data with. Is helpful in training models on sound features (not raw samples).
     
     Parameters
     ----------
-    data : np.ndarray
-        Data to be normalized
+    data : np.ndarray [size=(num_features,) or (num_frames,num_features)]
+        Data to be normalized.
     
     max_val : int or float, optional
         Predetermined maximum value. If None, will use max value
@@ -839,7 +1449,7 @@ def normalize(data, max_val=None, min_val=None):
     
     Returns
     -------
-    normed_data : np.ndarray [size = (num_samples,)]
+    normed_data : np.ndarray [size = (num_features,) or (num_frames, num_features)]
     
     
     Examples
@@ -873,35 +1483,134 @@ def normalize(data, max_val=None, min_val=None):
         normed_data = (data - min_val) / (max_val - min_val + eps)
     return normed_data
 
-def plot_dom_freq(sound, energy_scale = 'power_to_db', title = 'Dominant Frequency', **kwargs):
+# checked for stereo sound - works: plots each channel in separate plot
+def plot_dom_freq(sound, energy_scale = 'power_to_db', title = None,
+                  save_pic = False, name4pic = None, overwrite = False, **kwargs):
+    '''Plots the approximate dominant frequency over a STFT plot of a signal.
+    
+    If `sound` has multiple channels, the VAD for each channel is plotted in its 
+    own plot.
+    
+    Parameters
+    ----------
+    sound : np.ndarray [shape=(num_samples,) or (num_samples, num_channels)]
+        The sound to plot the dominant frequency of.
+    
+    energy_scale : str 
+        The scale of energy for the plot. If in frequency spectrum, likey in power and needs
+        to be put into db. (default 'power_to_db')
+    
+    title : str 
+        The title for the plot. (default None)
+    
+    **kwargs : additional keyword arguments 
+        Keyword arguments used in both `soundpy.feats.get_stft` and `soundpy.dsp.get_pitch`.
+
+    Returns 
+    -------
+    None
+    '''
     import matplotlib.pyplot as plt
-    # set matching defaults if not in kwargs
+    # ensure numpy array 
+    if not isinstance(sound, np.ndarray):
+        raise TypeError('Function `soundpy.feats.plot_vad` expects a '+\
+            'numpy.ndarray, not type {}.'.format(type(sound)))
+    # ensure sample rate is provided
     if 'sr' not in kwargs:
-        kwargs['sr'] = 16000
+        raise ValueError('Function `soundpy.feats.plot_vad` requires sample rate'+\
+            ' of the provided audio samples. Please provide the sample rate '+\
+                'under the parameter `sr`.')
+    # set defaults if not provided
     if 'win_size_ms' not in kwargs:
         kwargs['win_size_ms'] = 20
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
-    stft_matrix = sp.feats.get_stft(sound, **kwargs)
-    pitch = sp.dsp.get_pitch(sound, **kwargs)
-    stft_matrix = librosa.power_to_db(stft_matrix)
-    plt.pcolormesh(stft_matrix.T)
-    color = 'yellow'
-    linestyle = ':'
-    plt.plot(pitch, 'ro', color=color)
-    plt.show()
+        
+
+    y, sr = sound, kwargs['sr']
+    if len(y.shape) == 1:
+        # add channel column
+        y = y.reshape(y.shape+(1,))
+    elif y.shape[1] > 11:
+        import warnings 
+        msg = '\nWARNING: provided `sound` data could be in the wrong format. \n'+\
+            'Function `soundpy.feats.plot_vad` expects raw sample data. Data '+\
+                'provided could be a stft, fbank, mfcc matrix or some other data'+\
+                    ' format. If plot results do not appear as expected, check data.'
+        warnings.warn(msg)
+        
+    if 'mono' in kwargs and kwargs['mono'] is True:
+        y = y[:,0]
+        y = y.reshape(y.shape+(1,))
     
+    for channel in range(y.shape[1]):
+        stft_matrix = sp.feats.get_stft(y[:,channel], **kwargs)
+        
+        # remove complex info for plotting:
+        power_matrix = sp.dsp.calc_power(stft_matrix)
+        pitch = sp.dsp.get_pitch(sound, **kwargs)
+        if energy_scale == 'power_to_db':
+            db_matrix = librosa.power_to_db(power_matrix)
+        plt.pcolormesh(db_matrix.T)
+        # limit the y axis; otherwise y axis goes way too high
+        axes = plt.gca()
+        axes.set_ylim([0,db_matrix.shape[1]])
+        color = 'yellow'
+        linestyle = ':'
+        plt.plot(pitch, 'ro', color=color)
+        if not title:
+            title = 'Appx Dominant Frequency'
+        # adjust title if more than one channel
+        if y.shape[1] > 1:
+            if channel == 0:
+                title += '\n(channel {})'.format(channel+1)
+            else:
+                title = title[:-2] + '{})'.format(channel+1)
+        plt.title(title)
+        if not save_pic:
+            plt.show()
+        # set up name for saving the plot, given channel number and if other files exist
+        else:
+            if name4pic is None:
+                name4pic = 'dom_freq'
+                if y.shape[1] > 1:
+                    name4pic += '_channel{}'.format(channel+1)
+                name4pic = sp.utils.string2pathlib(name4pic+'.png')
+            else:
+                name4pic = sp.utils.string2pathlib(name4pic)
+                if y.shape[1] > 1:
+                    if channel == 0:
+                        name = name4pic.stem + '_channel{}'.format(channel+1)
+                        name4pic = name4pic.parent.joinpath(name, name4pic.suffix)
+                    else:
+                        name = name4pic.stem[:-1] + str(channel+1)
+                        name4pic = name4pic.parent.joinpath(name + name4pic.suffix)
+                if not name4pic.suffix:
+                    name4pic = name4pic.parent.joinpath(name4pic.stem+'.png')
+            if not overwrite:
+                if os.path.exists(name4pic):
+                    final_name = name4pic.stem + '_' + sp.utils.get_date()
+                    final_name = name4pic.parent.joinpath(final_name+name4pic.suffix)
+                else:
+                    final_name = name4pic
+            else:
+                final_name = name4pic
+            plt.savefig(final_name)
+    
+# checked for stereo sound - works: plots each channel in separate plot
 def plot_vad(sound, energy_scale = 'power_to_db', 
              title = 'Voice Activity', 
              use_beg_ms = 120, extend_window_ms=0, 
-             beg_end_clipped = True, name4pic = None, **kwargs):
-    '''Plots where voice (sound) activity detected on STFT plot.
+             beg_end_clipped = True, save_pic = False, name4pic = None, 
+             overwrite = False, **kwargs):
+    '''Plots where voice (sound) activity detected on power spectrum. 
     
-    This either plots immediately or saves the plot at `name4pic`.
+    This either plots immediately or saves the plot at `name4pic`. If `sound` 
+    has multiple channels, the VAD for each channel is plotted in its own plot.
     
     Parameters
     ----------
-    sound : np.ndarray [shape=(num_samples,)], str, pathlib.PosixPath
+    sound : np.ndarray [shape=(num_samples,) or (num_samples, num_channels)]
         The sound to plot the VAD of.
     
     energy_scale : str 
@@ -928,9 +1637,16 @@ def plot_vad(sound, energy_scale = 'power_to_db',
         not recognizing speech in speech filled samples. And when set to True, some speech
         sounds tend to get ignored ('s', 'x' and other fricatives).
         
+    save_pic : bool 
+        If True, the plot will be saved rather than plotted immediately.
+        
     name4pic : str 
         The full pathway and filename to save the picture (as .png file). A file
         extension is expected. (default None)
+        
+    overwrite : bool 
+        If False, a date tag will be added to `name4pic` if `name4pic` already exists.
+        (default False)
         
     **kwargs : keyword arguments
         Additional keyword arguments for `soundpy.feats.get_speech_stft` or 
@@ -941,78 +1657,139 @@ def plot_vad(sound, energy_scale = 'power_to_db',
     None
     '''
     import matplotlib.pyplot as plt
-    # ensure sr is at least 44100
-    # vad does not work well with lower sample rates
+    # ensure numpy array 
+    if not isinstance(sound, np.ndarray):
+        raise TypeError('Function `soundpy.feats.plot_vad` expects a '+\
+            'numpy.ndarray, not type {}.'.format(type(sound)))
+    # ensure sample rate is provided
     if 'sr' not in kwargs:
-        kwargs['sr'] = 44100
+        raise ValueError('Function `soundpy.feats.plot_vad` requires sample rate'+\
+            ' of the provided audio samples. Please provide the sample rate '+\
+                'under the parameter `sr`.')
     else:
+        # ensure sr is at least 44100; otherwise raise warning
+        # vad does not work as well with lower sample rates
         if kwargs['sr'] < 44100:
             import warnings
             msg = '\nWarning: VAD works best with sample rates at or above '+\
-                '44100 Hz. Therefore, audio will be sampled / resampled from '+\
-                    ' {} to 44100 Hz.'.format(kwargs['sr'])
+                '44100 Hz. To supress this warning, resample the audio from'+\
+                    ' {} Hz to at least 44100 Hz.'.format(kwargs['sr'])
             warnings.warn(msg)
-            if isinstance(sound, np.ndarray):
-                sound, sr = sp.dsp.resample_audio(sound, kwargs['sr'], 44100)
-                kwargs['sr'] = sr
-            else:
-                kwargs['sr'] = 44100
-    # set matching defaults if not in kwargs
+    # set defaults if not in kwargs
     if 'win_size_ms' not in kwargs:
         kwargs['win_size_ms'] = 50
     if 'percent_overlap' not in kwargs:
         kwargs['percent_overlap'] = 0.5
-    stft_matrix = sp.feats.get_stft(sound, **kwargs)
-    
-    if beg_end_clipped:
-        stft_vad, vad_matrix = sp.feats.get_stft_clipped(sound,
-                                                        **kwargs)
-    else:
-        #vad_matrix, __ = sp.dsp.vad(sound, use_beg_ms = use_beg_ms, **kwargs)
-        stft_vad, vad_matrix = sp.feats.get_vad_stft(sound,
-                                                       use_beg_ms = use_beg_ms,
-                                                       **kwargs)
-    
-    # extend window of VAD if desired
-    if extend_window_ms > 0:
-        frame_length = sp.dsp.calc_frame_length(kwargs['win_size_ms'],
-                                                  kwargs['sr'])
-        num_overlap_samples = int(frame_length * kwargs['percent_overlap'])
-        # set number of subframes for extending window
-        extwin_num_samples = sp.dsp.calc_frame_length(extend_window_ms, kwargs['sr'])
-        num_win_subframes = sp.dsp.calc_num_subframes(extwin_num_samples,
-                                                        frame_length = frame_length,
-                                                        overlap_samples = num_overlap_samples,
-                                                        zeropad = True)
-        vad_matrix_extwin = vad_matrix.copy()
-        for i, row in enumerate(vad_matrix):
-            if row > 0:
-                # label samples before VAD as VAD
-                if i > num_win_subframes:
-                    vad_matrix_extwin[i-num_win_subframes:i] = 1
-                else:
-                    vad_matrix_extwin[:i] = 1
-                # label samples before VAD as VAD
-                if i + num_win_subframes < len(vad_matrix):
-                    vad_matrix_extwin[i:num_win_subframes+i] = 1
-                else:
-                    vad_matrix_extwin[i:] = 1
+
+    y, sr = sound, kwargs['sr']
+    if len(y.shape) == 1:
+        # add channel column
+        y = y.reshape(y.shape+(1,))
+    elif y.shape[1] > 11:
+        import warnings 
+        msg = '\nWARNING: provided `sound` data could be in the wrong format. \n'+\
+            'Function `soundpy.feats.plot_vad` expects raw sample data. Data '+\
+                'provided could be a stft, fbank, mfcc matrix or some other data'+\
+                    ' format. If plot results do not appear as expected, check data.'
+        warnings.warn(msg)
         
-        vad_matrix = vad_matrix_extwin
-    stft_matrix = librosa.power_to_db(stft_matrix)
-    y_axis = stft_matrix.shape[1]
-    if max(vad_matrix) > 0:
-        vad_matrix = sp.dsp.scalesound(vad_matrix, max_val = y_axis, min_val = 0)
-    plt.pcolormesh(stft_matrix.T)
-    color = 'yellow'
-    linestyle = ':'
-    plt.plot(vad_matrix, 'ro', color=color)
-    if title:
+    if 'mono' in kwargs and kwargs['mono'] is True:
+        y = y[:,0]
+        y = y.reshape(y.shape+(1,))
+    
+    for channel in range(y.shape[1]):
+        stft_matrix = sp.feats.get_stft(y[:,channel], **kwargs)
+        
+        if beg_end_clipped:
+            stft_vad, vad_matrix = sp.feats.get_stft_clipped(y[:,channel],
+                                                            **kwargs)
+        else:
+            #vad_matrix, __ = sp.dsp.vad(y[:,channel], use_beg_ms = use_beg_ms, **kwargs)
+            stft_vad, vad_matrix = sp.feats.get_vad_stft(y[:,channel],
+                                                        use_beg_ms = use_beg_ms,
+                                                        **kwargs)
+        
+        # extend window of VAD if desired
+        if extend_window_ms > 0:
+            frame_length = sp.dsp.calc_frame_length(kwargs['win_size_ms'],
+                                                    kwargs['sr'])
+            num_overlap_samples = int(frame_length * kwargs['percent_overlap'])
+            # set number of subframes for extending window
+            extwin_num_samples = sp.dsp.calc_frame_length(extend_window_ms, kwargs['sr'])
+            num_win_subframes = sp.dsp.calc_num_subframes(extwin_num_samples,
+                                                            frame_length = frame_length,
+                                                            overlap_samples = num_overlap_samples,
+                                                            zeropad = True)
+            vad_matrix_extwin = vad_matrix.copy()
+            for i, row in enumerate(vad_matrix):
+                if row > 0:
+                    # label samples before VAD as VAD
+                    if i > num_win_subframes:
+                        vad_matrix_extwin[i-num_win_subframes:i] = 1
+                    else:
+                        vad_matrix_extwin[:i] = 1
+                    # label samples before VAD as VAD
+                    if i + num_win_subframes < len(vad_matrix):
+                        vad_matrix_extwin[i:num_win_subframes+i] = 1
+                    else:
+                        vad_matrix_extwin[i:] = 1
+            
+            vad_matrix = vad_matrix_extwin
+        # remove complex info for plotting:
+        power_matrix = sp.dsp.calc_power(stft_matrix)
+        db_matrix = librosa.power_to_db(power_matrix)
+        y_axis = db_matrix.shape[1]
+        if max(vad_matrix) > 0:
+            vad_matrix = sp.dsp.scalesound(vad_matrix, max_val = y_axis, min_val = 0)
+        plt.pcolormesh(db_matrix.T)
+        # limit the y axis; otherwise y axis goes way too high
+        axes = plt.gca()
+        axes.set_ylim([0,db_matrix.shape[1]])
+        color = 'yellow'
+        linestyle = ':'
+        plt.plot(vad_matrix, 'ro', color=color)
+        if not title:
+            title = 'Voice Activity in Signal'
+        if beg_end_clipped and 'clipped' not in title:
+            title += ' (clipped)'
+        # adjust title if more than one channel
+        if y.shape[1] > 1:
+            if channel == 0:
+                title += '\n(channel {})'.format(channel+1)
+            else:
+                title = title[:-2] + '{})'.format(channel+1)
         plt.title(title)
-    if name4pic is None:
-        plt.plot()
-    else:
-        plt.savefig(name4pic)
+        if not save_pic:
+            plt.show()
+        # set up name for saving the plot, given channel number and if other files exist
+        else:
+            if name4pic is None:
+                name4pic = 'vad'
+                if beg_end_clipped:
+                    name4pic += '_clipped'
+                if y.shape[1] > 1:
+                    name4pic += '_channel{}'.format(channel+1)
+                name4pic = sp.utils.string2pathlib(name4pic+'.png')
+            else:
+                name4pic = sp.utils.string2pathlib(name4pic)
+                if y.shape[1] > 1:
+                    if channel == 0:
+                        name = name4pic.stem + '_channel{}'.format(channel+1)
+                        name4pic = name4pic.parent.joinpath(name, name4pic.suffix)
+                    else:
+                        name = name4pic.stem[:-1] + str(channel+1)
+                        name4pic = name4pic.parent.joinpath(name + name4pic.suffix)
+                if not name4pic.suffix:
+                    name4pic = name4pic.parent.joinpath(name4pic.stem+'.png')
+            if not overwrite:
+                if os.path.exists(name4pic):
+                    final_name = name4pic.stem + '_' + sp.utils.get_date()
+                    final_name = name4pic.parent.joinpath(final_name+name4pic.suffix)
+                else:
+                    final_name = name4pic
+            else:
+                final_name = name4pic
+            plt.savefig(final_name)
 
 def get_change_acceleration_rate(spectro_data):
     '''Gets first and second derivatives of spectral data.
@@ -1186,23 +1963,41 @@ def reduce_num_features(feats, desired_shape):
 
 # TODO remove warning for 'operands could not be broadcast together with shapes..'
 # TODO test
-def adjust_shape(data, desired_shape, change_dims = False):
+def adjust_shape(data, desired_shape, change_dims = None, complex_vals = None):
+    try:
+        if change_dims is not None:
+            raise DeprecationWarning('\nWARNING: Function `soundpy.feats.adjust_shape` will not '+\
+                'use the parameter `change_dims` in future versions. \nIf extra dimensions '+\
+                    'of length 1 are to be added to the `data`, this will be completed. '+\
+                        'However extra dims of greater length are not covered in this function.')
+    except DeprecationWarning as e:
+        print(e)
+    try:
+        if complex_vals is not None:
+            raise DeprecationWarning('\nWARNING: Function `soundpy.feats.adjust_shape` will not '+\
+                'use the parameter `complex_vals` in future versions. This will be '+\
+                    'implicitly conducted within the function using `numpy.dtype`.')
+    except DeprecationWarning as e:
+        print(e)
+    
     if len(data.shape) != len(desired_shape):
-        if not change_dims:
-            raise ValueError('Cannot adjust data to a different number of '+\
-                'dimensions.\nOriginal data shape: '+str(data.shape)+ \
+        data_shape_orig = data.shape
+        if desired_shape[0] == 1:
+            if data.shape[0] != 1:
+                data = data.reshape((1,)+data.shape)
+        if desired_shape[-1] == 1:
+            if data.shape[-1] != 1:
+                data = data.reshape(data.shape + (1,))
+        if len(data.shape) != len(desired_shape):   
+            raise ValueError('Currently cannot adjust data to a different number of '+\
+                'dimensions.\nOriginal data shape: '+str(data_shape_orig)+ \
                     '\nDesired shape: '+str(desired_shape))
-        total_desired_samples = 1
-        for i in desired_shape:
-            total_desired_samples *= i
-        data_flattened = data.flatten()
-        if len(data_flattened) < total_desired_samples:
-            data_flattened = sp.feats.zeropad_features(data_flattened, 
-                                                         desired_shape = (total_desired_samples,))
-        elif len(data_flattened) > total_desired_samples:
-            data_flattened = data_flattened[:total_desired_samples]
-        data_prepped = data_flattened.reshape(desired_shape)
-        return data_prepped
+    
+    # if complex values are in data, set complex_vals to True
+    if data.dtype == np.complex_:
+        complex_vals = True
+    else:
+        complex_vals = False
         
     # attempt to zeropad data:
     try:
@@ -1210,7 +2005,7 @@ def adjust_shape(data, desired_shape, change_dims = False):
         # all dimensions can be zeropadded or left alone
         if len(greater_items) == 0:
             data_prepped = sp.feats.zeropad_features(
-                data, desired_shape = desired_shape)
+                data, desired_shape = desired_shape, complex_vals = complex_vals)
         # not all dimensions can be zeropadded. Zeropad what can be zeropadded.
         # then reduce larger dimensions
         elif len(greater_items) == len(data.shape): 
@@ -1226,7 +2021,7 @@ def adjust_shape(data, desired_shape, change_dims = False):
             temp_shape = tuple(temp_shape)
             # first zeropad the dimensions that are too small
             data_prepped = sp.feats.zeropad_features(
-                data, desired_shape = temp_shape)
+                data, desired_shape = temp_shape, complex_vals = complex_vals)
             # then clip the dimensions that are too big
             data_prepped = sp.feats.reduce_num_features(
                 data_prepped, desired_shape = desired_shape)
@@ -1236,6 +2031,214 @@ def adjust_shape(data, desired_shape, change_dims = False):
         data_prepped = sp.feats.reduce_num_features(data, 
                                                  desired_shape = desired_shape)
     return data_prepped
+
+
+def reduce_dim(matrix, axis=0):
+    import math
+    import numpy as np
+    if axis < 0:
+        axis = len(matrix.shape) + axis
+    if axis == 0:
+        new_matrix = np.zeros((math.ceil(matrix.shape[0]/2),)+matrix.shape[1:])
+        row = 0
+        for i in np.arange(0, matrix.shape[0], 2):
+            if i < matrix.shape[0] - 2:
+                new_matrix[row] = (matrix[i] + matrix[i+1]) / 2
+                row += 1
+            else:
+                new_matrix[row] = matrix[i]
+    elif axis == 1:
+        new_matrix = np.zeros(matrix.shape[:1] + (math.ceil(matrix.shape[1]/2),))
+        col = 0
+        for i in np.arange(0, matrix.shape[1], 2):
+            if i < matrix.shape[1] - 2:
+                new_matrix[:, col] = (matrix[:, i] + matrix[:, i+1]) / 2
+                col += 1
+            else:
+                new_matrix[:, col] = matrix[:, i]
+    else:
+        raise ValueError('Function `reduce_dim` only accepts 2D data. Axis {}'.format(axis),
+                         ' is out of bounds.')
+    return new_matrix
+
+
+def featshape_new_subframe(feature_matrix_shape, new_frame_size, 
+                               zeropad = True, axis=0, include_dim_size_1=False):
+    '''Subdivides features from (num_frames, num_feats) to (new_frame_size, num_frames, num_feats)
+    
+    Parameters
+    ----------
+    feature_matrix_shape : tuple [size=(num_frames, num_features)]
+        Feature matrix shape to be subdivided. Can be multidimensional.
+        
+    new_frame_size : int 
+        The number of subframes to section axis into.
+    
+    zeropad : bool 
+        If True, frames that don't completely fill a `new_frame_size` will be 
+        zeropadded. Otherwise, those frames will be discarded. (default True)
+        
+    axis : int 
+        The axis where the `new_frame_size` should be applied. (default 0)
+        
+    Returns
+    -------
+    new_shape : tuple [size=(num_subframes, new_frame_size, num_feats)]
+    
+    '''
+    if axis < 0:
+        # get the axis number if using -1 or -2, etc.
+        axis = len(feature_matrix_shape) + axis
+    original_dim_length = feature_matrix_shape[axis]
+    if zeropad is True:
+        subsection_frames = math.ceil(original_dim_length / new_frame_size)
+    else:
+        subsection_frames = original_dim_length // new_frame_size
+    new_shape = []
+    for i, ax in enumerate(feature_matrix_shape):
+        if i == axis:
+            if subsection_frames == 1 and include_dim_size_1 is False:
+                # don't include extra dimension if length 1
+                new_shape.append(new_frame_size)
+            else:
+                new_shape.append(new_frame_size) 
+                new_shape.append(subsection_frames)
+        else:
+            new_shape.append(ax)
+    new_shape = tuple(new_shape)
+    return new_shape
+
+
+def apply_new_subframe(feature_matrix, new_frame_size, zeropad=True, axis=0):
+    '''Reshapes `feature_matrix` to allow for `new_frame_size`. 
+    
+    Note: Dimensions of `feature_matrix` must be at least 2 and can be up to 5, 
+    returning a matrix with one additional dimension. 
+    
+    Parameters
+    ----------
+    feature_matrix : np.ndarray [size(num_frames, num_features) ]
+        Expects minimum 2D, maximum 5D matrix.
+        
+    new_frame_size : int 
+        The number of subframes to section axis into.
+        
+    axis : int 
+        The axis to apply the `new_frame_size`. (default 0)
+
+    zeropad : bool 
+        If True, the feature_matrix will be zeropadded to include frames that do not 
+        fill entire frame_size, given the `new_frame_size`. If False, feature_matrix
+        will not include the last zeropadded frame. (default True)
+        
+    Returns
+    -------
+    feats_reshaped : np.ndarray [size(num_subframes, new_frame_size, num_features)]
+        The `feature_matrix` returned with `axis` subdivided into 2 dimensions, the number of subframes and the other length `new_frame_size`. 
+        
+    Raises
+    ------
+    ValueError if number of dimensions of `feature_matrix` is below 2 or exceeds 5.
+    
+    Examples
+    --------
+    >>> import numpy as np
+    >>> matrix = np.arange(24).reshape(3,4,2)
+    >>> # apply new_frame_size to dimension of length 4 (i.e. axis 1)
+    >>> matrix_zp = apply_new_subframe(matrix, new_frame_size = 3, axis = 1)
+    >>> matrix_zp.shape
+    (3, 2, 3, 2)
+    >>> matrix_zp
+    array([[[[ 0,  1],
+            [ 2,  3],
+            [ 4,  5]],
+
+            [[ 6,  7],
+            [ 0,  0],
+            [ 0,  0]]],
+
+
+        [[[ 8,  9],
+            [10, 11],
+            [12, 13]],
+
+            [[14, 15],
+            [ 0,  0],
+            [ 0,  0]]],
+
+
+        [[[16, 17],
+            [18, 19],
+            [20, 21]],
+
+            [[22, 23],
+            [ 0,  0],
+            [ 0,  0]]]])
+    >>> matrix_nozp = apply_new_subframe(matrix, new_frame_size = 3, axis = 1,
+    ...                                    zeropad=False)
+    >>> matrix_nozp.shape
+    (3, 1, 3, 2)
+    >>> matrix_nozp
+    array([[[[ 0,  1],
+            [ 2,  3],
+            [ 4,  5]]],
+
+
+        [[[ 8,  9],
+            [10, 11],
+            [12, 13]]],
+
+
+        [[[16, 17],
+            [18, 19],
+            [20, 21]]]])
+
+    '''
+    if len(feature_matrix.shape) < 2 or len(feature_matrix.shape) > 5:
+        raise ValueError('Function `soundpy.feats.apply_new_subframe` '+\
+            'can only be applied to matrices between 2 and 5 dimensions.')
+    
+    datatype = feature_matrix.dtype
+    if axis < 0:
+        # get the axis number if using -1 or -2, etc.
+        axis = len(feature_matrix.shape) + axis
+    new_shape = featshape_new_subframe(feature_matrix.shape,
+                                           new_frame_size = new_frame_size,
+                                           axis = axis,
+                                           zeropad = zeropad)
+    total_new_samples = np.prod(new_shape)
+    current_samples = np.prod(feature_matrix.shape)
+    
+    # zeropad or reduce feature_matrix to match number of current samples
+    diff = total_new_samples - current_samples
+
+    for i, item in enumerate(feature_matrix.shape):
+        if i != axis:
+            diff /= item
+    if zeropad is True:
+        if diff >= 0:
+            diff = math.ceil(diff)
+        else:
+            diff = int(diff)
+    else:
+        if diff >= 0:
+            diff = int(diff)
+        else:
+            diff = math.ceil(diff)
+    if axis == 0:
+        feature_matrix = sp.feats.adjust_shape(
+            feature_matrix,
+            ((feature_matrix.shape[0] + diff,) + feature_matrix.shape[1:]))
+    elif axis > 0:
+        feature_matrix = sp.feats.adjust_shape(
+            feature_matrix,
+            (feature_matrix.shape[:axis] + (feature_matrix.shape[axis] + diff, ) + \
+                feature_matrix.shape[axis+1:]))
+    
+    feats_reshaped = feature_matrix.reshape(new_shape)
+    feats_reshaped = feats_reshaped.astype(datatype)
+    return feats_reshaped
+
 
 def check_percent_overlap(percent_overlap):
     '''Ensures percent_overlap is between 0 and 1.
@@ -1465,14 +2468,307 @@ def scale_X_y(matrix, is_train=True, scalars=None):
 def list_available_features():
     return ['stft', 'powspec', 'fbank', 'mfcc', 'signal']
 
-def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
-                                    feature_type='fbank', num_feats=None, sr=22050, 
-                                    win_size_ms=20, percent_overlap=0.5, n_fft = None,
-                                    frames_per_sample=None,labeled_data=False, 
-                                    subsection_data=False, divide_factor=None,
-                                    visualize=False, vis_every_n_frames=50, 
-                                    use_librosa=True, center=True, mode='reflect', 
-                                    log_settings=True, decode_dict = None, **kwargs):
+# TODO REMOVE context_window for next release.
+# don't apply context window and such during feature extraction phase
+# TODO check if `real_signal` influences change of shape or not
+def get_feature_matrix_shape(sr = None, dur_sec = None, feature_type = None,
+                             win_size_ms = None, percent_overlap = None,
+                             fft_bins = None, num_mfcc = None, num_filters = None,
+                             rate_of_change = False, rate_of_acceleration = False,
+                             context_window = None, frames_per_sample = None, zeropad = True, labeled_data = False, remove_first_coefficient = False, real_signal = False, **kwargs):
+    '''Returns expected shapes of feature matrix depending on several parameters.
+     
+    Parameters
+    ----------
+    sr : int 
+        Sample rate of the audio to be extracted.
+        
+    dur_sec : int, float 
+        The number of seconds of audio feature extraction will be applied to.
+        
+    feature_type : str 
+        Accepted features include 'signal', 'stft', 'powspec', 'fbank', 'mfcc'. Which
+        `feature_type` applied will influence the resulting shape of the feature matrix
+        shape.
+        
+    win_size_ms : int or float
+        The size of the window the audio signal should be broken into. If `feature_type` 
+        is set to 'signal', this is irrelevant. Otherwise will raise TypeError if set to None.
+        
+    percent_overlap : float 
+        The amount of overlap between windows. If set to 0.5, the number of overlapping
+        samples will be half the number of samples that make up `win_size_ms`.
+        
+    fft_bins : int 
+        The number of frequency bins to use when calculating the fast Fourier transform.
+        If None, the calculated `frame_length` will be used. 
+        
+    num_mfcc : int 
+        If extracting 'mfcc' features, the total number of coefficients expected.
+        
+    num_filters : int 
+        If extracting 'fbank' features, the total number of mel-filters to be applied.
+        
+    rate_of_change : bool 
+        If True, the first delta will be concatenated to features extracted.
+        
+    rate_of_acceleration : bool 
+        If True, the second delta will be concatenated to features extracted.
+        
+    context_window : int
+        The size of `context_window` or number of samples padding a central frame.
+        This may be useful for models training on small changes occuring in the signal, e.g. to break up the image of sound into smaller parts. 
+        
+    frames_per_sample : int
+        The previous keyword argument for sugementing audio into smaller parts.
+        Will be removed in future versions and available in generator functions as 
+        `context_window`. `frames_per_sample` equals 2 * `context_window` + 1. See 
+        `soundpy.models.dataprep.Generator`
+        
+    zeropad : bool 
+        If True, windows and frames will be zeropadded to avoid losing any sample data.
+        
+    labeled_data : bool 
+        If True, a label will be added to the output shape of features. 
+        
+    remove_first_coefficient : bool 
+        If True, the first mfcc coefficient will not be included in feature
+        matrix.
+        
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.feats.get_feats`. These may not be used in this
+        function as they may not influence the size of the feature matrix.
+        
+    Returns
+    -------
+    feature_matrix_base : tuple
+        The base shape of the feature matrix. This is the shape that should result from 
+        extracting the features for each audio file 
+        
+    feature_matrix_model : tuple 
+        The shape relevant to training models. For example, one including space for a
+        context window and label. 
+    '''
+    if sr is None:
+        raise TypeError('Function `soundpy.feats.get_feature_matrix_shape` expects'+\
+            ' parameter `sr` to be of type `int`, not type None.')
+    if dur_sec is None:
+        raise TypeError('Function `soundpy.feats.get_feature_matrix_shape` expects'+\
+            ' parameter `dur_sec` to be of type `int` or `float`, not type None.')
+    if win_size_ms is None:
+        raise TypeError('Function `soundpy.feats.get_feature_matrix_shape` expects'+\
+            ' parameter `win_size_ms` to be of type `int` or `float`, not type None.')
+    if feature_type is None:
+        raise TypeError('Function `soundpy.feats.get_feature_matrix_shape` expected'+\
+            ' parameter `feature_type` to be one of the following: '+\
+                ','.join(sp.feats.list_available_features())+\
+                    '\nInstead got None.')
+    total_samples = sp.dsp.calc_frame_length(dur_sec*1000, sr=sr)
+    frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
+    # all we need to know if signal is feature
+    if 'signal' in feature_type:
+        total_rows_per_wav = total_samples // frame_length
+        num_feats = frame_length
+        feature_matrix_model = (
+            total_rows_per_wav,
+            num_feats)
+        feature_matrix_base = (
+            total_samples,) # currently only single channels
+    else:
+        if win_size_ms is None or percent_overlap is None:
+            raise TypeError('`win_size_ms` or `percent_overlap` cannot be type '+\
+                'None. Please set these values, e.g. `win_size_ms` = 20, `percent_overlap` = 0.5')
+        win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
+        hop_length = int(win_shift_ms * 0.001 * sr)
+        if fft_bins is None:
+            fft_bins = int(win_size_ms * sr // 1000)
+        # https://librosa.org/doc/latest/generated/librosa.util.frame.html#librosa.util.frame
+        total_rows_per_wav = int(1 + (total_samples - fft_bins)//hop_length)
+        if 'mfcc' in feature_type:
+            if num_mfcc is None:
+                num_feats = 40
+            else:
+                num_feats = num_mfcc
+            if remove_first_coefficient is True:
+                num_feats -= 1
+        elif 'fbank' in feature_type:
+            if num_filters is None:
+                num_feats = 40
+            else:
+                num_feats = num_filters
+        elif 'stft' in feature_type or 'powspec' in feature_type:
+            num_feats = fft_bins//2 + 1
+        else:
+            raise ValueError('Feature type "{}" '.format(feature_type)+\
+                'not understood.\nMust include one of the following: \n'+\
+                    ', '.join(list_available_features()))
+        if rate_of_change is True and rate_of_acceleration is True:
+            num_feats += 2 * num_feats
+        elif rate_of_change is True or rate_of_acceleration is True:
+            num_feats += num_feats
+        try:
+            if frames_per_sample is not None or context_window is not None:
+                raise DeprecationWarning('\nWARNING: In future versions, the `frames_per_sample` and '+\
+                    '`context_window` parameters will be no longer used in feature extraction.\n'+\
+                        ' Instead features can be segmented in generator functions using the '+\
+                            'parameter `context_window`: `soundpy.models.dataprep.Generator`.')
+        except DeprecationWarning as e:
+            print(e)
+        if context_window or frames_per_sample:
+            if context_window:
+                subframes = context_window * 2 + 1
+            else:
+                subframes = frames_per_sample
+            batches = math.ceil(total_rows_per_wav/subframes)
+            feature_matrix_model = (
+                batches,
+                subframes,
+                num_feats)
+            feature_matrix_base = (
+                batches * subframes,
+                num_feats)
+        else:
+            feature_matrix_model = (
+                total_rows_per_wav,
+                num_feats)
+            feature_matrix_base = (
+                total_rows_per_wav,
+                num_feats)
+    if labeled_data is True:
+        feature_matrix_model = feature_matrix_model[:-1] + (feature_matrix_model[-1] + 1,)
+    return feature_matrix_base, feature_matrix_model
+        
+        
+def visualize_feat_extraction(feats, iteration = None, dataset=None, label=None,
+                              datadir = None, subsections = False, **kwargs):
+    '''Saves plots of features during feature extraction or training of models.
+    
+    Parameters
+    ----------
+    feats : np.ndarray [shape=(num_samples,) or (num_samples, num_frames) or \
+    (num_frames, num_features) or (num_subsections, num_frames, num_features)]
+        The extracted features can be raw signal data, stft, fbank, powspec, mfcc
+        data, either as a single plot or subsectioned into batches / subframes.
+        
+    iteration : int, optional
+        The iteration of the audio getting extracted; e.g. the 10th training item.
+        
+    dataset : str, optional
+        The identifying string (for example 'train' , 'val', or 'test', but this can 
+        be anything).
+        
+    label : str, int, optional
+        The label of the audio file. Used in titles and filenames.
+        
+    datadir : str, pathlib.PosixPath, optional
+        The directory where related data is located. An 'image' directory will be 
+        created within this `datadir` where the saved plots will be stored. If 
+        None, will be created in current working directory.
+        
+    subsections : bool, optional 
+        To subsection raw 'signal' data into frames. For other features, this is 
+        easier to identify via the shape of `feats`.
+        
+    **kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.feats.get_feats`
+        
+    Returns
+    -------
+    None
+    '''
+    # visualize features:
+    if datadir is None:
+        datadir = './'
+    if not isinstance(datadir, pathlib.PosixPath):
+        datadir = sp.utils.string2pathlib(datadir)
+    if dataset is not None and iteration is not None:
+        save_pic_path = datadir.joinpath(
+            'images',dataset,'{}_sample{}_{}'.format(
+                kwargs['feature_type'], iteration, label))
+        title = '{} {} features: label {}'.format(
+                        dataset, kwargs['feature_type'].upper(),
+                        label)
+    else: 
+        save_pic_path = datadir.joinpath(
+            'images', '{}_{}'.format(kwargs['feature_type'],
+                                     sp.utils.get_date()))
+        title = '{} features: label {}'.format(kwargs['feature_type'].upper(),
+                        label)
+    # make sure this directory exists
+    save_pic_dir = sp.utils.check_dir(save_pic_path.parent, make=True)
+    # if in batches, save the features in each batch 
+    
+    # first non raw signal data (e.g. stft, powspec, fbank, mfcc)
+    if 'signal' not in kwargs['feature_type'] and \
+        len(feats.shape) > 2:
+        if len(feats.shape) == 4:
+            if feats.shape[-1] == 1:
+                feats_temp = feats[:,:,:,0]
+            else:
+                raise ValueError('Cannot visualize greater than 3D data.')
+        elif len(feats.shape) > 4:
+            raise ValueError('Cannot visualize greater than 3D data.')
+        else:
+            feats_temp = feats
+        orig_name = save_pic_path.stem
+        for i, feat_section in enumerate(feats_temp):
+            new_name = orig_name + '_frame_{}'.format(i)
+            save_pic_path = save_pic_path.parent.joinpath(new_name)
+            sp.feats.plot(feature_matrix = feat_section, 
+                            feature_type = kwargs['feature_type'],
+                            win_size_ms = kwargs['win_size_ms'],
+                            percent_overlap = kwargs['percent_overlap'],
+                            title = title + ' frame {}'.format(i),
+                            name4pic = save_pic_path,
+                            save_pic = True,
+                            subprocess = True)
+        return None
+    
+    # then raw signal data; needs parameter `subsections` set to True
+    # can only be 2D or 3D (if last dimension is 1)
+    if subsections is True and 'signal' in kwargs['feature_type']:
+        if len(feats.shape) == 3 and feats.shape[-1] > 1:
+            raise ValueError('Cannot visualize raw signal greater than 2D.')
+        elif len(feats.shape) == 3 and feats.shape[-1] == 1:
+            feats_temp = feats[:,:,0]
+        elif len(feats.shape) == 2:
+            feats_temp = feats
+        elif len(feats.shape) == 1:
+            feats_temp = None
+        else:
+            raise ValueError('Cannot visualize raw signal greater than 2D.')
+        if feats_temp is not None:
+            orig_name = save_pic_path.stem
+            for i, feat_section in enumerate(feats_temp):
+                new_name = orig_name + '_frame_{}'.format(i)
+                save_pic_path = save_pic_path.parent.joinpath(new_name)
+                sp.feats.plot(feature_matrix = feat_section, 
+                                    feature_type = kwargs['feature_type'],
+                                    win_size_ms = kwargs['win_size_ms'],
+                                    percent_overlap = kwargs['percent_overlap'],
+                                    title = title + ' frame {}'.format(i),
+                                    save_pic = True,
+                                    name4pic = save_pic_path.joinpath('frame {}'.format(i)),
+                                    subprocess = True)
+            return None
+    
+    # otherwise save features in a single plot
+    sp.feats.plot(feature_matrix = feats, 
+                    feature_type = kwargs['feature_type'],
+                    win_size_ms = kwargs['win_size_ms'],
+                    percent_overlap = kwargs['percent_overlap'],
+                    title = title,
+                    save_pic = True,
+                    name4pic = save_pic_path,
+                    subprocess = True)
+    return None
+    
+def save_features_datasets(datasets_dict, datasets_path2save_dict, 
+                            context_window=None, frames_per_sample = None, labeled_data=False, 
+                            subsection_data=False, divide_factor=None,
+                            visualize=False, vis_every_n_frames=50, 
+                            log_settings=True, decode_dict = None, 
+                            random_seed = None, **kwargs):
     '''Extracts and saves audio features, sectioned into datasets, to indicated locations.
     
     If MemoryError, the provided dataset dicts will be adjusted to allow data to be subsectioned.
@@ -1484,62 +2780,51 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         E.g. {'train':['1.wav', '2.wav', '3.wav'], 'val': ['4.wav'], 'test':['5.wav']} for unlabled
         data or  {'train':[(0, '1.wav'), (1, '2.wav'), (0, '3.wav')], 'val': [(1, '4.wav')], 
         'test':[(0, '5.wav')]} for labeled data.
+    
     datasets_path2save_dict : dict
         Dictionary with keys representing datasets and values the pathways of where extracted 
         features of that dataset will be saved.
         E.g. {'train': './data/train.npy', 'val': './data/val.npy', 'test': './data/test.npy'}
-    feature_type : str 
-        String including only one of the following: 'signal', 'stft', 'powspec', 'fbank', and 'mfcc'. 
-        'signal' currently only supports mono channel data. TODO test for stereo
-        'powspec' and 'stft' are basically the same; 'powspec' is the 'stft' except without 
-        complex values and squared. E.g 'mfcc_noisy' or 'stft_train'.
-    sr : int 
-        The sample rate the audio data should be loaded with.
-    n_fft : int 
-        The number of frequency bins used for the Fast Fourier Transform (fft)
-    dur_sec : int or float
-        The desired duration of how long the audio data should be. This is used to calculate 
-        size of feature data and is therefore necessary, as audiofiles tend to differe in length.
-        If audiofiles are longer or shorter, they will be cut or zeropadded respectively.
-    num_feats : int 
-        The number of mfcc coefficients (mfcc), mel filters (fbank), or frequency bins (stft).
-    win_size_ms : int 
-        The desired window size in milliseconds to process audio samples.
-    percent_overlap : float
-        The amount audio samples should overlap as each window is processed.
-    frames_per_sample : int, optional 
-        If you want to section each audio file feature data into smaller frames. This might be 
-        useful for speech related contexts. (Can avoid this by simply reshaping data later)
+    
+    context_window : int
+        The size of `context_window` or number of samples padding a central frame.
+        This may be useful for models training on small changes occuring in the signal, e.g. to break up the image of sound into smaller parts, to feed 
+        to a long short-term memory network (LSTM), for example.
+        (Can avoid this by simply reshaping data later). 
+        
+    frames_per_sample : int
+        The previous keyword argument for sugementing audio into smaller parts.
+        Will be removed in future versions. This equals 2 * `context_window` + 1
+    
     labeled_data : bool 
         If True, expects each audiofile to be accompanied by an integer label. See example 
         given for `datasets_dict`.
+    
     subsection_data : bool 
         If you have a large dataset, you may want to divide it into subsections. See 
         soundpy.datasets.subsection_data. If datasets are large enough to raise a MemoryError, 
         this will be applied automatically.
+    
     divide_factor : int, optional
         The number of subsections to divide data into. Only large enough sections will be divided.
         If smaller datasets (i.e. validation and test datasets) are as large or smaller than 
         the new subsectioned larger dataset(s) (i.e. train), they will be left unchanged.
         (defaults to 5)
+    
     visualize : bool
         If True, periodic plots of the features will be saved throughout the extraction process. (default False)
+    
     vis_every_n_frames : int 
         How often visuals should be made: every 10 samples, every 100, etc. (default 50)
-    use_librosa : bool 
-        If True, librosa is used to load and extract features. As of now, no other option is 
-        available. TODO: add other options. :P I just wanted to be clear that some elements
-        of this function are unique to using librosa. (default True)
-    center : bool 
-        Relevant for librosa and feature extraction. (default True)
-    mode : str 
-        Relevant for librosa and feature extraction. (default 'reflect')
+    
     log_settings : bool
         If True, a .csv file will be saved in the feature extraction directory with 
         most of the feature settings saved. (default True)
+    
     decode_dict : dict, optional
         The dictionary to get the label given the encoded label. This is for plotting 
         purposes. (default None)
+    
     **kwargs : additional keyword arguments
         Keyword arguments for `soundpy.feats.get_feats`.
     
@@ -1548,6 +2833,7 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
     datasets_dict : dict 
         The final dataset dictionary used in feature extraction. The datasets may 
         have been subdivided.
+    
     datasets_path2save_dict : dict
         The final dataset feature pathway dict. The pathways will have been 
         adjusted if the datasets have been subdivided.
@@ -1565,263 +2851,147 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
             datasets_dict,
             datasets_path2save_dict,
             divide_factor=divide_factor)
+    # save where data was extracted from:
+    dataset_dirs = []
     try:
-        # depending on which packages one uses, shape of data changes.
-        # for example, Librosa centers/zeropads data automatically
-        # TODO see which shapes result from python_speech_features
-        total_samples = sp.dsp.calc_frame_length(dur_sec*1000, sr=sr)
-        # if using Librosa:
-        if use_librosa:
-            frame_length = sp.dsp.calc_frame_length(win_size_ms, sr)
-            win_shift_ms = win_size_ms - (win_size_ms * percent_overlap)
-            hop_length = int(win_shift_ms*0.001*sr)
-            if n_fft is None:
-                n_fft = frame_length
-            # librosa centers samples by default, sligthly adjusting total 
-            # number of samples
-            if center:
-                y_zeros = np.zeros((total_samples,))
-                y_centered = np.pad(y_zeros, int(n_fft // 2), mode=mode)
-                total_samples = len(y_centered)
-            # each audio file 
-            if 'signal' in feature_type:
-                # don't apply fft to signal (not sectioned into overlapping windows)
-                total_rows_per_wav = total_samples // frame_length
-            else:
-                # do apply fft to signal (via Librosa) - (will be sectioned into overlapping windows)
-                total_rows_per_wav = int(1 + (total_samples - n_fft)//hop_length)
-            # set defaults to num_feats if set as None:
-            if num_feats is None:
-                if 'mfcc' in feature_type or 'fbank' in feature_type:
-                    num_feats = 40
-                elif 'powspec' in feature_type or 'stft' in feature_type:
-                    num_feats = int(1+n_fft/2)
-                elif 'signal' in feature_type:
-                    num_feats = frame_length
-                    ### how many samples make up one window frame?
-                    ###num_samps_frame = int(sr * win_size_ms * 0.001)
-                    #### make divisible by 10
-                    #### TODO: might not be necessary
-                    ###if not num_samps_frame % 10 == 0:
-                        ###num_samps_frame *= 0.1
-                        #### num_feats is how many samples per window frame (here rounded up 
-                        #### to the nearest 10)
-                        ###num_feats = int(round(num_samps_frame, 0) * 10)
-                    ### limit in seconds how many samples
-                    ### is this necessary?
-                    ### dur_sec = num_features * frames_per_sample * batch_size / sr
-                else:
-                    raise ValueError('Feature type "{}" '.format(feature_type)+\
-                        'not understood.\nMust include one of the following: \n'+\
-                            ', '.join(list_available_features()))
-            # If 'rate_of_acceleration' or 'rate_of_change' in feature kwargs,
-            # adapt input shape for that
-            if 'rate_of_change' in kwargs:
-                if kwargs['rate_of_change']:
-                    num_feats_model = num_feats + num_feats
-                else:
-                    num_feats_model = num_feats
-            else:
-                num_feats_model = num_feats
-            if 'rate_of_acceleration' in kwargs:
-                if kwargs['rate_of_acceleration']:
-                    num_feats_model += num_feats
-
-            # adjust shape for model
-            # input_shape: the input shape for the model
-            # desired_shape: the 2D shape of expected samples. This is used for zeropadding or
-            # limiting the feats to this shape. Once this shape, feats can be reshaped into input_shape
-            # TODO test for labeled data with frames_per_sample
-            if frames_per_sample is not None:
-                # want smaller windows, e.g. autoencoder denoiser or speech recognition
-                batch_size = math.ceil(total_rows_per_wav/frames_per_sample)
-                if labeled_data:
-                    input_shape = (batch_size, frames_per_sample, num_feats_model + 1)
-                    desired_shape = (input_shape[0] * input_shape[1], 
-                                     input_shape[2]-1)
-                else:
-                    input_shape = (batch_size, frames_per_sample, num_feats_model)
-                    desired_shape = (input_shape[0]*input_shape[1],
-                                     input_shape[2])
-            else:
-                if labeled_data:
-                    input_shape = (int(total_rows_per_wav), num_feats_model + 1)
-                    desired_shape = (input_shape[0], input_shape[1]-1)
-                else:
-                    input_shape = (int(total_rows_per_wav), num_feats_model)
-                    desired_shape = input_shape
-            # set whether or not features will include complex values:
-            if 'stft' in feature_type:
-                complex_vals = True
-            else:
-                complex_vals = False
-            # limit feat_type to the basic feature extracted
-            # for example:
-            # feature_type 'powspec' is actually 'stft' but with complex info removed.
-            # the basic feat_type is still 'stft'
-            if 'mfcc' in feature_type:
-                feat_type = 'mfcc'
-            elif 'fbank' in feature_type:
-                feat_type = 'fbank'
-            elif 'stft' in feature_type:
-                feat_type = 'stft'
-            elif 'powspec' in feature_type:
-                feat_type = 'stft'
-            elif 'signal' in feature_type:
-                feat_type = 'signal'
-            else:
-                raise TypeError('Expected '+', '.join(list_available_features())+\
-                    ' to be in `feature_type`, not {}'.format(feature_type))
-            for key, value in datasets_dict.items():
-                # get parent directory of where data should be saved (i.e. for saving pics)
-                datapath = datasets_path2save_dict[key]
-                if not isinstance(datapath, pathlib.PosixPath):
-                    datapath = pathlib.Path(datapath)
-                datadir = datapath.parent
-                # when loading a dictionary, the value is a string
-                if isinstance(value, str):
-                    value = sp.utils.restore_dictvalue(value)
-                extraction_shape = (len(value),) + input_shape
-                feats_matrix = sp.dsp.create_empty_matrix(
-                    extraction_shape, 
-                    complex_vals=complex_vals)
-                for j, audiofile in enumerate(value):
-                    if labeled_data:
-                        label, audiofile = int(audiofile[0]), audiofile[1]
-                    if isinstance(audiofile, str):
-                        audiofile = pathlib.PosixPath(audiofile)
-                    # set values in kwargs
-                    if 'sr' not in kwargs:
-                        kwargs['sr'] = sr
-                    if 'feature_type' not in kwargs:
-                        kwargs['feature_type'] = feature_type
-                    if 'win_size_ms' not in kwargs:
-                        kwargs['win_size_ms'] = win_size_ms
-                    if 'percent_overlap' not in kwargs:
-                        kwargs['percent_overlap'] = percent_overlap
-                    if 'num_filters' not in kwargs:
-                        kwargs['num_filters'] = num_feats
-                    if 'num_mfcc' not in kwargs:
-                        kwargs['num_mfcc'] = num_feats
-                    if 'dur_sec' not in kwargs:
-                        kwargs['dur_sec'] = dur_sec
-                    if 'center' not in kwargs:
-                        kwargs['center'] = center
-                    feats = sp.feats.get_feats(audiofile,
-                                                **kwargs)
-                    # if power spectrum (remove complex values and squaring features)
-                    if 'powspec' in feature_type:
-                        feats = np.abs(feats)**2
-                        
-                    if visualize:
-                        if labeled_data:
-                            if decode_dict is not None:
-                                try:
-                                    label_plot = decode_dict[label].upper()
-                                except KeyError:
-                                    try:
-                                        label_plot = decode_dict[str(label)].upper()
-                                    except KeyError:
-                                        label_plot = label
-                            else:
-                                label_plot = label
-                        else:
-                            label_plot = audiofile.parent.stem.upper()
-                        # visualize features:
-                        if 'mfcc' in feature_type or 'signal' in feature_type:
-                            energy_scale = None
-                        else:
-                            energy_scale = 'power_to_db'
-                        #visualize features only every n num frames
-                        if j % vis_every_n_frames == 0:
-                            save_pic_path = datadir.joinpath(
-                                'images',key,'{}_sample{}'.format(
-                                    feature_type, j))
-                            # make sure this directory exists
-                            save_pic_dir = sp.utils.check_dir(save_pic_path.parent, make=True)
-                            sp.feats.plot(feats, 
-                                            feature_type = feature_type,
-                                            win_size_ms = win_size_ms,
-                                            percent_overlap = percent_overlap,
-                                            energy_scale = energy_scale,
-                                            title='{} {} features: label {}'.format(
-                                                key, feature_type.upper(),
-                                                label_plot),
-                                            save_pic=visualize, 
-                                            name4pic=save_pic_path)
-                        
-                    # zeropad feats if too short:
-                    if 'signal' in feat_type:
-                        feats_zeropadded = np.zeros(desired_shape)
-                        feats_zeropadded = feats_zeropadded.flatten()
-                        if len(feats.shape) > 1:
-                            feats_zeropadded = feats_zeropadded.reshape(feats_zeropadded.shape[0],
-                                                                        feats.shape[1])
-                        if len(feats) > len(feats_zeropadded):
-                            feats = feats[:len(feats_zeropadded)]
-                        feats_zeropadded[:len(feats)] += feats
-
-                        # reshape here for training models to avoid memory issues later 
-                        # (while training) if total samples is large
-                        feats = feats_zeropadded.reshape(desired_shape)
-                    
-                    feats = sp.feats.zeropad_features(
-                        feats, 
-                        desired_shape = desired_shape,
-                        complex_vals = complex_vals)
-                    
-                    if labeled_data:
-                        # create label column
-                        label_col = np.zeros((len(feats),1)) + label
-                        feats = np.concatenate([feats,label_col], axis=1)
-
-
-
-                                            
-                    feats = feats.reshape(extraction_shape[1:])
-                    # fill in empty matrix with features from each audiofile
-
-                    feats_matrix[j] = feats
-                    sp.utils.print_progress(iteration = j, 
-                                            total_iterations = len(value),
-                                            task = '{} {} feature extraction'.format(
-                                                key, feature_type))
-                # save data:
-                np.save(datasets_path2save_dict[key], feats_matrix)
-                print('\nFeatures saved at {}\n'.format(datasets_path2save_dict[key]))
-            if log_settings:
-                log_filename = datadir.joinpath('log_extraction_settings.csv')
-                feat_settings = dict(dur_sec=dur_sec,
-                                     feature_type=feature_type,
-                                     feat_type=feat_type,
-                                     complex_vals=complex_vals,
-                                     sr=sr,
-                                     num_feats=num_feats,
-                                     n_fft=n_fft,
-                                     win_size_ms=win_size_ms,
-                                     frame_length=frame_length,
-                                     percent_overlap=percent_overlap,
-                                     frames_per_sample=frames_per_sample,
-                                     labeled_data=labeled_data,
-                                     visualize=visualize,
-                                     # different for each dataset
-                                     #total_samples=total_samples, 
-                                     input_shape=input_shape,
-                                     desired_shape=desired_shape,
-                                     use_librosa=use_librosa,
-                                     center=center,
-                                     mode=mode,
-                                     subsection_data=subsection_data,
-                                     divide_factor=divide_factor,
-                                     kwargs = kwargs
-                                     )
-                feat_settings_path = sp.utils.save_dict(
-                    dict2save = feat_settings,
-                    filename = log_filename,
-                    overwrite=True)
+        # sr must be set. Set to default value.
+        if not 'sr' in kwargs or kwargs['sr'] is None:
+            import warnings
+            msg = '\nWARNING: sample rate was not set. Setting it at 22050 Hz.'
+            warnings.warn(msg)
+            kwargs['sr'] = 22050
+            
+        # win_size_ms must be set. Set to default value.
+        if not 'win_size_ms' in kwargs or kwargs['win_size_ms'] is None:
+            import warnings
+            msg = '\nWARNING: `win_size_ms` was not set. Setting it to 20 ms'
+            warnings.warn(msg)
+            kwargs['win_size_ms'] = 20
+            
+        # percent_overlap must be set. Set to default value.
+        if not 'percent_overlap' in kwargs or kwargs['percent_overlap'] is None:
+            import warnings
+            msg = '\nWARNING: `percent_overlap` was not set. Setting it to 0.5'
+            warnings.warn(msg)
+            kwargs['percent_overlap'] = 0.5
+        
+            
+        feat_base_shape, feat_model_shape = sp.feats.get_feature_matrix_shape(
+            context_window = context_window,
+            frames_per_sample = frames_per_sample,
+            labeled_data = labeled_data,
+            **kwargs)
+    
+        # set whether or not features will include complex values:
+        if 'stft' in kwargs['feature_type']:
+            complex_vals = True
         else:
-            raise ValueError('Sorry, this functionality is not yet supported. '+\
-                'Set `use_librosa` to True.')
+            complex_vals = False
+            
+        total_audiofiles = 0
+
+        for key, value in datasets_dict.items():
+            # get parent directory of where data should be saved (i.e. for saving pics)
+            datapath = datasets_path2save_dict[key]
+            if not isinstance(datapath, pathlib.PosixPath):
+                datapath = pathlib.Path(datapath)
+            datadir = datapath.parent
+            # when loading a dictionary, the value is a string
+            if isinstance(value, str):
+                value = sp.utils.restore_dictvalue(value)
+            # len(vale) is the total number of audio files
+            feats4model_shape = (len(value),) + feat_model_shape
+            feats_matrix = sp.dsp.create_empty_matrix(
+                feats4model_shape, 
+                complex_vals=complex_vals)
+            
+            audio_list = value.copy()
+            total_audiofiles += len(audio_list)
+            # shuffle audiofiles:
+            if random_seed is not None:
+                random.seed(random_seed)
+            random.shuffle(audio_list)
+            for j, audiofile in enumerate(audio_list):
+                if labeled_data:
+                    label, audiofile = int(audiofile[0]), audiofile[1]
+                else:
+                    label = None
+                if isinstance(audiofile, str):
+                    audiofile = pathlib.PosixPath(audiofile)
+                if j == 0:
+                    dataset_dirs.append(audiofile.parent)
+                feats = sp.feats.get_feats(audiofile,
+                                            **kwargs)
+
+                # zeropad or clip feats if too short or long:
+                feats = sp.feats.adjust_shape(
+                    feats, 
+                    desired_shape = feat_base_shape)
+                
+                # add label column to feature matrix
+                if labeled_data:
+                    # create label column
+                    label_col = np.zeros((len(feats),1)) + label
+                    feats = np.concatenate([feats,label_col], axis=1)
+                    
+                feats = feats.reshape(feats4model_shape[1:])
+                
+                #visualize features only every n num frames
+                if visualize and j % vis_every_n_frames == 0:
+                    if labeled_data:
+                        if decode_dict is not None:
+                            try:
+                                label_plot = decode_dict[label].upper()
+                            except KeyError:
+                                try:
+                                    label_plot = decode_dict[str(label)].upper()
+                                except KeyError:
+                                    label_plot = label
+                        else:
+                            label_plot = label
+                    else:
+                        label_plot = audiofile.parent.stem.upper()
+                
+                    sp.feats.visualize_feat_extraction(
+                        feats,
+                        iteration = j,
+                        dataset = key,
+                        label = label_plot,
+                        datadir = datadir,
+                        subsections = True, # prepping feats 4 model results in subsections 
+                        **kwargs)
+                
+                # fill in empty matrix with features from each audiofile
+                feats_matrix[j] = feats
+                sp.utils.print_progress(iteration = j, 
+                                        total_iterations = len(value),
+                                        task = '{} {} feature extraction'.format(
+                                            key, kwargs['feature_type']))
+            # save data:
+            np.save(datasets_path2save_dict[key], feats_matrix)
+            print('\nFeatures saved at {}\n'.format(datasets_path2save_dict[key]))
+        if log_settings:
+            log_filename = datadir.joinpath('log_extraction_settings.csv')
+            feat_settings = dict(
+                dataset_dirs = dataset_dirs,
+                feat_base_shape = feat_base_shape,
+                feat_model_shape = feat_model_shape,
+                complex_vals = complex_vals,
+                context_window = context_window,
+                frames_per_sample = frames_per_sample,
+                labeled_data = labeled_data,
+                decode_dict = decode_dict,
+                visualize = visualize,
+                vis_every_n_frames = vis_every_n_frames,
+                subsection_data = subsection_data,
+                divide_factor = divide_factor,
+                total_audiofiles = total_audiofiles,
+                kwargs = kwargs
+                )
+            feat_settings_path = sp.utils.save_dict(
+                dict2save = feat_settings,
+                filename = log_filename,
+                overwrite=True)
     except MemoryError as e:
         print('MemoryError: ',e)
         print('\nSectioning data and trying again.\n')
@@ -1830,26 +3000,19 @@ def save_features_datasets(datasets_dict, datasets_path2save_dict, dur_sec,
         datasets_dict, datasets_path2save_dict = save_features_datasets(
             datasets_dict = datasets_dict, 
             datasets_path2save_dict = datasets_path2save_dict,
-            feature_type = feature_type, 
-            sr = sr, 
-            n_fft = n_fft, 
-            dur_sec = dur_sec,
-            num_feats = num_feats,
-            win_size_ms = win_size_ms,
-            percent_overlap = percent_overlap,
-            use_librosa = use_librosa, 
-            window = window,
-            center = center,
-            mode = mode,
+            context_window = context_window,
             frames_per_sample = frames_per_sample,
-            visualize = visualize, 
-            vis_every_n_frames = vis_every_n_frames, 
             labeled_data = labeled_data,
+            subsection_data = subsection_data,
+            divide_factor = divide_factor,
+            visualize = visualize,
+            vis_every_n_frames = vis_every_n_frames,
             log_settings = log_settings,
             decode_dict = decode_dict,
             **kwargs)
     return datasets_dict, datasets_path2save_dict
 
+# TODO: update / consolidate
 def save_features_datasets_zipfiles(datasets_dict, datasets_path2save_dict, 
                                     extract_dir, dur_sec,
                                     feature_type='fbank', num_feats=None, sr=22050, 
@@ -2261,7 +3424,7 @@ def prep_new_audiofeats(feats, desired_shape, input_shape):
     '''
     feats_reshaped = sp.feats.adjust_shape(feats, desired_shape)
     # reshape to input shape with a necessary "tensor" dimension
-    feats_reshaped = feats_reshaped.reshape(input_shape+(1,))
+    feats_reshaped = feats_reshaped.reshape(input_shape)
     return feats_reshaped
 
 

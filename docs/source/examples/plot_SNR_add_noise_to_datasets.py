@@ -103,47 +103,53 @@ snr5
 # See Clean Speech (raw signal)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sp.plotsound(speech_sample, feature_type='signal', 
-               sr = sr, title = 'Speech: ' + word.upper())
+               sr = sr, title = 'Speech: ' + word.upper(),
+               subprocess=True)
 
 ######################################################################
 # See Clean Speech (stft)
 # ~~~~~~~~~~~~~~~~~~~~~~~
 sp.plotsound(speech_sample, feature_type='stft', 
-               sr = sr, title = 'Speech: ' + word.upper())
+               sr = sr, title = 'Speech: ' + word.upper(), 
+               subprocess=True)
 
 ###################################################################### See Noise (raw signal)
 # ~~~~~~~~~~~~~~~~~~~~~~
 sp.plotsound(noise_sample, feature_type='signal',
-               title = 'Noise: ' + noise.upper())
+               title = 'Noise: ' + noise.upper(), subprocess=True)
 
 ###################################################################### See Noise (stft)
 # ~~~~~~~~~~~~~~~~
 sp.plotsound(noise_sample, feature_type='stft',
-               title = 'Noise: ' + noise.upper())
+               title = 'Noise: ' + noise.upper(), subprocess=True)
 
 ######################################################################
 # See Noisy Speech: SNR 20 (raw signal)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sp.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'signal',
-               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
+               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()),
+               subprocess=True)
 
 ######################################################################
 # See Noisy Speech: SNR 20 (stft)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sp.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'stft',
-               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
+               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()),
+               subprocess=True)
 
 ######################################################################
 # See Noisy Speech: SNR 5 (raw signal)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sp.plotsound(noisyspeech_5snr, sr = sr, feature_type = 'signal',
-               title = '"{}" with {} noise at SNR 5'.format(word.upper(), noise.upper()))
+               title = '"{}" with {} noise at SNR 5'.format(word.upper(), noise.upper()),
+               subprocess=True)
 
 ######################################################################
 # See Noisy Speech: SNR 5 (stft)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sp.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'stft',
-               title = '"{}" with {} noise at SNR 5'.format(word.upper(), noise.upper()))
+               title = '"{}" with {} noise at SNR 5'.format(word.upper(), noise.upper()),
+               subprocess=True)
 
 ######################################################################
 # Make Combined Sound Longer
@@ -165,7 +171,8 @@ ipd.Audio(noisyspeech_20snr,rate=sr)
 
 ##########################################################
 sp.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'signal',
-               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
+               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()),
+               subprocess=True)
 
 
 ######################################################################
@@ -180,14 +187,15 @@ noisyspeech_20snr, snr20 = sp.dsp.add_backgroundsound(
     noise_sample,
     sr = sr,
     snr = 20,
-    total_len_sec = 0.5)
+    total_len_sec = 0.75)
 
 ##########################################################
 ipd.Audio(noisyspeech_20snr,rate=sr)
 
 ##########################################################
 sp.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'signal',
-               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
+               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()),
+               subprocess=True)
 
 ######################################################################
 # Wrap the Background Sound
@@ -206,5 +214,6 @@ ipd.Audio(noisyspeech_20snr,rate=sr)
 
 ##########################################################
 sp.plotsound(noisyspeech_20snr, sr = sr, feature_type = 'signal',
-               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()))
+               title = '"{}" with {} noise at SNR 20'.format(word.upper(), noise.upper()),
+               subprocess=True)
 

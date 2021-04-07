@@ -2,10 +2,9 @@
 
 SoundPy is an experimental framework for exploring sound as well as machine learning in the context of sound. 
 
-[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a2-blue)](https://pypi.org/project/soundpy/0.1.0a2/)
+[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a2-blue)](https://pypi.org/project/soundpy/)
 [![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)](https://github.com/a-n-rose/Python-Sound-Tool/blob/master/LICENSE.md)
-[![PyPI pyversions](https://img.shields.io/badge/python-3.6-yellow)](https://www.python.org/downloads/release/python-360/)
-
+[![PyPI pyversions](https://img.shields.io/badge/python-3.6%7C3.8-yellow)](https://www.python.org/downloads/release)
 
 # Documentation
 
@@ -16,7 +15,9 @@ For examples and to navigate the code, see the <a href="https://aislynrose.bitbu
 ## Simple commands:
 
 ```
-z, sr = sp.generate_sound(freq=500, dur_sec = 1, amplitude = 0.3)
+import soundpy as sp
+
+z, sr = sp.generate_sound(freq=500, dur_sec = 1, amplitude = 0.3, sr = 8000)
 
 sp.plotsound(z[:200], sr=sr, feature_type='signal', title = '500 Hz Signal at Amplitude of 0.3')
 ```
@@ -43,10 +44,24 @@ sp.plotsound(y[:200], sr=sr, feature_type='signal', title = '2 Channel Signal wi
 ![Imgur](https://i.imgur.com/kxe32x9.png)
 
 ```
-sp.plotsound(y[:,0], sr=sr, feature_type='stft', fft_bins = sr, title = 'Short-Time Fourier Transform of Noisy First Channel\n500 Hz')
+for channel in range(y.shape[1]):
+    stft = sp.feats.get_feats(y[:,channel], sr=sr, feature_type='stft',
+                              fft_bins = sr, win_size_ms = 1000, percent_overlap=0)
+    sp.feats.visualize_feat_extraction(stft, feature_type = 'stft', sr=sr, 
+                                       win_size_ms = 1000, percent_overlap = 0,
+                                       label = 'Channel {}'.format(channel+1),
+                                       datadir = './two_channel_stft/')
 ```
+The above command will save the following plots of the STFT in the folder 'two_channel_stft/images/'
 
-![Imgur](https://i.imgur.com/1DxLWY3.png)
+### Noisy first channel:
+
+![Imgur](https://i.imgur.com/5ieiFgl.png)
+
+
+### Clean second channel: 
+
+![Imgur](https://i.imgur.com/kJ3hIvY.png)
 
 ```
 w, sr = sp.generate_sound(freq=3000, dur_sec=1, amplitude = 0.6, sr=sr)
@@ -71,7 +86,7 @@ sp.feats.plot(feats, feature_type = 'stft',
               title = 'Short-Time Fourier Transform of Combined Signals:\n'+\
                   '500 Hz and 3000 Hz')
 ```
-![Imgur](https://i.imgur.com/RqoIbhR.png)
+![Imgur](https://i.imgur.com/hXovle3.png)
 
 ```
 feats = sp.feats.get_feats(a, sr=sr, feature_type='fbank', num_filters = 40,
@@ -83,7 +98,7 @@ sp.feats.plot(feats, feature_type = 'fbank',
                   '500 Hz and 3000 Hz')
 ```
 
-![Imgur](https://i.imgur.com/Zy0zpEc.png)
+![Imgur](https://i.imgur.com/3ZZK0mk.png)
 
 ```
 feats = sp.feats.get_feats(a, sr=sr, feature_type='mfcc', num_mfcc=13,
@@ -94,7 +109,60 @@ sp.feats.plot(feats, feature_type = 'mfcc',
               title = 'Mel Frequency Cepstral Coefficients of Combined Signals:\n'+\
                   '500 Hz and 3000 Hz')
 ```
-![Imgur](https://i.imgur.com/rzr5r16.png)
+![Imgur](https://i.imgur.com/kGSNaFt.png)
+
+
+### Features and Speech: 
+
+```
+python, sr = sp.loadsound('audiodata/python.wav', sr=22050)
+sp.feats.plot(python, sr = sr, feature_type = 'signal', title = 'Speech: "python"')
+```
+
+![Imgur](https://i.imgur.com/SLx6qzB.png)
+
+```
+# for speech, smaller windows are necessary:
+win_size_ms = 20
+percent_overlap = 0.5
+stft = sp.feats.get_feats(python, sr = sr, win_size_ms = win_size_ms,
+                          percent_overlap = percent_overlap, feature_type = 'stft')
+sp.feats.plot(stft, sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+              feature_type = 'stft', title = 'Speech: "python" in STFT features')
+```
+![Imgur](https://i.imgur.com/ObQeNGn.png)
+
+```
+# just for comparison:
+win_size_ms = 500
+percent_overlap = 0
+stft = sp.feats.get_feats(python, sr = sr, win_size_ms = win_size_ms,
+                          percent_overlap = percent_overlap, feature_type = 'stft')
+sp.feats.plot(stft, sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+              feature_type = 'stft', title = 'Speech: "python" in STFT features\n(large window and no overlap)')
+```
+![Imgur](https://i.imgur.com/msbXG8l.png)
+
+```
+win_size_ms = 20
+percent_overlap = 0.5
+fbank = sp.feats.get_feats(python, sr = sr, win_size_ms = win_size_ms,
+                          percent_overlap = percent_overlap, feature_type = 'fbank')
+sp.feats.plot(fbank, sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+              feature_type = 'fbank', title = 'Speech: "python" in FBANK features')
+```
+
+![Imgur](https://i.imgur.com/9FCS2Se.png)
+
+```
+mfcc = sp.feats.get_feats(python, sr = sr, win_size_ms = win_size_ms,
+                          percent_overlap = percent_overlap, feature_type = 'mfcc',
+                          num_mfcc = 13, remove_first_coefficient = True)
+sp.feats.plot(mfcc, sr=sr, win_size_ms = win_size_ms, percent_overlap = percent_overlap,
+              feature_type = 'mfcc', title = 'Speech: "python" in MFCC features')
+```
+
+![Imgur](https://i.imgur.com/CqZwtgB.png)
 
 ## Explore more complex examples:
 
@@ -144,7 +212,7 @@ Venture into the folder `jupyter_notebooks` and have a go!
 ## Requirements
 
 * CPU 
-    - Python 3.6 (specifically 3.6.9, but other versions should probably work)
+    - Python 3 (Python 3.6.9 and 3.8.2 for sure work, but other versions should as well)
     - Linux users: ensure libsndfile1 pre-installed: `sudo apt-get install libsndfile1` 
     
 * GPU (what worked on my Ubuntu 18.04 and 20.04 machine (specfically KDE Neon 18.04 and 20.04))
@@ -167,13 +235,15 @@ Regardless of installation method, if you clone this repo, you will be able to u
 3) Get latest development version from git via pip
 
 For any of these options, I suggest a virtual environment before installing:
-```
-$ virtualenv -p python3.6 env
-```
-or
+
 ```
 $ python3 -m venv env
 ```
+or
+```
+$ virtualenv -p python3.8 env
+```
+
 Then activate the environment
 ```
 $ source env/bin/activate
@@ -189,7 +259,7 @@ Clone this repository and make the repository your current working directory.
 Then install the necessary dependencies via pip:
 
 ```
-(env)..$ pip install -r requirements.txt
+(env)..$ pip install -r requirements.txt --use-feature=2020-resolver
 ```
 
 ### Option 2: Install the PyPi package:
@@ -293,7 +363,7 @@ If you would like to play around with various types of sound, check out my <a hr
 If you want to run the tests for SoundPy, they currently use some <a href="https://github.com/a-n-rose/mini-audio-datasets/tree/master/test_audio">audiofiles available</a> in the example datasets repo, mentioned above. Also, see `tests_requirements.txt`. The packages located there will need to be installed via:
 
 ```
-(env)..$ pip install -r tests_requirements.txt
+(env)..$ pip install -r tests_requirements.txt --use-feature=2020-resolver
 ```
 
 # About the Author

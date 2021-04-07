@@ -1,6 +1,6 @@
 
-Filters: Wiener and Band Spectral Subtraction
----------------------------------------------
+Filters: Wiener and Band Spectral Subtraction v0.1.0a3
+------------------------------------------------------
 
 .. automodule:: soundpy.filters
    :members:

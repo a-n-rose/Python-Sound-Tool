@@ -15,8 +15,20 @@ To see how soundpy implements this, see `soundpy.builtin.denoiser_feats`.
 # 
 
 #####################################################################
-import soundpy as sp
+import os, sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(
+    inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+parparentdir = os.path.dirname(parentdir)
+packagedir = os.path.dirname(parparentdir)
+sys.path.insert(0, packagedir)
+
+import soundpy as sp 
 import IPython.display as ipd
+package_dir = '../../../'
+os.chdir(package_dir)
+sp_dir = package_dir
 
 ######################################################
 # Prepare for Extraction: Data Organization
@@ -26,9 +38,9 @@ import IPython.display as ipd
 # I will use a mini denoising dataset as an example
 
 # Example noisy data:
-data_noisy_dir = '/home/airos/Projects/Data/denoising/uwnu/noisy'
+data_noisy_dir = '{}../mini-audio-datasets/denoise/noisy'.format(sp_dir)
 # Example clean data:
-data_clean_dir = '/home/airos/Projects/Data/denoising/uwnu/clean/'
+data_clean_dir = '{}../mini-audio-datasets/denoise/clean'.format(sp_dir)
 # Where to save extracted features:
 data_features_dir = './audiodata/example_feats_models/denoiser/'
 
@@ -47,14 +59,6 @@ sr = 22050
 # How much audio in seconds used from each audio file.
 # the speech samples are about 3 seconds long.
 dur_sec = 3
-
-######################################################
-# Set Context Window / Number of Frames
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# How many sections should each sample be broken into? (optional)
-# Some research papers include a 'context window' or the like, 
-# which this refers to.
-frames_per_sample = 11
 
 #######################################################################
 # Option 1: Built-In Functionality: soundpy does everything for you
@@ -76,9 +80,7 @@ extraction_dir = sp.denoiser_feats(
     sr = sr,
     feature_type = feature_type, 
     dur_sec = dur_sec,
-    frames_per_sample = frames_per_sample,
     perc_train = perc_train,
-    limit = 200,
     visualize=True);
 extraction_dir
 
@@ -89,4 +91,22 @@ extraction_dir
 
 
 ############################################################
-# And that's it!
+# Logged Information
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Let's have a look at the files in the extraction_dir. The files ending 
+# with .npy extension contain the feature data; the .csv files contain 
+# logged information. 
+featfiles = list(extraction_dir.glob('*.*'))
+for f in featfiles:
+    print(f.name)
+  
+############################################################
+# Feature Settings
+# ~~~~~~~~~~~~~~~~~~
+# Since much was conducted behind the scenes, it's nice to know how the features
+# were extracted, for example, the sample rate and number of frequency bins applied, etc.
+feat_settings = sp.utils.load_dict(
+    extraction_dir.joinpath('log_extraction_settings.csv'))
+for key, value in feat_settings.items():
+    print(key, ' ---> ', value)
+    

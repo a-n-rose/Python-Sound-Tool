@@ -4,11 +4,15 @@ RUN apt update && apt upgrade -y
 
 RUN apt-get install -y libsndfile1
 
-RUN pip3 install -U soundfile \
+RUN python -m pip install --upgrade pip
+
+RUN pip install -U soundfile \
                     librosa \
                     python_speech_features \
                     notebook \
-                    matplotlib
+                    matplotlib 
+                    
+RUN pip install -U scikit-image
                     
 RUN mkdir /root/soundpy/
 

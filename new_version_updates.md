@@ -1,3 +1,24 @@
+# Updates of v0.1.0a3 release:
+
+## Updates
+- don't use librosa for feature extraction anymore. But compatible with previous versions.
+- parameter: frames_per_sample and context_window, with depreciation warning
+Just remove these parameters from feature extraction and limit to generators. Otherwise too messy and complex
+- soundpy.models.builtin.implement_denoiser() raise warning if cleaned features cannot be 
+converted to raw audio samples.
+- BUG FIX: soundpy.feats.plot can now be used from within generator using backend Agg and 
+then switch to Tkinker backend using use_tkinker parameter for normal use outside of training.
+- require additional tensors to be added to the desired shape and then supplied to generator to make shape process more explicit in generator.
+
+changed parameter (Generator) normalized to normalize (opposite bool); removed add_tensor_last parameter, adjusted grayscale2color sections: can be applied to 2D data; set sr default to 22050
+
+- Got the augment cnn builtin functionality to run with pre-trained features.. needs cleaning
+- got plotsound, plot vad, and plot dom freq, to work with stereo sound
+
+Removing from envclassifier_extract_train:
+    dataset_dict = None,
+    num_labels = None,
+
 
 ## Updates of v0.1.0a2 release:
 

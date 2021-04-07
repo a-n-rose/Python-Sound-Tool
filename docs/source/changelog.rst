@@ -6,6 +6,31 @@ v0.1.0a
 =======
 
 
+v0.1.0a3 (pre-release)
+----------------------
+2020-09-04
+
+Bug fixes
+   -  no longer use Librosa for feature extraction: allow easier implementation of augmentations, especially during training. 
+   -  `soundpy.feats.plot` now uses parameter `subprocess` to allow for different backends to be applied, depending on when funciton is called. For example, if plotting from within a Generator while training, `subprocess` should be set to True, and the 'Agg' backend will be applied. Otherwise, 'TkAgg' backend is used. Fixes issues with multi-threading.
+   -  Fixed generator and Tensorflow issue: with Tensorflow 2.2.0+ the models in `soundpy.models.builtin` that were trained via generator failed. Use `tensorflow.data.Dataset.from_generator` to feed generator data to models.
+
+Features
+   -  Python 3.8 can now be used.
+   -  throw depreciation warning for parameters `context_window` or `frames_per_sample` as these "features" will be removed from feature extraction. Rather the features can be reshaped post feature extraction.
+   -  added `timestep`, `axis_timestep`, `context_window`, `axis_context_window`  and `combine_axes_0_1` paremeters to  `soundpy.models.Generator`:  allow more control over shape of the features.
+   -  can run `soundpy.models.builtin.envclassifier_extract_train` to run with pre-extracted val and test features. 
+   -  `soundpy.feats.plotsound`, `soundpy.feats.plot_vad` and `soundpy.feats.plot_dom_freq` all can plot stereo sound: for each channel in a stereo signal, a plot is either generated or saved. If a filename already exists, a date stamp is added to filename to avoid overwriting images.
+   - allow `grayscale2color` to be applied to 2D data.
+
+Breaking changes
+   -  `soundpy.models.Generator` uses parameter `normalize` instaed of `normalized`. Found this to be more intuitive. If `normalize` is set to True, data will be normalized. Before, if `normalized` was set to True, data would not be normalized.
+   -  removed `add_tensor_last` and `add_tensor_first`: require adding of tensors (for keras) to be included in parameter `desired_input_shape`.
+   
+Other changes 
+   -  CPU soundpy can use Tensorflow 2.1.0, 2.2.0 and 2.3.0. Dockerfile still uses Tensorflow 2.1.0 as it is still compatible with updated code.
+
+   
 v0.1.0a2
 --------
 2020-08-13

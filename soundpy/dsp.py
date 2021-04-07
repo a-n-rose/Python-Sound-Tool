@@ -18,6 +18,7 @@ sys.path.insert(0, packagedir)
 
 import soundpy as sp
 
+
 def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
     '''Generates a sound signal with the provided parameters. Signal begins at 0.
     
@@ -56,8 +57,8 @@ def generate_sound(freq=200, amplitude=0.4, sr=8000, dur_sec=0.25):
     #The variable `time` holds the expected number of measurements taken: 
     time = get_time_points(dur_sec, sr=sr)
     # unit circle: 2pi equals a full circle
+    # https://www.marksmath.org/visualization/unit_circle/
     full_circle = 2 * np.pi
-    #TODO: add namedtuple
     sound_samples = amplitude * np.sin((freq*full_circle)*time)
     return sound_samples, sr
 
@@ -174,12 +175,13 @@ def set_signal_length(samples, numsamps):
     data = sp.utils.match_dtype(data, samples)
     return data
 
+# works for stereo sound (raw signal data)
 def scalesound(data, max_val = 1, min_val=None):
     '''Scales the input array to range between `min_val` and `max_val`. 
     
     Parameters
     ----------
-    data : np.ndarray [size = (num_samples,)]
+    data : np.ndarray [size = (num_samples,) or (num_samples, num_channels)]
         Original samples
     
     max_val : int, float
@@ -193,7 +195,7 @@ def scalesound(data, max_val = 1, min_val=None):
     
     Returns
     -------
-    samples : np.ndarray [size = (num_samples,)]
+    samples : np.ndarray [size = (num_samples,) or (num_samples, num_channels)]
         Copy of original data, scaled to the min and max values.
     
     
@@ -204,14 +206,26 @@ def scalesound(data, max_val = 1, min_val=None):
     >>> input_samples = np.random.random_sample((5,))
     >>> input_samples
     array([0.5488135 , 0.71518937, 0.60276338, 0.54488318, 0.4236548 ])
+    >>> input_samples.max()
+    0.7151893663724195
+    >>> input_samples.min()
+    0.4236547993389047
     >>> # default setting: between -1 and 1
     >>> output_samples = scalesound(input_samples)
     >>> output_samples 
     array([-0.14138 ,1., 0.22872961, -0.16834299, -1.])
+    >>> output_samples.max()
+    1.0
+    >>> output_samples.min()
+    -1.0
     >>> # range between -100 and 100
     >>> output_samples = scalesound(input_samples, max_val = 100, min_val = -100)
     >>> output_samples
     array([ -14.13800026,100., 22.87296052,-16.83429866,-100.])
+    >>> output_samples.max()
+    100.0
+    >>> output_samples.min()
+    -100.0
     '''
     if min_val is None:
         min_val = -max_val
@@ -555,7 +569,214 @@ def add_backgroundsound(audio_main, audio_background, sr, snr = None,
         combined = np.concatenate((combined, ending_sound))
     return combined, new_snr
 
-def clip_at_zero(samples, samp_win = None):
+
+def hz_to_mel(freq):
+    '''Converts frequency to Mel scale
+    
+    Parameters
+    ----------
+    freq : int or float or array like of ints / floats
+        The frequency/ies to convert to Mel scale.
+        
+    Returns
+    -------
+    mel : int or float or array of ints / floats
+        The frequency/ies in Mel scale.
+    
+    
+    References
+    ----------
+    https://en.wikipedia.org/wiki/Mel_scale#Formula
+    
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    mel = (2595 * np.log10(1 + freq / 700))
+    return mel
+
+def mel_to_hz(mel):
+    '''Converts Mel item or list to frequency/ies.
+    
+    Parameters
+    ----------
+    mel : int, float, or list of ints / floats
+        Mel item(s) to be converted to Hz.
+        
+    Returns
+    -------
+    freq : int, float, or list of ints / floats
+        The converted frequency/ies 
+    
+    References
+    ----------
+    https://en.wikipedia.org/wiki/Mel_scale#Formula
+    
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    freq = (700 * (10**(mel / 2595) -1))
+    return freq
+
+def fbank_filters(fmin, fmax, num_filters):
+    '''Calculates the mel filterbanks given a min and max frequency and `num_filters`. 
+    
+    Parameters
+    ----------
+    fmin : int, float 
+        Minimum frequency relevant in signal.
+        
+    fmax : int, float 
+        Maximum frequency relevant in signal. 
+        
+    num_filters : int 
+        The number of evenly spaced filters (according to mel scale) between the `fmin`
+        and `fmax` frequencies.
+        
+    Returns
+    -------
+    mel_points : np.ndarray [size=(num_filters,)]
+        An array of floats containing evenly spaced filters (according to mel scale).
+    
+    References
+    ----------
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    if fmin > 0:
+        low_freq_mel = sp.dsp.hz_to_mel(fmin)
+    else:
+        low_freq_mel = 0
+    high_freq_mel = sp.dsp.hz_to_mel(fmax)
+    mel_points = np.linspace(low_freq_mel, high_freq_mel, num_filters +2)
+    return mel_points
+
+def sinosoidal_liftering(mfccs, cep_lifter = 22):
+    '''Reduces influence of higher coefficients; found useful in automatic speech rec.
+    
+    Parameters
+    ----------
+    mfccs : np.ndarray [shape=(num_samples, num_mfcc)]
+        The matrix containing mel-frequency cepstral coefficients.
+        
+    cep_lifter : int 
+        The amount to apply `sinosoidal_liftering`. (default 22)
+    
+    References
+    ----------
+    Fayek, H. M. (2016). Speech Processing for Machine Learning: Filter banks, Mel-Frequency Cepstral Coefficients (MFCCs) and What’s In-Between. Retrieved from https://haythamfayek.com/2016/04/21/speech-processing-for-machine-learning.html
+    '''
+    (nframes, ncoeff) = mfccs.shape
+    n = np.arange(ncoeff)
+    lift = 1 + (cep_lifter / 2) * np.sin(np.pi * n / cep_lifter)
+    mfccs *= lift
+    return mfccs
+
+
+
+def index_at_zero(samples, num_dec_places=2):
+    '''Finds indices of start and end of utterance, given amplitude strength.
+    
+    Parameters
+    ----------
+    samples : numpy.ndarray [size= (num_samples,) or (num_samples, num_channels)]
+        The samples to index where the zeros surrounding speech are located.
+        
+    num_dec_places : int 
+        To the number of decimal places the lowest value in `samples` should
+        be rounded to. (default 2)
+        
+    Returns
+    -------
+    f_0 : int 
+        The index of the last occuring zero, right before speech or sound begins.
+        
+    l_0 : int 
+        The index of the first occuring zero, after speech ends.
+        
+    Examples
+    --------
+    >>> signal = np.array([-1, 0, 1, 2, 3, 2, 1, 0, -1, -2, -3, -2, -1, 0, 1])
+    >>> zero_1, zero_2 = index_at_zero(signal)
+    >>> # +1 to include zero_2 in signal
+    >>> signal[zero_1:zero_2+1]
+    [ 0  1  2  3  2  1  0 -1 -2 -3 -2 -1  0]
+    >>> # does not assume a zero preceeds any sample
+    >>> signal = np.array([1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1])
+    >>> zero_1, zero_2 = index_at_zero(signal)
+    >>> signal[zero_1:zero_2+1]
+    [ 0 -1 -2 -1  0]
+    '''
+    almost_zero = 1e-1
+    original_shape = samples.shape
+    samps = samples.copy()
+    if len(original_shape) > 1:
+        # if multiple channels find where it is 0 across all channels
+        samps = sp.dsp.average_channels(samps)
+    min_samp = np.argmin(np.abs(samps))
+    # in some instances, stored as numpy array
+    if isinstance(samps[min_samp], np.ndarray):
+        assert len(samps[min_samp]) == 1
+        min_samp = samps[min_samp][0]
+    else:
+        min_samp = samps[min_samp]
+    if round(min_samp,num_dec_places) <= almost_zero:
+        almost_zero += min_samp
+
+    # find first instance of zero:
+    f_0_etc = np.where(np.abs(samps) <= almost_zero)
+    if len(f_0_etc[0]) > 0:
+        # get index of first zero
+        for i, index in enumerate(f_0_etc[0]):
+            # if more silence follows, adjust f_0
+            if i == len(f_0_etc[0])-1:
+                import warnings
+                warnings.warn('\n\nWarning: Only zeros found in signal.\n\n')
+                f_0 = 0
+            else:
+                if index+1 != f_0_etc[0][i+1]:
+                    f_0 = index
+                    break
+    else:
+        # no zero found
+        f_0 = 0
+
+    # find end of utterance last zero
+    l_0_etc = np.where(np.abs(np.flip(samps)) <= almost_zero)
+    if len(l_0_etc[0]) > 1:
+        # get index of first zero
+        for i, index in enumerate(l_0_etc[0]):
+            # if more silence follows, adjust l_0
+            if i == len(l_0_etc[0])-1:
+                # warning should get called for f_0
+                #import warnings
+                #warnings.warn('\n\nWarning: Only zeros found in signal.\n\n')
+                l_0 = 0
+            else:
+                if index+1 != l_0_etc[0][i+1]:
+                    l_0 = index
+                    break
+    else:
+        # no zeros found
+        l_0 = 0
+    
+    if l_0 != 0:
+        l_0 = len(samps) - l_0 - 1
+    else:
+        l_0 = len(samps) - 1
+
+
+    try:
+        assert f_0 != l_0 
+    except AssertionError:
+        import warnings
+        warnings.warn('\n\nWarning: only one zero was found. Returning '+\
+            'sample indices that encompass more energy.')
+        if sum(np.abs(samps[f_0:])) > sum(np.abs(samps[:f_0])):
+            f_0, l_0 = 0, l_0 
+        else:
+            f_0, l_0 = f_0, len(samps)-1
+
+    return f_0, l_0
+
+
+def clip_at_zero(samples, samp_win = None, neg2pos = True, **kwargs):
     '''Clips the signal at samples close to zero.
     
     The samples where clipping occurs crosses the zero line from negative to positive. This 
@@ -564,169 +785,108 @@ def clip_at_zero(samples, samp_win = None):
     Parameters
     ----------
     samples : np.ndarray [shape = (num_samples, ) or (num_samples, num_channels)]
-        The array containing sample data. Should work on stereo sound. TODO: further testing.
+        The array containing sample data. Should work on stereo sound. 
+        
+    start_with_zero : bool
+        If True, the returned array will begin with 0 (or close to 0). Otherwise 
+        the array will end with 0.
+        
+    neg2pos : bool 
+        If True, the returned array will begin with positive values and end with 
+        negative values. Otherwise, the array will be returned with the first
+        zeros detected, regardless of surrounding positive or negative values.
         
     samp_win : int, optional
         The window of samples to apply when clipping at zero crossings. The zero 
         crossings adjacent to the main signal will be used. This is useful to remove
         already existing clicks within the signal, often found at the beginning and / or 
         end of signals.
+        
+    kwargs : additional keyword arguments
+        Keyword arguments for `soundpy.dsp.index_at_zero`.
     
     Warning 
     -------
-    If only one or no zeros found. Original samples are returned if no zeros found or if more than
-    half the signal would be removed. 
+    If only one zero found. 
     
     Examples
     --------
-    >>> import numpy as np
-    >>> # create sin wave with offset of 1
-    >>> w = np.sin(np.arange(1000)+1)
-    >>> w[:4]
-    array([ 0.84147098,  0.90929743,  0.14112001, -0.7568025])
-    >>> round(w[0], 2) # start isn't zero
-    0.84
-    >>> w[-4:]
-    array([-0.89796748, -0.85547315, -0.02646075,  0.82687954])
-    >>> round(w[-1], 2) # end isn't zero
-    0.83
-    >>> # clip the sin wave to start and end with samples very close to the zero
-    >>> b = clip_at_zero(w)
-    >>> b[:4]
-    array([-0.00882117,  0.83667215,  0.91293295,  0.14984741])
-    >>> round(b[0], 2) # starts with zero
-    -0.01
-    >>> b[-4:]
-    array([-1.41179693e-01, -9.09322514e-01, -8.41438409e-01,  6.02887067e-05])
-    >>> round(b[-1], 2) # ends with zero
-    0.0
-    >>> # ensure the zero crossings go from negative to positive
-    >>> b[1] > 0 # after the starting zero, values are positive
-    True
-    >>> b[-2] > 0 # before the last zero, values are negative
-    False
+    >>> sig = np.array([-2,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
+    >>> clip_at_zero(sig) # defaults
+    [ 0  1  2  1  0 -1 -2 -1  0]
+    >>> # finds first and last insance of zeros, regardless of surrounding
+    >>> # negative or positive values in signal
+    >>> clip_at_zero(sig, neg2pos = False)
+    [ 0  1  2  1  0 -1 -2 -1  0  1  2  1  0]
+    >>> # avoid clicks at start of signal
+    >>> sig = np.array([0,-10,-20,-1,0,1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1,0])
+    >>> clip_at_zero(sig, samp_win = 5)
+    [ 0  1  2  1  0 -1 -2 -1  0]
     '''
+    almost_zero = 1e-1
     original_shape = samples.shape
     samps = samples.copy()
-    if sp.dsp.ismono(samps) and len(samps.shape) == 1:
-        # make it easier to work with both mono and stereo sound
-        samps = samps.reshape(samps.shape + (1,))
-        
-    #if len(samps.shape) > 1 and samps.shape[1] > 1:
-        #import warnings
-        #msg = 'soundpy.dsp.clip_at_zero does not yet support stereo data.'+\
-            #' Original data returned without clipping.'
-        #warnings.warn(msg)
-        #return samps
+
     if samp_win is not None:
-        samps_beg = samps[:samp_win,:]
-        samps_end = samps[-samp_win:,:]
-        # to utilize all channel info, take average of all channels
-        samps_beg = sp.dsp.average_channels(samps_beg)
-        samps_end = sp.dsp.average_channels(samps_end)
+        samps_beg = samps[:samp_win]
+        samps_end = samps[-samp_win:]
         # find last instance of zero within window at beginning of signal
-        f_0 = np.argmax(np.abs(np.flip(samps_beg)) <= 0 + 1e-2)
-        # find first instance of zero within window at end of signal 
-        l_0 = np.argmax(np.abs(samps_end) <= 0+1e-2)
-        l_0 = len(samples) - samp_win + l_0 
-        # did not find zeros
-        if f_0 == 0 and l_0 == 0:
-            import warnings
-            msg = '\nWarning: `soundpy.dsp.clip_at_zero` found no samples close to zero.'+\
-                ' Original samples returned.\n'
-            warnings.warn(msg)
-            # ensure samples maintain original shape
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
-        # translate index of flipped array to non-flipped array
-        f_0 = len(samps_beg) - 1 - f_0 
+        __, f_0 = index_at_zero(samps_beg)
+        # find first instance of zero within window at end of signal
+        l_0, __ = index_at_zero(samps_end)
+        # match l_0 to original samples
+        l_0 += len(samps)-samp_win
     else:
-        # if stereo, use all channels to find first instance of zero
-        samps_all = sp.dsp.average_channels(samps)
-        # find first instance of zero:
-        f_0 = np.argmax(np.abs(samps_all) <= 0+1e-2)
-        l_0 = np.argmax(np.abs(np.flip(samps_all)) <= 0 + 1e-2)
-        # did not find zeros
-        if f_0 == 0 and l_0 == 0:
-            import warnings
-            msg = '\nWarning: `soundpy.dsp.clip_at_zero` found no samples close to zero.'+\
-                ' Clipping was not applied.\n'
-            warnings.warn(msg)
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
-        # translate index of flipped array to non-flipped array
-        l_0 = len(samples) - 1 - l_0 
+        f_0, l_0 = index_at_zero(samps)
+    # ensure same shape as original_shape
+    samps = samples[f_0:l_0+1]
+    # ensure beginning of signal starts positive and ends negative
+    if not neg2pos:
+        return samps
     
-    # if stereo sound, just look at first channel for zeros
-    assert round(samps[f_0,0]) == 0
-    assert round(samps[l_0,0]) == 0
+    try:
+        if len(samps.shape) > 1:
+            beg_pos_neg = sum(samps[:3,0])
+            end_pos_neg = sum(samps[-4:,0])
+        else:
+            beg_pos_neg = sum(samps[:3])
+            end_pos_neg = sum(samps[-4:])
+    except IndexError:
+        raise ValueError('Function clip_at_zero can only be applied to arrays '+\
+            'longer than 5 samples.\n\n')
     
-    if l_0 == f_0:
+    if beg_pos_neg > 0 and end_pos_neg < 0:
+        return samps
+    
+    # try to cut at different zero but only 
+    # if more than 1 zero left in signal:
+    if len(np.where(samps <= almost_zero)[0]) > 1:
+        if beg_pos_neg > 0 and end_pos_neg > 0:
+            # won't include the last zero 
+            samps_no_last_zero = samps[:-1]
+            f_0, l_0 = index_at_zero(samps_no_last_zero)
+            samps = samps_no_last_zero[f_0:l_0+1]
+        elif beg_pos_neg < 0:
+            if end_pos_neg < 0:
+                # won't include the first zero 
+                samps_no_first_zero = samps[f_0+1::]
+                f_0, l_0 = index_at_zero(samps_no_first_zero)
+                samps = samps_no_first_zero[f_0:l_0+1]
+            else:
+                samps_no_first_last_zero = samps[f_0+1:-1]
+                f_0, l_0 = index_at_zero(samps_no_first_last_zero)
+                samps = samps_no_first_last_zero[f_0:l_0+1]
+    try:
+        if len(samps.shape) > 1:
+            assert sum(samps[:2,0]) > 0 and \
+                sum(samps[-2:,0]) < 0
+        else:
+            assert sum(samps[:2]) > 0 and sum(samps[-2:]) < 0
+    except AssertionError:
         import warnings
-        msg = '\n\nWarning: only one zero-crossing sample found. Beginning or ending sample '+\
-            'may not be zero crossing.'
-        samps_test = samps[f_0:,:]
-        if len(samps_test) / len(samples) < 0.5:
-            msg = '\n\nWARNING: Subfunction `soundpy.dsp.clip_at_zero` no longer '+\
-                'implemented as too many samples would be removed.\nThe beginning or ending '+\
-                    'of the signal may not be zero or cross zero from negative to positive. '+\
-                        '\nNote: this function expects data with multiple zero crossings.'+\
-                            '\nData provided does not seem to have enough zero crossings. '+\
-                                'Try removing the DC bias from the signal first with: \n'+\
-                                    'soundpy.dsp.remove_dc_bias(<your_data>).\n'
-            warnings.warn(msg)
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
-        else:
-            warnings.warn(msg)
-            samps = samps_test
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
-    else:
-        samps = samps[f_0:l_0+1,:]
-    # ensure the zero crossings go from negative to positive
-    # only look at first channel (only channel if mono)
-    if samps[1,0] > 0:
-        if samps[-2,0] < 0:
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            return samps
-        else:
-            # cut off the last zero and get the next one
-            samps = samps[:-1] 
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            samps = clip_at_zero(samps)
-    else:
-        if samps[-2,0] < 0:
-            # cut off the first zero and get the next one
-            samps = samps[1:]
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            samps = clip_at_zero(samps)
-        else:
-            # cut off both zeros and get the next ones
-            samps = samps[1:-1]
-            if len(original_shape) == 1:
-                # remove extra dimension 
-                samps = samps.reshape((samps.shape[0]))
-            samps = clip_at_zero(samps)
-    if len(original_shape) == 1:
-        # remove extra dimension 
-        samps = samps.reshape((samps.shape[0]))
+        warnings.warn('\n\nWarning: was not able to clip at zero where '+\
+            '`samples` begin positive and end negative.\n\n')
     return samps
-    
 
 def remove_dc_bias(samples, samp_win = None):
     '''Removes DC bias by subtracting mean from sample data.
@@ -748,8 +908,8 @@ def remove_dc_bias(samples, samp_win = None):
     samps : np.ndarray [shape=(samples, num_channels) or (samples)]
         The `samples` with zero mean.
         
-    Resources
-    ---------
+    References
+    ----------
     Lyons, Richard. (2011). Understanding Digital Signal Processing (3rd Edition). 
     '''
     samps = samples.copy()
@@ -874,7 +1034,8 @@ def apply_sample_length(data, target_len, mirror_sound = False, clip_at_zero = T
     else:
         while len(data) < target_len:
             if clip_at_zero:
-                data_clipped = sp.dsp.clip_at_zero(data) # get rid of last zero
+                data_clipped = sp.dsp.clip_at_zero(data) 
+                # get rid of last zero
                 if len(data_clipped) < len(data):
                     data = data_clipped[:-1]
             if mirror_sound:
@@ -1388,7 +1549,7 @@ def calc_fft(signal_section, real_signal=None, fft_bins = None, **kwargs):
         If True, only half of the fft will be returned (the fft is mirrored). Otherwise the 
         full fft will be returned.
         
-    **kwargs : additional keyword arguments
+    kwargs : additional keyword arguments
         keyword arguments for numpy.fft.fft or nump.fft.rfft
 
     Returns
@@ -2492,12 +2653,16 @@ def random_selection_samples(samples, len_section_samps, wrap=False, random_seed
         total_section = samples[start_index:start_index+len_section_samps]
         return total_section
 
- 
+# TODO: remove? function get_mean_freq is much better
 def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                 real_signal = False, fft_bins = 1024, 
                 window = 'hann', **kwargs):
     '''Approximates pitch by collecting dominant frequencies of signal.
     '''
+    import warnings
+    warnings.warn('\n\nWarning: `soundpy.dsp.get_pitch` is experimental at best.'+\
+        ' \nPerhaps try `soundpy.dsp.get_mean_freq`, which is still experimental '+\
+            'but a bit more reliable.\n\n')
     if isinstance(sound, np.ndarray):
         data = sound
     else:
@@ -2540,10 +2705,22 @@ def get_pitch(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
         section_start += (frame_length - num_overlap_samples)
     return freq_matrix
     
+# TODO consolidate into VAD? get_vad_stft, or get_vad_samples? Avoid extra processing?
+# Perhaps as class attribute..
 def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
                           real_signal = False, fft_bins = 1024, 
                           window = 'hann', percent_vad=0.75):
     '''Takes the mean of dominant frequencies of voice activated regions in a signal.
+    
+    Note: Silences discarded.
+    
+    The average fundamental frequency for a male voice is 125Hz; for a female voice it’s 200Hz; and for a child’s voice, 300Hz. (Russell, J., 2020)
+    
+    References
+    ----------
+    Russell, James (2020) The Human Voice and the Frequency Range.
+    Retrieved from: 
+    https://blog.accusonus.com/pro-audio-production/human-voice-frequency-range/
     '''
     if isinstance(sound, np.ndarray):
         data = sound
@@ -2573,14 +2750,19 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
     row = 0
     for frame in range(num_subframes):
         section = data[section_start:section_start+frame_length]
-        section_vad, e, f, sfm = sp.dsp.vad(section, 
+        section_vad, values_vad = sp.dsp.vad(section, 
                                      sr=sr, 
                                      win_size_ms = 10, 
                                      percent_overlap = 0.5,
                                      min_energy = e_min, 
                                      min_freq = f_min, 
                                      min_sfm = sfm_min)
-        
+        # adjusted number of values returned by vad() - still not 100% 
+        # if should return three or four (probably three)
+        if len(values_vad) == 3:
+            e, f, sfm = values_vad
+        elif len(values_vad) == 4:
+            sr, e, f, sfm = values_vad
         if e_min is None or e < e_min:
             e_min = e
         if f_min is None or f < f_min:
@@ -2614,12 +2796,21 @@ def get_mean_freq(sound, sr=16000, win_size_ms = 50, percent_overlap = 0.5,
         
     freq_matrix = freq_matrix[:-extra_rows]
     fund_freq = np.mean(freq_matrix)
-    return fund_freq
+    return round(fund_freq,2)
+
 
 
 # TODO: finicky 
 # Seems that removing the dc offset helps, as does having a higher sample rate
 # still exploring influence of window size and percent overlap
+# NOTE: good settings for VAD in SNR calc:
+# set percent_overlap at 0.5, win_size_ms at 300
+# (and padding 100 ms to the identified VAD start and end)
+# TODO: fix ERROR issue: frame == 0, measure_noise_frames == 0
+    #vad_matrix, vad_settings = sp.dsp.vad(audio, sr, 
+  #File "/home/airos/Projects/gitlab/family-language-tracker/soundpy/dsp.py", line 2877, in vad
+    #if ste - min_energy > thresh_e:
+#UnboundLocalError: local variable 'thresh_e' referenced before assignment
 def vad(sound, sr, win_size_ms = 50, percent_overlap = 0, 
         real_signal = False, fft_bins = None, window = 'hann',
         energy_thresh = 40, freq_thresh = 185, sfm_thresh = 5,
@@ -2681,6 +2872,7 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
                                                        frame_length = frame_length,
                                                        overlap_samples = num_overlap_samples,
                                                        zeropad = True)
+    
     # initialize empty matrix to vad values into
     vad_matrix = sp.dsp.create_empty_matrix((num_subframes,),
                                               complex_vals = False)
@@ -2748,6 +2940,10 @@ def vad(sound, sr, win_size_ms = 50, percent_overlap = 0,
         # not finding this helpful
         if frame < measure_noise_frames:
             thresh_e = energy_thresh * np.log(min_energy)
+        else:
+            # what if frame == 0 and measure_noise_frames == 0?
+            # still samples to process
+            thresh_e = energy_thresh # TODO: test this fix
         
         counter = 0
         if ste - min_energy > thresh_e:
@@ -2906,6 +3102,7 @@ def piecewise_linear_warp(fft_value, alpha, max_freq):
         fft_warped = np.pi - (nominator / denominator + 1e-6) * (np.pi - fft_value)
     return fft_warped
 
+# TODO: remove? function get_mean_freq is much better 
 def f0_approximation(sound, sr, low_freq = 50, high_freq = 300, **kwargs):
     '''Approximates fundamental frequency.
     
@@ -2918,6 +3115,10 @@ def f0_approximation(sound, sr, low_freq = 50, high_freq = 300, **kwargs):
     ----------
     https://en.wikipedia.org/wiki/Voice_frequency
     '''
+    import warnings
+    warnings.warn('\n\nWarning: `soundpy.dsp.f0_approximation` is experimental at'+\
+        ' best. \nPerhaps try `soundpy.dsp.get_mean_freq`, which is still '+\
+            'experimental but a bit more reliable.\n\n')
     import scipy
     if isinstance(sound, np.ndarray):
         data = sound
@@ -2925,6 +3126,9 @@ def f0_approximation(sound, sr, low_freq = 50, high_freq = 300, **kwargs):
         data, sr2 = sp.loadsound(sound, sr=sr)
         assert sr2 == sr
     stft = sp.feats.get_vad_stft(data, sr=sr, **kwargs)
+    # get_vad_stft now returns stft, vad_matrix but used to return just stft
+    if isinstance(stft, tuple):
+        stft = stft[0]
     stft = stft[:,low_freq:high_freq]
     power = np.abs(stft)**2
     dom_f = []

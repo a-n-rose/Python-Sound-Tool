@@ -795,8 +795,6 @@ def create_denoise_data(cleandata_dir, noisedata_dir, trainingdata_dir, limit=No
 def envclassifier_feats(
     data_dir,
     data_features_dir = None,
-    feature_type = None,
-    dur_sec = 1,
     perc_train = 0.8,
     ignore_label_marker = None,
     **kwargs):
@@ -817,12 +815,10 @@ def envclassifier_feats(
         Within this directory, a unique subfolder will be created each time features are
         extracted. This allows several versions of extracted features on the same dataset
         without overwriting files.
-    
-    feature_type : str 
-        The type of features to be extracted. Options: 'stft', 'powspec', 'mfcc', 'fbank'. (default 'fbank')
         
-    dur_sec : int, float
-        The duration of each audio sample to be extracted. (default 1)
+    perc_train : float 
+        The amount of data to be set aside for train data. The rest will be divided into
+        validation and test datasets.
         
     ignore_label_marker : str 
         A string to look for in the labels if the "label" should not be included.
@@ -847,12 +843,8 @@ def envclassifier_feats(
     '''
     if data_features_dir is None:
         data_features_dir = './audiodata/example_feats_models/envclassifier/'
-    if feature_type is None:
-        feature_type = 'fbank'
-    if 'signal' in feature_type:
-        raise ValueError('Feature type "signal" is not yet supported for this model.')
 
-    feat_extraction_dir = 'features_'+ feature_type + '_' + sp.utils.get_date()
+    feat_extraction_dir = 'features_' + sp.utils.get_date()
 
     # collect labels 
     labels = []
@@ -886,12 +878,9 @@ def envclassifier_feats(
     dict_encdodedlabel2audio_path = feat_extraction_dir.joinpath('dict_encdodedlabel2audio.csv')
     
     # designate where to save train, val, and test data
-    data_train_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('train',
-                                                                        feature_type))
-    data_val_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('val',
-                                                                        feature_type))
-    data_test_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('test',
-                                                                        feature_type))
+    data_train_path = feat_extraction_dir.joinpath('{}_data.npy'.format('train'))
+    data_val_path = feat_extraction_dir.joinpath('{}_data.npy'.format('val'))
+    data_test_path = feat_extraction_dir.joinpath('{}_data.npy'.format('test'))
 
     # create and save encoding/decoding labels dicts
     dict_encode, dict_decode = sp.datasets.create_dicts_labelsencoded(labels)
@@ -913,12 +902,13 @@ def envclassifier_feats(
     dict_encdodedlabel2audio_path = sp.utils.save_dict(
         dict2save = dict_encodedlabel2audio, 
         filename = dict_encdodedlabel2audio_path, 
-        overwrite=False)
+        overwrite = False)
     # assign audiofiles into train, validation, and test datasets
-    train, val, test = sp.datasets.audio2datasets(dict_encdodedlabel2audio_path,
-                                                perc_train=perc_train,
-                                                limit=None,
-                                                seed=40)
+    train, val, test = sp.datasets.audio2datasets(
+        dict_encdodedlabel2audio_path,
+        perc_train = perc_train,
+        limit = None,
+        seed = 40)
 
     # save audiofiles for each dataset to dict and save
     dataset_dict = dict([('train',train),('val', val),('test',test)])
@@ -940,8 +930,7 @@ def envclassifier_feats(
         datasets_dict = dataset_dict,
         datasets_path2save_dict = datasets_path2save_dict,
         labeled_data = True,
-        feature_type = feature_type,
-        dur_sec = dur_sec,
+        decode_dict = dict_decode,
         **kwargs)
 
     end = time.time()
@@ -953,8 +942,8 @@ def envclassifier_feats(
     # save which audiofiles were extracted for each dataset
     # save where extracted data were saved
     # save how long feature extraction took
-    dataprep_settings = dict(dataset_dict=dataset_dict,
-                            datasets_path2save_dict=datasets_path2save_dict,
+    dataprep_settings = dict(dataset_dict = dataset_dict,
+                            datasets_path2save_dict = datasets_path2save_dict,
                             total_dur_sec = total_dur_sec)
     dataprep_settings_path = sp.utils.save_dict(
         dict2save = dataprep_settings,
@@ -966,9 +955,6 @@ def denoiser_feats(
     data_clean_dir,
     data_noisy_dir,
     data_features_dir = None,
-    feature_type = None,
-    dur_sec = 3,
-    frames_per_sample = 11,
     limit = None,
     perc_train = 0.8,
     **kwargs):
@@ -991,18 +977,6 @@ def denoiser_feats(
         Within this directory, a unique subfolder will be created each time features are
         extracted. This allows several versions of extracted features on the same dataset
         without overwriting files.
-    
-    feature_type : str, optional
-        The type of features to be extracted. Options: 'stft', 'powspec', 'mfcc', 'fbank' or
-        'signal'. (default 'fbank')
-        
-    dur_sec : int, float
-        The duration of each audio sample to be extracted. (default 1)
-        
-    frames_per_sample : int 
-        If you want to section each audio file feature data into smaller frames. This might be 
-        useful for speech related contexts. (Can avoid this by simply reshaping data later)
-        (default 11)
         
     limit : int, optional
         The limit of audio files for feature extraction. (default None)
@@ -1027,14 +1001,11 @@ def denoiser_feats(
     soundpy.feats.save_features_datasets
         Preparation of acoustic features in train, validation and test datasets.
     '''
-    # ensure these are not None, and if so, fill with sample data
     if data_features_dir is None:
         data_features_dir = './audiodata/example_feats_models/denoiser/'
-    if feature_type is None:
-        feature_type = 'fbank'
     
     # create unique directory for feature extraction session:
-    feat_extraction_dir = 'features_'+feature_type + '_' + sp.utils.get_date()
+    feat_extraction_dir = 'features_' + sp.utils.get_date()
 
     # 1) Ensure clean and noisy data directories exist
     audio_clean_path = sp.utils.check_dir(data_clean_dir, make=False)
@@ -1045,24 +1016,18 @@ def denoiser_feats(
     feat_extraction_dir = denoise_data_path.joinpath(feat_extraction_dir)
     feat_extraction_dir = sp.utils.check_dir(feat_extraction_dir, make=True)
     # Noisy and clean train, val, and test data paths:
-    data_train_noisy_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('train',
-                                                                            'noisy',
-                                                                        feature_type))
-    data_val_noisy_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('val',
-                                                                        'noisy',
-                                                                        feature_type))
-    data_test_noisy_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('test',
-                                                                        'noisy',
-                                                                        feature_type))
-    data_train_clean_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('train',
-                                                                            'clean',
-                                                                        feature_type))
-    data_val_clean_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('val',
-                                                                        'clean',
-                                                                        feature_type))
-    data_test_clean_path = feat_extraction_dir.joinpath('{}_data_{}_{}.npy'.format('test',
-                                                                        'clean',
-                                                                        feature_type))
+    data_train_noisy_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('train',
+                                                                            'noisy'))
+    data_val_noisy_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('val',
+                                                                        'noisy'))
+    data_test_noisy_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('test',
+                                                                        'noisy'))
+    data_train_clean_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('train',
+                                                                            'clean'))
+    data_val_clean_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('val',
+                                                                        'clean'))
+    data_test_clean_path = feat_extraction_dir.joinpath('{}_data_{}.npy'.format('test',
+                                                                        'clean'))
 
     # 3) collect audiofiles and divide them into train, val, and test datasets
     # noisy data
@@ -1154,18 +1119,12 @@ def denoiser_feats(
     dataset_dict_clean, dataset_paths_clean_dict = sp.feats.save_features_datasets(
         datasets_dict = dataset_dict_clean,
         datasets_path2save_dict = dataset_paths_clean_dict,
-        feature_type = feature_type + ' clean',
-        dur_sec = dur_sec,
-        frames_per_sample = frames_per_sample,
         **kwargs)
         
     # then noisy data
     dataset_dict_noisy, dataset_paths_noisy_dict = sp.feats.save_features_datasets(
         datasets_dict = dataset_dict_noisy,
         datasets_path2save_dict = dataset_paths_noisy_dict,
-        feature_type = feature_type + ' noisy',
-        dur_sec = dur_sec,
-        frames_per_sample = frames_per_sample,
         **kwargs)
 
     end = time.time()
@@ -1180,10 +1139,10 @@ def denoiser_feats(
                             dataset_paths_noisy_dict = dataset_paths_noisy_dict,
                             dataset_dict_clean = dataset_dict_clean,
                             dataset_paths_clean_dict = dataset_paths_clean_dict,
-                            total_dur_sec = total_dur_sec)
+                            total_dur_sec = total_dur_sec,
+                            limit = limit, 
+                            perc_train = perc_train)
     dataprep_settings_path = sp.utils.save_dict(
         dict2save = dataprep_settings,
         filename = feat_extraction_dir.joinpath('dataset_audio_assignments.csv'))
     return feat_extraction_dir
-
-
