@@ -14,7 +14,7 @@ with open("requirements.txt","r") as f:
 # This call to setup() does all the work
 setup(
     name="soundpy",
-    version="0.1.0a2",
+    version="0.1.0a3",
     description="A research-based framework for exploring sound as well as machine learning in the context of sound.",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -26,6 +26,7 @@ setup(
         "License :: OSI Approved :: GNU Affero General Public License v3",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.8",
     ],
     packages=find_packages(exclude=("tests","docs", "jupyter_notebooks")),
     include_package_data=True,
