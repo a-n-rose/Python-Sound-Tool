@@ -1,14 +1,41 @@
 # SoundPy
 
-SoundPy is an experimental framework for exploring sound as well as machine learning in the context of sound. 
+SoundPy is an experimental / alpha stage package for exploring sound as well as machine learning in the context of sound. 
 
-[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a2-blue)](https://pypi.org/project/soundpy/)
+[![PyPI](https://img.shields.io/badge/pypi-v0.1.0a3-blue)](https://pypi.org/project/soundpy/)
 [![License](https://img.shields.io/badge/license-GNU%20AGPL-brightgreen)](https://github.com/a-n-rose/Python-Sound-Tool/blob/master/LICENSE.md)
 [![PyPI pyversions](https://img.shields.io/badge/python-3.6%7C3.8-yellow)](https://www.python.org/downloads/release)
+
 
 # Documentation
 
 For examples and to navigate the code, see the <a href="https://aislynrose.bitbucket.io/">documentation</a>. 
+
+## Main Uses:
+
+### Visualization
+- pre and post filtering
+- during feature extraction process 
+- various feature types: raw signal vs stft vs fbank vs mfcc
+- voice activity in signal
+- dominant frequency in signal
+
+### Audio Prep / Manipulation
+- convert audiofiles 
+- extract features: raw signal, stft, powspec, fbank, mfcc
+- augment audio: speed, pitch, add noise, time shift, shuffle, harmonic distortion, vtlp (very experimental - will probably be removed in the future)
+- filter noise (e.g. wiener filter)
+- denoise signal (e.g. with pretrained denoiser model)
+- remove non-speech from signal
+- identify voice activity in signal
+- measure dominant and basic frequencies in signal
+
+### Train and Implement Deep Neural Networks
+- cnn model (e.g. sound classifier)
+- cnn+lstm model (e.g. speech recognition)
+- autoencoder model (e.g. denoiser model)
+- pretrained ResNet50 model (e.g. language classifier)
+
 
 # Examples 
 
@@ -184,30 +211,6 @@ Install and run jupyter notebook:
 ```
 Venture into the folder `jupyter_notebooks` and have a go!
 
-## Main Uses:
-
-### Visualization
-- pre and post filtering
-- during feature extraction process 
-- various feature types: raw signal vs stft vs fbank vs mfcc
-- voice activity in signal
-- dominant frequency in signal
-
-### Audio Prep / Manipulation
-- convert audiofiles 
-- extract features: raw signal, stft, powspec, fbank, mfcc
-- augment audio: speed, pitch, add noise, time shift, shuffle, vtlp, harmonic distortion
-- filter noise (e.g. wiener filter)
-- denoise signal (e.g. with pretrained denoiser model)
-- remove non-speech from signal
-- identify voice activity in signal
-- measure dominant and basic frequencies in signal
-
-### Train and Implement Deep Neural Networks
-- cnn model (e.g. sound classifier)
-- cnn+lstm model (e.g. speech recognition)
-- autoencoder model (e.g. denoiser model)
-- pretrained ResNet50 model (e.g. language classifier)
 
 ## Requirements
 
