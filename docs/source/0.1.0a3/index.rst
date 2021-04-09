@@ -9,6 +9,16 @@ SoundPy v0.1.0a3
 Welcome to the docs!
 --------------------
 
+To access documentation for specific versions:
+
+.. toctree::
+   :maxdepth: 1
+
+   versions.rst
+
+
+About SoundPy
+-------------
    
 SoundPy is a research based Python package_ for exploring and experimenting with sound and deep learning. NOTE: SoundPy is in alpha stage of development; please forgive any bugs that pop up, and also feel free/encouraged to open an issue_. 
 
