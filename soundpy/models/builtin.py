@@ -745,14 +745,16 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
     if len(feats_normed.shape) >= 3:
         batch_size = feats_normed.shape[0]
         # newer version soundpy 0.1.0a3
-        feats_normed = feats_normed.reshape((1,) + feats_normed.shape)
+        #feats_normed = feats_normed.reshape((1,) + feats_normed.shape)
+        # ValueError: Error when checking input: expected conv2d_1_input to have shape (11, 177, 1) but got array with shape (35, 11, 177)
+        feats_normed = feats_normed.reshape(feats_normed.shape + (1,))
         try:
             cleaned_feats = denoiser.predict(feats_normed, batch_size = batch_size)
         except ValueError:
             # newer version soundpy 0.1.0a3
             import warnings 
             msg = '\nWARNING: adjustments to feature extraction in a more recent'+\
-                ' SoundPy version may result in imperfect feature alignmnet '+\
+                ' SoundPy version may result in imperfect feature alignment '+\
                     'with a model trained with features generated with a previous'+\
                         ' SoundPy version. Sincerest apologies!'
             warnings.warn(msg)
