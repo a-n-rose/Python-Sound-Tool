@@ -746,6 +746,7 @@ def denoiser_run(model, new_audio, feat_settings_dict, remove_dc=True):
         batch_size = feats_normed.shape[0]
         # newer version soundpy 0.1.0a3
         #feats_normed = feats_normed.reshape((1,) + feats_normed.shape)
+        # above line resulted in the following error:
         # ValueError: Error when checking input: expected conv2d_1_input to have shape (11, 177, 1) but got array with shape (35, 11, 177)
         feats_normed = feats_normed.reshape(feats_normed.shape + (1,))
         try:
