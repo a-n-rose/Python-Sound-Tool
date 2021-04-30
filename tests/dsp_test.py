@@ -6,6 +6,7 @@ currentdir = os.path.dirname(os.path.abspath(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
+import math
 import numpy as np
 import pytest
 import librosa
@@ -151,6 +152,164 @@ def test_overlap_add_framelength_mismatch():
         sig = sp.dsp.overlap_add(enhanced_matrix, 
                                     frame_length, 
                                     overlap)
+
+def test_section_audio_overlap50percent_zeropadTrue():
+    samples = np.arange(20)
+    sr = 1
+    section_sec = 9
+    overlap = .5
+    samps_per_row = int(sr*section_sec)
+    tot_samples = len(samples)
+    overlap_samples = math.ceil(samps_per_row * overlap)
+    num_sections = sp.dsp.calc_num_subframes(
+        tot_samples, samps_per_row, overlap_samples=overlap_samples,zeropad=True
+        )
+    sections = np.zeros((num_sections, samps_per_row))
+    u_ix = 0
+    for i, __ in enumerate(sections):
+        if u_ix < tot_samples-1:
+            samps = samples[u_ix:u_ix+samps_per_row]
+            sections[i][:len(samps)] += samps
+            u_ix += samps_per_row - overlap_samples
+        else:
+            break
+    expected = np.array([[ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.],
+       [ 4.,  5.,  6.,  7.,  8.,  9., 10., 11., 12.],
+       [ 8.,  9., 10., 11., 12., 13., 14., 15., 16.],
+       [12., 13., 14., 15., 16., 17., 18., 19.,  0.]])
+    assert np.array_equal(sections, expected)
+
+def test_section_audio_overlap50percent_zeropadFalse():
+    samples = np.arange(20)
+    sr = 1
+    section_sec = 9
+    overlap = .5
+    samps_per_row = int(sr*section_sec)
+    tot_samples = len(samples)
+    overlap_samples = math.ceil(samps_per_row * overlap)
+    num_sections = sp.dsp.calc_num_subframes(
+        tot_samples, samps_per_row, overlap_samples=overlap_samples,zeropad=False
+        )
+    sections = np.zeros((num_sections, samps_per_row))
+    u_ix = 0
+    for i, __ in enumerate(sections):
+        if u_ix < tot_samples-1:
+            samps = samples[u_ix:u_ix+samps_per_row]
+            sections[i][:len(samps)] += samps
+            u_ix += samps_per_row - overlap_samples
+        else:
+            break
+    expected = np.array([[ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.],
+       [ 4.,  5.,  6.,  7.,  8.,  9., 10., 11., 12.],
+       [ 8.,  9., 10., 11., 12., 13., 14., 15., 16.]])
+    assert np.array_equal(sections, expected)
+
+def test_section_audio_overlap75percent_zeropadTrue():
+    samples = np.arange(20)
+    sr = 1
+    section_sec = 9
+    overlap = .75
+    samps_per_row = int(sr*section_sec)
+    tot_samples = len(samples)
+    overlap_samples = math.ceil(samps_per_row * overlap)
+    num_sections = sp.dsp.calc_num_subframes(
+        tot_samples, samps_per_row, overlap_samples=overlap_samples,zeropad=True
+        )
+    sections = np.zeros((num_sections, samps_per_row))
+    u_ix = 0
+    for i, __ in enumerate(sections):
+        if u_ix < tot_samples-1:
+            samps = samples[u_ix:u_ix+samps_per_row]
+            sections[i][:len(samps)] += samps
+            u_ix += samps_per_row - overlap_samples
+        else:
+            break
+    expected = np.array([[ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.],
+       [ 2.,  3.,  4.,  5.,  6.,  7.,  8.,  9., 10.],
+       [ 4.,  5.,  6.,  7.,  8.,  9., 10., 11., 12.],
+       [ 6.,  7.,  8.,  9., 10., 11., 12., 13., 14.],
+       [ 8.,  9., 10., 11., 12., 13., 14., 15., 16.],
+       [10., 11., 12., 13., 14., 15., 16., 17., 18.],
+       [12., 13., 14., 15., 16., 17., 18., 19.,  0.]])
+    assert np.array_equal(sections, expected)
+        
+        
+def test_section_audio_overlap75percent_zeropadFalse():
+    samples = np.arange(20)
+    sr = 1
+    section_sec = 9
+    overlap = .75
+    samps_per_row = int(sr*section_sec)
+    tot_samples = len(samples)
+    overlap_samples = math.ceil(samps_per_row * overlap)
+    num_sections = sp.dsp.calc_num_subframes(
+        tot_samples, samps_per_row, overlap_samples=overlap_samples,zeropad=False
+        )
+    sections = np.zeros((num_sections, samps_per_row))
+    u_ix = 0
+    for i, __ in enumerate(sections):
+        if u_ix < tot_samples-1:
+            samps = samples[u_ix:u_ix+samps_per_row]
+            sections[i][:len(samps)] += samps
+            u_ix += samps_per_row - overlap_samples
+        else:
+            break
+    expected = np.array([[ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.],
+       [ 2.,  3.,  4.,  5.,  6.,  7.,  8.,  9., 10.],
+       [ 4.,  5.,  6.,  7.,  8.,  9., 10., 11., 12.],
+       [ 6.,  7.,  8.,  9., 10., 11., 12., 13., 14.],
+       [ 8.,  9., 10., 11., 12., 13., 14., 15., 16.],
+       [10., 11., 12., 13., 14., 15., 16., 17., 18.]])
+    assert np.array_equal(sections, expected)
+        
+def test_section_audio_overlap25percent_zeropadTrue():
+    samples = np.arange(20)
+    sr = 1
+    section_sec = 9
+    overlap = .25
+    samps_per_row = int(sr*section_sec)
+    tot_samples = len(samples)
+    overlap_samples = math.ceil(samps_per_row * overlap)
+    num_sections = sp.dsp.calc_num_subframes(
+        tot_samples, samps_per_row, overlap_samples=overlap_samples,zeropad=True
+        )
+    sections = np.zeros((num_sections, samps_per_row))
+    u_ix = 0
+    for i, __ in enumerate(sections):
+        if u_ix < tot_samples-1:
+            samps = samples[u_ix:u_ix+samps_per_row]
+            sections[i][:len(samps)] += samps
+            u_ix += samps_per_row - overlap_samples
+        else:
+            break
+    expected = np.array([[ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.],
+       [ 6.,  7.,  8.,  9., 10., 11., 12., 13., 14.],
+       [12., 13., 14., 15., 16., 17., 18., 19.,  0.]])
+    assert np.array_equal(sections, expected)
+    
+def test_section_audio_overlap25percent_zeropadFalse():
+    samples = np.arange(20)
+    sr = 1
+    section_sec = 9
+    overlap = .25
+    samps_per_row = int(sr*section_sec)
+    tot_samples = len(samples)
+    overlap_samples = math.ceil(samps_per_row * overlap)
+    num_sections = sp.dsp.calc_num_subframes(
+        tot_samples, samps_per_row, overlap_samples=overlap_samples,zeropad=False
+        )
+    sections = np.zeros((num_sections, samps_per_row))
+    u_ix = 0
+    for i, __ in enumerate(sections):
+        if u_ix < tot_samples-1:
+            samps = samples[u_ix:u_ix+samps_per_row]
+            sections[i][:len(samps)] += samps
+            u_ix += samps_per_row - overlap_samples
+        else:
+            break
+    expected = np.array([[ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.],
+       [ 6.,  7.,  8.,  9., 10., 11., 12., 13., 14.]])
+    assert np.array_equal(sections, expected)
         
 def test_calc_num_subframes_fullframes():
     expected = 5
