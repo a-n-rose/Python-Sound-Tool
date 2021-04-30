@@ -1325,10 +1325,10 @@ def calc_num_subframes(tot_samples, frame_length, overlap_samples, zeropad=False
         return subframes
     trim = frame_length - overlap_samples
     totsamps_adjusted = tot_samples-trim
-    if zeropad:
-        subframes = int(math.ceil(tot_samples / trim))
+    if zeropad or ((tot_samples-frame_length) / trim ) % 1 == 0:
+        subframes = int(math.ceil((tot_samples-frame_length) / trim))+1
     else:
-        subframes = int(tot_samples / trim)
+        subframes = int(math.ceil((tot_samples-frame_length) / trim))
     return subframes
 
 def create_window(window_type, frame_length):
