@@ -1454,6 +1454,7 @@ def normalize(data, max_val=None, min_val=None):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> # using the min and max of a previous dataset:
     >>> import numpy as np
     >>> np.random.seed(0)
@@ -1466,7 +1467,7 @@ def normalize(data, max_val=None, min_val=None):
     array([0.40768703, 0.05536604, 0.78853488, 0.28730518, 0.45035059])
     >>> max_prev = np.max(previous_samples)
     >>> min_prev = np.min(previous_samples)
-    >>> output_samples = normalize(input_samples, min_val = min_prev, max_val = max_prev)
+    >>> output_samples = sp.feats.normalize(input_samples, min_val = min_prev, max_val = max_prev)
     >>> output_samples
     array([0.67303388, 0.89996095, 0.74661839, 0.66767314, 0.50232462])
     '''
@@ -2108,7 +2109,8 @@ def featshape_new_subframe(feature_matrix_shape, new_frame_size,
     new_shape = tuple(new_shape)
     return new_shape
 
-
+# TODO docstring doctest for soundpy0.1.0a3
+# is not in soundpy0.1.0.a2
 def apply_new_subframe(feature_matrix, new_frame_size, zeropad=True, axis=0):
     '''Reshapes `feature_matrix` to allow for `new_frame_size`. 
     
@@ -2140,12 +2142,18 @@ def apply_new_subframe(feature_matrix, new_frame_size, zeropad=True, axis=0):
     ------
     ValueError if number of dimensions of `feature_matrix` is below 2 or exceeds 5.
     
+    See Also
+    --------
+    `soundpy.models.dataprep`
+        Function that implements `soundpy.feats.apply_new_subframe`.
+    
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> matrix = np.arange(24).reshape(3,4,2)
     >>> # apply new_frame_size to dimension of length 4 (i.e. axis 1)
-    >>> matrix_zp = apply_new_subframe(matrix, new_frame_size = 3, axis = 1)
+    >>> matrix_zp = sp.feats.apply_new_subframe(matrix, new_frame_size = 3, axis = 1)
     >>> matrix_zp.shape
     (3, 2, 3, 2)
     >>> matrix_zp
@@ -2174,7 +2182,7 @@ def apply_new_subframe(feature_matrix, new_frame_size, zeropad=True, axis=0):
             [[22, 23],
             [ 0,  0],
             [ 0,  0]]]])
-    >>> matrix_nozp = apply_new_subframe(matrix, new_frame_size = 3, axis = 1,
+    >>> matrix_nozp = sp.feats.apply_new_subframe(matrix, new_frame_size = 3, axis = 1,
     ...                                    zeropad=False)
     >>> matrix_nozp.shape
     (3, 1, 3, 2)
@@ -2275,16 +2283,17 @@ def separate_dependent_var(matrix):
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> #vector
-    >>> separate_dependent_var(np.array([1,2,3,4]))
+    >>> sp.feats.separate_dependent_var(np.array([1,2,3,4]))
     (array([1, 2, 3]), 4)
     >>> #simple matrix
     >>> matrix = np.arange(4).reshape(2,2)
     >>> matrix
     array([[0, 1],
            [2, 3]])
-    >>> X, y = separate_dependent_var(matrix)
+    >>> X, y = sp.feats.separate_dependent_var(matrix)
     >>> X
     array([[0],
            [2]])
@@ -2298,7 +2307,7 @@ def separate_dependent_var(matrix):
     <BLANKLINE>
            [[10, 11, 12, 13, 14],
             [15, 16, 17, 18, 19]]])
-    >>> X, y = separate_dependent_var(matrix)
+    >>> X, y = sp.feats.separate_dependent_var(matrix)
     >>> X
     array([[[ 0,  1,  2,  3],
             [ 5,  6,  7,  8]],
@@ -2356,6 +2365,7 @@ def add_tensor(matrix):
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> matrix = np.arange(24).reshape((2,3,4))
     >>> matrix.shape
@@ -2368,7 +2378,7 @@ def add_tensor(matrix):
            [[12, 13, 14, 15],
             [16, 17, 18, 19],
             [20, 21, 22, 23]]])
-    >>> matrix_2 = add_tensor(matrix)
+    >>> matrix_2 = sp.feats.add_tensor(matrix)
     >>> matrix_2.shape
     (2, 3, 4, 1)
     >>> matrix_2

@@ -348,6 +348,7 @@ def filtersignal(audiofile,
                                         remove_dc=remove_dc)
     return enhanced_signal, fil.sr
 
+# BUG doctest fails due to print_progress.
 def dataset_logger(audiofile_dir = None, recursive=True):
     '''Logs name, format, bitdepth, sr, duration of audiofiles, num_channels
     
@@ -372,16 +373,17 @@ def dataset_logger(audiofile_dir = None, recursive=True):
     
     Examples
     --------
-    >>> audio_info = dataset_logger()
+    >>> import soundpy as sp
+    >>> audio_info = sp.builtin.dataset_logger() 
     >>> # look at three audio files:
     >>> count = 0
     >>> for key, value in audio_info.items(): 
-    ...:     for k, v in value.items(): 
-    ...:         print(k, ' : ', v) 
-    ...:     count += 1 
-    ...:     print() 
-    ...:     if count > 2: 
-    ...:         break 
+    ...     for k, v in value.items():
+    ...         print(k, ' : ', v) 
+    ...     count += 1 
+    ...     print() 
+    ...     if count > 2: 
+    ...         break 
     audio  :  audiodata/dogbark_2channels.wav
     sr  :  48000
     num_channels  :  2

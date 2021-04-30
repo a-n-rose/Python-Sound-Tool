@@ -55,25 +55,26 @@ def create_encodedlabel2audio_dict(dict_encodelabels, paths_list, limit=None, se
     TODO update:
     Examples
     --------
+    >>> import soundpy as sp
     >>> from pathlib import Path
     >>> labels = dict([('vacuum',2),('fridge',0),('wind',1)])
     >>> paths = [Path('data/audio/vacuum/vacuum1.wav'), 
     ...         Path('data/audio/fridge/fridge1.wav'), 
     ...         Path('data/audio/vacuum/vacuum2.wav'),
     ...         Path('data/audio/wind/wind1.wav')]
-    >>> label_waves_dict = create_encodedlabel2audio_dict(labels, paths)
+    >>> label_waves_dict = sp.datasets.create_encodedlabel2audio_dict(labels, paths)
     >>> label_waves_dict
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
 (2, [PosixPath('data/audio/vacuum/vacuum1.wav'), \
 PosixPath('data/audio/vacuum/vacuum2.wav')]), \
 (1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #to set a limit on number of audiofiles per class:
-    >>> create_encodedlabel2audio_dict(labels, paths, limit=1, seed=40)
+    >>> sp.datasets.create_encodedlabel2audio_dict(labels, paths, limit=1, seed=40)
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
 (2, [PosixPath('data/audio/vacuum/vacuum2.wav')]), \
 (1, [PosixPath('data/audio/wind/wind1.wav')])])
     >>> #change the limited pathways chosen:
-    >>> create_encodedlabel2audio_dict(labels, paths, limit=1, seed=10)
+    >>> sp.datasets.create_encodedlabel2audio_dict(labels, paths, limit=1, seed=10)
     OrderedDict([(0, [PosixPath('data/audio/fridge/fridge1.wav')]), \
 (2, [PosixPath('data/audio/vacuum/vacuum1.wav')]), \
 (1, [PosixPath('data/audio/wind/wind1.wav')])])
@@ -137,8 +138,9 @@ def create_dicts_labelsencoded(labels_class, add_extra_label = False, extra_labe
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> labels = {'wind','air_conditioner','fridge'}
-    >>> label2int, int2label = create_dicts_labelsencoded(labels)
+    >>> label2int, int2label = sp.datasets.create_dicts_labelsencoded(labels)
     >>> label2int
     {'air_conditioner': 0, 'fridge': 1, 'wind': 2}
     >>> int2label
@@ -160,8 +162,10 @@ def create_dicts_labelsencoded(labels_class, add_extra_label = False, extra_labe
     return dict_label2int, dict_int2label
 
 # TODO change name to audiolist2dataset?
+# BUG (very minor) in soundpy0.1.0a2: With *very* small datasets (e.g. fake/example datasets), 
+# incorrectly calculated number of files assigned to datasets
 def waves2dataset(audiolist, perc_train=0.8, seed=40, train=True, val=True, test=True):
-    '''Organizes audio files list into train, validation and test datasets.
+    '''Pseudorandomly assigns audio list into train, val, test datasets.
     
     If only two or one dataset is to be prepared, they will be assigned to train and 
     val or simply to train, respectively. The remaining 'datasets' will remain empty.
@@ -193,17 +197,18 @@ def waves2dataset(audiolist, perc_train=0.8, seed=40, train=True, val=True, test
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> #Using a list of numbers instead of filenames
     >>> audiolist = [1,2,3,4,5,6,7,8,9,10]
     >>> #default settings:
-    >>> waves2dataset(audiolist)
+    >>> sp.datasets.waves2dataset(audiolist)
     ([5, 4, 9, 2, 3, 10, 1, 6], [8], [7])
     >>> #perc_train set to 50% instead of 80%:
-    >>> waves2dataset(audiolist, perc_train=50)
+    >>> sp.datasets.waves2dataset(audiolist, perc_train=50)
     ([5, 4, 9, 2, 3, 10], [1, 6], [8, 7])
-    >>> #change seed number
-    >>> waves2dataset(audiolist, seed=0)
-    ([7, 1, 2, 5, 6, 9, 10, 8], [4], [3])
+    >>> # shuffle the audio / change seed (default 40)
+    >>> sp.datasets.waves2dataset(audiolist, seed=50)
+    ([8, 9, 7, 3, 5, 2, 6, 4], [10], [1])
     '''
     if seed == 0:
         raise ValueError('Seed equals 0. This will result in unreliable '+\
@@ -243,34 +248,20 @@ def waves2dataset(audiolist, perc_train=0.8, seed=40, train=True, val=True, test
         num_datasets = 1
         perc_valtest = 0
         perc_train = 1.
-        
-    # assign empty datasets to train, train and val, for this function
-    if train:
-        pass
-    if val:
-        if not train:
-            train = val 
-            val = ''
-    if test:
-        if not train:
-            train = test
-            test = ''
-        elif not val:
-            val = test
-            test = ''
 
+    # assign number of waves to each list
     num_waves = len(audiolist)
     num_train = int(num_waves * perc_train)
     num_val_test = int(num_waves * perc_valtest)
-    if num_datasets > 1 and num_val_test < num_datasets-1:
-        while num_val_test < num_datasets-1:
-            num_val_test += 1
-            num_train -= 1
-            if num_val_test == num_datasets-1:
-                break
+    # I think this is to avoid empty dataset lists
+    if num_datasets > 1 and num_val_test < 1:
+        num_val_test += 1
+        num_train -= 1
+    # ensure all audio files are included
     if num_datasets == 3 and num_train + 2*num_val_test < num_waves:
         diff = num_waves - num_train - 2*num_val_test
         num_train += diff
+    # ensure all audio files are included
     elif num_datasets == 1 and num_train < num_waves:
         num_train = num_waves
     if seed:
@@ -466,8 +457,14 @@ def separate_train_val_test_files(list_of_files):
         
     Examples
     --------
+    >>> import soundpy as sp
+    >>> # create fake files (otherwise FileNotFoundError)
+    >>> fakefiles = ['train1.npy', 'train2.npy', 'val.npy', 'test.npy',
+    ...   'train_noisy.npy','train_clean.npy','val_noisy.npy','val_clean.npy','test_noisy.npy','test_clean.npy']
+    >>> for f in fakefiles:
+    ...   np.save(f, np.array([1,2,3]))
     >>> features_files = ['train1.npy', 'train2.npy', 'val.npy', 'test.npy']
-    >>> datasets = separate_train_val_test_files(features_files)
+    >>> datasets = sp.datasets.separate_train_val_test_files(features_files)
     >>> datasets.train
     [PosixPath('train1.npy'), PosixPath('train2.npy')]
     >>> datasets.val
@@ -477,7 +474,7 @@ def separate_train_val_test_files(list_of_files):
     >>> # try with noisy and clean data
     >>> features_files = ['train_noisy.npy', 'train_clean.npy', 'val_noisy.npy', \
 'val_clean.npy', 'test_noisy.npy', 'test_clean.npy']
-    >>> datasets = separate_train_val_test_files(features_files)
+    >>> datasets = sp.datasets.separate_train_val_test_files(features_files)
     >>> datasets.train.noisy
     [PosixPath('train_noisy.npy')]
     >>> datasets.train.clean
@@ -490,6 +487,10 @@ def separate_train_val_test_files(list_of_files):
     [PosixPath('test_noisy.npy')]
     >>> datasets.test.clean
     [PosixPath('test_clean.npy')]
+    >>> # clean up fake files:
+    >>> import os
+    >>> for f in fakefiles:
+    ...   os.remove(f)
     '''
     train_data_input = []
     train_data_output = []
@@ -560,6 +561,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     
     Examples
     --------
+    >>> import soundpy as sp
     >>> import pathlib
     >>> # train is longer than val and test
     >>> d = {'train': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],\
@@ -569,7 +571,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
     >>> dp = {'train': pathlib.PosixPath('train_data.npy'),\
               'val': pathlib.PosixPath('val_data.npy'),\
               'test': pathlib.PosixPath('test_data.npy')}
-    >>> d2, dp2 = section_data(d, dp, divide_factor = 3)
+    >>> d2, dp2 = sp.datasets.section_data(d, dp, divide_factor = 3)
     >>> # val and train not touched (too small)
     >>> d2
     {'train__1': [1, 2, 3, 4, 5], \
@@ -585,7 +587,7 @@ def section_data(dataset_dict, dataset_paths_dict, divide_factor=None):
 'test': PosixPath('test_data.npy')}
     >>> # repeat: now val and test as long as train
     >>> # default divide_factor is 2
-    >>> d3, dp3 = section_data(d2, dp2)
+    >>> d3, dp3 = sp.datasets.section_data(d2, dp2)
     >>> d3
     {'train__1': [1, 2], \
 'train__2': [3, 4, 5], \

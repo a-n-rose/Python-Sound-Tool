@@ -339,29 +339,13 @@ def get_augmentation_dict():
     Examples
     --------
     >>> import soundpy as sp
-    >>> ad = sp.augment.get_augmentation_dict()
+    >>> ad = sp.augment.get_augmentation_dict() 
     >>> ad
-    {'speed_increase': False,
-    'speed_decrease': False,
-    'time_shift': False,
-    'shufflesound': False,
-    'add_white_noise': False,
-    'harmonic_distortion': False,
-    'pitch_increase': False,
-    'pitch_decrease': False,
-    'vtlp': False}
+    {'speed_increase': False, 'speed_decrease': False, 'time_shift': False, 'shufflesound': False, 'add_white_noise': False, 'harmonic_distortion': False, 'pitch_increase': False, 'pitch_decrease': False, 'vtlp': False}
     >>> # to set augmentation to True:
     >>> ad['add_white_noise'] = True
     >>> ad
-    {'speed_increase': False,
-    'speed_decrease': False,
-    'time_shift': False,
-    'shufflesound': False,
-    'add_white_noise': True,
-    'harmonic_distortion': False,
-    'pitch_increase': False,
-    'pitch_decrease': False,
-    'vtlp': False}
+    {'speed_increase': False, 'speed_decrease': False, 'time_shift': False, 'shufflesound': False, 'add_white_noise': True, 'harmonic_distortion': False, 'pitch_increase': False, 'pitch_decrease': False, 'vtlp': False}
     '''
     base_dict = dict([('speed_increase', False),
                       ('speed_decrease', False),
@@ -381,17 +365,17 @@ def list_augmentations():
     Examples
     --------
     >>> import soundpy as sp
-    >>> print(sp.augment.list_augmentations())
+    >>> print(sp.augment.list_augmentations()) # doctest: +NORMALIZE_WHITESPACE
     Available augmentations:
-            speed_increase
-            speed_decrease
-            time_shift
-            shufflesound
-            add_white_noise
-            harmonic_distortion
-            pitch_increase
-            pitch_decrease
-            vtlp
+       speed_increase
+       speed_decrease
+       time_shift
+       shufflesound
+       add_white_noise
+       harmonic_distortion
+       pitch_increase
+       pitch_decrease
+       vtlp
     '''
     augmentation_dict = sp.augment.get_augmentation_dict()
     aug_list = '\t'+'\n\t'.join(str(x) for x in augmentation_dict.keys())
@@ -416,7 +400,7 @@ def get_augmentation_settings_dict(augmentation):
     Examples
     --------
     >>> import soundpy as sp
-    >>> d = sp.augment.get_augmentation_settings_dict('speed_decrease')
+    >>> d = sp.augment.get_augmentation_settings_dict('speed_decrease') # doctest: +NORMALIZE_WHITESPACE
     >>> d
     {'perc': 0.15}
     >>> # can use this dictionary to apply different values for augmentation
@@ -425,21 +409,17 @@ def get_augmentation_settings_dict(augmentation):
     {'perc': 0.1}
     >>> # to build a dictionary with several settings:
     >>> many_settings_dict = {}
-    >>> many_settings_dict['add_white_noise'] = sp.augment.get_augmentation_settings_dict('add_white_noise')
-    >>> many_settings_dict['pitch_increase'] = sp.augment.get_augmentation_settings_dict('pitch_increase')
+    >>> many_settings_dict['add_white_noise'] = sp.augment.get_augmentation_settings_dict('add_white_noise') # doctest: +NORMALIZE_WHITESPACE
+    >>> many_settings_dict['pitch_increase'] = sp.augment.get_augmentation_settings_dict('pitch_increase') # doctest: +NORMALIZE_WHITESPACE
     >>> many_settings_dict
-    {'add_white_noise': {'noise_level': 0.01, 'snr': 10, 'random_seed': None},
-    'pitch_increase': {'num_semitones': 2}}
+    {'add_white_noise': {'noise_level': 0.01, 'snr': 10, 'random_seed': None}, 'pitch_increase': {'num_semitones': 2}}
     >>> # change 'snr' default values to list of several values
     >>> # this would apply white noise at either 10, 15, or 20 SNR, at random
     >>> many_settings_dict['add_white_noise']['snr'] = [10, 15, 20]
     >>> # change number of semitones pitch increase is applied
     >>> many_settings_dict['pitch_increase']['num_semitones'] = 1
     >>> many_settings_dict
-    {'add_white_noise': {'noise_level': 0.01,
-    'snr': [10, 15, 20],
-    'random_seed': None},
-    'pitch_increase': {'num_semitones': 1}}
+    {'add_white_noise': {'noise_level': 0.01, 'snr': [10, 15, 20], 'random_seed': None}, 'pitch_increase': {'num_semitones': 1}}
 
     Raises
     ------

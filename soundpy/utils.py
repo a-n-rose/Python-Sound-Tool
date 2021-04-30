@@ -26,29 +26,35 @@ def path_or_samples(input_value):
     
     Parameters
     ----------
-    input_value : str, pathlib.PosixPath, or tuple [size= ( (samples,), sr)] or np.ndarray [size = (samples, )]
+    input_value : str, pathlib.PosixPath, tuple [size= ( (samples,), sr)] or np.ndarray [size = (samples, )]
     
     Returns
     -------
     'path' or 'samples' : str 
     
+    Raises
+    ------
+    TypeError 
+        If none of the expected data types detected in `input_value`.
+    
     Examples
     --------
+    >>> import soundpy as sp
     >>> import numpy as np
     >>> # create some example samples and sample rate
     >>> samples = np.array([1,2,3,2,1,0])
     >>> sr = 5
-    >>> path_or_samples( (samples, sr) )
+    >>> sp.utils.path_or_samples( (samples, sr) )
     'samples'
     >>> # expects both audio samples and sr
-    >>> path_or_samples(samples)
-    TypeError: The input for `path_or_samples` expected a str, pathlib.PosixPath, or tuple with samples and sample rate, not type <class 'numpy.ndarray'>
+    >>> sp.utils.path_or_samples(samples)
+    'samples'
     >>> # create example string pathway
-    >>> path_or_samples('my_audio.wav')
+    >>> sp.utils.path_or_samples('my_audio.wav')
     'path'
     >>> # create pathlib.PosixPath object 
     >>> import pathlib
-    >>> path_or_samples(pathlib.Path('my_audio.wav')
+    >>> sp.utils.path_or_samples(pathlib.Path('my_audio.wav'))
     'path'
     '''
     if isinstance(input_value, str):
@@ -116,9 +122,10 @@ def get_date():
         
     Examples
     --------
-    >>> date = get_date()
-    >>> date
-    '6m18d1h16m32s295ms'
+    >>> import soundpy as sp
+    >>> date = sp.utils.get_date()
+    >>> type(date)  # '6m18d1h16m32s295ms'
+    <class 'str'>
     '''
     time = datetime.datetime.now()
     time_str = "{}m{}d{}h{}m{}s{}ms".format(time.month,
@@ -193,15 +200,24 @@ def create_nested_dirs(directory):
         
     Examples
     --------
-    >>> # First an unsucessful creation of nested directory
+    >>> import soundpy as sp
+    >>> # First an unsuccessful creation of nested directory
     >>> import os
-    >>> new_dir = './testdir/testdir/testdir/'
-    >>> os.mkdir(new_dir)
-    FileNotFoundError: [Errno 2] No such file or directory: './testdir/testdir/testdir/'
+    >>> new_dir = 'testdir/testdir/testdir/'
+    >>> assert not os.path.exists(new_dir)
+    >>> os.mkdir(new_dir) 
+    Traceback (most recent call last):
+       ...
+    FileNotFoundError: [Errno 2] No such file or directory: 'testdir/testdir/testdir/'
     >>> # try again with create_nested_dirs()
-    >>> directory = create_nested_dirs(new_dir)
+    >>> directory = sp.utils.create_nested_dirs(new_dir)
     >>> directory
     PosixPath('testdir/testdir/testdir')
+    >>> # delete the (empty) created testdir:
+    >>> # (not included in functionality)
+    >>> os.rmdir('testdir/testdir/testdir')
+    >>> os.rmdir('testdir/testdir')
+    >>> os.rmdir('testdir/')
     '''
     if not isinstance(directory, pathlib.PosixPath):
         directory = pathlib.Path(directory)
@@ -235,8 +251,9 @@ def string2pathlib(pathway_string):
         
     Examples
     --------
+    >>> import soundpy as sp
     >>> pathway = 'folder/way2go.txt'
-    >>> pathlib_pathway = string2pathlib(pathway)
+    >>> pathlib_pathway = sp.utils.string2pathlib(pathway)
     >>> pathlib_pathway
     PosixPath('folder/way2go.txt')
     '''
@@ -275,32 +292,31 @@ def restore_dictvalue(value_string):
 
     Examples
     --------
+    >>> import soundpy as sp
     >>> input_string = "[PosixPath('data/audio/vacuum/vacuum1.wav')]"
     >>> type(input_string)
     <class 'str'>
-    >>> typelist = string2list(input_string)
+    >>> typelist = sp.utils.restore_dictvalue(input_string)
     >>> typelist
     [PosixPath('data/audio/vacuum/vacuum1.wav')]
     >>> type(typelist)
     <class 'list'>
     >>> # Get type of the object
     >>> type(typelist[0])
-    pathlib.PosixPath
+    <class 'pathlib.PosixPath'>
     >>> # Example with a list of tuples, i.e. label and audio file pairs:
-    >>> input_string = "[(2, PosixPath('data/audio/vacuum/vacuum1.wav')), '+\
-        '(1, PosixPath('data/audio/vacuum/vacuum2.wav'))]"
-    >>> labelaudio_pairs = string2list(input_string)
+    >>> input_string = "[(2, PosixPath('data/audio/vacuum/vacuum1.wav')), (1, PosixPath('data/audio/vacuum/vacuum2.wav'))]"
+    >>> labelaudio_pairs = sp.utils.restore_dictvalue(input_string)
     >>> labelaudio_pairs
-    [(2, PosixPath('data/audio/vacuum/vacuum1.wav')),
-    (1, PosixPath('data/audio/vacuum/vacuum2.wav'))]
+    [(2, PosixPath('data/audio/vacuum/vacuum1.wav')), (1, PosixPath('data/audio/vacuum/vacuum2.wav'))]
     >>> type(labelaudio_pairs)
-    list
+    <class 'list'>
     >>> type(labelaudio_pairs[0])
-    tuple
+    <class 'tuple'>
     >>> type(labelaudio_pairs[0][0])
-    int
+    <class 'int'>
     >>> type(labelaudio_pairs[0][1])
-    pathlib.PosixPath
+    <class 'pathlib.PosixPath'>
     '''
     # only works with type string data
     if not isinstance(value_string, str):
@@ -408,11 +424,12 @@ def adjust_time_units(time_sec):
         
     Examples
     --------
-    >>> adjust_time_units(5)
+    >>> import soundpy as sp
+    >>> sp.utils.adjust_time_units(5)
     (5, 'seconds')
-    >>> adjust_time_units(500)
+    >>> sp.utils.adjust_time_units(500)
     (8.333333333333334, 'minutes')
-    >>> adjust_time_units(5000)
+    >>> sp.utils.adjust_time_units(5000)
     (1.3888888888888888, 'hours')
     '''
     if time_sec >= 60 and time_sec < 3600:
@@ -446,9 +463,10 @@ def print_progress(iteration, total_iterations, task = None):
     
     Examples
     --------
-    >>> print_progress(4, 10)
+    >>> import soundpy as sp
+    >>> sp.utils.print_progress(4, 10)  # doctest: +NORMALIZE_WHITESPACE
     50% through current task
-    >>> print_progress(4, 10, task = 'testing')
+    >>> sp.utils.print_progress(4, 10, task = 'testing')  # doctest: +NORMALIZE_WHITESPACE
     50% through testing
     '''
     progress = (iteration+1) / total_iterations * 100 
@@ -458,6 +476,7 @@ def print_progress(iteration, total_iterations, task = None):
         sys.stdout.write("\r%d%% through current task" % progress)
     sys.stdout.flush()
     
+# BUG in version 0.1.0a2: function references incorrect parameter name.
 def check_extraction_variables(sr=None, feature_type=None,
               win_size_ms=None, percent_overlap=None):
     '''Checks to ensure extraction variables are compatible.
@@ -466,11 +485,14 @@ def check_extraction_variables(sr=None, feature_type=None,
     ----------
     sr : int 
         The sample rate of audio.
+        
     feature_type : str 
         The type of feature to be extracted: 'fbank', 'stft', 'powspec',
         'mfcc', 'signal'.
+    
     win_size_ms : int, float
         The window size to process audio samples.
+    
     percent_overlap : int, float 
         The percent windows should overlap.
         
@@ -485,8 +507,14 @@ def check_extraction_variables(sr=None, feature_type=None,
         
     Examples
     --------
-    >>> check_extraction_variables(sr=48000, feature_type='signal', win_size_ms=25,percent_overlap=0.5)
-    >>> check_extraction_variables(sr='48000', feature_type='sig',win_size_ms='25',percent_overlap='0.5')
+    >>> import soundpy as sp
+    >>> # DOCTEST for soundpy0.1.0a2 TODO update for soundpy0.1.0a3
+    >>> # BUG in old version of soundpy0.1.02a
+    >>> sp.utils.check_extraction_variables(sr=48000, feature_type='signal', win_size_ms=25,percent_overlap=0.5)
+    >>> # Works in this case:
+    >>> sp.utils.check_extraction_variables(sr='48000', feature_type='sig',win_size_ms='25',percent_overlap='0.5')
+    Traceback (most recent call last):
+          ...
     ValueError: Sampling rate (sr) must be of type int, not 48000 of type <class 'str'>.
     '''
     accepted_features = ['fbank', 'stft', 'powspec', 'mfcc', 'signal']

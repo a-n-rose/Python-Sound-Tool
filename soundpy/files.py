@@ -262,7 +262,7 @@ def audiofiles_present(directory, recursive=False):
     '''
     directory = sp.utils.string2pathlib(directory)
 
-def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursive=False):
+def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursive=False, audio_only=True):
     '''Collects all files within a given directory.
     
     This includes the option to include hidden_files in the collection.
@@ -271,12 +271,22 @@ def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursiv
     ----------
     directory : str or pathlib.PosixPath
         The path to where desired files are located.
+        
     hidden_files : bool 
         If True, hidden files will be included. If False, they won't.
         (default False)
+        
     wav_only : bool 
         If True, only .wav files will be included. Otherwise, no limit
-        on file type. 
+        on file type. (default False)
+        
+    recursive : bool 
+        If True, will collect files in subfolders. Otherwise will only collect files
+        in local directory. (default False)
+        
+    audio_only : bool
+        If True, only audio files will be collected. Otherwise all other 
+        file types will be collected. (default True)
     
     Returns
     -------
@@ -299,7 +309,8 @@ def collect_audiofiles(directory, hidden_files = False, wav_only=False, recursiv
     if not hidden_files:
         paths_list = [x for x in paths_list if x.stem[0] != '.']
     # ensure only audiofiles:
-    paths_list = sp.files.ensure_only_audiofiles(paths_list)
+    if audio_only:
+        paths_list = sp.files.ensure_only_audiofiles(paths_list)
     return paths_list
 
 
@@ -392,7 +403,8 @@ def conversion_formats():
     
     Examples
     --------
-    >>> conversion_formats
+    >>> import soundpy as sp
+    >>> sp.files.conversion_formats() # doctest: +NORMALIZE_WHITESPACE
     {'AIFF': 'AIFF (Apple/SGI)',
     'AU': 'AU (Sun/NeXT)',
     'AVR': 'AVR (Audio Visual Research)',
@@ -454,21 +466,26 @@ def convert_audiofile(filename, format_type=None, sr=None, new_dir=False, overwr
         
     Examples
     --------
-    >>> audiofile = './example/audio.wav'
-    # in same directory
+    >>> import soundpy as sp
+    >>> audiofile = './audio_files/python.wav'
+    >>> # in same directory
     >>> audiofile_flac = sp.files.convert_audiofile(audiofile, format_type='flac')
     >>> audiofile_flac
-    PosixPath('example/audio.flac')
-    # in new directory
-    >>> audiofile_flac = sp.files.convert_audiofile(audiofile, format_type='flac', 
-                                                     new_dir = './examples2/')
-    >>> audiofile_flac
-    PosixPath('examples2/audio.flac')
+    PosixPath('audio_files/python.flac')
+    >>> # in new directory
+    >>> audiofile_flac2 = sp.files.convert_audiofile(audiofile, format_type='flac', new_dir = './examples/')
+    >>> audiofile_flac2
+    PosixPath('examples/python.flac')
     >>> # can establish desired conversion format in `new_dir`
-    >>> audiofile_ogg = sp.files.convert_audiofile(audiofile,
-                                                     new_dir = './examples2/audio.ogg')
+    >>> audiofile_ogg = sp.files.convert_audiofile(audiofile, new_dir = './examples/python.ogg')
     >>> audiofile_ogg
-    PosixPath('audiodata2/audio.ogg')
+    PosixPath('examples/python.ogg')
+    >>> # cleanup if doctest applied
+    >>> import os
+    >>> os.remove(audiofile_flac)
+    >>> os.remove(audiofile_flac2)
+    >>> os.remove(audiofile_ogg)
+    >>> os.rmdir('./examples')
     
     See Also
     --------
@@ -654,9 +671,10 @@ def adjustname(filename, adjustment=None):
         
     Examples
     --------
-    >>> adjustname('happy.md')
+    >>> import soundpy as sp
+    >>> sp.files.adjustname('happy.md')
     'happy_adj.md'
-    >>> adjustname('happy.md', '_not_sad')
+    >>> sp.files.adjustname('happy.md', '_not_sad')
     'happy_not_sad.md'
     '''
     import pathlib
