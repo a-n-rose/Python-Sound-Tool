@@ -38,7 +38,6 @@ class VADhandler(BaseModel):
         return v
 
 class SoundObj(BaseModel):
-    #TODO add object ID?
     id: int=random.randint(100000000000,199999999999)
     data: Any 
     sr: int
