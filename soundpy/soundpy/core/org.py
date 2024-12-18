@@ -10,7 +10,7 @@ class FFTsettings(BaseModel):
     win_size_ms: Optional[int]=50
     percent_overlap: Optional[float]=0
     real_signal: Optional[bool]=False
-    fft_bins: Optional[int]=None
+    fft_bins: int
     window: Optional[str]="hann" # TODO add validator
 
 class VADsettings(BaseModel):
@@ -19,16 +19,16 @@ class VADsettings(BaseModel):
     energy_thresh: Optional[int]=40
     freq_thresh: Optional[int]=185
     sfm_thresh: Optional[int]=5
-    min_energy: Optional[float]=None
-    min_freq: Optional[float]=None
-    min_sfm: Optional[float]=None
+    # min_energy: Optional[float]=None
+    # min_freq: Optional[float]=None
+    # min_sfm: Optional[float]=None
     use_beg_ms: Optional[int]=120
 
 class VADhandler(BaseModel):
     """Handles voice detection variables
     """
-    fft_settings: Optional[dict | FFTsettings]=FFTsettings().__dict__
-    vad_settings: Optional[dict | VADsettings]=VADsettings().__dict__
+    fft_settings: Optional[dict | FFTsettings]
+    vad_settings: Optional[dict | VADsettings]
 
     @field_validator('fft_settings', 'vad_settings')
     @classmethod
