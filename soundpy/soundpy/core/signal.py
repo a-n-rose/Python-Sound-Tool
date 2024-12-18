@@ -2,7 +2,8 @@ import math
 import numpy as np
 from numpy.fft import fft, rfft, ifft, irfft
 
-from .org import SoundObj, Settings,FFTsettings, VADsettings
+
+from soundpy.core.org import SoundObj, Settings,FFTsettings, VADsettings
 
 class VAD:
     def __init__(
