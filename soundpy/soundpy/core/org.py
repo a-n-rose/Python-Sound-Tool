@@ -10,7 +10,7 @@ class FFTsettings(BaseModel):
     win_size_ms: Optional[int]=50
     percent_overlap: Optional[float]=0
     real_signal: Optional[bool]=False
-    fft_bins: int
+    fft_bins: Optional[int]=None
     window: Optional[str]="hann" # TODO add validator
 
 class VADsettings(BaseModel):

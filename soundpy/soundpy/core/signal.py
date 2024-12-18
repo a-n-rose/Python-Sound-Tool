@@ -15,10 +15,13 @@ class VAD:
         if settings is None:
             # Ensure default setting num fft_bins documented
             settings=Settings(
-                fft_settings=FFTsettings(fft_bins=int(self.sound.sr)//2),
-                vad_settings=VADsettings(),
+                fft=FFTsettings(),
+                vad=VADsettings(),
             )
         self.settings=settings
+        "Ensure default num fft_bins documented:"
+        if self.settings.fft["fft_bins"] is None:
+            self.settings.fft["fft_bins"]=int(self.sound.sr)//2
         self.frames_vad, self.frames_idx = vad(
             data=self.sound.data,
             sr=self.sound.sr,
