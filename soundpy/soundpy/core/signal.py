@@ -548,8 +548,8 @@ def spectral_flatness_measure(spectrum):
     return sfm
 
 
-# TODO include indices to location in the signal
 # TODO not allow 'None' defaults
+# TODO Doesn't catch end of VAD well; loses speech info at end, seemingly
 def vad(data: np.ndarray, sr:int, win_size_ms: int = 50, percent_overlap:float = 0, 
         real_signal:bool = False, fft_bins:int = None, window:str = 'hann',
         energy_thresh:int = 40, freq_thresh:int = 185, sfm_thresh:int = 5,
