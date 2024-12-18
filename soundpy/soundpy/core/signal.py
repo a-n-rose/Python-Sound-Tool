@@ -18,12 +18,14 @@ class VAD:
             )
         self.origin=origin
         self.settings=settings
-        self.vad, __ = vad(
+        self.frames_vad, self.frames_idx = vad(
             data=self.origin.data,
             sr=self.origin.sr,
             **self.settings.fft_settings,
             **self.settings.vad_settings,
         )
+        self.startidx=np.where(self.frames_vad == 1)[0][0]
+        self.endidx=np.where(self.frames_vad == 1)[0][-1]
 
 
 def calc_frame_length(dur_frame_millisec, sr):
@@ -612,6 +614,10 @@ def vad(data: np.ndarray, sr:int, win_size_ms: int = 50, percent_overlap:float =
         (num_subframes,),
          complex_vals = False,
     )
+    vadidx_matrix = create_empty_matrix(
+        (num_subframes,),
+         complex_vals = False,
+    ).astype(int)
     section_start = 0
     speech = 0
     silence = 0
@@ -620,6 +626,8 @@ def vad(data: np.ndarray, sr:int, win_size_ms: int = 50, percent_overlap:float =
     min_sfm_array = np.zeros(measure_noise_frames)
     window_frame = create_window(window, frame_length)
     for frame in range(num_subframes):
+        # include signal idx for current frame
+        vadidx_matrix[frame] += int(section_start)
         samples = data[section_start:section_start+frame_length]
         samples_windowed = apply_window(samples, window_frame, zeropad = True)
         
@@ -712,4 +720,4 @@ def vad(data: np.ndarray, sr:int, win_size_ms: int = 50, percent_overlap:float =
             thresh_e = energy_thresh * np.log(min_energy)
         section_start += (frame_length - num_overlap_samples)
     #TODO is relevant sending back min_energy, min_freq, min_sfm?
-    return vad_matrix, (sr, min_energy, min_freq, min_sfm)
+    return vad_matrix, vadidx_matrix, #(sr, min_energy, min_freq, min_sfm)
