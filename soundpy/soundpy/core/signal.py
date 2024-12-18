@@ -399,8 +399,9 @@ def shape_samps_channels(data):
     
     Parameters
     ----------
-    data : np.ndarray [size= (num_samples,) or (num_samples, num_channels), or (num_channels, num_samples)]
-        The data that needs to be checked for correct format 
+    data : np.ndarray [size= (num_samples,) or (num_samples, num_channels), or 
+        (num_channels, num_samples)] The data that needs to be checked for 
+        correct format 
     
     Returns
     -------
@@ -567,7 +568,9 @@ def vad(data: np.ndarray, sr:int, win_size_ms: int = 50, percent_overlap:float =
     
     References
     ----------
-    M. H. Moattar and M. M. Homayounpour, "A simple but efficient real-time Voice Activity Detection algorithm," 2009 17th European Signal Processing Conference, Glasgow, 2009, pp. 2549-2553.
+    M. H. Moattar and M. M. Homayounpour, "A simple but efficient real-time Voice 
+    Activity Detection algorithm," 2009 17th European Signal Processing Conference, 
+    Glasgow, 2009, pp. 2549-2553.
     '''
     # if real signal, divide freq_thresh in half, as only half freq_bins are used
     if real_signal:
