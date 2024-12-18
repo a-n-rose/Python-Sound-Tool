@@ -2,22 +2,25 @@ import math
 import numpy as np
 from numpy.fft import fft, rfft, ifft, irfft
 
-from .org import SoundObj, VADhandler,FFTsettings
+from .org import SoundObj, VADhandler,FFTsettings, VADsettings
 
 class VAD:
     def __init__(
             self,
-            soundobj:SoundObj,
+            origin:SoundObj,
             settings:VADhandler=None,
     ):
         if settings is None:
             # Ensure default setting num fft_bins documented
-            settings=VADhandler(fft_settings=FFTsettings(fft_bins=int(soundobj.sr)//2))
-        self.soundobj=soundobj
+            settings=VADhandler(
+                fft_settings=FFTsettings(fft_bins=int(origin.sr)//2),
+                vad_settings=VADsettings(),
+            )
+        self.origin=origin
         self.settings=settings
         self.vad, __ = vad(
-            data=self.soundobj.data,
-            sr=self.soundobj.sr,
+            data=self.origin.data,
+            sr=self.origin.sr,
             **self.settings.fft_settings,
             **self.settings.vad_settings,
         )
