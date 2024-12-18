@@ -7,9 +7,11 @@ from .org import SoundObj, VADhandler,FFTsettings, VADsettings
 class VAD:
     def __init__(
             self,
-            origin:SoundObj,
+            origin:SoundObj | dict,
             settings:VADhandler=None,
     ):
+        if isinstance(origin, dict):
+            origin=SoundObj(**origin)
         if settings is None:
             # Ensure default setting num fft_bins documented
             settings=VADhandler(
