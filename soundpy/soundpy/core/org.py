@@ -24,13 +24,13 @@ class VADsettings(BaseModel):
     # min_sfm: Optional[float]=None
     use_beg_ms: Optional[int]=120
 
-class VADhandler(BaseModel):
+class Settings(BaseModel):
     """Handles voice detection variables
     """
-    fft_settings: Optional[dict | FFTsettings]
-    vad_settings: Optional[dict | VADsettings]
+    fft: Optional[dict | FFTsettings]
+    vad: Optional[dict | VADsettings]
 
-    @field_validator('fft_settings', 'vad_settings')
+    @field_validator('fft', 'vad')
     @classmethod
     def convert_to_dict(cls, v: dict | FFTsettings | VADsettings,) -> dict:
         if not isinstance(v, dict):
